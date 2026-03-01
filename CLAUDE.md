@@ -1,0 +1,203 @@
+# CLAUDE.md — Korakuen Management System
+
+This file is the entry point for Claude Code. Read this first. Then read the specific document relevant to your current task before writing any code.
+
+---
+
+## What This System Is
+
+A custom management system for **Korakuen**, a small Peruvian construction company founded February 2026. Three partner companies collaborate on civil works projects (roads, sidewalks, small police modules) under both subcontractor and OxI (Obras por Impuesto) frameworks.
+
+The system replaces spreadsheets with a structured database. It gives the partners real operational visibility — cost tracking, invoice management, payment calendars, partner contribution balances — without the complexity of an ERP.
+
+**This is not a prototype.** The database is production infrastructure. Every decision in these documents was deliberate. Do not change architectural decisions without explicit discussion.
+
+---
+
+## Core Principle
+
+**The database is the product. The CLI is how data gets in. The website is how data gets read.**
+
+- Data entry: Python CLI scripts (terminal only)
+- Data storage: PostgreSQL on Supabase
+- Data visualization: Next.js website on Vercel (read-only in V0)
+- File storage: SharePoint (external, referenced by naming convention only)
+
+---
+
+## Technology Stack
+
+| Layer | Tool |
+|---|---|
+| Database | PostgreSQL on Supabase |
+| CLI scripts | Python 3.11+ |
+| Website | Next.js + TypeScript on Vercel |
+| Package manager (Python) | pip + virtualenv |
+| Package manager (JS) | npm |
+
+---
+
+## Repository Structure
+
+```
+korakuen/
+├── skills/                 → Claude Code skill files (read before performing each task)
+│   ├── sql_schema.md
+│   ├── sql_views.md
+│   ├── cli_script.md
+│   ├── ts_types.md
+│   └── codebase_audit.md
+├── cli/                    → Python CLI scripts
+│   ├── lib/db.py           → shared Supabase client
+│   ├── lib/helpers.py      → shared input helpers
+│   ├── add_*.py            → data entry scripts
+│   ├── register_*.py       → transaction scripts
+│   ├── view_*.py           → terminal view scripts
+│   └── requirements.txt
+├── database/
+│   ├── migrations/         → numbered SQL migration files
+│   ├── views/              → SQL view definitions
+│   └── seeds/              → initial data SQL
+├── website/                → Next.js visualization website
+│   ├── app/                → pages and routes
+│   ├── components/         → reusable components
+│   └── lib/                → Supabase client, types, queries
+└── docs/                   → all documentation
+```
+
+---
+
+## Database — 13 Tables
+
+```
+Layer 1: partner_companies, bank_accounts, entities
+Layer 2: tags, entity_tags, entity_contacts, projects
+Layer 3: project_entities, valuations, quotes
+Layer 4: costs, cost_items, ar_invoices
+Layer 5: payments
+```
+
+**Never add, remove, or modify tables without reading `docs/08_schema.md` first and getting explicit approval.**
+
+Key facts:
+- All primary keys are UUID
+- All tables have `created_at` and `updated_at`
+- Soft deletes only — never hard delete any record
+- Amounts always stored in natural currency (USD or PEN) — never converted at storage
+- Exchange rate stored per transaction as reference only
+- IGV, detraccion, and retencion tracked separately on all financial records
+- Totals and payment balances are always derived via views — never stored
+- No triggers — all derived data computed at query time
+
+---
+
+## Critical Business Rules
+
+- **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on AR only — Korakuen is NOT a retencion agent)
+- **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on costs — cash purchases and informal suppliers are valid
+- **Partner asymmetry:** Alex's bank accounts are fully tracked. Partner bank accounts are reference only — partner identity is derived from bank_account on costs, explicit on ar_invoices and payments
+- **Partner settlements are AR invoices:** flagged with `is_internal_settlement = true` — no separate table
+- **Costs have line items:** `costs` is the header, `cost_items` holds detail. Category lives on cost_items, not the header
+- **PO module hook:** `costs` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null in V0
+- **No stored totals:** subtotal, igv_amount, total on costs are derived from cost_items via `v_cost_totals`. Payment status derived from payments via `v_cost_balances` and `v_ar_balances`
+- **Tags are universal:** one `tags` table serves both entity categorization and project roles
+- **Project code drives everything:** PRY001, PRY002... — auto-sequential, used in all SharePoint filenames
+
+---
+
+## Skills
+
+Before performing any of these tasks, read the corresponding skill file first.
+
+| Task | Skill File |
+|---|---|
+| Write CREATE TABLE SQL | `skills/sql_schema.md` |
+| Write database view SQL | `skills/sql_views.md` |
+| Write a Python CLI script | `skills/cli_script.md` |
+| Generate or update TypeScript types | `skills/ts_types.md` |
+| Audit the codebase | `skills/codebase_audit.md` |
+
+Skills live in `/skills/`. Read the full skill file before starting — they contain specific patterns, rules, and code examples that must be followed exactly. See `docs/12_skills.md` for the complete skills reference.
+
+---
+
+## Document Map
+
+Read these documents for context on specific tasks:
+
+| Task | Read First |
+|---|---|
+| Any database work | `docs/08_schema.md` |
+| Writing CLI scripts | `docs/10_coding_standards.md` + `docs/11_environment_setup.md` |
+| Understanding business context | `docs/01_business_context.md` |
+| Understanding architecture decisions | `docs/02_system_architecture.md` |
+| Understanding module behavior | `docs/03_module_specifications.md` |
+| Building website views | `docs/04_visualization.md` |
+| Understanding file/document references | `docs/07-FileStorage.md` |
+| Knowing what to build next | `docs/09_dev_roadmap.md` |
+| Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
+| Understanding what skills to build and how | `docs/12_skills.md` |
+
+---
+
+## Behavior Rules for Claude Code
+
+### Always do:
+- Read the relevant document before starting any task
+- Discuss approach before writing code
+- Follow naming conventions in `docs/10_coding_standards.md` exactly
+- Show a summary and ask for confirmation before any database insert
+- Write comments on non-obvious code
+- Update `docs/09_dev_roadmap.md` task status when tasks complete
+
+### Never do without explicit approval:
+- Modify the database schema
+- Drop or truncate any table
+- Edit migration files that have already been applied
+- Change the document reference naming convention (`PRY001-AP-001`)
+- Add external dependencies without discussion
+- Push to `main` branch
+- Store credentials in any committed file
+- Convert currency amounts at storage time
+
+### When in doubt:
+- Ask before building
+- Refer to the schema document — it is the source of truth
+- Prefer simpler solutions over clever ones
+- If a task seems to conflict with a documented decision, raise it before proceeding
+
+---
+
+## Peruvian Context Glossary
+
+| Term | Meaning |
+|---|---|
+| IGV | Impuesto General a las Ventas — Peru's 18% VAT |
+| Detraccion | SPOT system — client withholds % and deposits to supplier's Banco de la Nación account |
+| Retencion | Client withholds 3% and pays to SUNAT — only applies when client is a designated retention agent |
+| Banco de la Nación | State bank — receives detraccion deposits, balance can only be used for tax payments |
+| Comprobante de pago | Formal payment document — factura, boleta, or recibo por honorarios |
+| Factura | VAT invoice between registered businesses — gives IGV credit |
+| Boleta | Consumer receipt — no IGV credit |
+| Recibo por Honorarios | Invoice for professional services by individuals |
+| RUC | Registro Único de Contribuyentes — 11-digit Peruvian company tax ID |
+| DNI | Documento Nacional de Identidad — 8-digit Peruvian personal ID |
+| OxI | Obras por Impuesto — Law 29230 framework where private companies execute public works for tax credits |
+| Valuation | Monthly billing period — completed work is measured, valued, and invoiced each month |
+| SUNAT | Superintendencia Nacional de Aduanas y de Administración Tributaria — Peru's tax authority |
+| ProInversión | Government agency administering the OxI framework |
+| CIPRL / CIPGN | Tax credit certificates issued upon OxI project completion |
+
+---
+
+## Current Status
+
+**Phase 2 in progress — Database.**
+
+Next task: Generate SQL schema from `docs/08_schema.md`.
+
+See `docs/09_dev_roadmap.md` for full task list and completion status.
+
+---
+
+*This file is updated when major phases complete or the stack changes. All detailed decisions live in the numbered docs — this file is the entry point only.*
