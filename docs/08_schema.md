@@ -622,7 +622,7 @@ Layer 7 (project extensions):
 
 ## Database Views — Complete List
 
-**Existing views (13 — built and deployed):**
+**Existing views (14 — built and deployed):**
 
 | View | Source Tables | Purpose |
 |---|---|---|
@@ -639,15 +639,15 @@ Layer 7 (project extensions):
 | `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |
 | `v_loan_balances` | loans + loan_payments + loan_schedule | borrowed, total owed, paid, outstanding per loan |
 | `v_budget_vs_actual` | project_budgets + cost_items | budgeted vs actual per project per category |
+| `v_igv_position` | v_cost_totals + ar_invoices | IGV collected vs paid, net position per currency |
 
-**Planned views (2 — to be built in Phase 4):**
+**Skipped views (computed in application layer instead):**
 
-| View | Source Tables | Purpose |
-|---|---|---|
-| `v_cash_flow` | payments + costs + ar_invoices + loan_schedule | actual (past) and forecast (future) cash movement by month |
-| `v_igv_position` | v_cost_totals + ar_invoices | IGV collected vs paid, net payable by period |
+| View | Reason |
+|---|---|
+| `v_cash_flow` | Multi-table aggregation with category breakdown and currency conversion too complex for a single SQL view. Computed in `queries.ts`. |
 
-**Note on P&L vs Cash Flow:** `v_company_pl` and `v_project_pl` are accrual-basis (when invoiced/recorded). `v_cash_flow` is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
+**Note on P&L vs Cash Flow:** `v_company_pl` and `v_project_pl` are accrual-basis (when invoiced/recorded). Cash Flow is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
 
 ---
 
