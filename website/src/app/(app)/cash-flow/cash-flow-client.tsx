@@ -107,108 +107,156 @@ export function CashFlowClient({
         </div>
       </div>
 
-      {/* Monthly table */}
+      {/* Monthly table — months as columns, categories as rows */}
       <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="px-4 py-3">Month</th>
-              <th className="px-4 py-3 text-right">Cash In</th>
-              <th className="px-4 py-3 text-right">Materials</th>
-              <th className="px-4 py-3 text-right">Labor</th>
-              <th className="px-4 py-3 text-right">Subcontr.</th>
-              <th className="px-4 py-3 text-right">Equip.</th>
-              <th className="px-4 py-3 text-right">Other</th>
-              {isAlex && <th className="px-4 py-3 text-right">Loans</th>}
-              <th className="px-4 py-3 text-right">Cash Out</th>
-              <th className="px-4 py-3 text-right">Net</th>
+              <th className="sticky left-0 bg-zinc-50 px-4 py-3"></th>
+              {data.months.map((m, idx) => (
+                <th
+                  key={m.month}
+                  className={`whitespace-nowrap px-4 py-3 text-right ${
+                    !m.isActual ? 'text-zinc-400' : ''
+                  }${
+                    idx === firstForecastIdx && firstForecastIdx > 0
+                      ? ' border-l-2 border-dashed border-zinc-300'
+                      : ''
+                  }`}
+                >
+                  {m.label}
+                </th>
+              ))}
+              <th className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {data.months.map((m, idx) => {
-              // Insert forecast separator row
-              const showSeparator = idx === firstForecastIdx && firstForecastIdx > 0
-
-              return [
-                showSeparator && (
-                  <tr key={`sep-${idx}`}>
-                    <td
-                      colSpan={isAlex ? 10 : 9}
-                      className="border-t-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-zinc-400"
-                    >
-                      Forecast
-                    </td>
-                  </tr>
-                ),
-                <tr
+            {/* Cash In row */}
+            <tr>
+              <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-medium text-green-700">
+                Cash In
+              </td>
+              {data.months.map((m, idx) => (
+                <td
                   key={m.month}
-                  className={!m.isActual ? 'bg-zinc-50/50' : ''}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-green-700${
+                    !m.isActual ? ' bg-zinc-50/50' : ''
+                  }${
+                    idx === firstForecastIdx && firstForecastIdx > 0
+                      ? ' border-l-2 border-dashed border-zinc-300'
+                      : ''
+                  }`}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-700">
-                    {m.label}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-green-700">
-                    {formatAmount(m.cashIn)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                    {formatAmount(m.materials)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                    {formatAmount(m.labor)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                    {formatAmount(m.subcontractor)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                    {formatAmount(m.equipment)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                    {formatAmount(m.other)}
-                  </td>
-                  {isAlex && (
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                      {formatAmount(m.loans)}
-                    </td>
-                  )}
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-700">
-                    {formatAmount(m.cashOut)}
-                  </td>
-                  <td className={`whitespace-nowrap px-4 py-3 text-right font-mono ${getNetColorClass(m.net)}`}>
-                    {m.net === 0 ? '--' : formatCurrency(m.net, cur)}
-                  </td>
-                </tr>,
-              ]
-            })}
-            {/* Total row */}
-            <tr className="bg-zinc-100 font-medium">
-              <td className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">Total</td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-green-700">
+                  {formatAmount(m.cashIn)}
+                </td>
+              ))}
+              <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-green-700">
                 {formatAmount(totals.cashIn)}
               </td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                {formatAmount(totals.materials)}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                {formatAmount(totals.labor)}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                {formatAmount(totals.subcontractor)}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                {formatAmount(totals.equipment)}
-              </td>
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                {formatAmount(totals.other)}
-              </td>
-              {isAlex && (
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
+            </tr>
+
+            {/* Category rows */}
+            {([
+              { key: 'materials', label: 'Materials' },
+              { key: 'labor', label: 'Labor' },
+              { key: 'subcontractor', label: 'Subcontractor' },
+              { key: 'equipment', label: 'Equipment' },
+              { key: 'other', label: 'Other' },
+            ] as const).map((cat) => (
+              <tr key={cat.key}>
+                <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-medium text-zinc-600">
+                  {cat.label}
+                </td>
+                {data.months.map((m, idx) => (
+                  <td
+                    key={m.month}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${
+                      !m.isActual ? ' bg-zinc-50/50' : ''
+                    }${
+                      idx === firstForecastIdx && firstForecastIdx > 0
+                        ? ' border-l-2 border-dashed border-zinc-300'
+                        : ''
+                    }`}
+                  >
+                    {formatAmount(m[cat.key])}
+                  </td>
+                ))}
+                <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
+                  {formatAmount(totals[cat.key])}
+                </td>
+              </tr>
+            ))}
+
+            {/* Loans row — Alex only */}
+            {isAlex && (
+              <tr>
+                <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-medium text-zinc-600">
+                  Loans
+                </td>
+                {data.months.map((m, idx) => (
+                  <td
+                    key={m.month}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${
+                      !m.isActual ? ' bg-zinc-50/50' : ''
+                    }${
+                      idx === firstForecastIdx && firstForecastIdx > 0
+                        ? ' border-l-2 border-dashed border-zinc-300'
+                        : ''
+                    }`}
+                  >
+                    {formatAmount(m.loans)}
+                  </td>
+                ))}
+                <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
                   {formatAmount(totals.loans)}
                 </td>
-              )}
-              <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
+              </tr>
+            )}
+
+            {/* Cash Out row */}
+            <tr className="border-t border-zinc-200">
+              <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-semibold text-zinc-700">
+                Cash Out
+              </td>
+              {data.months.map((m, idx) => (
+                <td
+                  key={m.month}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-700${
+                    !m.isActual ? ' bg-zinc-50/50' : ''
+                  }${
+                    idx === firstForecastIdx && firstForecastIdx > 0
+                      ? ' border-l-2 border-dashed border-zinc-300'
+                      : ''
+                  }`}
+                >
+                  {formatAmount(m.cashOut)}
+                </td>
+              ))}
+              <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-semibold text-zinc-900">
                 {formatAmount(totals.cashOut)}
               </td>
-              <td className={`whitespace-nowrap px-4 py-3 text-right font-mono font-semibold ${getNetColorClass(totals.net)}`}>
+            </tr>
+
+            {/* Net row */}
+            <tr className="bg-zinc-50">
+              <td className="sticky left-0 bg-zinc-50 whitespace-nowrap px-4 py-3 font-semibold text-zinc-700">
+                Net
+              </td>
+              {data.months.map((m, idx) => (
+                <td
+                  key={m.month}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono ${getNetColorClass(m.net)}${
+                    idx === firstForecastIdx && firstForecastIdx > 0
+                      ? ' border-l-2 border-dashed border-zinc-300'
+                      : ''
+                  }`}
+                >
+                  {m.net === 0 ? '--' : formatCurrency(m.net, cur)}
+                </td>
+              ))}
+              <td className={`whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-semibold ${getNetColorClass(totals.net)}`}>
                 {formatCurrency(totals.net, cur)}
               </td>
             </tr>
