@@ -291,11 +291,8 @@ export type CashFlowMonth = {
   loans: number // Alex-only, 0 for partners
   cashOut: number // sum of category columns + loans
   net: number // cashIn - cashOut
-  cumulative: number // running sum of net
 }
 
 export type CashFlowData = {
   months: CashFlowMonth[]
-  hasShortfall: boolean // true if any future month has negative cumulative
-  shortfallMonth: string | null // first month with negative cumulative
 }

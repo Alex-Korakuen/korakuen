@@ -664,11 +664,7 @@ export async function getCashFlow(
     }
   }
 
-  // --- Build monthly rows with cumulative ---
-  let cumulative = 0
-  let hasShortfall = false
-  let shortfallMonth: string | null = null
-
+  // --- Build monthly rows ---
   const months: CashFlowMonth[] = []
   for (let m = 1; m <= 12; m++) {
     const key = `${year}-${String(m).padStart(2, '0')}`
@@ -677,13 +673,7 @@ export async function getCashFlow(
       bucket.categories.subcontractor + bucket.categories.equipment +
       bucket.categories.other + bucket.loans
     const net = bucket.cashIn - cashOut
-    cumulative += net
     const isActual = key <= currentMonthKey
-
-    if (!isActual && cumulative < 0 && !hasShortfall) {
-      hasShortfall = true
-      shortfallMonth = getMonthLabel(key)
-    }
 
     months.push({
       month: key,
@@ -698,9 +688,8 @@ export async function getCashFlow(
       loans: bucket.loans,
       cashOut,
       net,
-      cumulative,
     })
   }
 
-  return { months, hasShortfall, shortfallMonth }
+  return { months }
 }

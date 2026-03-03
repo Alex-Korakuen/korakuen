@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { formatCurrency } from '@/lib/formatters'
-import { getNetColorClass, getCumulativeColorClass } from './helpers'
+import { getNetColorClass } from './helpers'
 import type { CashFlowData, Currency } from '@/lib/types'
 
 type Props = {
@@ -107,15 +107,6 @@ export function CashFlowClient({
         </div>
       </div>
 
-      {/* Cash shortfall warning */}
-      {data.hasShortfall && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm font-medium text-red-800">
-            Cash shortfall risk — cumulative goes negative in {data.shortfallMonth}
-          </p>
-        </div>
-      )}
-
       {/* Monthly table */}
       <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-left text-sm">
@@ -131,7 +122,6 @@ export function CashFlowClient({
               {isAlex && <th className="px-4 py-3 text-right">Loans</th>}
               <th className="px-4 py-3 text-right">Cash Out</th>
               <th className="px-4 py-3 text-right">Net</th>
-              <th className="px-4 py-3 text-right">Cumulative</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -143,7 +133,7 @@ export function CashFlowClient({
                 showSeparator && (
                   <tr key={`sep-${idx}`}>
                     <td
-                      colSpan={isAlex ? 11 : 10}
+                      colSpan={isAlex ? 10 : 9}
                       className="border-t-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-zinc-400"
                     >
                       Forecast
@@ -186,9 +176,6 @@ export function CashFlowClient({
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-mono ${getNetColorClass(m.net)}`}>
                     {m.net === 0 ? '--' : formatCurrency(m.net, cur)}
                   </td>
-                  <td className={`whitespace-nowrap px-4 py-3 text-right font-mono ${getCumulativeColorClass(m.cumulative, !m.isActual)}`}>
-                    {formatCurrency(m.cumulative, cur)}
-                  </td>
                 </tr>,
               ]
             })}
@@ -224,7 +211,6 @@ export function CashFlowClient({
               <td className={`whitespace-nowrap px-4 py-3 text-right font-mono font-semibold ${getNetColorClass(totals.net)}`}>
                 {formatCurrency(totals.net, cur)}
               </td>
-              <td />
             </tr>
           </tbody>
         </table>
