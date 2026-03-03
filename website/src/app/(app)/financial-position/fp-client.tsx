@@ -97,28 +97,14 @@ export function FPClient({ data, isAlex }: Props) {
           </h2>
         </div>
         <div className="px-6 py-4">
-          <div className="space-y-1">
-            {data.arOutstanding.length === 0 ? (
-              <p className="text-sm text-zinc-400">No outstanding invoices</p>
-            ) : (
-              data.arOutstanding.map((item) => (
+          {data.arOutstanding.length === 0 ? (
+            <p className="text-sm text-zinc-400">No outstanding invoices</p>
+          ) : (
+            <div className="space-y-1">
+              {data.arOutstanding.map((item) => (
                 <div key={item.currency} className="flex items-center justify-between py-1">
                   <span className="text-sm text-zinc-600">Outstanding</span>
                   <span className="text-sm font-semibold text-zinc-800">
-                    {fmt(item.amount, item.currency)}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-          {/* Retenciones subsection */}
-          {data.retencionesUnverified.length > 0 && (
-            <div className="mt-3 border-t border-zinc-100 pt-3">
-              <p className="mb-1 text-xs font-medium text-zinc-400">Retenciones (pending SUNAT verification)</p>
-              {data.retencionesUnverified.map((item) => (
-                <div key={item.currency} className="flex items-center justify-between py-1">
-                  <span className="text-sm text-zinc-500">Withheld by clients</span>
-                  <span className="text-sm font-medium text-zinc-600">
                     {fmt(item.amount, item.currency)}
                   </span>
                 </div>
@@ -174,45 +160,80 @@ export function FPClient({ data, isAlex }: Props) {
         </section>
       )}
 
-      {/* TAX POSITION (IGV) */}
-      {data.igv.length > 0 && (
-        <section className="rounded-lg border border-zinc-200 bg-white">
-          <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-              Tax Position (IGV)
-            </h2>
+      {/* SEPARATOR — Tax position is derived from the same invoices/costs above */}
+      {(data.igv.length > 0 || data.retencionesUnverified.length > 0) && (
+        <>
+          <div className="flex items-center gap-3 pt-2">
+            <div className="h-px flex-1 bg-zinc-200" />
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Tax Position</span>
+            <div className="h-px flex-1 bg-zinc-200" />
           </div>
-          <div className="px-6 py-4">
-            <div className="space-y-3">
-              {data.igv.map((row) => (
-                <div key={row.currency} className="space-y-1">
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-zinc-500">IGV paid (crédito fiscal)</span>
-                    <span className="text-sm font-medium text-zinc-800">
-                      {fmt(row.igvPaid, row.currency)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-sm text-zinc-500">IGV collected (débito fiscal)</span>
-                    <span className="text-sm font-medium text-zinc-800">
-                      {fmt(row.igvCollected, row.currency)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-zinc-100 pt-1">
-                    <span className="text-sm font-medium text-zinc-600">
-                      Net {row.net >= 0 ? '(crédito)' : '(débito)'}
-                    </span>
-                    <span className={`text-sm font-semibold ${
-                      row.net >= 0 ? 'text-emerald-700' : 'text-red-600'
-                    }`}>
-                      {fmt(Math.abs(row.net), row.currency)}
-                    </span>
-                  </div>
+
+          {/* IGV */}
+          {data.igv.length > 0 && (
+            <section className="rounded-lg border border-zinc-200 bg-white">
+              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+                  IGV
+                </h2>
+              </div>
+              <div className="px-6 py-4">
+                <div className="space-y-3">
+                  {data.igv.map((row) => (
+                    <div key={row.currency} className="space-y-1">
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-zinc-500">IGV paid (crédito fiscal)</span>
+                        <span className="text-sm font-medium text-zinc-800">
+                          {fmt(row.igvPaid, row.currency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-zinc-500">IGV collected (débito fiscal)</span>
+                        <span className="text-sm font-medium text-zinc-800">
+                          {fmt(row.igvCollected, row.currency)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-zinc-100 pt-1">
+                        <span className="text-sm font-medium text-zinc-600">
+                          Net {row.net >= 0 ? '(crédito)' : '(débito)'}
+                        </span>
+                        <span className={`text-sm font-semibold ${
+                          row.net >= 0 ? 'text-emerald-700' : 'text-red-600'
+                        }`}>
+                          {fmt(Math.abs(row.net), row.currency)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+              </div>
+            </section>
+          )}
+
+          {/* Retenciones */}
+          {data.retencionesUnverified.length > 0 && (
+            <section className="rounded-lg border border-zinc-200 bg-white">
+              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+                  Retenciones
+                </h2>
+              </div>
+              <div className="px-6 py-4">
+                <p className="mb-2 text-xs text-zinc-400">Withheld by clients, pending SUNAT verification</p>
+                <div className="space-y-1">
+                  {data.retencionesUnverified.map((item) => (
+                    <div key={item.currency} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-zinc-600">Unverified</span>
+                      <span className="text-sm font-medium text-zinc-800">
+                        {fmt(item.amount, item.currency)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       {/* Disclaimer */}
