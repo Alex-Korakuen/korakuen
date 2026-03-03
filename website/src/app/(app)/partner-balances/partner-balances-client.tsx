@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { Modal } from '@/components/ui/modal'
 import { fetchPartnerCosts } from './actions'
-import type { PartnerBalanceData, PartnerCostDetail, Currency } from '@/lib/types'
+import type { PartnerBalanceData, PartnerContribution, PartnerCostDetail, Currency } from '@/lib/types'
 
 type Props = {
   data: PartnerBalanceData | null
@@ -20,7 +21,7 @@ export function PartnerBalancesClient({
   projectId,
   onProjectChange,
 }: Props) {
-  const [expandedPartner, setExpandedPartner] = useState<string | null>(null)
+  const [selectedPartner, setSelectedPartner] = useState<PartnerContribution | null>(null)
   const [costDetails, setCostDetails] = useState<PartnerCostDetail[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
 
@@ -48,21 +49,21 @@ export function PartnerBalancesClient({
     return map
   }, [data])
 
-  async function handlePartnerClick(partnerCompanyId: string, currency: string) {
-    const key = `${partnerCompanyId}-${currency}`
-    if (expandedPartner === key) {
-      setExpandedPartner(null)
-      setCostDetails([])
-      return
-    }
-    setExpandedPartner(key)
+  async function handlePartnerClick(partner: PartnerContribution) {
+    setSelectedPartner(partner)
     setDetailLoading(true)
+    setCostDetails([])
     try {
-      const details = await fetchPartnerCosts(projectId!, partnerCompanyId, currency)
+      const details = await fetchPartnerCosts(projectId!, partner.partner_company_id, partner.currency)
       setCostDetails(details)
     } finally {
       setDetailLoading(false)
     }
+  }
+
+  function handleCloseModal() {
+    setSelectedPartner(null)
+    setCostDetails([])
   }
 
   const categoryLabels: Record<string, string> = {
@@ -136,84 +137,34 @@ export function PartnerBalancesClient({
                       </p>
                     </div>
                     <div className="divide-y divide-zinc-100">
-                      {contributions.map((c) => {
-                        const key = `${c.partner_company_id}-${currency}`
-                        const isExpanded = expandedPartner === key
-                        return (
-                          <div key={c.partner_company_id}>
-                            <div
-                              className="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-zinc-50"
-                              onClick={() => handlePartnerClick(c.partner_company_id, currency)}
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-zinc-400">
-                                    {isExpanded ? '▼' : '▶'}
-                                  </span>
-                                  <span className="font-medium text-zinc-800">
-                                    {c.partner_name}
-                                  </span>
-                                </div>
-                                {/* Proportion bar */}
-                                <div className="mt-1.5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-100">
-                                  <div
-                                    className="h-full rounded-full bg-blue-500"
-                                    style={{ width: `${c.contribution_pct}%` }}
-                                  />
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-mono text-sm font-medium text-zinc-800">
-                                  {formatCurrency(c.contribution_amount, cur)}
-                                </p>
-                                <p className="text-xs text-zinc-500">
-                                  {c.contribution_pct}%
-                                </p>
-                              </div>
+                      {contributions.map((c) => (
+                        <div
+                          key={c.partner_company_id}
+                          className="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-zinc-50"
+                          onClick={() => handlePartnerClick(c)}
+                        >
+                          <div className="flex-1">
+                            <span className="font-medium text-zinc-800">
+                              {c.partner_name}
+                            </span>
+                            {/* Proportion bar */}
+                            <div className="mt-1.5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-100">
+                              <div
+                                className="h-full rounded-full bg-blue-500"
+                                style={{ width: `${c.contribution_pct}%` }}
+                              />
                             </div>
-
-                            {/* Expanded cost details */}
-                            {isExpanded && (
-                              <div className="border-t border-zinc-100 bg-zinc-50/50 px-4 py-3">
-                                {detailLoading ? (
-                                  <p className="text-sm text-zinc-500">Loading costs...</p>
-                                ) : costDetails.length === 0 ? (
-                                  <p className="text-sm text-zinc-500">No individual costs found</p>
-                                ) : (
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="text-xs text-zinc-500">
-                                        <th className="pb-2 text-left font-medium">Date</th>
-                                        <th className="pb-2 text-left font-medium">Title</th>
-                                        <th className="pb-2 text-left font-medium">Category</th>
-                                        <th className="pb-2 text-right font-medium">Amount</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-100">
-                                      {costDetails.map((d) => (
-                                        <tr key={d.cost_id}>
-                                          <td className="py-1.5 text-zinc-600">
-                                            {d.date ? formatDate(d.date) : '—'}
-                                          </td>
-                                          <td className="py-1.5 text-zinc-700">
-                                            {d.title ?? '—'}
-                                          </td>
-                                          <td className="py-1.5 text-zinc-600">
-                                            {categoryLabels[d.category] ?? d.category}
-                                          </td>
-                                          <td className="py-1.5 text-right font-mono text-zinc-700">
-                                            {formatCurrency(d.subtotal, cur)}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                )}
-                              </div>
-                            )}
                           </div>
-                        )
-                      })}
+                          <div className="text-right">
+                            <p className="font-mono text-sm font-medium text-zinc-800">
+                              {formatCurrency(c.contribution_amount, cur)}
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {c.contribution_pct}%
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -289,6 +240,75 @@ export function PartnerBalancesClient({
           )}
         </div>
       )}
+
+      {/* Cost detail modal */}
+      <Modal
+        isOpen={!!selectedPartner}
+        onClose={handleCloseModal}
+        title={selectedPartner ? `${selectedPartner.partner_name} — Costs` : ''}
+      >
+        {selectedPartner && (
+          <div>
+            <div className="mb-4 flex items-center justify-between rounded-md bg-zinc-50 px-3 py-2">
+              <span className="text-sm text-zinc-600">
+                Total contribution ({selectedPartner.currency})
+              </span>
+              <span className="font-mono text-sm font-semibold text-zinc-800">
+                {formatCurrency(
+                  selectedPartner.contribution_amount,
+                  selectedPartner.currency as Currency
+                )}
+              </span>
+            </div>
+
+            {detailLoading ? (
+              <p className="py-8 text-center text-sm text-zinc-500">Loading costs...</p>
+            ) : costDetails.length === 0 ? (
+              <p className="py-8 text-center text-sm text-zinc-500">No individual costs found</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-xs text-zinc-500">
+                    <th className="pb-2 text-left font-medium">Date</th>
+                    <th className="pb-2 text-left font-medium">Title</th>
+                    <th className="pb-2 text-left font-medium">Category</th>
+                    <th className="pb-2 text-right font-medium">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {costDetails.map((d) => (
+                    <tr key={d.cost_id}>
+                      <td className="py-2 whitespace-nowrap text-zinc-600">
+                        {d.date ? formatDate(d.date) : '—'}
+                      </td>
+                      <td className="py-2 text-zinc-700">
+                        {d.title ?? '—'}
+                      </td>
+                      <td className="py-2 whitespace-nowrap text-zinc-600">
+                        {categoryLabels[d.category] ?? d.category}
+                      </td>
+                      <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
+                        {formatCurrency(d.subtotal, selectedPartner.currency as Currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-zinc-200">
+                    <td colSpan={3} className="py-2 text-sm font-medium text-zinc-700">Total</td>
+                    <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-zinc-800">
+                      {formatCurrency(
+                        costDetails.reduce((sum, d) => sum + d.subtotal, 0),
+                        selectedPartner.currency as Currency
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
