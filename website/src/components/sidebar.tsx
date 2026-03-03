@@ -131,11 +131,6 @@ export function Sidebar() {
       >
         {/* Sidebar header */}
         <div className="flex h-14 items-center border-b border-zinc-200 px-4">
-          {!collapsed && (
-            <span className="text-sm font-semibold tracking-wider text-zinc-500">
-              Menu
-            </span>
-          )}
           {/* Mobile close button */}
           <button
             onClick={() => setMobileOpen(false)}

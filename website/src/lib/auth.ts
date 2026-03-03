@@ -13,7 +13,7 @@ export async function isCompanyView(): Promise<boolean> {
 
 export async function getPartnerName(): Promise<string> {
   const user = await getCurrentUser()
-  return user?.user_metadata?.partner_name ?? 'Usuario'
+  return user?.user_metadata?.partner_name ?? user?.email?.split('@')[0] ?? 'User'
 }
 
 export async function getPartnerCompanyId(): Promise<string | null> {
