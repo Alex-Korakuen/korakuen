@@ -1,8 +1,27 @@
-export default function PartnerBalancesPage() {
+import { isCompanyView } from '@/lib/auth'
+import { getPartnerLedger, getProjectsForFilter } from '@/lib/queries'
+import { PartnerBalancesWrapper } from './partner-balances-wrapper'
+
+type Props = {
+  searchParams: Promise<{ project?: string }>
+}
+
+export default async function PartnerBalancesPage({ searchParams }: Props) {
+  const params = await searchParams
+  const isAlex = await isCompanyView()
+  const projectId = params.project || null
+
+  const projects = await getProjectsForFilter()
+
+  // Only fetch ledger data if a project is selected
+  const data = projectId ? await getPartnerLedger(projectId) : null
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Partner Balances</h1>
-      <p className="mt-2 text-zinc-500">Coming soon</p>
-    </div>
+    <PartnerBalancesWrapper
+      initialData={data}
+      projects={projects}
+      isAlex={isAlex}
+      projectId={projectId}
+    />
   )
 }

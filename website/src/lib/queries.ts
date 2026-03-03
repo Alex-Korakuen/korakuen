@@ -8,6 +8,8 @@ import type {
   CashFlowMonth,
   CostBalanceRow,
   CostItem,
+  PartnerBalanceData,
+  PartnerCostDetail,
   Payment,
   RetencionDashboardRow,
 } from './types'
@@ -753,4 +755,154 @@ export async function getCashFlow(
   }
 
   return { months }
+}
+
+// --- Partner Balances queries ---
+
+export async function getPartnerLedger(projectId: string): Promise<PartnerBalanceData> {
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch partner ledger for this project
+  const { data: ledger, error: ledgerError } = await supabase
+    .from('v_partner_ledger')
+    .select('*')
+    .eq('project_id', projectId)
+
+  if (ledgerError) throw ledgerError
+  if (!ledger || ledger.length === 0) {
+    // Get project info even if no costs yet
+    const { data: project } = await supabase
+      .from('projects')
+      .select('project_code, name')
+      .eq('id', projectId)
+      .single()
+    return {
+      contributions: [],
+      settlements: [],
+      projectCode: project?.project_code ?? '—',
+      projectName: project?.name ?? '—',
+    }
+  }
+
+  const projectCode = ledger[0].project_code ?? '—'
+  const projectName = ledger[0].project_name ?? '—'
+
+  const contributions = ledger.map(row => ({
+    partner_company_id: row.partner_company_id!,
+    partner_name: row.partner_name ?? '—',
+    currency: row.currency ?? 'PEN',
+    contribution_amount: row.contribution_amount ?? 0,
+    contribution_pct: row.contribution_pct ?? 0,
+    project_income: row.project_income ?? 0,
+    income_share: row.income_share ?? 0,
+  }))
+
+  // Fetch actual AR payments received per partner for this project
+  // Get AR invoices for this project
+  const { data: arInvoices } = await supabase
+    .from('ar_invoices')
+    .select('id, partner_company_id, currency')
+    .eq('project_id', projectId)
+    .eq('is_internal_settlement', false)
+
+  const arIds = (arInvoices ?? []).map(a => a.id)
+  let paymentsByPartner = new Map<string, Map<string, number>>() // partner_id -> currency -> amount
+
+  if (arIds.length > 0) {
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('related_id, amount, currency')
+      .in('related_id', arIds)
+      .eq('related_to', 'ar_invoice')
+
+    // Build AR -> partner map
+    const arPartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
+    for (const ar of arInvoices ?? []) {
+      if (ar.partner_company_id) {
+        arPartnerMap.set(ar.id, { partner_company_id: ar.partner_company_id, currency: ar.currency })
+      }
+    }
+
+    for (const p of payments ?? []) {
+      const arInfo = arPartnerMap.get(p.related_id)
+      if (!arInfo) continue
+      const partnerKey = arInfo.partner_company_id
+      const currencyKey = arInfo.currency
+      if (!paymentsByPartner.has(partnerKey)) {
+        paymentsByPartner.set(partnerKey, new Map())
+      }
+      const currMap = paymentsByPartner.get(partnerKey)!
+      currMap.set(currencyKey, (currMap.get(currencyKey) ?? 0) + (p.amount ?? 0))
+    }
+  }
+
+  // Build settlements
+  const settlements = contributions.map(c => {
+    const currMap = paymentsByPartner.get(c.partner_company_id)
+    const actuallyReceived = currMap?.get(c.currency) ?? 0
+    return {
+      partner_company_id: c.partner_company_id,
+      partner_name: c.partner_name,
+      currency: c.currency,
+      income_share: c.income_share,
+      actually_received: actuallyReceived,
+      settlement_balance: c.income_share - actuallyReceived,
+    }
+  })
+
+  return { contributions, settlements, projectCode, projectName }
+}
+
+export async function getPartnerCostDetails(
+  projectId: string,
+  partnerCompanyId: string,
+  currency: string
+): Promise<PartnerCostDetail[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Get bank accounts for this partner
+  const { data: bankAccounts } = await supabase
+    .from('bank_accounts')
+    .select('id')
+    .eq('partner_company_id', partnerCompanyId)
+
+  if (!bankAccounts || bankAccounts.length === 0) return []
+
+  const bankIds = bankAccounts.map(b => b.id)
+
+  // Get costs for this project from these bank accounts in this currency
+  const { data: costs, error } = await supabase
+    .from('v_cost_totals')
+    .select('cost_id, date, title, currency, subtotal')
+    .eq('project_id', projectId)
+    .eq('currency', currency)
+    .in('bank_account_id', bankIds)
+    .order('date', { ascending: false })
+
+  if (error) throw error
+  if (!costs || costs.length === 0) return []
+
+  // Get cost items for category
+  const costIds = costs.map(c => c.cost_id).filter((id): id is string => id !== null)
+  const { data: items } = await supabase
+    .from('cost_items')
+    .select('cost_id, category')
+    .in('cost_id', costIds)
+
+  // Build cost_id -> primary category
+  const categoryMap = new Map<string, string>()
+  for (const item of items ?? []) {
+    if (!categoryMap.has(item.cost_id)) {
+      categoryMap.set(item.cost_id, item.category)
+    }
+  }
+
+  return costs.map(c => ({
+    cost_id: c.cost_id!,
+    date: c.date,
+    title: c.title,
+    category: categoryMap.get(c.cost_id!) ?? 'other',
+    subtotal: c.subtotal ?? 0,
+    currency: c.currency,
+  }))
 }

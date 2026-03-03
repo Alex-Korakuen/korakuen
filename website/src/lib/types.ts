@@ -276,6 +276,43 @@ export type ArOutstandingSortColumn =
   | 'outstanding'
   | 'net_receivable'
 
+// --- Partner Balances component types ---
+
+export type PartnerContribution = {
+  partner_company_id: string
+  partner_name: string
+  currency: string
+  contribution_amount: number
+  contribution_pct: number
+  project_income: number
+  income_share: number
+}
+
+export type PartnerSettlement = {
+  partner_company_id: string
+  partner_name: string
+  currency: string
+  income_share: number
+  actually_received: number
+  settlement_balance: number
+}
+
+export type PartnerBalanceData = {
+  contributions: PartnerContribution[]
+  settlements: PartnerSettlement[]
+  projectCode: string
+  projectName: string
+}
+
+export type PartnerCostDetail = {
+  cost_id: string
+  date: string | null
+  title: string | null
+  category: string
+  subtotal: number
+  currency: string | null
+}
+
 // --- Cash Flow component types ---
 
 export type CashFlowMonth = {
