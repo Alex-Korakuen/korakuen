@@ -10,7 +10,9 @@ import type {
   CashFlowMonth,
   CostBalanceRow,
   CostItem,
+  CurrencyAmount,
   FinancialPositionData,
+  IgvByCurrency,
   PartnerBalanceData,
   PartnerCostDetail,
   Payment,
@@ -1221,26 +1223,25 @@ export async function getCompanyPL(
 
 // --- Financial Position queries ---
 
-function convertAmountFP(
-  amount: number,
-  currency: string | null,
-  exchangeRate: number | null,
-  reportingCurrency: 'PEN' | 'USD'
-): number {
-  if (!currency || currency === reportingCurrency) return amount
-  if (!exchangeRate || exchangeRate === 0) return amount
-  if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
-  if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
-  return amount
+/** Group amounts by currency — returns sorted array (PEN first, USD second) */
+function groupByCurrency(
+  items: { amount: number; currency: string | null }[]
+): CurrencyAmount[] {
+  const map = new Map<string, number>()
+  for (const item of items) {
+    const cur = item.currency ?? 'PEN'
+    map.set(cur, (map.get(cur) ?? 0) + item.amount)
+  }
+  return Array.from(map.entries())
+    .map(([currency, amount]) => ({ currency, amount }))
+    .sort((a, b) => a.currency.localeCompare(b.currency))
 }
 
 export async function getFinancialPosition(
-  isAlex: boolean,
-  reportingCurrency: 'PEN' | 'USD'
+  isAlex: boolean
 ): Promise<FinancialPositionData> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch all data in parallel
   const [
     bankResult,
     arResult,
@@ -1250,8 +1251,8 @@ export async function getFinancialPosition(
     loanResult,
   ] = await Promise.all([
     supabase.from('v_bank_balances').select('*'),
-    supabase.from('v_ar_balances').select('outstanding, currency, exchange_rate, payment_status'),
-    supabase.from('v_cost_balances').select('outstanding, currency, exchange_rate, payment_status'),
+    supabase.from('v_ar_balances').select('outstanding, currency, payment_status'),
+    supabase.from('v_cost_balances').select('outstanding, currency, payment_status'),
     supabase.from('v_igv_position').select('*'),
     supabase.from('v_retencion_dashboard').select('retencion_amount, currency, retencion_verified'),
     isAlex
@@ -1259,17 +1260,8 @@ export async function getFinancialPosition(
       : { data: [] },
   ])
 
-  const bankAccounts = bankResult.data ?? []
-  const arBalances = arResult.data ?? []
-  const costBalances = costResult.data ?? []
-  const igvPositions = igvResult.data ?? []
-  const retenciones = retencionResult.data ?? []
-  const loanBalances = loanResult.data ?? []
-
-  // Bank account cards — convert balances to reporting currency
-  // Use a default exchange rate for bank balances (they don't have per-transaction rates)
-  const DEFAULT_RATE = 3.70
-  const bankCards: BankAccountCard[] = bankAccounts.map(ba => ({
+  // Bank account cards — natural currency, no conversion
+  const bankCards: BankAccountCard[] = (bankResult.data ?? []).map(ba => ({
     bankAccountId: ba.bank_account_id ?? '',
     partnerCompanyId: ba.partner_company_id,
     partnerName: ba.partner_name,
@@ -1282,67 +1274,50 @@ export async function getFinancialPosition(
     transactionCount: ba.transaction_count ?? 0,
   }))
 
-  // Total cash in reporting currency
-  const totalCash = bankCards.reduce((sum, ba) => {
-    return sum + convertAmountFP(ba.balance, ba.currency, DEFAULT_RATE, reportingCurrency)
-  }, 0)
+  // AR outstanding grouped by currency
+  const arOutstanding = groupByCurrency(
+    (arResult.data ?? [])
+      .filter(ar => ar.payment_status !== 'paid')
+      .map(ar => ({ amount: ar.outstanding ?? 0, currency: ar.currency }))
+  )
 
-  // AR outstanding (unpaid/partial invoices)
-  const arOutstanding = arBalances
-    .filter(ar => ar.payment_status !== 'paid')
-    .reduce((sum, ar) => {
-      return sum + convertAmountFP(ar.outstanding ?? 0, ar.currency, ar.exchange_rate, reportingCurrency)
-    }, 0)
+  // AP outstanding grouped by currency
+  const apOutstanding = groupByCurrency(
+    (costResult.data ?? [])
+      .filter(c => c.payment_status !== 'paid')
+      .map(c => ({ amount: c.outstanding ?? 0, currency: c.currency }))
+  )
 
-  // AP outstanding (unpaid/partial costs)
-  const apOutstanding = costBalances
-    .filter(c => c.payment_status !== 'paid')
-    .reduce((sum, c) => {
-      return sum + convertAmountFP(c.outstanding ?? 0, c.currency, c.exchange_rate, reportingCurrency)
-    }, 0)
+  // IGV position by currency
+  const igv: IgvByCurrency[] = (igvResult.data ?? []).map(row => ({
+    currency: row.currency ?? 'PEN',
+    igvCollected: row.igv_collected ?? 0,
+    igvPaid: row.igv_paid ?? 0,
+    net: (row.igv_paid ?? 0) - (row.igv_collected ?? 0),
+  }))
 
-  // IGV position
-  let igvCollected = 0
-  let igvPaid = 0
-  for (const row of igvPositions) {
-    igvCollected += convertAmountFP(row.igv_collected ?? 0, row.currency, DEFAULT_RATE, reportingCurrency)
-    igvPaid += convertAmountFP(row.igv_paid ?? 0, row.currency, DEFAULT_RATE, reportingCurrency)
-  }
+  // Retenciones unverified grouped by currency
+  const retencionesUnverified = groupByCurrency(
+    (retencionResult.data ?? [])
+      .filter(r => !r.retencion_verified)
+      .map(r => ({ amount: r.retencion_amount ?? 0, currency: r.currency }))
+  )
 
-  // Retenciones unverified (asset — withheld by clients, pending SUNAT verification)
-  const retencionesUnverified = retenciones
-    .filter(r => !r.retencion_verified)
-    .reduce((sum, r) => {
-      return sum + convertAmountFP(r.retencion_amount ?? 0, r.currency, DEFAULT_RATE, reportingCurrency)
-    }, 0)
-
-  // Loans (Alex only)
-  const loans = loanBalances.map(l => ({
+  // Loans (Alex only) — natural currency
+  const loans = (loanResult.data ?? []).map(l => ({
     loanId: l.loan_id ?? '',
     lenderName: l.lender_name ?? '—',
     outstanding: l.outstanding ?? 0,
-    currency: l.currency,
+    currency: l.currency ?? 'PEN',
   }))
-  const totalLoans = loans.reduce((sum, l) => {
-    return sum + convertAmountFP(l.outstanding, l.currency, DEFAULT_RATE, reportingCurrency)
-  }, 0)
-
-  // Compute totals
-  const totalAssets = totalCash + arOutstanding + igvPaid + retencionesUnverified
-  const totalLiabilities = apOutstanding + igvCollected + (isAlex ? totalLoans : 0)
-  const netPosition = totalAssets - totalLiabilities
 
   return {
     bankAccounts: bankCards,
     arOutstanding,
     apOutstanding,
-    igvCollected,
-    igvPaid,
-    retencionesUnverified,
     loans,
-    totalAssets,
-    totalLiabilities,
-    netPosition,
+    igv,
+    retencionesUnverified,
   }
 }
 

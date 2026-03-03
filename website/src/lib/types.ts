@@ -397,16 +397,23 @@ export type BankTransaction = {
   description: string | null
 }
 
+export type CurrencyAmount = {
+  currency: string
+  amount: number
+}
+
+export type IgvByCurrency = {
+  currency: string
+  igvCollected: number // debito fiscal
+  igvPaid: number // credito fiscal
+  net: number // paid - collected (positive = credit)
+}
+
 export type FinancialPositionData = {
   bankAccounts: BankAccountCard[]
-  arOutstanding: number // total outstanding AR
-  apOutstanding: number // total outstanding AP
-  igvCollected: number // debito fiscal (liability)
-  igvPaid: number // credito fiscal (asset)
-  retencionesUnverified: number // pending retenciones (asset)
-  loans: { loanId: string; lenderName: string; outstanding: number; currency: string | null }[]
-  // Totals
-  totalAssets: number
-  totalLiabilities: number
-  netPosition: number
+  arOutstanding: CurrencyAmount[]
+  apOutstanding: CurrencyAmount[]
+  loans: { loanId: string; lenderName: string; outstanding: number; currency: string }[]
+  igv: IgvByCurrency[]
+  retencionesUnverified: CurrencyAmount[]
 }

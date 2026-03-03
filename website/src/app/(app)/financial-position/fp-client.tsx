@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { fetchBankTransactions } from './actions'
@@ -9,44 +9,13 @@ import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/typ
 type Props = {
   data: FinancialPositionData
   isAlex: boolean
-  currency: Currency
-  onCurrencyChange: (currency: Currency) => void
 }
 
-const DEFAULT_RATE = 3.70
-
-function convertForDisplay(
-  amount: number,
-  fromCurrency: string | null,
-  toCurrency: Currency
-): { value: number; converted: boolean } {
-  if (!fromCurrency || fromCurrency === toCurrency) return { value: amount, converted: false }
-  if (toCurrency === 'PEN' && fromCurrency === 'USD') return { value: amount * DEFAULT_RATE, converted: true }
-  if (toCurrency === 'USD' && fromCurrency === 'PEN') return { value: amount / DEFAULT_RATE, converted: true }
-  return { value: amount, converted: false }
+function fmt(amount: number, currency: string) {
+  return formatCurrency(amount, currency as Currency)
 }
 
-function Amount({
-  value,
-  currency,
-  converted,
-  negative,
-}: {
-  value: number
-  currency: Currency
-  converted?: boolean
-  negative?: boolean
-}) {
-  const display = negative ? -Math.abs(value) : value
-  return (
-    <span className={converted ? 'text-zinc-400' : ''}>
-      {formatCurrency(display, currency)}
-      {converted && ' *'}
-    </span>
-  )
-}
-
-export function FPClient({ data, isAlex, currency, onCurrencyChange }: Props) {
+export function FPClient({ data, isAlex }: Props) {
   const [selectedAccount, setSelectedAccount] = useState<{
     bankAccountId: string
     bankName: string | null
@@ -55,19 +24,7 @@ export function FPClient({ data, isAlex, currency, onCurrencyChange }: Props) {
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loadingTxns, setLoadingTxns] = useState(false)
 
-  // Group bank accounts by partner
-  const accountsByPartner = useMemo(() => {
-    const map = new Map<string, typeof data.bankAccounts>()
-    for (const ba of data.bankAccounts) {
-      const key = ba.partnerName ?? 'Unknown'
-      const arr = map.get(key) ?? []
-      arr.push(ba)
-      map.set(key, arr)
-    }
-    return map
-  }, [data.bankAccounts])
-
-  const handleAccountClick = async (ba: typeof data.bankAccounts[0]) => {
+  const handleAccountClick = async (ba: FinancialPositionData['bankAccounts'][0]) => {
     setSelectedAccount({
       bankAccountId: ba.bankAccountId,
       bankName: ba.bankName,
@@ -84,236 +41,182 @@ export function FPClient({ data, isAlex, currency, onCurrencyChange }: Props) {
     }
   }
 
-  // Total cash in reporting currency
-  const totalCash = useMemo(() => {
-    return data.bankAccounts.reduce((sum, ba) => {
-      const { value } = convertForDisplay(ba.balance, ba.currency, currency)
-      return sum + value
-    }, 0)
-  }, [data.bankAccounts, currency])
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-800">Financial Position</h1>
-          <p className="mt-1 text-sm text-zinc-500">Point-in-time balance sheet snapshot</p>
+      <div>
+        <h1 className="text-2xl font-semibold text-zinc-800">Financial Position</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Point-in-time snapshot — all amounts in original currency
+        </p>
+      </div>
+
+      {/* CASH */}
+      <section className="rounded-lg border border-zinc-200 bg-white">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">Cash</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-500">Currency:</span>
-          <div className="inline-flex rounded-md border border-zinc-200">
-            {(['PEN', 'USD'] as Currency[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => onCurrencyChange(c)}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  currency === c
-                    ? 'bg-zinc-800 text-white'
-                    : 'bg-white text-zinc-600 hover:bg-zinc-50'
-                } ${c === 'PEN' ? 'rounded-l-md' : 'rounded-r-md'}`}
-              >
-                {c}
-              </button>
+        <div className="divide-y divide-zinc-100">
+          {data.bankAccounts.map((ba) => (
+            <div
+              key={ba.bankAccountId}
+              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-blue-50"
+              onClick={() => handleAccountClick(ba)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-700">
+                  {ba.bankName} ···{ba.accountNumberLast4}
+                </span>
+                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
+                  {ba.currency}
+                </span>
+                {ba.isDetractionAccount && (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                    Tax only
+                  </span>
+                )}
+              </div>
+              <span className={`text-sm font-medium ${
+                ba.balance >= 0 ? 'text-zinc-800' : 'text-red-600'
+              }`}>
+                {fmt(ba.balance, ba.currency ?? 'PEN')}
+              </span>
+            </div>
+          ))}
+          {data.bankAccounts.length === 0 && (
+            <p className="px-6 py-4 text-sm text-zinc-400">No bank accounts</p>
+          )}
+        </div>
+      </section>
+
+      {/* ACCOUNTS RECEIVABLE */}
+      <section className="rounded-lg border border-zinc-200 bg-white">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+            Accounts Receivable
+          </h2>
+        </div>
+        <div className="px-6 py-4">
+          <div className="space-y-1">
+            {data.arOutstanding.length === 0 ? (
+              <p className="text-sm text-zinc-400">No outstanding invoices</p>
+            ) : (
+              data.arOutstanding.map((item) => (
+                <div key={item.currency} className="flex items-center justify-between py-1">
+                  <span className="text-sm text-zinc-600">Outstanding</span>
+                  <span className="text-sm font-semibold text-zinc-800">
+                    {fmt(item.amount, item.currency)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+          {/* Retenciones subsection */}
+          {data.retencionesUnverified.length > 0 && (
+            <div className="mt-3 border-t border-zinc-100 pt-3">
+              <p className="mb-1 text-xs font-medium text-zinc-400">Retenciones (pending SUNAT verification)</p>
+              {data.retencionesUnverified.map((item) => (
+                <div key={item.currency} className="flex items-center justify-between py-1">
+                  <span className="text-sm text-zinc-500">Withheld by clients</span>
+                  <span className="text-sm font-medium text-zinc-600">
+                    {fmt(item.amount, item.currency)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ACCOUNTS PAYABLE */}
+      <section className="rounded-lg border border-zinc-200 bg-white">
+        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+            Accounts Payable
+          </h2>
+        </div>
+        <div className="px-6 py-4">
+          {data.apOutstanding.length === 0 ? (
+            <p className="text-sm text-zinc-400">No outstanding costs</p>
+          ) : (
+            <div className="space-y-1">
+              {data.apOutstanding.map((item) => (
+                <div key={item.currency} className="flex items-center justify-between py-1">
+                  <span className="text-sm text-zinc-600">Outstanding</span>
+                  <span className="text-sm font-semibold text-zinc-800">
+                    {fmt(item.amount, item.currency)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* LOANS — Alex only */}
+      {isAlex && data.loans.length > 0 && (
+        <section className="rounded-lg border border-zinc-200 bg-white">
+          <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+              Loans
+            </h2>
+          </div>
+          <div className="divide-y divide-zinc-100">
+            {data.loans.map((loan) => (
+              <div key={loan.loanId} className="flex items-center justify-between px-6 py-3">
+                <span className="text-sm text-zinc-700">{loan.lenderName}</span>
+                <span className="text-sm font-medium text-zinc-800">
+                  {fmt(loan.outstanding, loan.currency)}
+                </span>
+              </div>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* ASSETS */}
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="border-b border-zinc-200 bg-emerald-50 px-6 py-3">
-            <h2 className="text-lg font-semibold text-emerald-800">Assets</h2>
+      {/* TAX POSITION (IGV) */}
+      {data.igv.length > 0 && (
+        <section className="rounded-lg border border-zinc-200 bg-white">
+          <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
+              Tax Position (IGV)
+            </h2>
           </div>
-          <div className="divide-y divide-zinc-100">
-            {/* Cash in Bank */}
-            <div className="px-6 py-4">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Cash in Bank
-              </h3>
-              <div className="space-y-4">
-                {Array.from(accountsByPartner.entries()).map(([partner, accounts]) => (
-                  <div key={partner}>
-                    <p className="mb-2 text-xs font-medium text-zinc-400">{partner}</p>
-                    <div className="space-y-1">
-                      {accounts.map((ba) => {
-                        const { value, converted } = convertForDisplay(ba.balance, ba.currency, currency)
-                        return (
-                          <div
-                            key={ba.bankAccountId}
-                            className="flex cursor-pointer items-center justify-between rounded px-3 py-2 transition-colors hover:bg-blue-50"
-                            onClick={() => handleAccountClick(ba)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-zinc-700">
-                                {ba.bankName} ···{ba.accountNumberLast4}
-                              </span>
-                              <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
-                                {ba.accountType}
-                              </span>
-                              {ba.isDetractionAccount && (
-                                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
-                                  Tax only
-                                </span>
-                              )}
-                            </div>
-                            <span className={`text-sm font-medium ${value >= 0 ? 'text-zinc-800' : 'text-red-600'}`}>
-                              <Amount value={value} currency={currency} converted={converted} />
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
+          <div className="px-6 py-4">
+            <div className="space-y-3">
+              {data.igv.map((row) => (
+                <div key={row.currency} className="space-y-1">
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-zinc-500">IGV paid (crédito fiscal)</span>
+                    <span className="text-sm font-medium text-zinc-800">
+                      {fmt(row.igvPaid, row.currency)}
+                    </span>
                   </div>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-zinc-200 pt-3">
-                <span className="text-sm font-medium text-zinc-600">Total Cash</span>
-                <span className="text-sm font-semibold text-zinc-800">
-                  {formatCurrency(totalCash, currency)}
-                </span>
-              </div>
-            </div>
-
-            {/* Accounts Receivable */}
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                  Accounts Receivable
-                </h3>
-                <p className="text-xs text-zinc-400">Outstanding AR invoices</p>
-              </div>
-              <span className="text-sm font-semibold text-zinc-800">
-                {formatCurrency(data.arOutstanding, currency)}
-              </span>
-            </div>
-
-            {/* Tax Credits */}
-            <div className="px-6 py-4">
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Tax Credits
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-600">IGV Paid (crédito fiscal)</span>
-                  <span className="text-sm font-medium text-zinc-800">
-                    {formatCurrency(data.igvPaid, currency)}
-                  </span>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-sm text-zinc-500">IGV collected (débito fiscal)</span>
+                    <span className="text-sm font-medium text-zinc-800">
+                      {fmt(row.igvCollected, row.currency)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-zinc-100 pt-1">
+                    <span className="text-sm font-medium text-zinc-600">
+                      Net {row.net >= 0 ? '(crédito)' : '(débito)'}
+                    </span>
+                    <span className={`text-sm font-semibold ${
+                      row.net >= 0 ? 'text-emerald-700' : 'text-red-600'
+                    }`}>
+                      {fmt(Math.abs(row.net), row.currency)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-600">Retenciones Unverified</span>
-                  <span className="text-sm font-medium text-zinc-800">
-                    {formatCurrency(data.retencionesUnverified, currency)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Assets */}
-            <div className="flex items-center justify-between bg-emerald-50 px-6 py-4">
-              <span className="text-sm font-bold uppercase text-emerald-800">Total Assets</span>
-              <span className="text-base font-bold text-emerald-800">
-                {formatCurrency(data.totalAssets, currency)}
-              </span>
+              ))}
             </div>
           </div>
-        </div>
-
-        {/* LIABILITIES */}
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          <div className="border-b border-zinc-200 bg-red-50 px-6 py-3">
-            <h2 className="text-lg font-semibold text-red-800">Liabilities</h2>
-          </div>
-          <div className="divide-y divide-zinc-100">
-            {/* Accounts Payable */}
-            <div className="flex items-center justify-between px-6 py-4">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                  Accounts Payable
-                </h3>
-                <p className="text-xs text-zinc-400">Outstanding costs</p>
-              </div>
-              <span className="text-sm font-semibold text-zinc-800">
-                {formatCurrency(data.apOutstanding, currency)}
-              </span>
-            </div>
-
-            {/* Tax Liabilities */}
-            <div className="px-6 py-4">
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                Tax Liabilities
-              </h3>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-600">IGV Collected (débito fiscal)</span>
-                <span className="text-sm font-medium text-zinc-800">
-                  {formatCurrency(data.igvCollected, currency)}
-                </span>
-              </div>
-            </div>
-
-            {/* Loans — Alex only */}
-            {isAlex && data.loans.length > 0 && (
-              <div className="px-6 py-4">
-                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                  Loans
-                  <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-normal text-zinc-500">
-                    ALEX ONLY
-                  </span>
-                </h3>
-                <div className="space-y-2">
-                  {data.loans.map((loan) => {
-                    const { value, converted } = convertForDisplay(
-                      loan.outstanding,
-                      loan.currency,
-                      currency
-                    )
-                    return (
-                      <div key={loan.loanId} className="flex items-center justify-between">
-                        <span className="text-sm text-zinc-600">{loan.lenderName}</span>
-                        <span className="text-sm font-medium text-zinc-800">
-                          <Amount value={value} currency={currency} converted={converted} />
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Total Liabilities */}
-            <div className="flex items-center justify-between bg-red-50 px-6 py-4">
-              <span className="text-sm font-bold uppercase text-red-800">Total Liabilities</span>
-              <span className="text-base font-bold text-red-800">
-                {formatCurrency(data.totalLiabilities, currency)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* NET POSITION */}
-      <div className={`rounded-lg border-2 px-6 py-5 ${
-        data.netPosition >= 0
-          ? 'border-emerald-200 bg-emerald-50'
-          : 'border-red-200 bg-red-50'
-      }`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-800">Net Position</h2>
-            <p className="text-sm text-zinc-500">Assets − Liabilities</p>
-          </div>
-          <span className={`text-2xl font-bold ${
-            data.netPosition >= 0 ? 'text-emerald-700' : 'text-red-700'
-          }`}>
-            {formatCurrency(data.netPosition, currency)}
-          </span>
-        </div>
-      </div>
+        </section>
+      )}
 
       {/* Disclaimer */}
       <p className="text-center text-xs text-zinc-400">
-        * Converted at default rate ({currency === 'PEN' ? 'S/.' : '$'} {DEFAULT_RATE}).
         Balances are system-calculated, not bank-reconciled.
       </p>
 
@@ -358,7 +261,7 @@ export function FPClient({ data, isAlex, currency, onCurrencyChange }: Props) {
                       txn.direction === 'inbound' ? 'text-emerald-600' : 'text-red-600'
                     }`}>
                       {txn.direction === 'inbound' ? '+' : '−'}
-                      {formatCurrency(txn.amount, txn.currency as Currency)}
+                      {fmt(txn.amount, txn.currency)}
                     </td>
                   </tr>
                 ))}
