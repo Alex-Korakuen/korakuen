@@ -250,8 +250,7 @@ def add_ar_invoice():
         data["detraccion_rate"] = detraccion_rate
     if retencion_rate:
         data["retencion_rate"] = retencion_rate
-    if exchange_rate:
-        data["exchange_rate"] = exchange_rate
+    data["exchange_rate"] = exchange_rate
     if document_ref:
         data["document_ref"] = document_ref
     if notes:
@@ -321,6 +320,7 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "subtotal", errors)
     validate_required(row_num, row, "igv_rate", errors)
     validate_required(row_num, row, "currency", errors)
+    validate_required(row_num, row, "exchange_rate", errors)
     validate_required(row_num, row, "retencion_applicable", errors)
     validate_required(row_num, row, "is_internal_settlement", errors)
     validate_required(row_num, row, "retencion_verified", errors)
@@ -394,12 +394,13 @@ def _build_ar_record(row, lookups):
         "igv_rate": float(row["igv_rate"]),
         "retencion_applicable": _parse_bool(row.get("retencion_applicable")),
         "currency": str(row["currency"]).strip(),
+        "exchange_rate": float(row["exchange_rate"]),
         "is_internal_settlement": _parse_bool(row.get("is_internal_settlement")),
         "retencion_verified": _parse_bool(row.get("retencion_verified")),
     }
 
     # Optional numeric
-    for field in ("detraccion_rate", "retencion_rate", "exchange_rate"):
+    for field in ("detraccion_rate", "retencion_rate"):
         val = row.get(field)
         if val is not None and not pd.isna(val):
             data[field] = float(val)

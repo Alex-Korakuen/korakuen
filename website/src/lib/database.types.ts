@@ -539,6 +539,7 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          exchange_rate: number
           id: string
           loan_id: string
           notes: string | null
@@ -551,6 +552,7 @@ export type Database = {
           amount: number
           created_at?: string
           currency: string
+          exchange_rate?: number
           id?: string
           loan_id: string
           notes?: string | null
@@ -563,6 +565,7 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          exchange_rate?: number
           id?: string
           loan_id?: string
           notes?: string | null
@@ -592,6 +595,7 @@ export type Database = {
         Row: {
           actual_payment_id: string | null
           created_at: string
+          exchange_rate: number
           id: string
           loan_id: string
           paid: boolean
@@ -602,6 +606,7 @@ export type Database = {
         Insert: {
           actual_payment_id?: string | null
           created_at?: string
+          exchange_rate?: number
           id?: string
           loan_id: string
           paid?: boolean
@@ -612,6 +617,7 @@ export type Database = {
         Update: {
           actual_payment_id?: string | null
           created_at?: string
+          exchange_rate?: number
           id?: string
           loan_id?: string
           paid?: boolean
@@ -652,6 +658,7 @@ export type Database = {
           currency: string
           date_borrowed: string
           due_date: string | null
+          exchange_rate: number
           id: string
           lender_contact: string | null
           lender_name: string
@@ -670,6 +677,7 @@ export type Database = {
           currency: string
           date_borrowed: string
           due_date?: string | null
+          exchange_rate?: number
           id?: string
           lender_contact?: string | null
           lender_name: string
@@ -688,6 +696,7 @@ export type Database = {
           currency?: string
           date_borrowed?: string
           due_date?: string | null
+          exchange_rate?: number
           id?: string
           lender_contact?: string | null
           lender_name?: string
@@ -1201,6 +1210,7 @@ export type Database = {
           due_date: string | null
           entity_id: string | null
           entity_name: string | null
+          exchange_rate: number | null
           igv_amount: number | null
           outstanding: number | null
           payment_status: string | null
@@ -1374,6 +1384,7 @@ export type Database = {
           document_ref: string | null
           due_date: string | null
           entity_id: string | null
+          exchange_rate: number | null
           igv_amount: number | null
           outstanding: number | null
           payment_status: string | null

@@ -69,14 +69,20 @@ def get_currency(default=None, label="Currency"):
 
 
 def get_exchange_rate():
-    """Prompt for optional exchange rate. Returns float or None."""
-    value = get_optional_input("  Exchange rate (optional — press Enter to skip): ")
-    if value:
+    """Prompt for required exchange rate (PEN per USD). Loops until valid number entered."""
+    while True:
+        value = input("  Exchange rate (PEN per USD): ").strip()
+        if not value:
+            print("  This field is required.")
+            continue
         try:
-            return float(value)
+            rate = float(value)
+            if rate <= 0:
+                print("  Must be a positive number.")
+                continue
+            return rate
         except ValueError:
-            return None
-    return None
+            print("  Must be a valid number (e.g. 3.72).")
 
 
 def select_project(optional=False):

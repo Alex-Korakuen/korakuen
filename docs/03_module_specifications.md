@@ -153,7 +153,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Quantity and unit price are required for material purchases — enables historical unit price analysis
 - IGV is tracked separately on every cost
 - Currency must be specified (USD or PEN) — never converted at storage
-- Exchange rate stored as reference for display purposes
+- Exchange rate mandatory (NOT NULL) — stored at transaction date for application-layer conversion
 - Detracciones tracked when applicable — rate editable per transaction
 - Entity field is nullable — supports fully informal/unassigned expenses
 - Comprobante fields are nullable — supports expenses without formal invoices
@@ -426,7 +426,7 @@ When partners settle up, one partner company issues a formal AR invoice to anoth
 - Costs with null project are SG&A — they appear in the company P&L but not in any project P&L
 - Cost totals (subtotal, IGV, total) are always derived from cost_items via database views — never stored on the costs header. AR invoice calculated fields (igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable) are also derived via views, never stored
 - Currency is always stored in natural currency — amounts are never converted at storage
-- Exchange rate is stored per transaction as a reference field for display
+- Exchange rate is mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting — no conversion occurs at storage. Payment currency must match the parent document currency
 - Document reference codes follow the format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`
 - Valuations are sequential integers per project (1, 2, 3...) and never reset
 - Closed valuations cannot be modified

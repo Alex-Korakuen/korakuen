@@ -30,7 +30,7 @@ Layer 7: project_budgets
 - **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables and historical reference tables are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
-- **Exchange rate:** stored as reference per transaction, never used for conversion at storage
+- **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
 - **Nullable fields:** explicitly noted — absence of a value is valid business data (informality support)
 - **Document codes:** follow format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`
 - **Title and notes:** `title` is the record's subject/name (required). `notes` is optional free-form context. Never use `description` as a column name. Special identity fields (`name`, `legal_name`, `invoice_number`) keep their specific names
@@ -242,7 +242,7 @@ Quotes received from suppliers and subcontractors before committing to a purchas
 | igv_amount | NUMERIC(15,2) | YES | |
 | total | NUMERIC(15,2) | NO | |
 | currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | YES | reference only |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | status | VARCHAR | NO | pending, accepted, rejected |
 | linked_cost_id | UUID | YES | application-level reference to costs (no FK constraint — avoids circular dependency with costs.quote_id). Populated when accepted |
 | document_ref | VARCHAR | YES | e.g. PRY001-QT-001 |
@@ -315,7 +315,7 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 | igv_rate | NUMERIC(5,2) | NO | default 18, editable per invoice |
 | detraccion_rate | NUMERIC(5,2) | YES | percentage, editable per invoice, null if not applicable |
 | currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | YES | reference only — amounts never converted at storage |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | comprobante_type | VARCHAR | YES | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
 | comprobante_number | VARCHAR | YES | e.g. F001-00234 |
 | payment_method | VARCHAR | YES | bank_transfer, cash, check — indicates payment channel |
@@ -397,7 +397,7 @@ Invoices sent to clients. One per valuation. Subtotal entered directly — no li
 | retencion_applicable | BOOLEAN | NO | default false |
 | retencion_rate | NUMERIC(5,2) | YES | default 3 if applicable — Korakuen is NOT a retencion agent |
 | currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | YES | reference only |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | document_ref | VARCHAR | YES | e.g. PRY001-AR-001 |
 | is_internal_settlement | BOOLEAN | NO | default false — true when invoicing a partner company |
 | retencion_verified | BOOLEAN | NO | default false — manually set to true once confirmed that client paid retencion to SUNAT |
@@ -444,7 +444,7 @@ The unified payments table. Every actual movement of money — both inbound and 
 | payment_date | DATE | NO | when payment was made or received |
 | amount | NUMERIC(15,2) | NO | in natural currency |
 | currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | YES | reference only |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | bank_account_id | UUID | YES | nullable — retencion never hits an account |
 | partner_company_id | UUID | NO | which partner's account was involved — required because retencion has no bank account |
 | notes | TEXT | YES | |
@@ -501,6 +501,7 @@ Personal financing arrangements — money borrowed from friends, family, or info
 | lender_contact | VARCHAR | YES | phone or email |
 | amount | NUMERIC(15,2) | NO | principal borrowed |
 | currency | VARCHAR(3) | NO | USD or PEN |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | date_borrowed | DATE | NO | |
 | project_id | UUID | YES | references projects — which project this funded, if any |
 | purpose | TEXT | NO | freeform description |
@@ -528,6 +529,7 @@ Agreed repayment schedule for a loan. Optional — not all loans have a structur
 | loan_id | UUID | NO | references loans |
 | scheduled_date | DATE | NO | agreed payment date |
 | scheduled_amount | NUMERIC(15,2) | NO | amount due on this date |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | paid | BOOLEAN | NO | default false |
 | actual_payment_id | UUID | YES | references loan_payments — populated when settled |
 | created_at | TIMESTAMP | NO | auto |
@@ -547,6 +549,7 @@ Actual repayments made against loans. Separate from business `payments` table �
 | payment_date | DATE | NO | |
 | amount | NUMERIC(15,2) | NO | |
 | currency | VARCHAR(3) | NO | USD or PEN |
+| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | source | VARCHAR | YES | project_settlement, personal_funds, other |
 | settlement_ref | VARCHAR | YES | e.g. PRY001-Settlement-1 — links repayment to profit event |
 | notes | TEXT | YES | freeform |
@@ -653,7 +656,7 @@ Layer 7 (project extensions):
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
 - **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on costs.
-- **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is a reference field only.
+- **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.
 - **Partner is derived from bank_account** on costs. Partner is explicit on ar_invoices and payments.
 - **Tags serve all classification needs** — entity categorization and project roles use the same master list.

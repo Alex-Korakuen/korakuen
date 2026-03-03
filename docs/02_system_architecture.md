@@ -113,7 +113,7 @@ Every transaction captures the full Peruvian tax reality from day one:
 - **Detracciones:** tracked on AR and AP, rate editable per transaction, Banco de la Nación as a special account type
 - **Retenciones:** tracked on AR only — Korakuen is not a retention agent
 - **Comprobante type:** Factura, Boleta, or Recibo por Honorarios — stored per transaction
-- **Exchange rate:** stored per transaction as reference; amounts always in natural currency (USD or PEN)
+- **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables reliable currency conversion at the application layer. Amounts always stored in natural currency (USD or PEN) — never converted at storage
 
 ---
 

@@ -76,14 +76,16 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
         r.days_remaining <= 30
     )
 
-    const sumOutstanding = (rows: ApCalendarRow[]) =>
-      rows.reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
+    const sumByCurrency = (rows: ApCalendarRow[]) => ({
+      pen: rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0),
+      usd: rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0),
+    })
 
     return {
-      overdue: { rows: overdue, count: overdue.length, total: sumOutstanding(overdue) },
-      today: { rows: today, count: today.length, total: sumOutstanding(today) },
-      'this-week': { rows: thisWeek, count: thisWeek.length, total: sumOutstanding(thisWeek) },
-      'next-30': { rows: next30, count: next30.length, total: sumOutstanding(next30) },
+      overdue: { rows: overdue, count: overdue.length, ...sumByCurrency(overdue) },
+      today: { rows: today, count: today.length, ...sumByCurrency(today) },
+      'this-week': { rows: thisWeek, count: thisWeek.length, ...sumByCurrency(thisWeek) },
+      'next-30': { rows: next30, count: next30.length, ...sumByCurrency(next30) },
     }
   }, [data, daysToEndOfWeek])
 
@@ -229,9 +231,6 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
 
   // --- Render ---
 
-  // Determine primary currency for summary cards (use PEN as default)
-  const primaryCurrency = 'PEN'
-
   return (
     <div>
       <h1 className="text-2xl font-semibold text-zinc-800">AP Payment Calendar</h1>
@@ -252,8 +251,8 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                 <SummaryCard
                   title="Overdue"
                   count={buckets.overdue.count}
-                  total={buckets.overdue.total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets.overdue.pen}
+                  totalUSD={buckets.overdue.usd}
                   variant="overdue"
                   isActive={activeBucket === 'overdue'}
                   onClick={() => handleBucketClick('overdue')}
@@ -261,8 +260,8 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                 <SummaryCard
                   title="Due Today"
                   count={buckets.today.count}
-                  total={buckets.today.total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets.today.pen}
+                  totalUSD={buckets.today.usd}
                   variant="today"
                   isActive={activeBucket === 'today'}
                   onClick={() => handleBucketClick('today')}
@@ -270,8 +269,8 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                 <SummaryCard
                   title="This Week"
                   count={buckets['this-week'].count}
-                  total={buckets['this-week'].total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets['this-week'].pen}
+                  totalUSD={buckets['this-week'].usd}
                   variant="this-week"
                   isActive={activeBucket === 'this-week'}
                   onClick={() => handleBucketClick('this-week')}
@@ -279,8 +278,8 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                 <SummaryCard
                   title="Next 30 Days"
                   count={buckets['next-30'].count}
-                  total={buckets['next-30'].total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets['next-30'].pen}
+                  totalUSD={buckets['next-30'].usd}
                   variant="future"
                   isActive={activeBucket === 'next-30'}
                   onClick={() => handleBucketClick('next-30')}

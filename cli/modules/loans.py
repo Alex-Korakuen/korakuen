@@ -8,7 +8,7 @@ Tables: loans, loan_schedule, loan_payments
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, select_project,
+    get_currency, get_exchange_rate, select_project,
 )
 
 
@@ -59,6 +59,8 @@ def add_loan():
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
     currency = get_currency()
+
+    exchange_rate = get_exchange_rate()
 
     # --- Date borrowed ---
     date_borrowed = get_input("\n  Date borrowed (YYYY-MM-DD): ")
@@ -136,6 +138,7 @@ def add_loan():
         "lender_name": lender_name,
         "amount": amount,
         "currency": currency,
+        "exchange_rate": exchange_rate,
         "date_borrowed": date_borrowed,
         "purpose": purpose,
         "return_type": return_type,
@@ -327,8 +330,9 @@ def register_repayment():
         input("\nPress Enter to continue...")
         return
 
-    print(f"\n  Currencies: USD, PEN (loan currency: {loan_currency})")
-    currency = get_currency(default=loan_currency)
+    currency = loan_currency
+    print(f"\n  Currency: {currency} (matches loan)")
+    exchange_rate = get_exchange_rate()
 
     print("\n  Source options: project_settlement, personal_funds, other")
     source = get_optional_input("  Source (optional — press Enter to skip): ")
@@ -372,6 +376,7 @@ def register_repayment():
         "payment_date": payment_date,
         "amount": amount,
         "currency": currency,
+        "exchange_rate": exchange_rate,
     }
     if source:
         data["source"] = source

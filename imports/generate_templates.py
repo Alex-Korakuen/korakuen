@@ -341,7 +341,7 @@ QUOTES = [
     {
         "name": "exchange_rate",
         "example": "3.72",
-        "description": "Optional. Reference exchange rate. NUMERIC(10,4). Never used for conversion.",
+        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
         "allowed_values": "",
     },
     {
@@ -440,7 +440,7 @@ COSTS = [
     {
         "name": "exchange_rate",
         "example": "3.72",
-        "description": "Optional. Reference exchange rate. NUMERIC(10,4). Never used for conversion.",
+        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
         "allowed_values": "",
     },
     {
@@ -632,7 +632,7 @@ AR_INVOICES = [
     {
         "name": "exchange_rate",
         "example": "3.72",
-        "description": "Optional. Reference exchange rate. NUMERIC(10,4). Never used for conversion.",
+        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
         "allowed_values": "",
     },
     {

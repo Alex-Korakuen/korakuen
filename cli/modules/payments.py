@@ -90,8 +90,8 @@ def register_payment():
         input("\nPress Enter to continue...")
         return
 
-    print(f"\n  Currencies: USD, PEN (record currency: {record_currency})")
-    currency = get_currency(default=record_currency)
+    currency = record_currency
+    print(f"\n  Currency: {currency} (matches document)")
     exchange_rate = get_exchange_rate()
 
     # --- Bank account (conditional) ---
@@ -196,10 +196,9 @@ def register_payment():
         "payment_date": payment_date,
         "amount": amount,
         "currency": currency,
+        "exchange_rate": exchange_rate,
         "partner_company_id": partner["id"],
     }
-    if exchange_rate:
-        data["exchange_rate"] = exchange_rate
     if bank_account:
         data["bank_account_id"] = bank_account["id"]
     if notes:

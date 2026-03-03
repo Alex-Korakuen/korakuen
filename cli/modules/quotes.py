@@ -178,8 +178,7 @@ def add_quote():
         data["unit_price"] = unit_price
     if igv_amount:
         data["igv_amount"] = igv_amount
-    if exchange_rate:
-        data["exchange_rate"] = exchange_rate
+    data["exchange_rate"] = exchange_rate
     if document_ref:
         data["document_ref"] = document_ref
     if notes:
@@ -217,6 +216,7 @@ def _validate_quote_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "subtotal", errors)
     validate_required(row_num, row, "total", errors)
     validate_required(row_num, row, "currency", errors)
+    validate_required(row_num, row, "exchange_rate", errors)
     validate_required(row_num, row, "status", errors)
 
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
@@ -244,10 +244,11 @@ def _build_quote_record(row, lookups):
         "subtotal": float(row["subtotal"]),
         "total": float(row["total"]),
         "currency": str(row["currency"]).strip(),
+        "exchange_rate": float(row["exchange_rate"]),
         "status": str(row["status"]).strip(),
     }
 
-    for field in ("quantity", "unit_price", "igv_amount", "exchange_rate"):
+    for field in ("quantity", "unit_price", "igv_amount"):
         val = row.get(field)
         if val is not None and not pd.isna(val):
             data[field] = float(val)

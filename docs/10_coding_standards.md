@@ -219,7 +219,7 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 - Amounts: `NUMERIC(15,2)` for money, `NUMERIC(15,4)` for quantities and unit prices
 - Rates/percentages: `NUMERIC(5,2)` — e.g. 18.00 for IGV, 4.00 for detraccion
 - Currency: `VARCHAR(3)` — always 'USD' or 'PEN'
-- Exchange rate: `NUMERIC(10,4)` — reference only, never used for conversion
+- Exchange rate: `NUMERIC(10,4) NOT NULL DEFAULT 3.70` — mandatory on all financial tables, PEN per USD at transaction date. Enables application-layer conversion for reporting
 - Title and notes: use `title TEXT` for a record's subject or name (required, NOT NULL). Use `notes TEXT` for optional free-form context (nullable). Never use `description` as a column name. Special identity fields (`name`, `legal_name`, `bank_name`, `invoice_number`) keep their specific names
 
 ### Migration Standards

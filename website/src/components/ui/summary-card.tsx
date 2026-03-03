@@ -5,8 +5,8 @@ import { formatCurrency } from '@/lib/formatters'
 type SummaryCardProps = {
   title: string
   count: number
-  total: number
-  currency: string
+  totalPEN: number
+  totalUSD: number
   variant?: 'overdue' | 'today' | 'this-week' | 'future' | 'default'
   isActive: boolean
   onClick: () => void
@@ -23,8 +23,8 @@ const variantBorderColors: Record<string, string> = {
 export function SummaryCard({
   title,
   count,
-  total,
-  currency,
+  totalPEN,
+  totalUSD,
   variant = 'default',
   isActive,
   onClick,
@@ -47,8 +47,13 @@ export function SummaryCard({
         {title}
       </span>
       <span className="text-lg font-semibold text-zinc-900">
-        {formatCurrency(total, currency as 'PEN' | 'USD')}
+        {formatCurrency(totalPEN, 'PEN')}
       </span>
+      {totalUSD !== 0 && (
+        <span className="text-sm text-zinc-600">
+          {formatCurrency(totalUSD, 'USD')}
+        </span>
+      )}
       <span className="text-xs text-zinc-400">
         {count} {count === 1 ? 'item' : 'items'}
       </span>

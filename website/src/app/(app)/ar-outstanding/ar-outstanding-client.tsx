@@ -70,14 +70,16 @@ export function ArOutstandingClient({
     const d61_90 = data.filter((r) => r.days_overdue > 60 && r.days_overdue <= 90)
     const d90plus = data.filter((r) => r.days_overdue > 90)
 
-    const sumOutstanding = (rows: ArOutstandingRow[]) =>
-      rows.reduce((acc, r) => acc + r.outstanding, 0)
+    const sumByCurrency = (rows: ArOutstandingRow[]) => ({
+      pen: rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + r.outstanding, 0),
+      usd: rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + r.outstanding, 0),
+    })
 
     return {
-      current: { count: current.length, total: sumOutstanding(current) },
-      '31-60': { count: d31_60.length, total: sumOutstanding(d31_60) },
-      '61-90': { count: d61_90.length, total: sumOutstanding(d61_90) },
-      '90+': { count: d90plus.length, total: sumOutstanding(d90plus) },
+      current: { count: current.length, ...sumByCurrency(current) },
+      '31-60': { count: d31_60.length, ...sumByCurrency(d31_60) },
+      '61-90': { count: d61_90.length, ...sumByCurrency(d61_90) },
+      '90+': { count: d90plus.length, ...sumByCurrency(d90plus) },
     }
   }, [data])
 
@@ -123,19 +125,23 @@ export function ArOutstandingClient({
     return sorted
   }, [data, activeBucket, filters, sortColumn, sortDirection])
 
-  // --- Totals row ---
+  // --- Totals row (split by currency) ---
   const totals = useMemo(() => {
-    return filteredData.reduce(
-      (acc, r) => ({
-        gross: acc.gross + r.gross_total,
-        detraccion: acc.detraccion + r.detraccion_amount,
-        retencion: acc.retencion + r.retencion_amount,
-        net: acc.net + r.net_receivable,
-        paid: acc.paid + r.amount_paid,
-        outstanding: acc.outstanding + r.outstanding,
-      }),
-      { gross: 0, detraccion: 0, retencion: 0, net: 0, paid: 0, outstanding: 0 }
-    )
+    const sumFor = (cur: string) =>
+      filteredData
+        .filter((r) => r.currency === cur)
+        .reduce(
+          (acc, r) => ({
+            gross: acc.gross + r.gross_total,
+            detraccion: acc.detraccion + r.detraccion_amount,
+            retencion: acc.retencion + r.retencion_amount,
+            net: acc.net + r.net_receivable,
+            paid: acc.paid + r.amount_paid,
+            outstanding: acc.outstanding + r.outstanding,
+          }),
+          { gross: 0, detraccion: 0, retencion: 0, net: 0, paid: 0, outstanding: 0 }
+        )
+    return { pen: sumFor('PEN'), usd: sumFor('USD') }
   }, [filteredData])
 
   // --- Filtered retenciones ---
@@ -213,8 +219,6 @@ export function ArOutstandingClient({
     return Array.from(names).sort()
   }, [data])
 
-  const primaryCurrency = 'PEN'
-
   return (
     <div>
       <h1 className="text-2xl font-semibold text-zinc-800">AR Outstanding & Collections</h1>
@@ -235,8 +239,8 @@ export function ArOutstandingClient({
                 <SummaryCard
                   title="Current (0-30)"
                   count={buckets.current.count}
-                  total={buckets.current.total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets.current.pen}
+                  totalUSD={buckets.current.usd}
                   variant="future"
                   isActive={activeBucket === 'current'}
                   onClick={() => handleBucketClick('current')}
@@ -244,8 +248,8 @@ export function ArOutstandingClient({
                 <SummaryCard
                   title="31-60 Days"
                   count={buckets['31-60'].count}
-                  total={buckets['31-60'].total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets['31-60'].pen}
+                  totalUSD={buckets['31-60'].usd}
                   variant="this-week"
                   isActive={activeBucket === '31-60'}
                   onClick={() => handleBucketClick('31-60')}
@@ -253,8 +257,8 @@ export function ArOutstandingClient({
                 <SummaryCard
                   title="61-90 Days"
                   count={buckets['61-90'].count}
-                  total={buckets['61-90'].total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets['61-90'].pen}
+                  totalUSD={buckets['61-90'].usd}
                   variant="today"
                   isActive={activeBucket === '61-90'}
                   onClick={() => handleBucketClick('61-90')}
@@ -262,8 +266,8 @@ export function ArOutstandingClient({
                 <SummaryCard
                   title="90+ Days"
                   count={buckets['90+'].count}
-                  total={buckets['90+'].total}
-                  currency={primaryCurrency}
+                  totalPEN={buckets['90+'].pen}
+                  totalUSD={buckets['90+'].usd}
                   variant="overdue"
                   isActive={activeBucket === '90+'}
                   onClick={() => handleBucketClick('90+')}
@@ -469,31 +473,59 @@ export function ArOutstandingClient({
                             </td>
                           </tr>
                         ))}
-                        {/* Total row */}
-                        <tr className="bg-zinc-50 font-medium">
-                          <td colSpan={6} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
-                            Total ({filteredData.length} invoices)
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                            {formatCurrency(totals.gross, primaryCurrency)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                            {formatCurrency(totals.detraccion, primaryCurrency)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                            {formatCurrency(totals.retencion, primaryCurrency)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
-                            {formatCurrency(totals.net, primaryCurrency)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                            {formatCurrency(totals.paid, primaryCurrency)}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
-                            {formatCurrency(totals.outstanding, primaryCurrency)}
-                          </td>
-                          <td />
-                        </tr>
+                        {/* Total rows (one per currency with data) */}
+                        {totals.pen.outstanding !== 0 && (
+                          <tr className="bg-zinc-50 font-medium">
+                            <td colSpan={6} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                              Total PEN ({filteredData.filter(r => r.currency === 'PEN').length} invoices)
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
+                              {formatCurrency(totals.pen.gross, 'PEN')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
+                              {formatCurrency(totals.pen.detraccion, 'PEN')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
+                              {formatCurrency(totals.pen.retencion, 'PEN')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
+                              {formatCurrency(totals.pen.net, 'PEN')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
+                              {formatCurrency(totals.pen.paid, 'PEN')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
+                              {formatCurrency(totals.pen.outstanding, 'PEN')}
+                            </td>
+                            <td />
+                          </tr>
+                        )}
+                        {totals.usd.outstanding !== 0 && (
+                          <tr className="bg-zinc-50 font-medium">
+                            <td colSpan={6} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                              Total USD ({filteredData.filter(r => r.currency === 'USD').length} invoices)
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
+                              {formatCurrency(totals.usd.gross, 'USD')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
+                              {formatCurrency(totals.usd.detraccion, 'USD')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
+                              {formatCurrency(totals.usd.retencion, 'USD')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
+                              {formatCurrency(totals.usd.net, 'USD')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
+                              {formatCurrency(totals.usd.paid, 'USD')}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
+                              {formatCurrency(totals.usd.outstanding, 'USD')}
+                            </td>
+                            <td />
+                          </tr>
+                        )}
                       </>
                     )}
                   </tbody>

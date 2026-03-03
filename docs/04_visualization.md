@@ -122,7 +122,7 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Main tab:**
 
-**Top:** Summary cards (Overdue, Due Today, This Week, Next 30 Days) showing count and total per bucket. Cards are clickable — clicking a card filters the table below to that bucket. Buckets are non-overlapping: Overdue (past due), Today (due today only), This Week (tomorrow through end of week), Next 30 Days (after this week through 30 days out).
+**Top:** Summary cards (Overdue, Due Today, This Week, Next 30 Days) showing count and dual-currency totals per bucket — PEN amount (primary) and USD amount (secondary, shown only when > 0). Cards are clickable — clicking a card filters the table below to that bucket. Buckets are non-overlapping: Overdue (past due), Today (due today only), This Week (tomorrow through end of week), Next 30 Days (after this week through 30 days out).
 
 **Bottom:** Sortable table. Columns: due_date, days until due, type, supplier, project, title, outstanding amount, currency, payment status. Default sort: due date ascending (most urgent first). Row urgency indicated by colored left border (red=overdue, orange=today, yellow=this week, neutral=future).
 
@@ -150,7 +150,7 @@ Detraccion deposits pending — outbound detracciones that need to be deposited 
 
 **Main tab:**
 
-**Top:** Aging bucket cards (Current 0-30, 31-60, 61-90, 90+ days overdue). Clickable to filter table. Aging is days past due_date.
+**Top:** Aging bucket cards (Current 0-30, 31-60, 61-90, 90+ days overdue) with dual-currency totals — PEN amount (primary) and USD amount (secondary, shown only when > 0). Clickable to filter table. Aging is days past due_date.
 
 **Bottom:** Invoice detail table. Columns: invoice_number, project, client, invoice_date, due_date, gross, detraccion, retencion, net_receivable, paid, outstanding, days_overdue. Color-coded age column. Total row at bottom.
 

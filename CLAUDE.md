@@ -100,7 +100,7 @@ Key facts:
 - All tables have `created_at` and `updated_at`
 - Soft deletes only — never hard delete any record
 - Amounts always stored in natural currency (USD or PEN) — never converted at storage
-- Exchange rate stored per transaction as reference only
+- Exchange rate mandatory (NOT NULL) on all financial tables — stored at historical rate per transaction, enables application-layer conversion
 - IGV, detraccion, and retencion tracked separately on all financial records
 - Totals and payment balances are always derived via views — never stored
 - No business logic triggers — all derived data computed at query time (only `updated_at` auto-timestamp triggers exist)

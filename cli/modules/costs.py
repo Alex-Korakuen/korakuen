@@ -321,8 +321,7 @@ def add_cost():
         header_data["quote_id"] = quote["id"]
     if detraccion_rate:
         header_data["detraccion_rate"] = detraccion_rate
-    if exchange_rate:
-        header_data["exchange_rate"] = exchange_rate
+    header_data["exchange_rate"] = exchange_rate
     if comprobante_type:
         header_data["comprobante_type"] = comprobante_type
     if comprobante_number:
@@ -423,6 +422,7 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "title", errors)
     validate_required(row_num, row, "igv_rate", errors)
     validate_required(row_num, row, "currency", errors)
+    validate_required(row_num, row, "exchange_rate", errors)
 
     validate_enum(row_num, row, "cost_type", ["project_cost", "sga"], errors)
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
@@ -476,6 +476,7 @@ def _build_cost_record(row, lookups):
         "title": str(row["title"]).strip(),
         "igv_rate": float(row["igv_rate"]),
         "currency": str(row["currency"]).strip(),
+        "exchange_rate": float(row["exchange_rate"]),
     }
 
     # FK lookups (optional)
@@ -501,7 +502,7 @@ def _build_cost_record(row, lookups):
         data["quote_id"] = lookups["quotes"][str(quote_ref).strip()]
 
     # Optional numeric fields
-    for field in ("detraccion_rate", "exchange_rate"):
+    for field in ("detraccion_rate",):
         val = row.get(field)
         if val is not None and not pd.isna(val):
             data[field] = float(val)

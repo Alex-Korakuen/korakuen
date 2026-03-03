@@ -458,7 +458,7 @@ export async function getCashFlow(
     // Outstanding costs with due dates (forecast out)
     supabase
       .from('v_cost_balances')
-      .select('cost_id, project_id, due_date, outstanding, currency, cost_type')
+      .select('cost_id, project_id, due_date, outstanding, currency, exchange_rate, cost_type')
       .in('payment_status', ['pending', 'partial'])
       .not('due_date', 'is', null),
     // Outstanding AR invoices with due dates (forecast in)
@@ -472,7 +472,7 @@ export async function getCashFlow(
     isAlex
       ? supabase
           .from('loan_schedule')
-          .select('id, loan_id, scheduled_date, scheduled_amount, paid, loans!fk_loan_schedule_loans(currency)')
+          .select('id, loan_id, scheduled_date, scheduled_amount, paid, exchange_rate, loans!fk_loan_schedule_loans(currency)')
           .eq('paid', false)
       : { data: [] },
     // Cost items for category breakdown (for both actual and forecast)
@@ -486,19 +486,6 @@ export async function getCashFlow(
   const arBalances = arBalancesResult.data ?? []
   const loanSchedule = loanScheduleResult.data ?? []
   const costItems = costItemsResult.data ?? []
-
-  // Fetch exchange rates for outstanding costs (v_cost_balances doesn't include exchange_rate)
-  const costIdsForRate = costBalances.map(c => c.cost_id).filter((id): id is string => id !== null)
-  const costExchangeRateMap = new Map<string, number | null>()
-  if (costIdsForRate.length > 0) {
-    const { data: costRates } = await supabase
-      .from('costs')
-      .select('id, exchange_rate')
-      .in('id', costIdsForRate)
-    for (const c of costRates ?? []) {
-      costExchangeRateMap.set(c.id, c.exchange_rate)
-    }
-  }
 
   // Build cost_id -> project_id map for payment filtering
   // Need to look up which project a payment belongs to via its cost/AR invoice
@@ -621,8 +608,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const exchangeRate = cost.cost_id ? costExchangeRateMap.get(cost.cost_id) ?? null : null
-    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, exchangeRate)
+    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, cost.exchange_rate ?? null)
     const categories = cost.cost_id ? costCategoryMap.get(cost.cost_id) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
@@ -660,7 +646,7 @@ export async function getCashFlow(
       // loan_schedule joined with loans for currency
       const loanData = entry.loans as { currency: string } | null
       const loanCurrency = loanData?.currency ?? 'PEN'
-      bucket.loans += convertAmount(entry.scheduled_amount, loanCurrency, null)
+      bucket.loans += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null)
     }
   }
 
