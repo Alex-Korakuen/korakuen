@@ -448,6 +448,8 @@ export async function getCashFlow(
     arBalancesResult,
     loanScheduleResult,
     costItemsResult,
+    loansResult,
+    loanPaymentsResult,
   ] = await Promise.all([
     // All payments in the year (actual cash movements)
     supabase
@@ -479,6 +481,22 @@ export async function getCashFlow(
     supabase
       .from('cost_items')
       .select('cost_id, category, subtotal'),
+    // Loan disbursements — cash in from loans (Alex-only)
+    isAlex
+      ? supabase
+          .from('loans')
+          .select('id, amount, currency, exchange_rate, date_borrowed, project_id')
+          .gte('date_borrowed', yearStart)
+          .lte('date_borrowed', yearEnd)
+      : { data: [] },
+    // Actual loan repayments (Alex-only)
+    isAlex
+      ? supabase
+          .from('loan_payments')
+          .select('id, loan_id, payment_date, amount, currency, exchange_rate')
+          .gte('payment_date', yearStart)
+          .lte('payment_date', yearEnd)
+      : { data: [] },
   ])
 
   const payments = paymentsResult.data ?? []
@@ -486,6 +504,8 @@ export async function getCashFlow(
   const arBalances = arBalancesResult.data ?? []
   const loanSchedule = loanScheduleResult.data ?? []
   const costItems = costItemsResult.data ?? []
+  const loanDisbursements = loansResult.data ?? []
+  const loanRepayments = loanPaymentsResult.data ?? []
 
   // Build cost_id -> project_id map for payment filtering
   // Need to look up which project a payment belongs to via its cost/AR invoice
@@ -555,11 +575,32 @@ export async function getCashFlow(
     return amount
   }
 
+  // Build loan_id -> project_id map for project filtering on loan disbursements/repayments
+  const loanProjectMap = new Map<string, string | null>()
+  for (const loan of loanDisbursements) {
+    loanProjectMap.set(loan.id, loan.project_id)
+  }
+  // For repayments referencing loans not in this year's disbursements, fetch their project_ids
+  if (isAlex) {
+    const repaymentLoanIds = loanRepayments
+      .map(lp => lp.loan_id)
+      .filter(id => !loanProjectMap.has(id))
+    if (repaymentLoanIds.length > 0) {
+      const { data: extraLoans } = await supabase
+        .from('loans')
+        .select('id, project_id')
+        .in('id', repaymentLoanIds)
+      for (const l of extraLoans ?? []) {
+        loanProjectMap.set(l.id, l.project_id)
+      }
+    }
+  }
+
   // Initialize 12 monthly buckets
-  const monthBuckets = new Map<string, { cashIn: number; categories: CategoryTotals; loans: number }>()
+  const monthBuckets = new Map<string, { projectCashIn: number; loansCashIn: number; categories: CategoryTotals; loanRepayment: number }>()
   for (let m = 1; m <= 12; m++) {
     const key = `${year}-${String(m).padStart(2, '0')}`
-    monthBuckets.set(key, { cashIn: 0, categories: emptyCategoryTotals(), loans: 0 })
+    monthBuckets.set(key, { projectCashIn: 0, loansCashIn: 0, categories: emptyCategoryTotals(), loanRepayment: 0 })
   }
 
   const today = new Date()
@@ -582,7 +623,7 @@ export async function getCashFlow(
     const amount = convertAmount(p.amount, p.currency, p.exchange_rate)
 
     if (p.direction === 'inbound') {
-      bucket.cashIn += amount
+      bucket.projectCashIn += amount
     } else {
       // Outbound — distribute across categories
       const categories = costCategoryMap.get(p.related_id)
@@ -630,7 +671,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    bucket.cashIn += convertAmount(ar.outstanding ?? 0, ar.currency, ar.exchange_rate)
+    bucket.projectCashIn += convertAmount(ar.outstanding ?? 0, ar.currency, ar.exchange_rate)
   }
 
   // --- Process forecast: loan schedule (Alex-only) ---
@@ -646,7 +687,36 @@ export async function getCashFlow(
       // loan_schedule joined with loans for currency
       const loanData = entry.loans as { currency: string } | null
       const loanCurrency = loanData?.currency ?? 'PEN'
-      bucket.loans += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null)
+      bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null)
+    }
+  }
+
+  // --- Process actual loan disbursements as cash in (Alex-only) ---
+  if (isAlex) {
+    for (const loan of loanDisbursements) {
+      if (projectId && loan.project_id !== projectId) continue
+
+      const monthKey = toMonthKey(loan.date_borrowed)
+      const bucket = monthBuckets.get(monthKey)
+      if (!bucket) continue
+
+      bucket.loansCashIn += convertAmount(loan.amount, loan.currency, loan.exchange_rate ?? null)
+    }
+  }
+
+  // --- Process actual loan repayments (Alex-only) ---
+  if (isAlex) {
+    for (const lp of loanRepayments) {
+      if (projectId) {
+        const lpProjectId = loanProjectMap.get(lp.loan_id)
+        if (lpProjectId !== projectId) continue
+      }
+
+      const monthKey = toMonthKey(lp.payment_date)
+      const bucket = monthBuckets.get(monthKey)
+      if (!bucket) continue
+
+      bucket.loanRepayment += convertAmount(lp.amount, lp.currency, lp.exchange_rate ?? null)
     }
   }
 
@@ -655,23 +725,28 @@ export async function getCashFlow(
   for (let m = 1; m <= 12; m++) {
     const key = `${year}-${String(m).padStart(2, '0')}`
     const bucket = monthBuckets.get(key)!
-    const cashOut = bucket.categories.materials + bucket.categories.labor +
+    const projectCosts = bucket.categories.materials + bucket.categories.labor +
       bucket.categories.subcontractor + bucket.categories.equipment +
-      bucket.categories.other + bucket.loans
-    const net = bucket.cashIn - cashOut
+      bucket.categories.other
+    const cashOut = projectCosts + bucket.loanRepayment
+    const cashIn = bucket.projectCashIn + bucket.loansCashIn
+    const net = cashIn - cashOut
     const isActual = key <= currentMonthKey
 
     months.push({
       month: key,
       label: getMonthLabel(key),
       isActual,
-      cashIn: bucket.cashIn,
+      cashIn,
+      projectCashIn: bucket.projectCashIn,
+      loansCashIn: bucket.loansCashIn,
       materials: bucket.categories.materials,
       labor: bucket.categories.labor,
       subcontractor: bucket.categories.subcontractor,
       equipment: bucket.categories.equipment,
       other: bucket.categories.other,
-      loans: bucket.loans,
+      projectCosts,
+      loanRepayment: bucket.loanRepayment,
       cashOut,
       net,
     })
