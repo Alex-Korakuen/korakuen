@@ -193,7 +193,51 @@ Loan obligations are NOT on the P&L — they are personal, not business expenses
 
 ---
 
-## 5. What the System Does NOT Do
+## 5. Website Architecture (Phase 4)
+
+### 5.1 Route Groups and Layout
+The Next.js website uses a route group `(app)/` for all authenticated pages. Pages inside this group share a sidebar + header layout. Auth-related pages (`/login`, `/auth/callback`, `/auth/set-password`) sit outside the route group and render without the sidebar.
+
+```
+src/app/
+  login/                → no sidebar, centered card layout
+  auth/callback/        → token exchange (route handler, no UI)
+  auth/set-password/    → no sidebar, centered card layout
+  (app)/                → shared sidebar + header layout
+    ap-calendar/        → default landing page after login
+    ar-outstanding/     → AR aging and collections
+    ...                 → all other dashboard and browse pages
+    settings/password/  → change password (within sidebar layout)
+```
+
+### 5.2 Authentication — Invite-Only
+No open registration. Alex invites users via the Supabase Dashboard (Authentication > Users > Invite). The invited user receives an email, clicks the link, lands on `/auth/callback` which exchanges the token, then redirects to `/auth/set-password` where they choose a password.
+
+Middleware (`src/middleware.ts`) protects all routes: unauthenticated users are redirected to `/login`. Authenticated users accessing `/login` are redirected to `/ap-calendar`. The auth callback and set-password pages are excluded from protection.
+
+### 5.3 User Metadata
+Role and identity are stored in Supabase user metadata (set via SQL after invite):
+
+| Field | Type | Purpose |
+|---|---|---|
+| `is_company_view` | boolean | `true` = Alex (sees everything including loans). `false`/absent = partner view |
+| `partner_company_id` | UUID | Links user to their partner_company record for data scoping |
+| `display_name` | string | Name shown in header |
+| `password_set` | boolean | Set to `true` when user completes set-password flow |
+
+`auth.ts` exposes helpers: `getCurrentUser()`, `isCompanyView()`, `getPartnerName()`, `getPartnerCompanyId()`.
+
+### 5.4 Supabase Clients
+Two client factories, both typed against auto-generated `database.types.ts`:
+
+- **Server** (`lib/supabase/server.ts`): Uses `@supabase/ssr` with cookie handling for Server Components and Route Handlers. Created per-request.
+- **Client** (`lib/supabase/client.ts`): Uses `@supabase/ssr` browser client for client components (`'use client'`). Used in auth forms.
+
+Both use the anon key — the website is read-only in V0, and RLS policies control access.
+
+---
+
+
 
 | Out of Scope | Handled By |
 |---|---|

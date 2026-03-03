@@ -1,8 +1,31 @@
-export default function AROutstandingPage() {
+import {
+  getArOutstanding,
+  getRetencionDashboard,
+  getArDetracciones,
+  getProjectsForFilter,
+  getClientsForFilter,
+  getPartnerCompaniesForFilter,
+} from '@/lib/queries'
+import { ArOutstandingClient } from './ar-outstanding-client'
+
+export default async function ArOutstandingPage() {
+  const [data, retenciones, detracciones, projects, clients, partners] = await Promise.all([
+    getArOutstanding(),
+    getRetencionDashboard(),
+    getArDetracciones(),
+    getProjectsForFilter(),
+    getClientsForFilter(),
+    getPartnerCompaniesForFilter(),
+  ])
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">AR Outstanding</h1>
-      <p className="mt-2 text-zinc-500">Coming soon</p>
-    </div>
+    <ArOutstandingClient
+      data={data}
+      retenciones={retenciones}
+      detracciones={detracciones}
+      projects={projects}
+      clients={clients}
+      partners={partners}
+    />
   )
 }

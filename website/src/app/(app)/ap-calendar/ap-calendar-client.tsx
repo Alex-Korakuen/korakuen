@@ -6,185 +6,30 @@ import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Tabs } from '@/components/ui/tabs'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from './actions'
+import {
+  getDaysUntilEndOfWeek,
+  getRowBorderClass,
+  formatType,
+  formatComprobanteType,
+  formatPaymentStatus,
+  statusBadgeClass,
+} from './helpers'
 import type { ApCalendarRow } from '@/lib/types'
-
-// --- Types ---
-
-type DetractionEntry = {
-  cost_id: string | null
-  entity_name: string
-  project_code: string
-  title: string | null
-  detraccion_amount: number
-  currency: string
-  deposited: number
-  status: string
-}
-
-type CostDetailData = {
-  cost: {
-    cost_id: string | null
-    cost_type: string | null
-    currency: string | null
-    date: string | null
-    due_date: string | null
-    entity_id: string | null
-    title: string | null
-    subtotal: number | null
-    igv_amount: number | null
-    total: number | null
-    detraccion_amount: number | null
-    amount_paid: number | null
-    outstanding: number | null
-    payment_status: string | null
-    project_id: string | null
-    bank_account_id: string | null
-    document_ref: string | null
-  } | null
-  items: {
-    id: string
-    cost_id: string
-    title: string
-    quantity: number
-    unit_of_measure: string | null
-    unit_price: number
-    category: string
-    created_at: string
-    updated_at: string
-  }[]
-  payments: {
-    id: string
-    payment_date: string
-    payment_type: string
-    amount: number
-    currency: string
-    related_id: string
-    related_to: string
-    created_at: string
-    updated_at: string
-  }[]
-  header: {
-    comprobante_type: string | null
-    comprobante_number: string | null
-    document_ref: string | null
-    bank_account_id: string | null
-  } | null
-  bank: {
-    bank_name: string
-    account_number_last4: string | null
-    partner_company_id: string | null
-  } | null
-}
-
-type LoanDetailData = {
-  loan: {
-    loan_id: string | null
-    lender_name: string | null
-    lender_contact: string | null
-    purpose: string | null
-    currency: string | null
-    date_borrowed: string | null
-    due_date: string | null
-    principal: number | null
-    total_owed: number | null
-    total_paid: number | null
-    outstanding: number | null
-    status: string | null
-    scheduled_payments_count: number | null
-    paid_schedule_count: number | null
-    project_id: string | null
-  } | null
-  schedule: {
-    id: string
-    loan_id: string
-    scheduled_date: string
-    scheduled_amount: number
-    paid: boolean
-    actual_payment_id: string | null
-    created_at: string
-    updated_at: string
-  }[]
-  payments: {
-    id: string
-    loan_id: string
-    payment_date: string
-    amount: number
-    currency: string
-    notes: string | null
-    created_at: string
-    updated_at: string
-  }[]
-}
-
-type BucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
-
-type Filters = {
-  projectId: string
-  supplier: string
-  currency: string
-  titleSearch: string
-}
-
-type SortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'title' | 'outstanding'
-type SortDirection = 'asc' | 'desc'
+import type {
+  DetractionEntry,
+  CostDetailData,
+  LoanDetailData,
+  ApCalendarBucketId as BucketId,
+  ApCalendarFilters as Filters,
+  ApCalendarSortColumn as SortColumn,
+  ApCalendarSortDirection as SortDirection,
+} from '@/lib/types'
 
 type Props = {
   data: ApCalendarRow[]
   detractions: DetractionEntry[]
   projects: { id: string; project_code: string; name: string }[]
   isAlex: boolean
-}
-
-// --- Helpers ---
-
-function getDaysUntilEndOfWeek(): number {
-  const dayOfWeek = new Date().getDay() // 0=Sunday
-  if (dayOfWeek === 0) return 0
-  return 7 - dayOfWeek
-}
-
-function getRowBorderClass(daysRemaining: number | null): string {
-  if (daysRemaining === null) return ''
-  if (daysRemaining < 0) return 'border-l-4 border-l-[var(--color-overdue)]'
-  if (daysRemaining === 0) return 'border-l-4 border-l-[var(--color-today)]'
-  const daysToEndOfWeek = getDaysUntilEndOfWeek()
-  if (daysRemaining > 0 && daysRemaining <= daysToEndOfWeek) {
-    return 'border-l-4 border-l-[var(--color-this-week)]'
-  }
-  return 'border-l-4 border-l-transparent'
-}
-
-function formatType(type: string | null): string {
-  if (type === 'supplier_invoice') return 'Supplier'
-  if (type === 'loan_payment') return 'Loan'
-  return type ?? '--'
-}
-
-function formatComprobanteType(type: string | null): string {
-  if (!type) return '--'
-  const map: Record<string, string> = {
-    factura: 'Factura',
-    boleta: 'Boleta',
-    recibo_por_honorarios: 'Recibo por Honorarios',
-    liquidacion_de_compra: 'Liquidacion de Compra',
-    planilla_jornales: 'Planilla de Jornales',
-    none: 'Sin comprobante',
-  }
-  return map[type] ?? type
-}
-
-function formatPaymentStatus(status: string | null): string {
-  if (status === 'pending') return 'Pending'
-  if (status === 'partial') return 'Partial'
-  if (status === 'paid') return 'Paid'
-  return status ?? '--'
-}
-
-function statusBadgeClass(status: string | null): string {
-  if (status === 'pending') return 'bg-yellow-100 text-yellow-800'
-  if (status === 'partial') return 'bg-orange-100 text-orange-800'
-  if (status === 'paid') return 'bg-green-100 text-green-800'
-  return 'bg-zinc-100 text-zinc-600'
 }
 
 // --- Component ---
@@ -204,17 +49,13 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
   const [costDetail, setCostDetail] = useState<CostDetailData | null>(null)
   const [loanDetail, setLoanDetail] = useState<LoanDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(false)
 
   // --- Tabs config ---
-  const tabItems = isAlex
-    ? [
-        { id: 'main', label: 'Payment Calendar' },
-        { id: 'taxes', label: 'Detracciones' },
-      ]
-    : [
-        { id: 'main', label: 'Payment Calendar' },
-        { id: 'taxes', label: 'Detracciones' },
-      ]
+  const tabItems = [
+    { id: 'main', label: 'Payment Calendar' },
+    { id: 'taxes', label: 'Detracciones' },
+  ]
 
   // --- Bucket calculations ---
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
@@ -347,6 +188,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
   const handleRowClick = useCallback(async (row: ApCalendarRow) => {
     setSelectedRow(row)
     setDetailLoading(true)
+    setDetailError(false)
     setCostDetail(null)
     setLoanDetail(null)
 
@@ -363,7 +205,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
         setLoanDetail(detail as LoanDetailData | null)
       }
     } catch {
-      // If detail fetch fails, the modal still opens with row-level info
+      setDetailError(true)
     } finally {
       setDetailLoading(false)
     }
@@ -377,7 +219,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
 
   // --- Sort indicator ---
   function SortIndicator({ column }: { column: SortColumn }) {
-    if (sortColumn !== column) return <span className="ml-1 text-zinc-300">&#x2195;</span>
+    if (sortColumn !== column) return <span className="ml-1 text-zinc-400">&#x2195;</span>
     return (
       <span className="ml-1">
         {sortDirection === 'asc' ? '\u2191' : '\u2193'}
@@ -728,6 +570,13 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
             row={selectedRow}
             detail={loanDetail}
           />
+        )}
+
+        {/* Error message if detail fetch failed */}
+        {!detailLoading && detailError && (
+          <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Could not load full detail. Showing summary only.
+          </div>
         )}
 
         {/* Fallback if detail couldn't load */}

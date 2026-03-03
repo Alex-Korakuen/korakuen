@@ -34,6 +34,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
     >
       <div
         className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl"
@@ -41,7 +44,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
+          <h2 id="modal-title" className="text-lg font-semibold text-zinc-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { FormInput } from '@/components/ui/form-input'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -55,43 +56,27 @@ export default function ChangePasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="new-password"
-              className="block text-sm font-medium text-zinc-700"
-            >
-              New password
-            </label>
-            <input
-              id="new-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-            />
-          </div>
+          <FormInput
+            id="new-password"
+            label="New password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+          />
 
-          <div>
-            <label
-              htmlFor="confirm-new-password"
-              className="block text-sm font-medium text-zinc-700"
-            >
-              Confirm new password
-            </label>
-            <input
-              id="confirm-new-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              placeholder="Re-enter your new password"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
-            />
-          </div>
+          <FormInput
+            id="confirm-new-password"
+            label="Confirm new password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            autoComplete="new-password"
+            placeholder="Re-enter your new password"
+          />
 
           {error && (
             <p className="text-sm text-red-600">{error}</p>

@@ -2,7 +2,7 @@
 
 **Document version:** 3.0
 **Date:** March 2, 2026
-**Status:** Active — Phase 3.5 complete. Phase 4 next.
+**Status:** Active — Phase 4 in progress (Tasks 4.1–4.5 complete).
 
 ---
 
@@ -16,7 +16,7 @@ This is the execution roadmap for Claude Code. Each task is specific, ordered by
 
 ## Phase 1: Schema & Documentation (Complete)
 
-All design decisions locked. 17 tables defined (13 original + 4 added in Phase 3.5). Documentation complete.
+All design decisions locked. 18 tables defined (14 original + 4 added in Phase 3.5). Documentation complete.
 
 - [x] Business context document
 - [x] System architecture document
@@ -24,7 +24,7 @@ All design decisions locked. 17 tables defined (13 original + 4 added in Phase 3
 - [x] Visualization website specifications
 - [x] File storage structure
 - [x] Tech evolution roadmap
-- [x] Strategic roadmap
+- [x] Strategic roadmap (consolidated into this document)
 - [x] Database schema — all 13 tables fully defined
 - [x] Coding standards
 - [x] Environment setup guide
@@ -61,7 +61,7 @@ All six skill files built. `docs/12_skills.md` deleted.
 - [x] Task 2.7 — Fix function search_path → `supabase/migrations/20260301000008_fix_function_search_path.sql`
 - [x] Task 2.8 — Add notes to v_cost_totals → `supabase/migrations/20260301000009_v_cost_totals_add_notes.sql`
 
-**All 8 migrations applied.** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
+**8 Phase 2 migrations applied (17 total).** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
 
 ---
 
@@ -373,13 +373,25 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Start only after Phase 3.5 is complete and real data has been entered through CLI scripts.**
+**Status:** Tasks 4.1–4.7 complete. All 17 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+
+- [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
+- [x] Task 4.4 — Verify Vercel deployment
+- [x] Task 4.5 — AP Payment Calendar
+- [x] Task 4.6 — AR Outstanding & Collections
+- [x] Task 4.7 — Cash Flow
+- [ ] Task 4.8 — Partner Contribution & Balances
+- [ ] Task 4.9 — Company P&L
+- [ ] Task 4.10 — Financial Position
+- [ ] Task 4.11 — Projects browse
+- [ ] Task 4.12 — Entities browse
+- [ ] Task 4.13 — Prices browse
 
 ---
 
 ### Infrastructure
 
-### Task 4.1 — Project setup
+### Task 4.1 — Project setup [COMPLETE]
 **Depends on:** Phase 3.5 complete, migrations applied to remote
 **Output:** Supabase client, TypeScript types, formatters, query helpers
 
@@ -395,7 +407,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 4.2 — Authentication (invite-only)
+### Task 4.2 — Authentication (invite-only) [COMPLETE]
 **Depends on:** Task 4.1
 **Output:** Login page, auth callback, set-password page, change-password page, middleware
 
@@ -412,7 +424,7 @@ Auth flow: Alex invites users via Supabase Dashboard → user clicks email link 
 
 ---
 
-### Task 4.3 — Layout and navigation
+### Task 4.3 — Layout and navigation [COMPLETE]
 **Depends on:** Task 4.2
 **Output:** Sidebar, header, placeholder pages, root redirect
 
@@ -433,7 +445,7 @@ Design: minimalist, clean, functional — inspired by Todoist/Notion. Collapsibl
 
 ---
 
-### Task 4.4 — Verify Vercel deployment
+### Task 4.4 — Verify Vercel deployment [COMPLETE]
 **Depends on:** Task 4.3
 **Output:** Working production deployment
 
@@ -450,7 +462,7 @@ Vercel project already connected (auto-deploys on push to main).
 
 ### Dashboard Pages
 
-### Task 4.5 — AP Payment Calendar
+### Task 4.5 — AP Payment Calendar [COMPLETE]
 **Depends on:** Task 4.3
 **Default landing page after login.** Answers: "What do I need to pay, and when?"
 
@@ -473,30 +485,37 @@ Vercel project already connected (auto-deploys on push to main).
 
 ---
 
-### Task 4.6 — AR Outstanding & Collections
+### Task 4.6 — AR Outstanding & Collections [COMPLETE]
 **Depends on:** Task 4.3
 Answers: "What do I have pending to collect, and how overdue is it?"
 
 **Tabs:** Main | Taxes
 
-**Main tab:** Aging bucket cards (0-30, 31-60, 61-90, 90+ days). Invoice detail table with color-coded aging. Row click opens payment history modal.
+**Main tab:** 4 aging bucket SummaryCards (Current 0-30, 31-60, 61-90, 90+ days), clickable as filters. Sortable invoice table with columns: invoice#, project, client, dates, days overdue, gross, detraccion, retencion, net receivable, paid, outstanding, status. Color-coded aging column. Total row. Row click opens modal with invoice breakdown + payment history + retencion status. Filters: project, client, partner, currency.
 
-**Taxes tab:** Retenciones (has client paid 3% to SUNAT?) + Detracciones (has client deposited to our Banco de la Nacion?).
+**Taxes tab:** Two sections — Retenciones table from `v_retencion_dashboard` with age color coding and filters (project, client, status). Detracciones table showing expected vs received detraccion deposits with pending amounts.
 
-**Data source:** `v_ar_balances`, `v_retencion_dashboard`
+**Data source:** `v_ar_balances`, `v_retencion_dashboard`, `payments`
+**Files:** `ar-outstanding/page.tsx`, `ar-outstanding-client.tsx`, `helpers.ts`, `actions.ts`
 
 ---
 
-### Task 4.7 — Cash Flow
+### Task 4.7 — Cash Flow [COMPLETE]
 **Depends on:** Task 4.3
 Answers: "How much cash actually moved, and what's expected in coming months?"
 
-- Create `supabase/views/v_cash_flow.sql` — actual cash movements (from payments) + forecast (from due dates)
-- Build page with monthly time series, past/forecast separator, cash shortfall warnings
-- Scope selector: All Projects or single project. Period: Year picker. Currency selector.
-- Company view (Alex-only) includes loan outflows in forecast
+Cash flow computed in application layer (queries.ts) instead of SQL view — the multi-table aggregation with category breakdown and currency conversion is too complex for a single database view.
 
-**Data source:** `v_cash_flow` (new view)
+- Monthly time series (12 months per year) with actual/forecast separator
+- Scope selector: All Projects or single project. Year picker. Currency selector (PEN/USD with conversion).
+- Cash In + Cash Out broken down by cost category (Materials, Labor, Subcontractor, Equipment, Other)
+- Net and Cumulative columns. Red for negative, green for positive.
+- Cash shortfall warning banner when cumulative goes negative in forecast months
+- Alex-only: Loan outflows column in Cash Out
+- URL-based params for server-side data refetch on filter change
+
+**Data source:** `payments` (actual), `v_cost_balances` + `cost_items` (forecast out), `v_ar_balances` (forecast in), `loan_schedule` (Alex-only forecast)
+**Files:** `cash-flow/page.tsx`, `cash-flow-wrapper.tsx`, `cash-flow-client.tsx`, `helpers.ts`
 
 ---
 
@@ -590,6 +609,20 @@ Search by item title. Results combine cost_items and quotes. Filterable by categ
 | Seed real partner company data | Partner company names and RUCs not yet confirmed |
 | Confirm detraccion rates | Need to confirm applicable rates with accountant |
 | SUNAT field requirements | Need to consult external accountant |
+
+---
+
+## Open Decisions
+
+| Decision | Status |
+|---|---|
+| Accountant field requirements for SUNAT | Pending — consult accountant |
+| Detraccion rates by service type | Pending — confirm applicable rates |
+| SharePoint setup | Pending — create site and folder structure |
+| Partner company names for database | Pending |
+| Dual-view UX mechanism (toggle, selector, etc.) | Deferred to Phase 4 implementation |
+| Partner login — individual vs shared in V1 | Deferred to Phase 5 |
+| Korakuen company ID — confirm which partner_companies record | Needed for company view filter |
 
 ---
 

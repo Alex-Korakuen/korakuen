@@ -238,21 +238,36 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 
 ### File Structure
 ```
-/app
-  /dashboard          → main dashboard page
-  /projects           → project list and detail
-  /entities           → entity/contact directory
-  /ap-calendar        → AP payment calendar
-  /partner-ledger     → partner contribution view
-  /company-pl         → company P&L
-  /api                → API routes (server-side Supabase queries)
-/components
-  /ui                 → reusable UI components
-  /charts             → chart components
-/lib
-  /supabase.ts        → Supabase client setup
-  /types.ts           → TypeScript types matching database schema
-  /queries.ts         → reusable database query functions
+src/
+  app/
+    login/              → email/password login (no sidebar)
+    auth/
+      callback/         → invite email token exchange
+      set-password/     → invited users set initial password
+    (app)/              → route group — all authenticated pages (sidebar + header)
+      page.tsx          → redirects / to /ap-calendar
+      ap-calendar/      → AP payment calendar (default landing)
+      ar-outstanding/   → AR outstanding & collections
+      cash-flow/        → cash flow dashboard
+      partner-balances/ → partner contribution view
+      pl/               → company P&L
+      financial-position/ → balance sheet
+      projects/         → project list and detail
+      entities/         → entity/contact directory
+      prices/           → historical pricing reference
+      settings/
+        password/       → change password (within sidebar layout)
+  components/           → shared components (sidebar, header, etc.)
+  lib/
+    supabase/
+      server.ts         → server-side Supabase client (SSR cookie handling)
+      client.ts         → browser-side Supabase client
+    database.types.ts   → auto-generated from supabase gen types
+    types.ts            → human-friendly type aliases and enums
+    queries.ts          → reusable server-side query functions
+    formatters.ts       → currency and date formatting
+    auth.ts             → getCurrentUser, isCompanyView, getPartnerName
+  middleware.ts         → redirects unauthenticated users to /login
 ```
 
 ### Naming Conventions

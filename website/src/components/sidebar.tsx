@@ -125,6 +125,7 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        aria-label="Main navigation"
         className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-zinc-200 bg-white transition-all duration-200 md:relative md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } ${collapsed ? 'w-[var(--sidebar-collapsed-width)]' : 'w-[var(--sidebar-width)]'}`}
@@ -174,6 +175,7 @@ export function Sidebar() {
             onClick={() => setCollapsed(!collapsed)}
             className="flex w-full items-center justify-center rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-50 hover:text-zinc-600"
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
           >
             <svg
               width="16"
