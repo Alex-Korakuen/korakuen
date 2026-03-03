@@ -20,6 +20,7 @@ This document describes how to set up a local development environment for the Ko
 | pip | latest | Python package manager |
 | Node.js | 18+ | Next.js website |
 | npm | latest | Node package manager |
+| Supabase CLI | latest | Database migrations and schema management |
 | Git | any | Version control |
 | VS Code | latest | Recommended editor |
 
@@ -33,42 +34,64 @@ korakuen/
 │   ├── sql_schema.md
 │   ├── sql_views.md
 │   ├── cli_script.md
+│   ├── import_script.md
 │   ├── ts_types.md
 │   └── codebase_audit.md
-├── cli/                    → Python CLI scripts
-│   ├── add_project.py
-│   ├── add_entity.py
-│   ├── add_cost.py
-│   ├── add_ar_invoice.py
-│   ├── register_payment.py
-│   ├── view_ap_calendar.py
-│   ├── view_partner_balances.py
-│   ├── requirements.txt
-│   └── .env                → never committed
-├── database/               → SQL schema and migrations
+├── cli/                    → Python CLI application
+│   ├── main.py             → single entry point (python main.py)
+│   ├── modules/
+│   │   ├── __init__.py
+│   │   ├── projects.py     → add single + import from Excel
+│   │   ├── entities.py     → add entity, contact, tag + import
+│   │   ├── costs.py        → add single + import costs/cost_items
+│   │   ├── quotes.py       → add single + import from Excel
+│   │   ├── valuations.py   → add single + import from Excel
+│   │   ├── ar_invoices.py  → add single + import from Excel
+│   │   └── payments.py     → register payment, verify retencion
+│   ├── lib/
+│   │   ├── __init__.py
+│   │   ├── db.py           → shared Supabase client
+│   │   ├── helpers.py      → shared input helpers + clear_screen
+│   │   └── import_helpers.py → shared import validation/highlighting
+│   └── requirements.txt
+├── supabase/               → SQL schema, migrations, and seeds
 │   ├── migrations/
-│   │   └── 001_initial_schema.sql
-│   ├── views/
-│   │   ├── cost_totals.sql
-│   │   ├── cost_balances.sql
-│   │   ├── ar_balances.sql
-│   │   ├── ap_calendar.sql
-│   │   ├── partner_ledger.sql
-│   │   └── ...
+│   │   ├── 20260301000001_initial_schema.sql
+│   │   ├── 20260301000002_indexes.sql
+│   │   ├── 20260301000003_add_is_active.sql
+│   │   ├── 20260301000004_views.sql
+│   │   ├── 20260301000005_seed_data.sql
+│   │   ├── 20260301000007_views_security_invoker.sql
+│   │   ├── 20260301000008_fix_function_search_path.sql
+│   │   └── 20260301000009_v_cost_totals_add_notes.sql
+│   ├── views/              → individual view source files (combined into migration above)
+│   │   ├── v_ap_calendar.sql
+│   │   ├── v_ar_balances.sql
+│   │   ├── v_bank_balances.sql
+│   │   ├── v_company_pl.sql
+│   │   ├── v_cost_balances.sql
+│   │   ├── v_cost_totals.sql
+│   │   ├── v_entity_transactions.sql
+│   │   ├── v_partner_ledger.sql
+│   │   ├── v_project_pl.sql
+│   │   ├── v_retencion_dashboard.sql
+│   │   └── v_settlement_dashboard.sql
 │   └── seeds/
-│       ├── tags.sql
-│       └── partner_companies.sql
+│       ├── 001_tags.sql
+│       ├── 002_partner_companies.sql
+│       └── 003_bank_accounts.sql
 ├── website/                → Next.js visualization website
 │   ├── app/
 │   ├── components/
 │   ├── lib/
 │   ├── package.json
 │   └── .env.local          → never committed
+├── imports/                → Excel templates for bulk data import
+│   └── templates/          → one .xlsx template per entity type
 ├── docs/                   → all documentation
 │   └── ...
 ├── .env.example            → template, committed
-├── .gitignore
-└── README.md
+└── .gitignore
 ```
 
 ---
@@ -87,12 +110,40 @@ From your Supabase project dashboard → Settings → API:
 - **Anon key:** safe for client-side use (read-only website)
 - **Service role key:** server-side only (CLI scripts) — never expose publicly
 
-### 1.3 Apply Schema
-1. Go to Supabase → SQL Editor
-2. Run `database/migrations/001_initial_schema.sql`
-3. Run each view file in `database/views/`
-4. Run seed files in `database/seeds/`
-5. Verify all 13 tables appear in Table Editor
+### 1.3 Install Supabase CLI
+```bash
+brew install supabase/tap/supabase    # macOS
+# or: npm install -g supabase         # any platform
+```
+
+### 1.4 Link to Supabase Project
+```bash
+cd korakuen
+supabase link --project-ref [your-project-ref]
+```
+
+The project ref is the subdomain in your Supabase URL: `https://[project-ref].supabase.co`
+
+### 1.5 Apply Schema
+All schema changes are applied via the Supabase CLI — never through the Supabase web dashboard.
+
+```bash
+# Apply all migrations (tables, indexes, is_active, views)
+supabase db push
+```
+
+Seed data is not managed as migrations. Run seeds via `psql` or the Supabase SQL Editor:
+
+```bash
+# Via psql (using your database connection string from Supabase dashboard → Settings → Database)
+psql "postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres" \
+  -f supabase/seeds/001_tags.sql \
+  -f supabase/seeds/002_partner_companies.sql \
+  -f supabase/seeds/003_bank_accounts.sql
+
+```
+
+Alternatively, paste the seed SQL files directly into the Supabase SQL Editor (Dashboard → SQL Editor).
 
 ---
 
@@ -122,6 +173,8 @@ pip install -r requirements.txt
 supabase==2.x.x
 python-dotenv==1.x.x
 rich==13.x.x          # for nice terminal output
+pandas==2.x.x         # for reading Excel files (import scripts)
+openpyxl==3.x.x       # Excel engine for pandas + cell formatting
 ```
 
 ### 2.4 Configure Environment
@@ -132,17 +185,17 @@ cp ../.env.example .env
 Edit `.env`:
 ```
 SUPABASE_URL=https://[project-ref].supabase.co
-SUPABASE_SERVICE_KEY=[your-service-role-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 ```
 
 **Use service role key for CLI** — it bypasses Row Level Security, which is appropriate since CLI scripts are used directly by partners, not by end users.
 
 ### 2.5 Test Connection
 ```bash
-python add_project.py
+python main.py
 ```
 
-If Supabase connects correctly, you will see the script prompt for input.
+If Supabase connects correctly, you will see the main menu. Select any option to verify database connectivity.
 
 ---
 
@@ -216,16 +269,20 @@ Create `.vscode/settings.json`:
 | Variable | Used By | Description |
 |---|---|---|
 | `SUPABASE_URL` | CLI + website | Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | CLI only | Full access key — never expose |
+| `SUPABASE_SERVICE_ROLE_KEY` | CLI only | Full access key — never expose |
 | `NEXT_PUBLIC_SUPABASE_URL` | Website only | Same URL, prefixed for Next.js |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Website only | Read-only key — safe for browser |
+| `SUPABASE_PROJECT_ID` | Supabase CLI | Project ref for linking and type generation |
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI | CLI access token for migrations |
 
 **.env.example** (committed to repo):
 ```
 SUPABASE_URL=
-SUPABASE_SERVICE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_PROJECT_ID=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_ACCESS_TOKEN=
 ```
 
 ---
@@ -236,7 +293,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 |---|---|
 | `ModuleNotFoundError: supabase` | Virtual environment not activated — run `source venv/bin/activate` |
 | `Invalid API key` | Check `.env` file has correct service key, not anon key |
-| `relation does not exist` | Schema not applied — run migration SQL in Supabase SQL Editor |
+| `relation does not exist` | Schema not applied — run `supabase db push` or execute migration files via Supabase CLI |
 | Website shows no data | Check `.env.local` has correct anon key and URL |
 | Vercel deploy fails | Check environment variables are set in Vercel dashboard |
 

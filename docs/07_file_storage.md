@@ -109,7 +109,6 @@ Company/
         ├── 09-DevRoadmap.md
         ├── 10-CodingStandards.md
         ├── 11-EnvironmentSetup.md
-        ├── 12-Skills.md
         └── CLAUDE.md
 ```
 

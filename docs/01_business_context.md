@@ -264,7 +264,7 @@ Every document linked to a database record is named using a standardized referen
 
 This code is stored in the database record, linking the physical file to the business information permanently. Any document can be found by searching SharePoint for its reference code.
 
-For full detail on file storage, workflows, and mobile filing, see `07-FileStorage.md`.
+For full detail on file storage, workflows, and mobile filing, see `07_file_storage.md`.
 
 ### 9.5 Task Management
 Day-to-day tasks during project execution are managed in **Todoist**. The management system does not replicate task management.

@@ -1,0 +1,106 @@
+"""
+Shared import validation and error highlighting utilities.
+Used by all CLI modules that have Excel import functions.
+"""
+
+import pandas as pd
+from openpyxl.styles import PatternFill
+
+# Error highlighting — dark red fill for invalid cells
+RED_FILL = PatternFill(fill_type="solid", fgColor="8B0000")
+NO_FILL = PatternFill(fill_type=None)
+
+# Excel template layout: rows 1-4 are headers, data starts at row 5
+DATA_START_ROW = 5
+
+
+def clear_highlighting(ws):
+    """Reset all cell fills from DATA_START_ROW onward."""
+    for row in ws.iter_rows(min_row=DATA_START_ROW, max_row=ws.max_row):
+        for cell in row:
+            cell.fill = NO_FILL
+
+
+def apply_error_highlighting(ws, errors, headers):
+    """Apply RED_FILL to cells that failed validation.
+
+    Args:
+        ws: openpyxl worksheet.
+        errors: List of (row_num, column_name, message) tuples.
+        headers: List of column names from row 1.
+    """
+    col_map = {name: idx + 1 for idx, name in enumerate(headers)}
+    for row_num, col_name, _message in errors:
+        col_idx = col_map.get(col_name)
+        if col_idx:
+            ws.cell(row=row_num, column=col_idx).fill = RED_FILL
+
+
+def validate_required(row_num, row, field, errors):
+    """Check that a required field is not empty or NaN."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        errors.append((row_num, field, "Required field is empty"))
+
+
+def validate_enum(row_num, row, field, allowed_values, errors):
+    """Check that a field value is in the allowed list. Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    if str(val).strip() not in allowed_values:
+        errors.append((row_num, field, f"Must be one of: {', '.join(allowed_values)}"))
+
+
+def validate_lookup(row_num, row, field, lookup_dict, errors):
+    """Check that a field value exists in the lookup dictionary. Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    if str(val).strip() not in lookup_dict:
+        errors.append((row_num, field, "Not found in database"))
+
+
+def validate_date(row_num, row, field, errors):
+    """Check that a field value is a valid date. Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    try:
+        pd.Timestamp(val)
+    except (ValueError, TypeError):
+        errors.append((row_num, field, "Invalid date format"))
+
+
+def validate_number(row_num, row, field, errors):
+    """Check that a field value is numeric. Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    try:
+        float(val)
+    except (ValueError, TypeError):
+        errors.append((row_num, field, "Must be a number"))
+
+
+def validate_boolean(row_num, row, field, errors):
+    """Check that a field value is a boolean (true/false). Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    # Pandas may read Excel booleans as Python bool
+    if isinstance(val, bool):
+        return
+    if str(val).strip().lower() not in ("true", "false"):
+        errors.append((row_num, field, "Must be true or false"))
+
+
+def print_errors(errors, file_path):
+    """Print a formatted error table to the terminal."""
+    print(f"\n✗ {len(errors)} validation error(s) found:\n")
+    print(f"  {'Row':<8}{'Column':<30}{'Error'}")
+    print(f"  {'---':<8}{'------':<30}{'-----'}")
+    for row_num, col_name, message in errors:
+        print(f"  {row_num:<8}{col_name:<30}{message}")
+    print(f"\n  Errors highlighted in red in: {file_path}")
+    print("  Fix the highlighted cells and re-run.")

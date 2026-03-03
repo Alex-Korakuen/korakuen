@@ -1,7 +1,7 @@
 # System Architecture & Decisions
 
-**Document version:** 2.0
-**Date:** February 28, 2026
+**Document version:** 3.0
+**Date:** March 2, 2026
 **Status:** Active
 
 ---
@@ -19,6 +19,7 @@ A lightweight, structured management system that gives a small construction comp
 | Layer | Tool | Notes |
 |---|---|---|
 | Database | PostgreSQL on Supabase | Free tier; production-grade; scalable |
+| Database Management | Supabase CLI | Migrations, schema changes, and SQL execution via terminal |
 | Data Entry | Python CLI scripts | Simple terminal scripts; one per operation; no UI complexity |
 | Visualization | Next.js on Vercel | Simple read-only website; free hosting; no licensing costs |
 | File Storage | SharePoint | External; referenced by naming convention only |
@@ -30,10 +31,10 @@ A lightweight, structured management system that gives a small construction comp
 ## 3. How the Tools Connect
 
 ```
-[Python CLI Scripts]
-       |
-       | writes to
-       v
+[Supabase CLI]                [Python CLI Scripts]
+       |                              |
+       | manages schema               | writes data
+       v                              v
 [PostgreSQL on Supabase] ——— read by ———> [Next.js Visualization Website]
        |                                         (hosted on Vercel)
        | references via code
@@ -41,7 +42,7 @@ A lightweight, structured management system that gives a small construction comp
 [SharePoint file storage]
 ```
 
-The Python CLI scripts are the only write path into the database. The Vercel website is read-only — it queries the database and displays data. SharePoint is fully independent — the database holds a reference code, not a live link.
+Schema changes (migrations, views, indexes) are applied via the Supabase CLI. The Python CLI scripts are the only write path for business data. The Vercel website is read-only — it queries the database and displays data. SharePoint is fully independent — the database holds a reference code, not a live link.
 
 ---
 
@@ -91,6 +92,10 @@ Transactions support three states:
 - Fully informal: no entity, no comprobante, no document
 
 All nullable. No transaction is blocked from being registered due to missing formal information. This reflects Peruvian construction reality.
+
+**Comprobante types** cover the full spectrum of Peruvian document reality: `factura`, `boleta`, `recibo_por_honorarios`, `liquidacion_de_compra`, `planilla_jornales`, `none`. The type tells the accountant why IGV is zero — no special boolean flag needed. `igv_rate = 0` naturally excludes informal costs from IGV tax credits.
+
+**Payment method** (`bank_transfer`, `cash`, `check`) on costs indicates the payment channel. Cash payments are the informal economy indicator — useful for the accountant to understand what portion of costs have no banking trail.
 
 ---
 
@@ -146,12 +151,45 @@ Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Categ
 
 ---
 
-### 4.13 Purchase Order Extensibility Hook
+### 4.12 Purchase Order Extensibility Hook
 The `costs` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null — costs reference quotes directly via `quote_id`. When POs are introduced, the flow shifts from `quote → cost` to `quote → purchase_order → cost` using the existing field. No schema migration needed on `costs` when this happens.
 
 **Current flow:** `quote_id` filled, `purchase_order_id` null
 **Future flow:** `purchase_order_id` filled, `quote_id` null or on the PO record
 **Rule:** At most one of these fields is filled per cost record.
+
+---
+
+### 4.13 Dual-View Architecture
+The system serves two audiences with different needs. Every applicable page has two modes:
+
+**Company View (Alex only):** Cross-project aggregation, Korakuen's portion only, includes private data (loans, financing costs). Answers "How is my business doing?"
+
+**Project View (all partners + Alex):** One project at a time, all partners combined, no private data. Answers "How is this project doing?"
+
+Same pages, same database views — the difference is a filter parameter. SQL already supports it (`v_project_pl` filtered by project = project view; `v_company_pl` = company view). UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
+
+---
+
+### 4.14 Loans Module (Private)
+A private module to track Alex's personal debt obligations — money borrowed from friends, family, or informal lenders to fund project contributions.
+
+**Key principle:** All capital contributed to a project counts as own capital regardless of source. The partnership never sees loan data. Profit split is proportional to capital contributed. What each partner does with their profit share is their own business.
+
+3 tables (`loans`, `loan_schedule`, `loan_payments`) isolated from business `payments`. Loan obligations appear in `v_ap_calendar` as a second UNION source (Alex-only). Personal position (profit share minus loan obligations) shown below the P&L on the website — never part of the P&L itself.
+
+Privacy: CLI-only in V0 (automatic — only Alex runs the CLI). Admin-only in V1 (role-based auth).
+
+---
+
+### 4.15 P&L vs Cash Flow — Two Financial Statements
+The system provides two distinct financial views:
+
+**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. `v_company_pl`, `v_project_pl`. Shows business profitability.
+
+**Cash Flow (cash basis):** Actual cash movements through bank accounts. `v_cash_flow` (planned). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule. Shows cash position.
+
+Loan obligations are NOT on the P&L — they are personal, not business expenses. They appear in the personal position section below the P&L (Alex-only) and in the cash flow forecast (as outflows, Alex-only).
 
 ---
 

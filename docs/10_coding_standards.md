@@ -74,7 +74,7 @@ Python CLI scripts collect input and call Supabase. Nothing else. All calculatio
 ### One Responsibility Per File
 Each file does one thing.
 
-- One CLI script per operation (`add_cost.py` adds costs, nothing else)
+- One CLI module per entity type (`costs.py` handles all cost operations — add single, import from Excel)
 - One view per derived concept (`v_cost_totals` computes cost totals, nothing else)
 - One query function per query (`getProjectCosts`, not `getProjectData`)
 
@@ -102,67 +102,83 @@ When retiring a file: delete it, commit with a clear message explaining why, and
 
 ## Python CLI Standards
 
-### File Naming
-All CLI scripts use snake_case with a verb prefix:
+### File Organization
+The CLI uses a module-based structure with a single entry point:
 
 ```
-add_project.py
-add_tag.py
-add_entity.py
-add_entity_contact.py
-add_project_entity.py
-add_cost.py
-add_quote.py
-add_valuation.py
-add_ar_invoice.py
-register_payment.py
-view_ap_calendar.py
-view_partner_balances.py
+cli/
+├── main.py                    → single entry point (python main.py)
+├── modules/
+│   ├── __init__.py
+│   ├── projects.py            → add single + import from Excel
+│   ├── entities.py            → add entity, contact, tag + import
+│   ├── costs.py               → add single + import costs/cost_items
+│   ├── quotes.py              → add single + import from Excel
+│   ├── valuations.py          → add single + import from Excel
+│   ├── ar_invoices.py         → add single + import from Excel
+│   ├── payments.py            → register payment, verify retencion
+│   └── loans.py               → add loan, schedule, payments + import
+├── lib/
+│   ├── __init__.py
+│   ├── db.py                  → shared Supabase client
+│   ├── helpers.py             → shared input helpers + clear_screen
+│   └── import_helpers.py      → shared import validation/highlighting
+└── requirements.txt
 ```
 
-### Script Structure
-Every CLI script follows this structure:
+Module files use snake_case entity names. No verb prefix — the module contains all operations for that entity.
+
+### Module Structure
+Every module file exposes a `menu()` function called by `main.py`, plus individual operation functions:
 
 ```python
 #!/usr/bin/env python3
 """
-Script name: add_cost.py
-Purpose: Register a new cost (expense) in the database
+Module: costs.py
+Purpose: All cost operations — add single, import from Excel
+Tables: costs, cost_items
 """
 
-import os
-from datetime import date
-from dotenv import load_dotenv
-from supabase import create_client
+import sys
+from lib.db import supabase
+from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
 
-# --- Setup ---
-load_dotenv()
-supabase = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
 
-# --- Helpers ---
-def get_input(prompt, required=True, default=None):
-    """Get validated input from user."""
+def menu():
+    """Submenu for cost operations. Called by main.py."""
     while True:
-        value = input(prompt).strip()
-        if value:
-            return value
-        if not required and default is not None:
-            return default
-        if not required:
-            return None
-        print("  This field is required.")
+        clear_screen()
+        print("\n=== Costs ===\n")
+        print("1. Add cost")
+        print("2. Import costs from Excel")
+        print("3. Import cost items from Excel")
+        print("4. Back")
+        choice = get_input("\nSelect option: ")
+        if choice == "1":
+            add_cost()
+        elif choice == "2":
+            import_costs()
+        elif choice == "3":
+            import_cost_items()
+        elif choice == "4":
+            return
 
-# --- Main ---
-def main():
+
+def add_cost():
+    """Register a single cost interactively."""
+    clear_screen()
     print("\n=== Add Cost ===\n")
-    # ... collect inputs
-    # ... validate
-    # ... insert to database
-    # ... confirm success
-
-if __name__ == "__main__":
-    main()
+    # ... collect inputs, validate, show summary, confirm, insert
 ```
+
+The `if __name__ == "__main__"` pattern is NOT used in module files. Only `main.py` is executed directly.
+
+### Screen Clearing
+Call `clear_screen()` every time entering a new menu level AND every time returning to a parent menu. This prevents terminal clutter for non-technical users.
+
+- `menu()` calls `clear_screen()` at the top of its loop (before printing the submenu)
+- Each operation function calls `clear_screen()` before printing its title
+- After an operation completes, show `Press Enter to continue...` before returning to the submenu loop
 
 ### Input Handling
 - Always strip whitespace from inputs
@@ -190,7 +206,7 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 ### Naming Conventions
 - **Tables:** snake_case, plural nouns — `costs`, `ar_invoices`, `bank_accounts`
 - **Columns:** snake_case — `partner_company_id`, `is_active`, `created_at`
-- **Views:** snake_case, descriptive — `cost_balances`, `ap_calendar`, `partner_ledger`
+- **Views:** snake_case, `v_` prefix, descriptive — `v_cost_balances`, `v_ap_calendar`, `v_partner_ledger`
 - **Indexes:** `idx_[table]_[column]` — `idx_costs_project_id`
 - **Foreign keys:** `fk_[table]_[referenced_table]` — `fk_costs_projects`
 
@@ -199,11 +215,12 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 - Foreign keys: always `[table_singular]_id` — `project_id`, `entity_id`
 - Booleans: always prefix with `is_` or `has_` — `is_active`, `is_detraccion_account`
 - Timestamps: `created_at` and `updated_at` on every table
-- Soft delete: `is_active BOOLEAN DEFAULT true` on every table — never hard delete
+- Soft delete: `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) — transaction and historical reference tables are permanent records
 - Amounts: `NUMERIC(15,2)` for money, `NUMERIC(15,4)` for quantities and unit prices
 - Rates/percentages: `NUMERIC(5,2)` — e.g. 18.00 for IGV, 4.00 for detraccion
 - Currency: `VARCHAR(3)` — always 'USD' or 'PEN'
 - Exchange rate: `NUMERIC(10,4)` — reference only, never used for conversion
+- Title and notes: use `title TEXT` for a record's subject or name (required, NOT NULL). Use `notes TEXT` for optional free-form context (nullable). Never use `description` as a column name. Special identity fields (`name`, `legal_name`, `bank_name`, `invoice_number`) keep their specific names
 
 ### Migration Standards
 - Every schema change is a new numbered migration file: `001_initial_schema.sql`, `002_add_field.sql`
@@ -277,7 +294,7 @@ const formatUSD = (amount: number) =>
 
 ### Commit Messages
 ```
-feat: add add_cost.py CLI script
+feat: add costs.py CLI module
 fix: correct IGV calculation in cost_totals view
 docs: update schema with cost_items table
 chore: add .env.example file
@@ -295,9 +312,17 @@ chore: add .env.example file
 All sensitive configuration lives in `.env` (never committed):
 
 ```
+# CLI
 SUPABASE_URL=https://[project].supabase.co
-SUPABASE_ANON_KEY=[anon key]
-SUPABASE_SERVICE_KEY=[service key — CLI scripts only]
+SUPABASE_SERVICE_ROLE_KEY=[service key — CLI scripts only]
+
+# Website
+NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon key]
+
+# Supabase CLI tooling
+SUPABASE_PROJECT_ID=[project ref]
+SUPABASE_ACCESS_TOKEN=[CLI access token]
 ```
 
 An `.env.example` file with empty values is committed to the repo.

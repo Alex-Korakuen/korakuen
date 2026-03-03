@@ -138,7 +138,7 @@ Regardless of version, these are permanent decisions:
 - **Amounts in natural currency** — USD or PEN, never converted at storage
 - **Exchange rate per transaction** — stored as reference for display
 - **IGV tracked separately** — on every financial transaction
-- **Detracciones and retenciones tracked** — on AR and AP respectively
+- **Detracciones tracked on AR and AP; retenciones tracked on AR only**
 - **Partner company field** — on every financial record
 - **Document reference codes** — linking database records to SharePoint files
 - **Full informality support** — nullable entity, comprobante, and document fields

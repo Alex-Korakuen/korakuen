@@ -1,0 +1,87 @@
+-- View: v_cost_totals
+-- Purpose: Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items
+-- Source tables: costs, cost_items
+-- Used by: v_cost_balances, v_ap_calendar, v_project_pl, v_company_pl, v_entity_transactions, v_partner_ledger
+
+CREATE OR REPLACE VIEW v_cost_totals
+WITH (security_invoker = on)
+AS
+WITH item_sums AS (
+  SELECT
+    c.id                  AS cost_id,
+    c.project_id,
+    c.valuation_id,
+    c.bank_account_id,
+    c.entity_id,
+    c.quote_id,
+    c.purchase_order_id,
+    c.cost_type,
+    c.date,
+    c.title,
+    c.igv_rate,
+    c.detraccion_rate,
+    c.currency,
+    c.exchange_rate,
+    c.comprobante_type,
+    c.comprobante_number,
+    c.payment_method,
+    c.document_ref,
+    c.due_date,
+    c.notes,
+    COALESCE(SUM(ci.subtotal), 0) AS subtotal
+  FROM costs c
+  LEFT JOIN cost_items ci ON ci.cost_id = c.id
+  GROUP BY
+    c.id,
+    c.project_id,
+    c.valuation_id,
+    c.bank_account_id,
+    c.entity_id,
+    c.quote_id,
+    c.purchase_order_id,
+    c.cost_type,
+    c.date,
+    c.title,
+    c.igv_rate,
+    c.detraccion_rate,
+    c.currency,
+    c.exchange_rate,
+    c.comprobante_type,
+    c.comprobante_number,
+    c.payment_method,
+    c.document_ref,
+    c.due_date,
+    c.notes
+),
+with_igv AS (
+  SELECT
+    *,
+    ROUND(subtotal * (igv_rate / 100), 2) AS igv_amount
+  FROM item_sums
+)
+SELECT
+  cost_id,
+  project_id,
+  valuation_id,
+  bank_account_id,
+  entity_id,
+  quote_id,
+  purchase_order_id,
+  cost_type,
+  date,
+  title,
+  igv_rate,
+  detraccion_rate,
+  currency,
+  exchange_rate,
+  comprobante_type,
+  comprobante_number,
+  payment_method,
+  document_ref,
+  due_date,
+  notes,
+  subtotal,
+  igv_amount,
+  subtotal + igv_amount                                                    AS total,
+  ROUND((subtotal + igv_amount) * COALESCE(detraccion_rate, 0) / 100, 2)  AS detraccion_amount
+FROM with_igv;

@@ -18,7 +18,7 @@ The system replaces spreadsheets with a structured database. It gives the partne
 
 **The database is the product. The CLI is how data gets in. The website is how data gets read.**
 
-- Data entry: Python CLI scripts (terminal only)
+- Data entry: Python CLI application — menu-driven, single entry point (`python main.py`)
 - Data storage: PostgreSQL on Supabase
 - Data visualization: Next.js website on Vercel (read-only in V0)
 - File storage: SharePoint (external, referenced by naming convention only)
@@ -30,7 +30,8 @@ The system replaces spreadsheets with a structured database. It gives the partne
 | Layer | Tool |
 |---|---|
 | Database | PostgreSQL on Supabase |
-| CLI scripts | Python 3.11+ |
+| Database management | Supabase CLI (migrations, views, SQL execution) |
+| CLI application | Python 3.11+ |
 | Website | Next.js + TypeScript on Vercel |
 | Package manager (Python) | pip + virtualenv |
 | Package manager (JS) | npm |
@@ -45,29 +46,42 @@ korakuen/
 │   ├── sql_schema.md
 │   ├── sql_views.md
 │   ├── cli_script.md
+│   ├── import_script.md
 │   ├── ts_types.md
 │   └── codebase_audit.md
-├── cli/                    → Python CLI scripts
-│   ├── lib/db.py           → shared Supabase client
-│   ├── lib/helpers.py      → shared input helpers
-│   ├── add_*.py            → data entry scripts
-│   ├── register_*.py       → transaction scripts
-│   ├── view_*.py           → terminal view scripts
+├── cli/                    → Python CLI application
+│   ├── main.py             → single entry point (python main.py)
+│   ├── modules/            → one module per entity type
+│   │   ├── projects.py
+│   │   ├── entities.py
+│   │   ├── costs.py
+│   │   ├── quotes.py
+│   │   ├── valuations.py
+│   │   ├── ar_invoices.py
+│   │   ├── payments.py
+│   │   └── loans.py          → private loans module (Phase 3.5)
+│   ├── lib/
+│   │   ├── db.py           → shared Supabase client
+│   │   ├── helpers.py      → shared input helpers
+│   │   └── import_helpers.py → shared import validation
 │   └── requirements.txt
-├── database/
-│   ├── migrations/         → numbered SQL migration files
-│   ├── views/              → SQL view definitions
+├── supabase/
+│   ├── migrations/         → timestamped SQL migration files (Supabase CLI format)
+│   ├── views/              → individual SQL view definitions (combined into migration for deploy)
 │   └── seeds/              → initial data SQL
 ├── website/                → Next.js visualization website
 │   ├── app/                → pages and routes
 │   ├── components/         → reusable components
 │   └── lib/                → Supabase client, types, queries
+├── imports/                → Excel templates for bulk data import
+│   ├── generate_templates.py → script to create .xlsx templates
+│   └── templates/          → one .xlsx template per entity type
 └── docs/                   → all documentation
 ```
 
 ---
 
-## Database — 13 Tables
+## Database — 17 Tables
 
 ```
 Layer 1: partner_companies, bank_accounts, entities
@@ -75,6 +89,8 @@ Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, valuations, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
+Layer 6 (private): loans, loan_schedule, loan_payments
+Layer 7: project_budgets
 ```
 
 **Never add, remove, or modify tables without reading `docs/08_schema.md` first and getting explicit approval.**
@@ -87,7 +103,7 @@ Key facts:
 - Exchange rate stored per transaction as reference only
 - IGV, detraccion, and retencion tracked separately on all financial records
 - Totals and payment balances are always derived via views — never stored
-- No triggers — all derived data computed at query time
+- No business logic triggers — all derived data computed at query time (only `updated_at` auto-timestamp triggers exist)
 
 ---
 
@@ -113,11 +129,12 @@ Before performing any of these tasks, read the corresponding skill file first.
 |---|---|
 | Write CREATE TABLE SQL | `skills/sql_schema.md` |
 | Write database view SQL | `skills/sql_views.md` |
-| Write a Python CLI script | `skills/cli_script.md` |
+| Write a Python CLI module | `skills/cli_script.md` |
+| Write import functions within a CLI module | `skills/import_script.md` |
 | Generate or update TypeScript types | `skills/ts_types.md` |
 | Audit the codebase | `skills/codebase_audit.md` |
 
-Skills live in `/skills/`. Read the full skill file before starting — they contain specific patterns, rules, and code examples that must be followed exactly. See `docs/12_skills.md` for the complete skills reference.
+Skills live in `/skills/`. Read the full skill file before starting — they contain specific patterns, rules, and code examples that must be followed exactly.
 
 ---
 
@@ -128,15 +145,16 @@ Read these documents for context on specific tasks:
 | Task | Read First |
 |---|---|
 | Any database work | `docs/08_schema.md` |
-| Writing CLI scripts | `docs/10_coding_standards.md` + `docs/11_environment_setup.md` |
+| Writing CLI modules | `docs/10_coding_standards.md` + `docs/11_environment_setup.md` |
 | Understanding business context | `docs/01_business_context.md` |
 | Understanding architecture decisions | `docs/02_system_architecture.md` |
 | Understanding module behavior | `docs/03_module_specifications.md` |
-| Building website views | `docs/04_visualization.md` |
-| Understanding file/document references | `docs/07-FileStorage.md` |
+| Building website views | `docs/04_visualization.md` + `docs/13_view_prototypes.md` |
+| Understanding file/document references | `docs/07_file_storage.md` |
 | Knowing what to build next | `docs/09_dev_roadmap.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
-| Understanding what skills to build and how | `docs/12_skills.md` |
+| Writing import functions | `skills/import_script.md` + `docs/10_coding_standards.md` |
+| Understanding what skills to build and how | `skills/` directory (12_skills.md deleted — skills are the reference) |
 
 ---
 
@@ -192,9 +210,11 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Phase 2 in progress — Database.**
+**Phase 3 complete — CLI Application.** All 7 data entry modules built and tested (entities, projects, valuations, quotes, costs, ar_invoices, payments). Database live with 8 migrations. CLI connects via service role key. Views module retired — read-only dashboards moved exclusively to the website.
 
-Next task: Generate SQL schema from `docs/08_schema.md`.
+**Phase 3.5 complete — Schema & CLI Extensions.** Four new tables (loans, loan_schedule, loan_payments, project_budgets) in 4 migrations. Two new fields on existing tables (city/region on entities, payment_method on costs). Expanded comprobante_type to 6 values. New loans CLI module (menu item 8). Budget entry added to projects module. Two new views (`v_loan_balances`, `v_budget_vs_actual`), two updated views (`v_cost_totals` with payment_method, `v_ap_calendar` with loan UNION). All Excel templates regenerated. Two planned views remain for Phase 4: `v_cash_flow`, `v_igv_position`.
+
+Next: Phase 4 — Visualization Website (Task 4.1 project setup). Migrations not yet applied to remote database.
 
 See `docs/09_dev_roadmap.md` for full task list and completion status.
 

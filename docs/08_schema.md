@@ -1,16 +1,16 @@
 # Database Schema
 
-**Document version:** 2.0
-**Date:** February 28, 2026
-**Status:** Fully locked — ready for SQL generation
+**Document version:** 3.0
+**Date:** March 2, 2026
+**Status:** Active — V0 tables locked, extension tables defined for Phase 3.5
 
 ---
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Soft deletes via `is_active` or `active` boolean — records are never hard deleted. Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 13 tables total across 5 layers.
+**Table count:** 17 tables total across 7 layers.
 
 ```
 Layer 1: partner_companies, bank_accounts, entities
@@ -18,6 +18,8 @@ Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, valuations, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
+Layer 6 (private): loans, loan_schedule, loan_payments
+Layer 7: project_budgets
 ```
 
 ---
@@ -25,12 +27,13 @@ Layer 5: payments
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on every table — never hard delete records
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables and historical reference tables are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** stored as reference per transaction, never used for conversion at storage
 - **Nullable fields:** explicitly noted — absence of a value is valid business data (informality support)
-- **Document codes:** follow format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07-FileStorage.md`
+- **Document codes:** follow format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`
+- **Title and notes:** `title` is the record's subject/name (required). `notes` is optional free-form context. Never use `description` as a column name. Special identity fields (`name`, `legal_name`, `invoice_number`) keep their specific names
 
 ---
 
@@ -89,6 +92,8 @@ Every external party Korakuen does business with — companies and individuals. 
 | document_number | VARCHAR | NO | the actual ID number |
 | legal_name | VARCHAR | NO | razón social or full legal name |
 | common_name | VARCHAR | YES | how you refer to them day to day |
+| city | VARCHAR | YES | e.g. "Arequipa" — enables geographic filtering |
+| region | VARCHAR | YES | e.g. "Arequipa" — Peruvian department |
 | is_active | BOOLEAN | NO | default true, soft delete |
 | notes | TEXT | YES | free text |
 | created_at | TIMESTAMP | NO | auto set on insert |
@@ -107,23 +112,12 @@ Master list of all valid categorization tags. Referenced by `entity_tags`. Updat
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | name | VARCHAR | NO | unique, snake_case e.g. "cement_supplier" |
-| description | VARCHAR | YES | explains what the tag means |
+| notes | TEXT | YES | free-form context about the tag |
+| is_active | BOOLEAN | NO | default true, soft delete |
 | created_at | TIMESTAMP | NO | auto set on insert |
 | updated_at | TIMESTAMP | NO | auto updated on change |
 
-**Initial tags to seed:**
-- cement_supplier
-- iron_supplier
-- aggregates_supplier
-- electrical_subcontractor
-- civil_subcontractor
-- equipment_rental
-- legal_services
-- accounting_services
-- government_entity
-- oxi_financing_company
-- client
-- general_supplier
+**Tags:** See "Tags — Master List (Updated)" section below for the full 25-tag seed list.
 
 ---
 
@@ -182,6 +176,7 @@ Every construction project. The anchor for all financial data. Project code driv
 | actual_end_date | DATE | YES | populated on completion |
 | location | VARCHAR | YES | region or city in Peru |
 | notes | TEXT | YES | |
+| is_active | BOOLEAN | NO | default true, soft delete |
 | created_at | TIMESTAMP | NO | auto set on insert |
 | updated_at | TIMESTAMP | NO | auto updated on change |
 
@@ -239,7 +234,7 @@ Quotes received from suppliers and subcontractors before committing to a purchas
 | project_id | UUID | NO | references projects |
 | entity_id | UUID | NO | references entities |
 | date_received | DATE | NO | |
-| description | TEXT | NO | what was quoted |
+| title | TEXT | NO | what was quoted |
 | quantity | NUMERIC(15,4) | YES | |
 | unit_of_measure | VARCHAR | YES | meters, units, hours, kg, etc. |
 | unit_price | NUMERIC(15,4) | YES | |
@@ -249,7 +244,7 @@ Quotes received from suppliers and subcontractors before committing to a purchas
 | currency | VARCHAR(3) | NO | USD or PEN |
 | exchange_rate | NUMERIC(10,4) | YES | reference only |
 | status | VARCHAR | NO | pending, accepted, rejected |
-| linked_cost_id | UUID | YES | references costs — populated when accepted |
+| linked_cost_id | UUID | YES | application-level reference to costs (no FK constraint — avoids circular dependency with costs.quote_id). Populated when accepted |
 | document_ref | VARCHAR | YES | e.g. PRY001-QT-001 |
 | notes | TEXT | YES | reason for rejection or other context |
 | created_at | TIMESTAMP | NO | auto |
@@ -316,15 +311,17 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 | purchase_order_id | UUID | YES | reserved for future PO module — null in V0, will reference purchase_orders table |
 | cost_type | VARCHAR | NO | project_cost or sga |
 | date | DATE | NO | when the expense occurred |
-| description | TEXT | NO | overall invoice or expense description |
+| title | TEXT | NO | overall invoice or expense title |
 | igv_rate | NUMERIC(5,2) | NO | default 18, editable per invoice |
 | detraccion_rate | NUMERIC(5,2) | YES | percentage, editable per invoice, null if not applicable |
 | currency | VARCHAR(3) | NO | USD or PEN |
 | exchange_rate | NUMERIC(10,4) | YES | reference only — amounts never converted at storage |
-| comprobante_type | VARCHAR | YES | factura, boleta, recibo_por_honorarios |
+| comprobante_type | VARCHAR | YES | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
 | comprobante_number | VARCHAR | YES | e.g. F001-00234 |
+| payment_method | VARCHAR | YES | bank_transfer, cash, check — indicates payment channel |
 | document_ref | VARCHAR | YES | e.g. PRY001-AP-001 — links to SharePoint PDF |
 | due_date | DATE | YES | feeds AP payment calendar |
+| notes | TEXT | YES | free-form context |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
@@ -335,7 +332,7 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 - `total` — subtotal + igv_amount
 - `amount_paid` — SUM of payments against this cost
 - `outstanding` — total - amount_paid
-- `payment_status` — unpaid / partial / paid
+- `payment_status` — pending / partial / paid
 
 ---
 
@@ -346,7 +343,7 @@ One or many rows per cost. Holds the detail of what was purchased. Category live
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | cost_id | UUID | NO | references costs |
-| description | TEXT | NO | line item description |
+| title | TEXT | NO | line item name |
 | category | VARCHAR | NO | see categories below |
 | quantity | NUMERIC(15,4) | YES | null for lump sum lines |
 | unit_of_measure | VARCHAR | YES | meters, units, hours, kg, days, etc. |
@@ -403,6 +400,7 @@ Invoices sent to clients. One per valuation. Subtotal entered directly — no li
 | exchange_rate | NUMERIC(10,4) | YES | reference only |
 | document_ref | VARCHAR | YES | e.g. PRY001-AR-001 |
 | is_internal_settlement | BOOLEAN | NO | default false — true when invoicing a partner company |
+| retencion_verified | BOOLEAN | NO | default false — manually set to true once confirmed that client paid retencion to SUNAT |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
@@ -414,18 +412,20 @@ Invoices sent to clients. One per valuation. Subtotal entered directly — no li
 - `retencion_amount` — gross_total × retencion_rate
 - `net_receivable` — gross_total - detraccion_amount - retencion_amount
 - `amount_paid` — SUM of payments against this invoice
-- `outstanding` — net_receivable - amount_paid
-- `payment_status` — unpaid / partial / paid
+- `outstanding` — gross_total - amount_paid
+- `payment_status` — pending / partial / paid
 
 ---
 
 ### Database Views — Layer 4
 
+These three views derive the financial totals for costs and AR invoices. See "Database Views — Complete List" section below for all 11 views.
+
 | View | Source | Purpose |
 |---|---|---|
-| `cost_totals` | cost_items | subtotal, igv, detraccion, total per cost |
-| `cost_balances` | costs + payments | amount_paid, outstanding, payment_status per cost |
-| `ar_balances` | ar_invoices + payments | amount_paid, outstanding, payment_status per AR invoice |
+| `v_cost_totals` | cost_items | subtotal, igv, detraccion, total per cost |
+| `v_cost_balances` | costs + payments | amount_paid, outstanding, payment_status per cost |
+| `v_ar_balances` | ar_invoices + payments | amount_paid, outstanding, payment_status per AR invoice |
 
 ---
 
@@ -489,9 +489,97 @@ No extra table. No extra module. One dashboard view.
 
 ---
 
+## Layer 6 — Private (Alex only)
+
+### `loans`
+Personal financing arrangements — money borrowed from friends, family, or informal lenders. Tracks what Alex owes and to whom. Completely isolated from business accounting. All capital contributed to a project counts as own capital regardless of source — the partnership never sees this data.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| lender_name | VARCHAR | NO | who Alex borrowed from |
+| lender_contact | VARCHAR | YES | phone or email |
+| amount | NUMERIC(15,2) | NO | principal borrowed |
+| currency | VARCHAR(3) | NO | USD or PEN |
+| date_borrowed | DATE | NO | |
+| project_id | UUID | YES | references projects — which project this funded, if any |
+| purpose | TEXT | NO | freeform description |
+| agreed_return_rate | NUMERIC(5,2) | YES | e.g. 8.00 (percent) |
+| agreed_return_amount | NUMERIC(15,2) | YES | if fixed amount instead of % |
+| return_type | VARCHAR | NO | percentage or fixed |
+| due_date | DATE | YES | overall repayment deadline |
+| status | VARCHAR | NO | active, partially_paid, settled |
+| notes | TEXT | YES | freeform |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**Privacy:** Never visible to partners. CLI-only in V0, admin-only in V1.
+
+**No `is_active`** — loans are permanent financial records, same as costs, payments, and AR invoices.
+
+---
+
+### `loan_schedule`
+Agreed repayment schedule for a loan. Optional — not all loans have a structured schedule.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| loan_id | UUID | NO | references loans |
+| scheduled_date | DATE | NO | agreed payment date |
+| scheduled_amount | NUMERIC(15,2) | NO | amount due on this date |
+| paid | BOOLEAN | NO | default false |
+| actual_payment_id | UUID | YES | references loan_payments — populated when settled |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**Feeds `v_ap_calendar`** as a second UNION source (type = 'loan_payment'). Only visible to Alex.
+
+---
+
+### `loan_payments`
+Actual repayments made against loans. Separate from business `payments` table — keeps personal finance isolated.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| loan_id | UUID | NO | references loans |
+| payment_date | DATE | NO | |
+| amount | NUMERIC(15,2) | NO | |
+| currency | VARCHAR(3) | NO | USD or PEN |
+| source | VARCHAR | YES | project_settlement, personal_funds, other |
+| settlement_ref | VARCHAR | YES | e.g. PRY001-Settlement-1 — links repayment to profit event |
+| notes | TEXT | YES | freeform |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**Traceability:** The `source` and `settlement_ref` fields answer: "I paid Friend Juan S/ 40,000 out of the PRY001 March settlement."
+
+---
+
+## Layer 7 — Project Budgets
+
+### `project_budgets`
+Budget targets per project per category. Compared against actual costs from `v_cost_totals` in the `v_budget_vs_actual` view. Budget is set when a project starts and can be updated — changes should be noted.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| project_id | UUID | NO | references projects |
+| category | VARCHAR | NO | must match cost_items categories exactly |
+| budgeted_amount | NUMERIC(15,2) | NO | |
+| currency | VARCHAR(3) | NO | USD or PEN |
+| notes | TEXT | YES | |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**Category values** must use the same strings as `cost_items.category`: materials, labor, subcontractor, equipment_rental, permits_regulatory, other (for project costs).
+
+---
+
 ## Complete Table List — Final
 
-**13 tables total:**
+**17 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -517,31 +605,53 @@ Layer 4 (depends on Layer 3):
 
 Layer 5 (child records):
   payments
+
+Layer 6 (private — Alex only):
+  loans
+  loan_schedule
+  loan_payments
+
+Layer 7 (project extensions):
+  project_budgets
 ```
 
 ---
 
 ## Database Views — Complete List
 
+**Existing views (13 — built and deployed):**
+
 | View | Source Tables | Purpose |
 |---|---|---|
-| `cost_totals` | cost_items | subtotal, igv, detraccion, total per cost |
-| `cost_balances` | costs + payments | amount_paid, outstanding, payment_status per cost |
-| `ar_balances` | ar_invoices + payments | amount_paid, outstanding, payment_status per AR invoice |
-| `ap_calendar` | costs + cost_balances | unpaid/partial costs sorted by due date |
-| `partner_ledger` | costs + ar_invoices + payments | contributions, stakes, income distribution per project |
-| `entity_transactions` | costs + ar_invoices filtered by entity | all transactions per entity per project |
-| `bank_balances` | payments grouped by bank_account | running balance per account |
-| `project_pl` | ar_invoices + costs per project | income, costs, gross profit per project |
-| `company_pl` | all projects + SG&A costs | consolidated P&L including SG&A |
-| `settlement_dashboard` | ar_invoices (is_internal_settlement=true) | partner settlement invoices and status |
+| `v_cost_totals` | cost_items | subtotal, igv, detraccion, total per cost (includes payment_method) |
+| `v_cost_balances` | costs + payments | amount_paid, outstanding, payment_status per cost |
+| `v_ar_balances` | ar_invoices + payments | amount_paid, outstanding, payment_status per AR invoice |
+| `v_ap_calendar` | costs + v_cost_balances + loan_schedule | pending/partial costs and loan payments sorted by due date |
+| `v_partner_ledger` | costs + ar_invoices + payments | contributions, stakes, income distribution per project |
+| `v_entity_transactions` | costs + ar_invoices filtered by entity | all transactions per entity per project |
+| `v_bank_balances` | payments grouped by bank_account | running balance per account |
+| `v_project_pl` | ar_invoices + costs per project | income, costs, gross profit per project (accrual basis) |
+| `v_company_pl` | all projects + SG&A costs | consolidated P&L including SG&A (accrual basis) |
+| `v_settlement_dashboard` | ar_invoices (is_internal_settlement=true) | partner settlement invoices and status |
+| `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |
+| `v_loan_balances` | loans + loan_payments + loan_schedule | borrowed, total owed, paid, outstanding per loan |
+| `v_budget_vs_actual` | project_budgets + cost_items | budgeted vs actual per project per category |
+
+**Planned views (2 — to be built in Phase 4):**
+
+| View | Source Tables | Purpose |
+|---|---|---|
+| `v_cash_flow` | payments + costs + ar_invoices + loan_schedule | actual (past) and forecast (future) cash movement by month |
+| `v_igv_position` | v_cost_totals + ar_invoices | IGV collected vs paid, net payable by period |
+
+**Note on P&L vs Cash Flow:** `v_company_pl` and `v_project_pl` are accrual-basis (when invoiced/recorded). `v_cash_flow` is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
 
 ---
 
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete.** All tables use soft deletes via `is_active BOOLEAN DEFAULT true`.
+- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on costs.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is a reference field only.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.
@@ -551,22 +661,16 @@ Layer 5 (child records):
 
 ---
 
-*Schema is fully locked. Next step: write SQL CREATE TABLE statements for all 13 tables and views.*
+**Comprobante types — full list:**
+- `factura` — VAT invoice, full IGV credit
+- `boleta` — consumer receipt, igv_rate = 0, deductible
+- `recibo_por_honorarios` — professional services invoice, igv_rate = 0, deductible
+- `liquidacion_de_compra` — buying from individuals without RUC, IGV credit possible
+- `planilla_jornales` — day labor register, igv_rate = 0, deductible with documentation
+- `none` — truly informal, igv_rate = 0, non-deductible risk
+
+The comprobante type tells the accountant why IGV is zero without affecting any calculations. `igv_rate = 0` naturally excludes informal costs from IGV credit — no special boolean or filter needed.
 
 ---
 
-## Views (Derived, No Extra Tables)
-
-| View | Source Tables | Purpose |
-|---|---|---|
-| AP Payment Calendar | costs + payments | Upcoming payment obligations by due date |
-| Partner Ledger | costs grouped by partner_company | Contribution and ownership stake per project |
-| Company P&L | ar_invoices + costs | Income vs expenses vs SG&A |
-| Entity Transaction History | costs + ar_invoices filtered by entity | All transactions per entity per project |
-| Bank Account Balances | payments grouped by bank_account | Running balance per account |
-| Quote vs Actual | quotes joined to costs | Quoted price vs actual cost comparison |
-| Unit Price History | costs filtered by quantity/unit_price | Historical unit prices by item and supplier |
-
----
-
-*This document is updated layer by layer as schema decisions are locked. Do not write SQL until all layers are defined and validated.*
+*Layers 1-5 locked. Layers 6-7 defined and ready for migration. SQL generated in `supabase/migrations/` and `supabase/views/`.*

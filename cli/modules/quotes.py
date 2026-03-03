@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""
+Module: quotes.py
+Purpose: All quote operations — add single, import from Excel
+Tables: quotes
+"""
+
+import pandas as pd
+from openpyxl import load_workbook
+
+from lib.db import supabase
+from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.import_helpers import (
+    RED_FILL, NO_FILL, DATA_START_ROW,
+    clear_highlighting, apply_error_highlighting,
+    validate_required, validate_enum, validate_lookup,
+    validate_date, validate_number,
+    print_errors,
+)
+
+
+def menu():
+    """Submenu for quote operations. Called by main.py."""
+    while True:
+        clear_screen()
+        print("\n=== Quotes ===\n")
+        print("1. Add quote")
+        print("2. Import quotes from Excel")
+        print("3. Back")
+
+        choice = get_input("\nSelect option: ")
+
+        if choice == "1":
+            add_quote()
+        elif choice == "2":
+            import_quotes()
+        elif choice == "3":
+            return
+
+
+# ============================================================
+# Add Quote
+# ============================================================
+
+def add_quote():
+    """Register a single quote interactively."""
+    clear_screen()
+    print("\n=== Add Quote ===\n")
+
+    # --- Select project ---
+    projects = (
+        supabase.table("projects")
+        .select("id, project_code, name")
+        .eq("is_active", True)
+        .order("project_code")
+        .execute()
+    )
+    if not projects.data:
+        print("No active projects found.")
+        input("\nPress Enter to continue...")
+        return
+
+    list_choices("Active projects", projects.data, display=["project_code", "name"])
+    proj_num = get_input("  Select project number: ")
+    try:
+        project = projects.data[int(proj_num) - 1]
+    except (ValueError, IndexError):
+        print("\n✗ Invalid selection.")
+        input("\nPress Enter to continue...")
+        return
+
+    # --- Select entity ---
+    from modules.entities import _search_and_select_entity
+    print()
+    entity = _search_and_select_entity()
+    if not entity:
+        return
+
+    # --- Quote details ---
+    date_received = get_input("\n  Date received (YYYY-MM-DD): ")
+    title = get_input("  Title (what was quoted): ")
+
+    # --- Quantity and pricing ---
+    quantity = get_optional_input("  Quantity (optional — press Enter to skip): ")
+    unit_of_measure = None
+    unit_price = None
+    if quantity:
+        try:
+            quantity = float(quantity)
+        except ValueError:
+            print("  Invalid number, skipping quantity.")
+            quantity = None
+    if quantity:
+        unit_of_measure = get_optional_input("  Unit of measure (optional — press Enter to skip): ")
+        up = get_optional_input("  Unit price (optional — press Enter to skip): ")
+        if up:
+            try:
+                unit_price = float(up)
+            except ValueError:
+                print("  Invalid number, skipping unit price.")
+
+    # --- Subtotal ---
+    default_subtotal = None
+    if quantity and unit_price:
+        default_subtotal = quantity * unit_price
+        print(f"\n  Computed subtotal: {default_subtotal:,.2f}")
+
+    subtotal_input = get_input(f"  Subtotal{f' (default: {default_subtotal:,.2f})' if default_subtotal else ''}: ")
+    try:
+        subtotal = float(subtotal_input) if subtotal_input else default_subtotal
+    except ValueError:
+        subtotal = default_subtotal
+    if subtotal is None:
+        print("  Subtotal is required.")
+        input("\nPress Enter to continue...")
+        return
+
+    # --- IGV ---
+    igv_suggestion = subtotal * 0.18
+    igv_input = get_optional_input(f"  IGV amount (suggested: {igv_suggestion:,.2f}, optional — press Enter to skip): ")
+    igv_amount = None
+    if igv_input:
+        try:
+            igv_amount = float(igv_input)
+        except ValueError:
+            igv_amount = None
+
+    # --- Total ---
+    default_total = subtotal + (igv_amount or 0)
+    total_input = get_input(f"  Total (default: {default_total:,.2f}): ")
+    try:
+        total = float(total_input) if total_input else default_total
+    except ValueError:
+        total = default_total
+
+    # --- Currency ---
+    print("\n  Currencies: USD, PEN")
+    currency = get_input("  Currency: ").upper()
+    while currency not in ("USD", "PEN"):
+        print("  Must be USD or PEN.")
+        currency = get_input("  Currency: ").upper()
+
+    exchange_rate = get_optional_input("  Exchange rate (optional — press Enter to skip): ")
+    if exchange_rate:
+        try:
+            exchange_rate = float(exchange_rate)
+        except ValueError:
+            exchange_rate = None
+
+    # --- Status ---
+    print("\n  Statuses: pending, accepted, rejected")
+    status = get_input("  Status (default: pending): ").lower() or "pending"
+    while status not in ("pending", "accepted", "rejected"):
+        print("  Must be pending, accepted, or rejected.")
+        status = get_input("  Status: ").lower()
+
+    document_ref = get_optional_input("  Document ref (optional — press Enter to skip): ")
+    notes = get_optional_input("  Notes (optional — press Enter to skip): ")
+
+    # --- Summary ---
+    print("\n--- Summary ---")
+    print(f"  Project:       {project['project_code']} — {project['name']}")
+    print(f"  Entity:        {entity['legal_name']}")
+    print(f"  Date received: {date_received}")
+    print(f"  Title:         {title}")
+    if quantity:
+        print(f"  Quantity:      {quantity:,.4f} {unit_of_measure or ''}")
+    if unit_price:
+        print(f"  Unit price:    {unit_price:,.4f}")
+    print(f"  Subtotal:      {currency} {subtotal:,.2f}")
+    if igv_amount:
+        print(f"  IGV:           {currency} {igv_amount:,.2f}")
+    print(f"  Total:         {currency} {total:,.2f}")
+    print(f"  Status:        {status}")
+    if document_ref:
+        print(f"  Doc ref:       {document_ref}")
+    if notes:
+        print(f"  Notes:         {notes}")
+
+    if not confirm("\nRegister this quote?"):
+        print("Cancelled.")
+        input("\nPress Enter to continue...")
+        return
+
+    # --- Insert ---
+    data = {
+        "project_id": project["id"],
+        "entity_id": entity["id"],
+        "date_received": date_received,
+        "title": title,
+        "subtotal": subtotal,
+        "total": total,
+        "currency": currency,
+        "status": status,
+    }
+    if quantity:
+        data["quantity"] = quantity
+    if unit_of_measure:
+        data["unit_of_measure"] = unit_of_measure
+    if unit_price:
+        data["unit_price"] = unit_price
+    if igv_amount:
+        data["igv_amount"] = igv_amount
+    if exchange_rate:
+        data["exchange_rate"] = exchange_rate
+    if document_ref:
+        data["document_ref"] = document_ref
+    if notes:
+        data["notes"] = notes
+
+    try:
+        response = supabase.table("quotes").insert(data).execute()
+        print(f"\n✓ Quote registered (ID: {response.data[0]['id'][:8]}...)")
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+
+    input("\nPress Enter to continue...")
+
+
+# ============================================================
+# Import Quotes
+# ============================================================
+
+def _load_quote_lookups():
+    """Pre-load lookup tables for quote import."""
+    projects = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
+    entities = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
+    return {
+        "projects": {r["project_code"]: r["id"] for r in projects.data},
+        "entities": {r["document_number"]: r["id"] for r in entities.data},
+    }
+
+
+def _validate_quote_row(row_num, row, errors, lookups):
+    """Validate a single quote row."""
+    validate_required(row_num, row, "project_code", errors)
+    validate_required(row_num, row, "entity_document_number", errors)
+    validate_required(row_num, row, "date_received", errors)
+    validate_required(row_num, row, "title", errors)
+    validate_required(row_num, row, "subtotal", errors)
+    validate_required(row_num, row, "total", errors)
+    validate_required(row_num, row, "currency", errors)
+    validate_required(row_num, row, "status", errors)
+
+    validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
+    validate_enum(row_num, row, "status", ["pending", "accepted", "rejected"], errors)
+
+    validate_lookup(row_num, row, "project_code", lookups["projects"], errors)
+    validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
+
+    validate_date(row_num, row, "date_received", errors)
+    validate_number(row_num, row, "quantity", errors)
+    validate_number(row_num, row, "unit_price", errors)
+    validate_number(row_num, row, "subtotal", errors)
+    validate_number(row_num, row, "igv_amount", errors)
+    validate_number(row_num, row, "total", errors)
+    validate_number(row_num, row, "exchange_rate", errors)
+
+
+def _build_quote_record(row, lookups):
+    """Convert a spreadsheet row to a database record."""
+    data = {
+        "project_id": lookups["projects"][str(row["project_code"]).strip()],
+        "entity_id": lookups["entities"][str(row["entity_document_number"]).strip()],
+        "date_received": pd.Timestamp(row["date_received"]).strftime("%Y-%m-%d"),
+        "title": str(row["title"]).strip(),
+        "subtotal": float(row["subtotal"]),
+        "total": float(row["total"]),
+        "currency": str(row["currency"]).strip(),
+        "status": str(row["status"]).strip(),
+    }
+
+    for field in ("quantity", "unit_price", "igv_amount", "exchange_rate"):
+        val = row.get(field)
+        if val is not None and not pd.isna(val):
+            data[field] = float(val)
+
+    for field in ("unit_of_measure", "document_ref", "notes"):
+        val = row.get(field)
+        if val is not None and not pd.isna(val) and str(val).strip():
+            data[field] = str(val).strip()
+
+    return data
+
+
+def import_quotes():
+    """Import quotes from an Excel spreadsheet."""
+    clear_screen()
+    print("\n=== Import Quotes ===\n")
+
+    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
+
+    try:
+        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
+    except Exception as e:
+        print(f"\n✗ Error reading file: {e}")
+        input("\nPress Enter to continue...")
+        return
+
+    if df.empty:
+        print("✗ No data rows found in file.")
+        input("\nPress Enter to continue...")
+        return
+
+    print(f"Found {len(df)} data rows.")
+
+    lookups = _load_quote_lookups()
+
+    errors = []
+    for idx, row in df.iterrows():
+        excel_row = idx + DATA_START_ROW
+        _validate_quote_row(excel_row, row, errors, lookups)
+
+    if errors:
+        wb = load_workbook(file_path)
+        ws = wb.active
+        headers = [cell.value for cell in ws[1]]
+        clear_highlighting(ws)
+        apply_error_highlighting(ws, errors, headers)
+        wb.save(file_path)
+        print_errors(errors, file_path)
+        input("\nPress Enter to continue...")
+        return
+
+    wb = load_workbook(file_path)
+    ws = wb.active
+    clear_highlighting(ws)
+    wb.save(file_path)
+
+    print(f"\n--- Summary ---")
+    print(f"  File:    {file_path}")
+    print(f"  Records: {len(df)}")
+    print(f"\n  First 3 rows:")
+    for i, (_, row) in enumerate(df.head(3).iterrows()):
+        print(f"    {i+1}. {row.get('project_code', '')} — {row.get('title', '')}")
+
+    if not confirm(f"\nImport {len(df)} quotes?"):
+        print("Cancelled.")
+        input("\nPress Enter to continue...")
+        return
+
+    try:
+        records = [_build_quote_record(row, lookups) for _, row in df.iterrows()]
+        response = supabase.table("quotes").insert(records).execute()
+        print(f"\n✓ {len(response.data)} quotes imported successfully.")
+    except Exception as e:
+        print(f"\n✗ Error during import: {e}")
+
+    input("\nPress Enter to continue...")

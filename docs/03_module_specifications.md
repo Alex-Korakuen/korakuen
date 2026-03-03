@@ -79,8 +79,9 @@ COSTS          QUOTES        VALUATIONS      AR INVOICES
 - RUC (if company) or DNI (if individual)
 - Razón Social (if company) or Full Name (if individual)
 - Category tags (see 2.3)
-- Address
 - Notes
+
+Contact details (phone, email, address) are stored in `entity_contacts`, not on the entity itself.
 
 ### 2.2 Contacts (associated people)
 **Purpose:** People associated with an entity. The salesperson, project manager, or owner you actually deal with. Optional — not required to transact.
@@ -199,7 +200,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Due date (nullable — feeds AP calendar)
 
 **Key attributes — `cost_items` (line items, one or many per cost):**
-- Line item description
+- Line item title
 - Category (Level 2 — see above)
 - Quantity (nullable)
 - Unit of measure (nullable)
@@ -240,7 +241,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Date received
 - Project (references Projects)
 - Entity (references Entities)
-- Description of scope or item quoted
+- Title (scope or item quoted)
 - Quantity (nullable)
 - Unit of measure (nullable)
 - Unit price (nullable)
@@ -426,7 +427,7 @@ When partners settle up, one partner company issues a formal AR invoice to anoth
 - Cost totals (subtotal, IGV, total) are always derived from cost_items via database views — never stored on the costs header. AR invoice calculated fields (igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable) are also derived via views, never stored
 - Currency is always stored in natural currency — amounts are never converted at storage
 - Exchange rate is stored per transaction as a reference field for display
-- Document reference codes follow the format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07-FileStorage.md`
+- Document reference codes follow the format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`
 - Valuations are sequential integers per project (1, 2, 3...) and never reset
 - Closed valuations cannot be modified
 
@@ -443,4 +444,4 @@ When partners settle up, one partner company issues a formal AR invoice to anoth
 
 ---
 
-*This document will be updated when the database schema is finalized. Field names may change during schema design.*
+*Schema is fully locked — see `docs/08_schema.md` for definitive field names and table structures.*
