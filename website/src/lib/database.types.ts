@@ -49,7 +49,7 @@ export type Database = {
           document_ref: string | null
           due_date: string | null
           entity_id: string
-          exchange_rate: number | null
+          exchange_rate: number
           id: string
           igv_rate: number
           invoice_date: string
@@ -74,7 +74,7 @@ export type Database = {
           document_ref?: string | null
           due_date?: string | null
           entity_id: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_rate?: number
           invoice_date: string
@@ -99,7 +99,7 @@ export type Database = {
           document_ref?: string | null
           due_date?: string | null
           entity_id?: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_rate?: number
           invoice_date?: string
@@ -291,7 +291,7 @@ export type Database = {
           document_ref: string | null
           due_date: string | null
           entity_id: string | null
-          exchange_rate: number | null
+          exchange_rate: number
           id: string
           igv_rate: number
           notes: string | null
@@ -315,7 +315,7 @@ export type Database = {
           document_ref?: string | null
           due_date?: string | null
           entity_id?: string | null
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_rate?: number
           notes?: string | null
@@ -339,7 +339,7 @@ export type Database = {
           document_ref?: string | null
           due_date?: string | null
           entity_id?: string | null
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_rate?: number
           notes?: string | null
@@ -776,7 +776,7 @@ export type Database = {
           created_at: string
           currency: string
           direction: string
-          exchange_rate: number | null
+          exchange_rate: number
           id: string
           notes: string | null
           partner_company_id: string
@@ -792,7 +792,7 @@ export type Database = {
           created_at?: string
           currency: string
           direction: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           notes?: string | null
           partner_company_id: string
@@ -808,7 +808,7 @@ export type Database = {
           created_at?: string
           currency?: string
           direction?: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           notes?: string | null
           partner_company_id?: string
@@ -1027,7 +1027,7 @@ export type Database = {
           date_received: string
           document_ref: string | null
           entity_id: string
-          exchange_rate: number | null
+          exchange_rate: number
           id: string
           igv_amount: number | null
           linked_cost_id: string | null
@@ -1048,7 +1048,7 @@ export type Database = {
           date_received: string
           document_ref?: string | null
           entity_id: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_amount?: number | null
           linked_cost_id?: string | null
@@ -1069,7 +1069,7 @@ export type Database = {
           date_received?: string
           document_ref?: string | null
           entity_id?: string
-          exchange_rate?: number | null
+          exchange_rate?: number
           id?: string
           igv_amount?: number | null
           linked_cost_id?: string | null
@@ -1526,6 +1526,15 @@ export type Database = {
           total_with_igv: number | null
           transaction_id: string | null
           transaction_type: string | null
+        }
+        Relationships: []
+      }
+      v_igv_position: {
+        Row: {
+          currency: string | null
+          igv_collected: number | null
+          igv_paid: number | null
+          net_igv_position: number | null
         }
         Relationships: []
       }

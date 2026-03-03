@@ -39,6 +39,7 @@ export type ProjectPlRow = Database['public']['Views']['v_project_pl']['Row']
 export type CompanyPlRow = Database['public']['Views']['v_company_pl']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
 export type SettlementDashboardRow = Database['public']['Views']['v_settlement_dashboard']['Row']
+export type IgvPositionRow = Database['public']['Views']['v_igv_position']['Row']
 
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
@@ -368,4 +369,44 @@ export type PLData = {
   // Alex-only personal position
   alexProfitShare: number | null
   loanObligations: number | null
+}
+
+// --- Financial Position component types ---
+
+export type BankAccountCard = {
+  bankAccountId: string
+  partnerCompanyId: string | null
+  partnerName: string | null
+  bankName: string | null
+  accountNumberLast4: string | null
+  accountType: string | null
+  currency: string | null
+  isDetractionAccount: boolean
+  balance: number
+  transactionCount: number
+}
+
+export type BankTransaction = {
+  id: string
+  paymentDate: string
+  direction: string
+  amount: number
+  currency: string
+  entityName: string | null
+  projectCode: string | null
+  description: string | null
+}
+
+export type FinancialPositionData = {
+  bankAccounts: BankAccountCard[]
+  arOutstanding: number // total outstanding AR
+  apOutstanding: number // total outstanding AP
+  igvCollected: number // debito fiscal (liability)
+  igvPaid: number // credito fiscal (asset)
+  retencionesUnverified: number // pending retenciones (asset)
+  loans: { loanId: string; lenderName: string; outstanding: number; currency: string | null }[]
+  // Totals
+  totalAssets: number
+  totalLiabilities: number
+  netPosition: number
 }

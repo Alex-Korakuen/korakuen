@@ -4,10 +4,13 @@ import type {
   ArBalanceRow,
   ArDetractionEntry,
   ArOutstandingRow,
+  BankAccountCard,
+  BankTransaction,
   CashFlowData,
   CashFlowMonth,
   CostBalanceRow,
   CostItem,
+  FinancialPositionData,
   PartnerBalanceData,
   PartnerCostDetail,
   Payment,
@@ -1214,4 +1217,234 @@ export async function getCompanyPL(
   }
 
   return { columns, byMonth, total, alexProfitShare, loanObligations }
+}
+
+// --- Financial Position queries ---
+
+function convertAmountFP(
+  amount: number,
+  currency: string | null,
+  exchangeRate: number | null,
+  reportingCurrency: 'PEN' | 'USD'
+): number {
+  if (!currency || currency === reportingCurrency) return amount
+  if (!exchangeRate || exchangeRate === 0) return amount
+  if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
+  if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
+  return amount
+}
+
+export async function getFinancialPosition(
+  isAlex: boolean,
+  reportingCurrency: 'PEN' | 'USD'
+): Promise<FinancialPositionData> {
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch all data in parallel
+  const [
+    bankResult,
+    arResult,
+    costResult,
+    igvResult,
+    retencionResult,
+    loanResult,
+  ] = await Promise.all([
+    supabase.from('v_bank_balances').select('*'),
+    supabase.from('v_ar_balances').select('outstanding, currency, exchange_rate, payment_status'),
+    supabase.from('v_cost_balances').select('outstanding, currency, exchange_rate, payment_status'),
+    supabase.from('v_igv_position').select('*'),
+    supabase.from('v_retencion_dashboard').select('retencion_amount, currency, retencion_verified'),
+    isAlex
+      ? supabase.from('v_loan_balances').select('loan_id, lender_name, outstanding, currency')
+      : { data: [] },
+  ])
+
+  const bankAccounts = bankResult.data ?? []
+  const arBalances = arResult.data ?? []
+  const costBalances = costResult.data ?? []
+  const igvPositions = igvResult.data ?? []
+  const retenciones = retencionResult.data ?? []
+  const loanBalances = loanResult.data ?? []
+
+  // Bank account cards — convert balances to reporting currency
+  // Use a default exchange rate for bank balances (they don't have per-transaction rates)
+  const DEFAULT_RATE = 3.70
+  const bankCards: BankAccountCard[] = bankAccounts.map(ba => ({
+    bankAccountId: ba.bank_account_id ?? '',
+    partnerCompanyId: ba.partner_company_id,
+    partnerName: ba.partner_name,
+    bankName: ba.bank_name,
+    accountNumberLast4: ba.account_number_last4,
+    accountType: ba.account_type,
+    currency: ba.currency,
+    isDetractionAccount: ba.is_detraccion_account ?? false,
+    balance: ba.balance ?? 0,
+    transactionCount: ba.transaction_count ?? 0,
+  }))
+
+  // Total cash in reporting currency
+  const totalCash = bankCards.reduce((sum, ba) => {
+    return sum + convertAmountFP(ba.balance, ba.currency, DEFAULT_RATE, reportingCurrency)
+  }, 0)
+
+  // AR outstanding (unpaid/partial invoices)
+  const arOutstanding = arBalances
+    .filter(ar => ar.payment_status !== 'paid')
+    .reduce((sum, ar) => {
+      return sum + convertAmountFP(ar.outstanding ?? 0, ar.currency, ar.exchange_rate, reportingCurrency)
+    }, 0)
+
+  // AP outstanding (unpaid/partial costs)
+  const apOutstanding = costBalances
+    .filter(c => c.payment_status !== 'paid')
+    .reduce((sum, c) => {
+      return sum + convertAmountFP(c.outstanding ?? 0, c.currency, c.exchange_rate, reportingCurrency)
+    }, 0)
+
+  // IGV position
+  let igvCollected = 0
+  let igvPaid = 0
+  for (const row of igvPositions) {
+    igvCollected += convertAmountFP(row.igv_collected ?? 0, row.currency, DEFAULT_RATE, reportingCurrency)
+    igvPaid += convertAmountFP(row.igv_paid ?? 0, row.currency, DEFAULT_RATE, reportingCurrency)
+  }
+
+  // Retenciones unverified (asset — withheld by clients, pending SUNAT verification)
+  const retencionesUnverified = retenciones
+    .filter(r => !r.retencion_verified)
+    .reduce((sum, r) => {
+      return sum + convertAmountFP(r.retencion_amount ?? 0, r.currency, DEFAULT_RATE, reportingCurrency)
+    }, 0)
+
+  // Loans (Alex only)
+  const loans = loanBalances.map(l => ({
+    loanId: l.loan_id ?? '',
+    lenderName: l.lender_name ?? '—',
+    outstanding: l.outstanding ?? 0,
+    currency: l.currency,
+  }))
+  const totalLoans = loans.reduce((sum, l) => {
+    return sum + convertAmountFP(l.outstanding, l.currency, DEFAULT_RATE, reportingCurrency)
+  }, 0)
+
+  // Compute totals
+  const totalAssets = totalCash + arOutstanding + igvPaid + retencionesUnverified
+  const totalLiabilities = apOutstanding + igvCollected + (isAlex ? totalLoans : 0)
+  const netPosition = totalAssets - totalLiabilities
+
+  return {
+    bankAccounts: bankCards,
+    arOutstanding,
+    apOutstanding,
+    igvCollected,
+    igvPaid,
+    retencionesUnverified,
+    loans,
+    totalAssets,
+    totalLiabilities,
+    netPosition,
+  }
+}
+
+export async function getBankTransactions(
+  bankAccountId: string
+): Promise<BankTransaction[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Get payments for this bank account, most recent first
+  const { data: payments } = await supabase
+    .from('payments')
+    .select('id, payment_date, direction, amount, currency, related_id, related_to')
+    .eq('bank_account_id', bankAccountId)
+    .order('payment_date', { ascending: false })
+    .limit(50)
+
+  if (!payments || payments.length === 0) return []
+
+  // Enrich with entity names and project codes
+  const costIds = payments
+    .filter(p => p.related_to === 'cost')
+    .map(p => p.related_id)
+    .filter((id): id is string => id !== null)
+
+  const arIds = payments
+    .filter(p => p.related_to === 'ar_invoice')
+    .map(p => p.related_id)
+    .filter((id): id is string => id !== null)
+
+  const [costResult, arResult] = await Promise.all([
+    costIds.length > 0
+      ? supabase
+          .from('v_cost_totals')
+          .select('cost_id, entity_id, project_id, title')
+          .in('cost_id', costIds)
+      : { data: [] },
+    arIds.length > 0
+      ? supabase
+          .from('ar_invoices')
+          .select('id, entity_id, project_id, invoice_number')
+          .in('id', arIds)
+      : { data: [] },
+  ])
+
+  const costs = costResult.data ?? []
+  const ars = arResult.data ?? []
+
+  // Get entity and project names
+  const entityIds = [
+    ...costs.map(c => c.entity_id),
+    ...ars.map(a => a.entity_id),
+  ].filter((id): id is string => id !== null)
+
+  const projectIds = [
+    ...costs.map(c => c.project_id),
+    ...ars.map(a => a.project_id),
+  ].filter((id): id is string => id !== null)
+
+  const [entityResult, projectResult] = await Promise.all([
+    entityIds.length > 0
+      ? supabase.from('entities').select('id, legal_name').in('id', [...new Set(entityIds)])
+      : { data: [] },
+    projectIds.length > 0
+      ? supabase.from('projects').select('id, project_code').in('id', [...new Set(projectIds)])
+      : { data: [] },
+  ])
+
+  const entityMap = new Map((entityResult.data ?? []).map(e => [e.id, e.legal_name]))
+  const projectMap = new Map((projectResult.data ?? []).map(p => [p.id, p.project_code]))
+  const costMap = new Map(costs.map(c => [c.cost_id, c]))
+  const arMap = new Map(ars.map(a => [a.id, a]))
+
+  return payments.map(p => {
+    let entityName: string | null = null
+    let projectCode: string | null = null
+    let description: string | null = null
+
+    if (p.related_to === 'cost' && p.related_id) {
+      const cost = costMap.get(p.related_id)
+      if (cost) {
+        entityName = cost.entity_id ? entityMap.get(cost.entity_id) ?? null : null
+        projectCode = cost.project_id ? projectMap.get(cost.project_id) ?? null : null
+        description = cost.title ?? null
+      }
+    } else if (p.related_to === 'ar_invoice' && p.related_id) {
+      const ar = arMap.get(p.related_id)
+      if (ar) {
+        entityName = ar.entity_id ? entityMap.get(ar.entity_id) ?? null : null
+        projectCode = ar.project_id ? projectMap.get(ar.project_id) ?? null : null
+        description = ar.invoice_number ? `Invoice ${ar.invoice_number}` : null
+      }
+    }
+
+    return {
+      id: p.id,
+      paymentDate: p.payment_date,
+      direction: p.direction,
+      amount: p.amount,
+      currency: p.currency,
+      entityName,
+      projectCode,
+      description,
+    }
+  })
 }
