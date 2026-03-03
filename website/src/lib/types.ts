@@ -336,3 +336,36 @@ export type CashFlowMonth = {
 export type CashFlowData = {
   months: CashFlowMonth[]
 }
+
+// --- P&L component types ---
+
+export type PLPeriodMode = 'year' | 'quarter' | 'month'
+
+export type PLMonthColumn = {
+  key: string // YYYY-MM
+  label: string // "Jan", "Feb", etc.
+}
+
+export type PLLineItem = {
+  income: number
+  projectCosts: number
+  grossProfit: number
+  grossMarginPct: number
+  sga: number
+  netProfit: number
+  netMarginPct: number
+  // Category breakdowns
+  projectCostsByCategory: Record<string, number>
+  sgaByCategory: Record<string, number>
+  // Project breakdown for income
+  incomeByProject: { projectCode: string; projectName: string; amount: number }[]
+}
+
+export type PLData = {
+  columns: PLMonthColumn[]
+  byMonth: Record<string, PLLineItem> // key = YYYY-MM
+  total: PLLineItem
+  // Alex-only personal position
+  alexProfitShare: number | null
+  loanObligations: number | null
+}

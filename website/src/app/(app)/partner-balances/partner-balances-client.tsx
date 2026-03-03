@@ -140,7 +140,7 @@ export function PartnerBalancesClient({
                       {contributions.map((c) => (
                         <div
                           key={c.partner_company_id}
-                          className="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-zinc-50"
+                          className="flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-blue-50"
                           onClick={() => handlePartnerClick(c)}
                         >
                           <div className="flex-1">
@@ -200,7 +200,7 @@ export function PartnerBalancesClient({
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
                           {settlements.map((s) => (
-                            <tr key={s.partner_company_id}>
+                            <tr key={s.partner_company_id} className="transition-colors hover:bg-blue-50">
                               <td className="px-4 py-2 font-medium text-zinc-800">
                                 {s.partner_name}
                               </td>

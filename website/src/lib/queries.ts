@@ -11,6 +11,10 @@ import type {
   PartnerBalanceData,
   PartnerCostDetail,
   Payment,
+  PLData,
+  PLLineItem,
+  PLMonthColumn,
+  PLPeriodMode,
   RetencionDashboardRow,
 } from './types'
 
@@ -905,4 +909,309 @@ export async function getPartnerCostDetails(
     subtotal: c.subtotal ?? 0,
     currency: c.currency,
   }))
+}
+
+// --- P&L queries ---
+
+function emptyPLLineItem(): PLLineItem {
+  return {
+    income: 0,
+    projectCosts: 0,
+    grossProfit: 0,
+    grossMarginPct: 0,
+    sga: 0,
+    netProfit: 0,
+    netMarginPct: 0,
+    projectCostsByCategory: {},
+    sgaByCategory: {},
+    incomeByProject: [],
+  }
+}
+
+function computeDerived(item: PLLineItem): void {
+  item.grossProfit = item.income - item.projectCosts
+  item.grossMarginPct = item.income > 0
+    ? Math.round((item.grossProfit / item.income) * 10000) / 100
+    : 0
+  item.netProfit = item.grossProfit - item.sga
+  item.netMarginPct = item.income > 0
+    ? Math.round((item.netProfit / item.income) * 10000) / 100
+    : 0
+}
+
+function getPeriodRange(
+  periodMode: PLPeriodMode,
+  year: number,
+  quarter: number,
+  month: number
+): { start: string; end: string; monthKeys: string[] } {
+  if (periodMode === 'year') {
+    const monthKeys = []
+    for (let m = 1; m <= 12; m++) {
+      monthKeys.push(`${year}-${String(m).padStart(2, '0')}`)
+    }
+    return { start: `${year}-01-01`, end: `${year}-12-31`, monthKeys }
+  }
+  if (periodMode === 'quarter') {
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = startMonth + 2
+    const monthKeys = []
+    for (let m = startMonth; m <= endMonth; m++) {
+      monthKeys.push(`${year}-${String(m).padStart(2, '0')}`)
+    }
+    const endDay = new Date(year, endMonth, 0).getDate()
+    return {
+      start: `${year}-${String(startMonth).padStart(2, '0')}-01`,
+      end: `${year}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`,
+      monthKeys,
+    }
+  }
+  // single month
+  const endDay = new Date(year, month, 0).getDate()
+  const mk = `${year}-${String(month).padStart(2, '0')}`
+  return {
+    start: `${mk}-01`,
+    end: `${mk}-${String(endDay).padStart(2, '0')}`,
+    monthKeys: [mk],
+  }
+}
+
+function convertAmountPL(
+  amount: number,
+  currency: string | null,
+  exchangeRate: number | null,
+  reportingCurrency: 'PEN' | 'USD'
+): number {
+  if (!currency || currency === reportingCurrency) return amount
+  if (!exchangeRate || exchangeRate === 0) return amount
+  if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
+  if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
+  return amount
+}
+
+export async function getCompanyPL(
+  periodMode: PLPeriodMode,
+  year: number,
+  quarter: number,
+  month: number,
+  reportingCurrency: 'PEN' | 'USD',
+  isAlex: boolean
+): Promise<PLData> {
+  const supabase = await createServerSupabaseClient()
+  const { start, end, monthKeys } = getPeriodRange(periodMode, year, quarter, month)
+
+  // Fetch all data in parallel
+  const [arResult, costTotalsResult, costItemsResult, projectsResult, partnerLedgerResult, loanBalancesResult] = await Promise.all([
+    supabase
+      .from('ar_invoices')
+      .select('id, project_id, invoice_date, subtotal, currency, exchange_rate, is_internal_settlement')
+      .gte('invoice_date', start)
+      .lte('invoice_date', end)
+      .eq('is_internal_settlement', false),
+    supabase
+      .from('v_cost_totals')
+      .select('cost_id, project_id, cost_type, date, subtotal, currency, exchange_rate')
+      .gte('date', start)
+      .lte('date', end),
+    supabase
+      .from('cost_items')
+      .select('cost_id, category, subtotal'),
+    supabase
+      .from('projects')
+      .select('id, project_code, name')
+      .eq('is_active', true),
+    isAlex
+      ? supabase.from('v_partner_ledger').select('*')
+      : { data: [] },
+    isAlex
+      ? supabase.from('v_loan_balances').select('outstanding, currency')
+      : { data: [] },
+  ])
+
+  const arInvoices = arResult.data ?? []
+  const costTotals = costTotalsResult.data ?? []
+  const allCostItems = costItemsResult.data ?? []
+  const projectsList = projectsResult.data ?? []
+  const partnerLedger = partnerLedgerResult.data ?? []
+  const loanBalances = loanBalancesResult.data ?? []
+
+  const projectMap = new Map(projectsList.map(p => [p.id, { code: p.project_code, name: p.name }]))
+
+  // Build cost_id -> category map (primary category per cost)
+  const costCategoryMap = new Map<string, string>()
+  for (const item of allCostItems) {
+    if (!costCategoryMap.has(item.cost_id)) {
+      costCategoryMap.set(item.cost_id, item.category)
+    }
+  }
+
+  // Build cost_id -> cost_items for proportional category distribution
+  const costItemsByCost = new Map<string, { category: string; subtotal: number }[]>()
+  for (const item of allCostItems) {
+    const arr = costItemsByCost.get(item.cost_id) ?? []
+    arr.push({ category: item.category, subtotal: item.subtotal ?? 0 })
+    costItemsByCost.set(item.cost_id, arr)
+  }
+
+  // Initialize month buckets
+  const byMonth: Record<string, PLLineItem> = {}
+  for (const mk of monthKeys) {
+    byMonth[mk] = emptyPLLineItem()
+  }
+
+  // Process AR invoices → income
+  const incomeByProjectByMonth = new Map<string, Map<string, number>>() // monthKey -> projectId -> amount
+  for (const ar of arInvoices) {
+    if (!ar.invoice_date) continue
+    const mk = ar.invoice_date.substring(0, 7)
+    const bucket = byMonth[mk]
+    if (!bucket) continue
+
+    const amount = convertAmountPL(ar.subtotal, ar.currency, ar.exchange_rate, reportingCurrency)
+    bucket.income += amount
+
+    // Track per-project income
+    if (ar.project_id) {
+      if (!incomeByProjectByMonth.has(mk)) incomeByProjectByMonth.set(mk, new Map())
+      const projMap = incomeByProjectByMonth.get(mk)!
+      projMap.set(ar.project_id, (projMap.get(ar.project_id) ?? 0) + amount)
+    }
+  }
+
+  // Process costs → project costs and SG&A
+  for (const cost of costTotals) {
+    if (!cost.date) continue
+    const mk = cost.date.substring(0, 7)
+    const bucket = byMonth[mk]
+    if (!bucket) continue
+
+    const amount = convertAmountPL(cost.subtotal ?? 0, cost.currency, cost.exchange_rate, reportingCurrency)
+    const items = cost.cost_id ? costItemsByCost.get(cost.cost_id) : null
+    const totalItemSubtotal = items?.reduce((s, i) => s + i.subtotal, 0) ?? 0
+
+    if (cost.cost_type === 'project_cost') {
+      bucket.projectCosts += amount
+      // Distribute by category proportionally
+      if (items && totalItemSubtotal > 0) {
+        for (const item of items) {
+          const proportion = item.subtotal / totalItemSubtotal
+          const catAmount = amount * proportion
+          bucket.projectCostsByCategory[item.category] =
+            (bucket.projectCostsByCategory[item.category] ?? 0) + catAmount
+        }
+      } else {
+        bucket.projectCostsByCategory['other'] =
+          (bucket.projectCostsByCategory['other'] ?? 0) + amount
+      }
+    } else if (cost.cost_type === 'sga') {
+      bucket.sga += amount
+      if (items && totalItemSubtotal > 0) {
+        for (const item of items) {
+          const proportion = item.subtotal / totalItemSubtotal
+          const catAmount = amount * proportion
+          bucket.sgaByCategory[item.category] =
+            (bucket.sgaByCategory[item.category] ?? 0) + catAmount
+        }
+      } else {
+        bucket.sgaByCategory['other'] =
+          (bucket.sgaByCategory['other'] ?? 0) + amount
+      }
+    }
+  }
+
+  // Build per-project income breakdown for each month
+  for (const mk of monthKeys) {
+    const bucket = byMonth[mk]
+    const projMap = incomeByProjectByMonth.get(mk)
+    if (projMap) {
+      bucket.incomeByProject = Array.from(projMap.entries())
+        .map(([projectId, amount]) => {
+          const info = projectMap.get(projectId)
+          return {
+            projectCode: info?.code ?? '—',
+            projectName: info?.name ?? '—',
+            amount,
+          }
+        })
+        .sort((a, b) => a.projectCode.localeCompare(b.projectCode))
+    }
+  }
+
+  // Compute derived values for each month
+  for (const mk of monthKeys) {
+    computeDerived(byMonth[mk])
+  }
+
+  // Compute totals
+  const total = emptyPLLineItem()
+  const totalIncomeByProject = new Map<string, number>()
+  for (const mk of monthKeys) {
+    const m = byMonth[mk]
+    total.income += m.income
+    total.projectCosts += m.projectCosts
+    total.sga += m.sga
+    for (const [cat, amt] of Object.entries(m.projectCostsByCategory)) {
+      total.projectCostsByCategory[cat] = (total.projectCostsByCategory[cat] ?? 0) + amt
+    }
+    for (const [cat, amt] of Object.entries(m.sgaByCategory)) {
+      total.sgaByCategory[cat] = (total.sgaByCategory[cat] ?? 0) + amt
+    }
+    for (const p of m.incomeByProject) {
+      totalIncomeByProject.set(p.projectCode, (totalIncomeByProject.get(p.projectCode) ?? 0) + p.amount)
+    }
+  }
+  total.incomeByProject = Array.from(totalIncomeByProject.entries())
+    .map(([code, amount]) => {
+      const info = projectsList.find(p => p.project_code === code)
+      return { projectCode: code, projectName: info?.name ?? '—', amount }
+    })
+    .sort((a, b) => a.projectCode.localeCompare(b.projectCode))
+  computeDerived(total)
+
+  // Build columns
+  const columns: PLMonthColumn[] = monthKeys.map(mk => {
+    const [, m] = mk.split('-')
+    return { key: mk, label: MONTH_LABELS[parseInt(m, 10) - 1] }
+  })
+
+  // Alex personal position
+  let alexProfitShare: number | null = null
+  let loanObligations: number | null = null
+  if (isAlex) {
+    // Find Alex's average contribution_pct across all projects
+    // Use the first partner company (Alex is ruc 20000000001 but we find by checking partner_ledger)
+    const alexRows = partnerLedger.filter(r => {
+      // Alex's partner_company is the one with bank_tracking_full = true
+      // In v_partner_ledger the first partner listed is typically Alex
+      // We use partner_company_id matching the first one
+      return true // include all for weighted average
+    })
+    // Weighted average: sum(contribution_amount) / sum(total_project_costs per project)
+    // Simpler: use the net profit * Alex's overall contribution share
+    // For now, approximate using total contribution across projects
+    // Get Alex's partner_company_id (first one in the system)
+    const { data: alexPartner } = await supabase
+      .from('partner_companies')
+      .select('id')
+      .eq('ruc', '20000000001')
+      .single()
+
+    if (alexPartner) {
+      const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
+      const alexContribution = alexLedger.reduce((sum, r) => {
+        return sum + convertAmountPL(r.contribution_amount ?? 0, r.currency, null, reportingCurrency)
+      }, 0)
+      const totalContribution = partnerLedger.reduce((sum, r) => {
+        return sum + convertAmountPL(r.contribution_amount ?? 0, r.currency, null, reportingCurrency)
+      }, 0)
+      const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
+      alexProfitShare = total.netProfit * alexPct
+    }
+
+    loanObligations = loanBalances.reduce((sum, l) => {
+      return sum + convertAmountPL(l.outstanding ?? 0, l.currency, null, reportingCurrency)
+    }, 0)
+  }
+
+  return { columns, byMonth, total, alexProfitShare, loanObligations }
 }
