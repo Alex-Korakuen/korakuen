@@ -373,16 +373,16 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Status:** Tasks 4.1–4.7 complete. All 17 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Status:** Tasks 4.1–4.10 complete. All 18 migrations applied to remote (including v_igv_position). Production live at `https://korakuen.vercel.app`.
 
 - [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
 - [x] Task 4.4 — Verify Vercel deployment
 - [x] Task 4.5 — AP Payment Calendar
 - [x] Task 4.6 — AR Outstanding & Collections
 - [x] Task 4.7 — Cash Flow
-- [ ] Task 4.8 — Partner Contribution & Balances
-- [ ] Task 4.9 — Company P&L
-- [ ] Task 4.10 — Financial Position
+- [x] Task 4.8 — Partner Contribution & Balances
+- [x] Task 4.9 — Company P&L
+- [x] Task 4.10 — Financial Position
 - [ ] Task 4.11 — Projects browse
 - [ ] Task 4.12 — Entities browse
 - [ ] Task 4.13 — Prices browse
@@ -519,40 +519,41 @@ Cash flow computed in application layer (queries.ts) instead of SQL view — the
 
 ---
 
-### Task 4.8 — Partner Contribution & Balances
+### Task 4.8 — Partner Contribution & Balances [COMPLETE]
 **Depends on:** Task 4.3
 Answers: "Who has contributed what to this project, and what's the settlement?"
 
 - Project selector (required — no all-projects aggregate)
-- Contributions table with proportion bars
-- Income section: invoiced, collected, outstanding
+- Contributions table with proportion bars, clickable rows open cost detail modal
 - Settlement section: who owes whom based on contribution %
 
-**Data source:** `v_partner_ledger`
+**Data source:** `v_partner_ledger`, `v_settlement_dashboard`, `v_cost_totals`
 
 ---
 
-### Task 4.9 — Company P&L
+### Task 4.9 — Company P&L [COMPLETE]
 **Depends on:** Task 4.3
 Answers: "Are we making money?"
 
-- Period selector: year, quarter, or single month with columnar breakdown
+- Multi-column time-series layout (Year=12 monthly cols + Total, Quarter=3 + Total, Month=1)
 - Currency selector: PEN (default) or USD
-- Income → Project Costs → Gross Profit → SG&A → Net Profit
+- Income → Project Costs → Gross Profit → SG&A → Net Profit, with expandable category rows
 - Personal position section (Alex-only): profit share minus loan obligations
+- Computed in queries.ts (not SQL view — too complex for single view)
 
-**Data source:** `v_project_pl`, `v_company_pl`, `v_partner_ledger`, `v_loan_balances`
+**Data source:** `ar_invoices`, `v_cost_totals`, `cost_items`, `v_partner_ledger`, `v_loan_balances`
 
 ---
 
-### Task 4.10 — Financial Position
+### Task 4.10 — Financial Position [COMPLETE]
 **Depends on:** Task 4.3
 Answers: "What do we own vs what do we owe?"
 
-- Create `supabase/views/v_igv_position.sql` — IGV collected minus IGV paid
-- Assets: Cash in Bank, Accounts Receivable, Tax Credits (IGV Paid, Retenciones Unverified)
-- Liabilities: Accounts Payable, Tax Liabilities (IGV Collected), Loans (Alex-only)
+- Created `v_igv_position` view + migration (20260303000007)
+- Balance sheet layout: Assets (Cash in Bank, AR, Tax Credits) vs Liabilities (AP, Tax Liabilities, Loans)
+- Bank account cards clickable → transaction history modal
 - Net Position = Assets minus Liabilities
+- Currency selector with conversion at default rate
 
 **Data source:** `v_bank_balances`, `v_ar_balances`, `v_cost_balances`, `v_igv_position`, `v_retencion_dashboard`, `v_loan_balances`
 
