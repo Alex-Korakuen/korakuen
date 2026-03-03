@@ -47,7 +47,8 @@ korakuen/
 │   │   ├── quotes.py       → add single + import from Excel
 │   │   ├── valuations.py   → add single + import from Excel
 │   │   ├── ar_invoices.py  → add single + import from Excel
-│   │   └── payments.py     → register payment, verify retencion
+│   │   ├── payments.py     → register payment, verify retencion
+│   │   └── loans.py        → add loan, schedule, register repayment
 │   ├── lib/
 │   │   ├── __init__.py
 │   │   ├── db.py           → shared Supabase client
@@ -63,7 +64,15 @@ korakuen/
 │   │   ├── 20260301000005_seed_data.sql
 │   │   ├── 20260301000007_views_security_invoker.sql
 │   │   ├── 20260301000008_fix_function_search_path.sql
-│   │   └── 20260301000009_v_cost_totals_add_notes.sql
+│   │   ├── 20260301000009_v_cost_totals_add_notes.sql
+│   │   ├── 20260302000001_entity_location_fields.sql
+│   │   ├── 20260302000002_informal_payment_support.sql
+│   │   ├── 20260302000003_loans_tables.sql
+│   │   ├── 20260302000004_project_budgets.sql
+│   │   ├── 20260302000005_phase35_views.sql
+│   │   ├── 20260302000006_phase35_indexes.sql
+│   │   ├── 20260302000007_fix_payments_index.sql
+│   │   └── 20260303000001_fix_v_bank_balances_is_active.sql
 │   ├── views/              → individual view source files (combined into migration above)
 │   │   ├── v_ap_calendar.sql
 │   │   ├── v_ar_balances.sql
@@ -75,7 +84,9 @@ korakuen/
 │   │   ├── v_partner_ledger.sql
 │   │   ├── v_project_pl.sql
 │   │   ├── v_retencion_dashboard.sql
-│   │   └── v_settlement_dashboard.sql
+│   │   ├── v_settlement_dashboard.sql
+│   │   ├── v_loan_balances.sql
+│   │   └── v_budget_vs_actual.sql
 │   └── seeds/
 │       ├── 001_tags.sql
 │       ├── 002_partner_companies.sql

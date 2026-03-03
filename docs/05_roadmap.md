@@ -75,20 +75,17 @@
 
 **Goal:** Simple read-only Next.js website on Vercel showing all key views.
 
-- [ ] Set up Next.js project connected to Supabase
+- [ ] Set up Next.js project, Supabase client, auth, layout
 - [ ] Deploy to Vercel
-- [ ] Build AP Payment Calendar view (with loan section for Alex)
-- [ ] Build Project Cost Summary view (with Budget vs Actual section)
-- [ ] Build AR Outstanding & Collections view
-- [ ] Build Partner Contribution & Balances view
-- [ ] Build Entity Transaction History view (with city/region filters)
-- [ ] Build Company P&L view (with personal position section for Alex)
-- [ ] Build Cash Flow view (past actuals + future forecast)
-- [ ] Build IGV Net Position view
-- [ ] Build Bank Account Balances view
-- [ ] Build Retencion Dashboard
-- [ ] Build Unit Price History view (lower priority)
-- [ ] Build Quote vs Actual Comparison view (lower priority)
+- [ ] Build AP Payment Calendar (default landing page, with loan section for Alex)
+- [ ] Build AR Outstanding & Collections (with Taxes tab)
+- [ ] Build Cash Flow (past actuals + future forecast)
+- [ ] Build Partner Contribution & Balances (with settlement section)
+- [ ] Build Company P&L (with personal position section for Alex)
+- [ ] Build Financial Position (bank balances, AP/AR, IGV, loans)
+- [ ] Build Projects browse page (with budget vs actual section)
+- [ ] Build Entities & Contacts browse page (with city/region filters)
+- [ ] Build Prices browse page (search-driven reference)
 
 ---
 

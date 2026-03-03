@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Module: loans.py
-Purpose: All loan operations — add loan, add repayment schedule, register repayment, view balances
+Purpose: All loan operations — add loan, add repayment schedule, register repayment
 Tables: loans, loan_schedule, loan_payments
 """
 
@@ -20,8 +20,7 @@ def menu():
         print("1. Add loan")
         print("2. Add repayment schedule")
         print("3. Register repayment")
-        print("4. View loan balances")
-        print("5. Back")
+        print("4. Back")
 
         choice = get_input("\nSelect option: ")
 
@@ -32,8 +31,6 @@ def menu():
         elif choice == "3":
             register_repayment()
         elif choice == "4":
-            view_balances()
-        elif choice == "5":
             return
 
 
@@ -407,78 +404,5 @@ def register_repayment():
                 print("✓ Loan status updated to 'partially_paid'.")
             except Exception as e:
                 print(f"✗ Error updating status: {e}")
-
-    input("\nPress Enter to continue...")
-
-
-# ============================================================
-# View Loan Balances
-# ============================================================
-
-def view_balances():
-    """Display all loan balances from v_loan_balances."""
-    clear_screen()
-    print("\n=== Loan Balances ===\n")
-
-    response = (
-        supabase.table("v_loan_balances")
-        .select("*")
-        .execute()
-    )
-
-    if not response.data:
-        print("  No loans found.")
-        input("\nPress Enter to continue...")
-        return
-
-    # --- Column widths ---
-    lender_w = max(len("Lender"), max(len(str(r.get("lender_name", ""))) for r in response.data))
-    lender_w = min(lender_w, 20)  # cap width
-
-    # --- Header ---
-    print(f"  {'Lender':<{lender_w}}  {'Principal':>12}  {'Total Owed':>12}  {'Paid':>12}  {'Outstanding':>12}  {'Status':<15}  {'Due Date':<12}")
-    print(f"  {'-' * lender_w}  {'-' * 12}  {'-' * 12}  {'-' * 12}  {'-' * 12}  {'-' * 15}  {'-' * 12}")
-
-    # --- Rows ---
-    total_principal = 0
-    total_owed_all = 0
-    total_paid_all = 0
-    total_outstanding_all = 0
-
-    for r in response.data:
-        lender = str(r.get("lender_name", ""))[:lender_w]
-        currency = r.get("currency", "PEN")
-        principal = float(r.get("principal", 0))
-        total_owed = float(r.get("total_owed", 0))
-        total_paid = float(r.get("total_paid", 0))
-        outstanding_val = float(r.get("outstanding", 0))
-        status = r.get("status", "")
-        due_date = r.get("due_date") or ""
-
-        total_principal += principal
-        total_owed_all += total_owed
-        total_paid_all += total_paid
-        total_outstanding_all += outstanding_val
-
-        print(
-            f"  {lender:<{lender_w}}  "
-            f"{currency} {principal:>9,.2f}  "
-            f"{currency} {total_owed:>9,.2f}  "
-            f"{currency} {total_paid:>9,.2f}  "
-            f"{currency} {outstanding_val:>9,.2f}  "
-            f"{status:<15}  "
-            f"{due_date:<12}"
-        )
-
-    # --- Totals ---
-    print(f"  {'-' * lender_w}  {'-' * 12}  {'-' * 12}  {'-' * 12}  {'-' * 12}  {'-' * 15}  {'-' * 12}")
-    print(
-        f"  {'TOTAL':<{lender_w}}  "
-        f"    {total_principal:>9,.2f}  "
-        f"    {total_owed_all:>9,.2f}  "
-        f"    {total_paid_all:>9,.2f}  "
-        f"    {total_outstanding_all:>9,.2f}"
-    )
-    print(f"\n  Note: Totals mix currencies if loans have different currencies.")
 
     input("\nPress Enter to continue...")

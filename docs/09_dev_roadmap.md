@@ -286,7 +286,7 @@ No import — payments are always registered individually.
 
 The CLI views module (AP Payment Calendar, Partner Balances, Retencion Dashboard) was built as a transitional tool during Phase 3. With Phase 4 (website) underway, CLI views have been retired. The database views they read from (`v_ap_calendar`, `v_partner_ledger`, `v_retencion_dashboard`) remain in place — they are the data source for the website.
 
-See Tasks 4.7, 4.9, 4.12 for the website implementations that replace these.
+See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
@@ -371,199 +371,203 @@ See Tasks 4.7, 4.9, 4.12 for the website implementations that replace these.
 
 ## Phase 4: Visualization Website
 
-**Goal:** Read-only Next.js website on Vercel with basic authentication. Browse pages for core data (projects, entities, quotes) plus dashboard/analytics views. Each page includes filters where applicable.
+**Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Start only after Phase 3 is complete and real data has been entered through CLI scripts.**
+**Start only after Phase 3.5 is complete and real data has been entered through CLI scripts.**
 
 ---
+
+### Infrastructure
 
 ### Task 4.1 — Project setup
-Next.js app, Supabase client, TypeScript types from schema, Vercel deployment.
+**Depends on:** Phase 3.5 complete, migrations applied to remote
+**Output:** Supabase client, TypeScript types, formatters, query helpers
 
-### Task 4.2 — Authentication
-Supabase Auth with email/password. One login per partner company (3 accounts). Login page, session check wrapper, protected routes. All pages require authentication.
+- Install `@supabase/supabase-js` and `@supabase/ssr`
+- Create `src/lib/supabase/server.ts` (server-side client with SSR cookie handling)
+- Create `src/lib/supabase/client.ts` (browser-side client)
+- Generate `src/lib/database.types.ts` via `supabase gen types typescript`
+- Create `src/lib/types.ts` (human-friendly type aliases and enums matching schema)
+- Create `src/lib/queries.ts` (reusable server-side query functions)
+- Create `src/lib/formatters.ts` (PEN/USD currency formatting, date formatting)
+
+**Done when:** `npm run build` passes, all types resolve, Supabase client connects.
+
+---
+
+### Task 4.2 — Authentication (invite-only)
+**Depends on:** Task 4.1
+**Output:** Login page, auth callback, set-password page, change-password page, middleware
+
+- Create `src/middleware.ts` — redirects unauthenticated users to `/login`, refreshes session cookies
+- Create `src/app/login/page.tsx` — polished email/password login form
+- Create `src/app/auth/callback/route.ts` — handles invite email token exchange
+- Create `src/app/auth/set-password/page.tsx` — invited users set initial password
+- Create `src/app/settings/password/page.tsx` — change password (accessible from header dropdown)
+- Create `src/lib/auth.ts` — helpers: `getCurrentUser()`, `isCompanyView()`, `getPartnerName()`
+
+Auth flow: Alex invites users via Supabase Dashboard → user clicks email link → sets password → logs in. No open registration.
+
+**Done when:** Unauthenticated users redirected to login. Login works with email/password. Invite flow works end-to-end. Password change works.
+
+---
 
 ### Task 4.3 — Layout and navigation
-Collapsible sidebar navigation, header with partner name, responsive shell. Sidebar collapses to icons on small screens, becomes hamburger menu on mobile. Minimalist design — clean, calm, functional. Muted color palette with colored indicators only where they convey meaning (payment status, aging).
+**Depends on:** Task 4.2
+**Output:** Sidebar, header, placeholder pages, root redirect
+
+- Replace `src/app/layout.tsx` — root layout with conditional sidebar/header for authenticated routes
+- Replace `src/app/page.tsx` — redirect `/` to `/ap-calendar`
+- Replace `src/app/globals.css` — Korakuen design system (muted palette, urgency colors)
+- Create `src/components/sidebar.tsx` — collapsible sidebar with 9-page navigation in 2 groups (Browse + Dashboards)
+- Create `src/components/header.tsx` — "KORAKUEN" branding + partner name + dropdown (Change Password, Sign Out)
+- Create stub `page.tsx` for each route so navigation works
+
+Sidebar structure:
+- Browse: Projects, Entities, Prices
+- Dashboards: AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position
+
+Design: minimalist, clean, functional — inspired by Todoist/Notion. Collapsible sidebar, hamburger menu on mobile.
+
+**Done when:** All 9 navigation items render, clicking navigates to correct route, sidebar collapses, header shows partner name, sign out works.
 
 ---
 
-### Browse Pages — Core Data
+### Task 4.4 — Verify Vercel deployment
+**Depends on:** Task 4.3
+**Output:** Working production deployment
 
-### Task 4.4 — Projects
-Split-panel layout. Left panel: project list. Right panel: selected project detail.
+Vercel project already connected (auto-deploys on push to main).
 
-**Left panel — list:** Table of all projects. Columns: project_code, name, status, contract_value. Filterable by status. Clicking a row loads its detail in the right panel. Selected row highlighted.
+- Verify `npm run build` passes
+- Ensure env vars set in Vercel dashboard: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Configure Supabase Dashboard: set `SITE_URL` to Vercel production URL, add redirect URLs
+- Push to main → auto-deploy
 
-**Right panel — detail** (loads on row click):
-- Project header info (code, name, type, status, client, contract value, dates, location)
-- Assigned entities section: table of entities and their roles on this project. Each entity row links to that entity's detail in the Entities page (Task 4.5)
-- Valuations list (period, status, billed value)
-- Cost summary by category (materials, labor, subcontractor, etc.) — with contract value vs total costs and remaining margin when contract_value is not null
-- Budget vs Actual section: when `project_budgets` data exists, shows budgeted vs actual per category with variance and % used. Color coded: red >100%, yellow >90%, green ≤90%. Gracefully absent when no budget data exists
-- AR invoices issued for this project
-
-**Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
-
-### Task 4.5 — Entities & Contacts
-Split-panel layout. Left panel: entity list. Right panel: selected entity detail.
-
-**Left panel — list:** Table of all entities. Search by legal_name, common_name, or document_number. Columns: legal_name, common_name, document_number, tags. Filterable by tag, entity_type, city, region. Clicking a row loads its detail in the right panel. Selected row highlighted.
-
-**Right panel — detail** (loads on row click):
-- Entity header (legal_name, common_name, document_type, document_number, tags)
-- Contacts list (name, role, phone, email, primary flag)
-- Transaction history per project: table showing each project this entity is linked to, with total AP, total AR, net amount, transaction count, and "last transaction" date. Each project row links to that project's detail in the Projects page (Task 4.4). Click a project row to expand and see individual cost/AR records for that entity on that project
-
-**Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
-
-### Task 4.6 — Quotes
-Single page: list view. Browse/search all quotes. Columns: project, entity, title, quantity, unit_of_measure, unit_price, total, currency, status, date_received. Filterable by project, entity, status. Searchable by title. This is the reference view for looking up historical pricing when estimating new work.
-
-**Row click:** Opens modal with full quote details including document_ref and notes.
+**Done when:** Production URL loads, auth flow works, sidebar renders.
 
 ---
 
-### Dashboard Views — Analytics
+### Dashboard Pages
 
-### Task 4.7 — AP Payment Calendar
+### Task 4.5 — AP Payment Calendar
+**Depends on:** Task 4.3
 **Default landing page after login.** Answers: "What do I need to pay, and when?"
 
-**Top:** Summary cards (Overdue, Due Today, This Week, Next 30 Days) showing count and total per bucket. Cards are clickable — clicking a card filters the table below to that bucket.
+**Tabs:** Main | Taxes
 
-**Bottom:** Sortable table. Columns: due_date, days until due, supplier, project, title, amount, currency, payment status. Default sort: due date ascending (most urgent first). Row urgency indicated by colored left border (red=overdue, orange=today, yellow=this week, neutral=future).
+**Main tab:**
+- Summary cards: Overdue, Due Today, This Week, Next 30 Days (non-overlapping buckets, clickable to filter table)
+- Sortable table: due_date, days, type, supplier, project, title, outstanding, currency, status
+- Row urgency: colored left border (red=overdue, orange=today, yellow=this week, neutral=future)
+- Filters: project, supplier, currency, title search
+- Row click: opens modal with cost items, payment history, comprobante info
+- Loan obligations (Alex-only): `v_ap_calendar` includes loan_schedule entries. Partners see supplier invoices only.
 
-**Filters:** project, supplier, currency, title search.
+**Taxes tab:**
+- Detraccion deposits pending table: supplier, project, invoice title, detraccion amount, deposit status
 
-**Row click:** Opens modal showing full cost details — cost items, payment history, document_ref, bank account, comprobante info.
+**Data source:** `v_ap_calendar`, `v_cost_balances`
 
-**Loan obligations (Alex-only):** `v_ap_calendar` includes loan_schedule entries with type = 'loan_payment'. Alex sees both supplier invoices and loan obligations. Partners see supplier invoices only.
+**Done when:** Real data displays, cards filter correctly, table sorts, modal shows detail, Alex sees loans, partners don't.
 
-### Task 4.8 — AR Outstanding & Collections
+---
+
+### Task 4.6 — AR Outstanding & Collections
+**Depends on:** Task 4.3
 Answers: "What do I have pending to collect, and how overdue is it?"
 
-**Top:** Aging bucket cards (Current 0-30, 31-60, 61-90, 90+ days overdue). Clickable to filter table. Aging is days past due_date.
+**Tabs:** Main | Taxes
 
-**Bottom:** Invoice detail table. Columns: invoice_number, project, client, invoice_date, due_date, gross, detraccion, retencion, net_receivable, paid, outstanding, days_overdue. Color-coded age column. Total row at bottom.
+**Main tab:** Aging bucket cards (0-30, 31-60, 61-90, 90+ days). Invoice detail table with color-coded aging. Row click opens payment history modal.
 
-**Filters:** project, client entity, partner company, currency, aging bucket.
+**Taxes tab:** Retenciones (has client paid 3% to SUNAT?) + Detracciones (has client deposited to our Banco de la Nacion?).
 
-**Row click:** Opens modal showing invoice details + payment history (dates, amounts, payment types — regular/detraccion/retencion) + retencion verification status.
-
-**Note:** Net receivable shown prominently — in Peru with detraccion and retencion, the actual cash expected is significantly less than invoice face value.
-
-### Task 4.9 — Partner Contribution & Balances
-Answers: "Who has contributed what to this project, and what is each partner's current stake?"
-
-**Always requires a project selection — no "all projects" aggregate view.** Project selector at top.
-
-**Contributions section:** Table showing each partner's contributed amount and share percentage, with visual proportion bars. Total costs at bottom. Clicking a partner's contribution amount expands to show the list of costs that make up that number.
-
-**Income section:** Total invoiced, total collected, outstanding for the selected project.
-
-**Net position section:** Gross profit (from collected income), each partner's profit share based on contribution proportion.
-
-### Task 4.10 — Company P&L
-Answers: "What is the overall financial picture of Korakuen?"
-
-**Period selector:** Month picker or custom date range. Default: current month. Options for YTD and full year.
-
-**Income:** Shows "AR Invoiced" as a single total. Clickable to expand per-project breakdown showing each project's invoiced amount and the total. Uses parentheses for costs (standard financial presentation).
-
-**Project Costs:** Total across all projects. Clickable to expand into category breakdown (materials, labor, subcontractor, equipment, permits, other).
-
-**Gross Profit:** Income minus project costs, with margin percentage.
-
-**SG&A:** Flat list of SG&A categories (software_licenses, partner_compensation, business_development, professional_services, office_admin, other) with amounts.
-
-**Net Profit:** Gross profit minus total SG&A, with net margin percentage.
-
-**Personal position (Alex-only):** Below Net Profit, separated by visual divider. Shows Alex's profit share, loan obligations, and net-after-obligations. Combines `v_partner_ledger` + `v_loan_balances`. Never visible to partners.
-
-### Task 4.11 — Bank Account Balances
-Answers: "What is the current balance of each bank account?"
-
-**Alex's accounts:** Card per account showing bank_name, last4, account_type, currency, calculated balance. Banco de la Nación detraccion account flagged visually with note that balance is for tax payments only.
-
-**Partner accounts:** Shown as net contribution position only (not full balance tracking). Clearly separated from Alex's accounts.
-
-**Account detail:** Click a card to see recent transactions table (date, direction, related entity, amount, running balance). Disclaimer: system-calculated balance, not bank-reconciled.
-
-**Filters:** date range.
-
-### Task 4.12 — Retencion Dashboard
-Answers: "Has the client actually paid our retencion to SUNAT?"
-
-Table of AR invoices where retencion_applicable = true. Columns: project_code, client, invoice_number, invoice_date, due_date, days_since_invoice, gross_total, retencion_amount, verification_status. Sorted: unverified first, then by oldest invoice. Color-coded by age for unverified items.
-
-**Filters:** project, client, verification status.
+**Data source:** `v_ar_balances`, `v_retencion_dashboard`
 
 ---
 
-### Lower Priority Views
-
-### Task 4.13 — Unit Price History
-Answers: "What have I historically paid for specific materials or services?"
-
-Search-driven view. Search by item title → see table of every cost_item matching that title with unit prices over time, by supplier. Price trend line chart. Supplier comparison for the same item.
-
-**Filters:** category, entity, project, date range.
-
-Grows in value as data accumulates — will be sparse initially but compounds over time.
-
-### Task 4.14 — Quote vs Actual Comparison
-Answers: "Did the final cost match the quote I accepted?"
-
-Select a project → see all accepted quotes side by side with their linked costs. Columns: quoted quantity, unit_price, total vs actual cost quantity, unit_price, total. Variance column in absolute and percentage terms. Color-code variances exceeding 10%.
-
-**Filters:** project, entity, category.
-
----
-
-### New Dashboard Views
-
-### Task 4.15 — Cash Flow
-**Depends on:** Task 4.1
+### Task 4.7 — Cash Flow
+**Depends on:** Task 4.3
 Answers: "How much cash actually moved, and what's expected in coming months?"
 
-- Create `supabase/views/v_cash_flow.sql` — actual cash movements (from payments) + forecast (from due dates on unpaid costs, AR invoices, loan_schedule)
-- Build website page with monthly time series table
-- Past months show actual cash in/out; future months show forecast
-- Visual separator between actual and forecast rows
-- Cash shortfall warning when cumulative goes negative
+- Create `supabase/views/v_cash_flow.sql` — actual cash movements (from payments) + forecast (from due dates)
+- Build page with monthly time series, past/forecast separator, cash shortfall warnings
+- Scope selector: All Projects or single project. Period: Year picker. Currency selector.
 - Company view (Alex-only) includes loan outflows in forecast
 
-**Scope selector:** All Projects or single project. **Period:** Year picker.
+**Data source:** `v_cash_flow` (new view)
 
-### Task 4.16 — IGV Net Position
-**Depends on:** Task 4.1
-Answers: "What is our net IGV payable to SUNAT this period?"
+---
 
-- Create `supabase/views/v_igv_position.sql` — IGV collected (from AR where igv_rate > 0) minus IGV paid (from costs where igv_rate > 0) = net payable
-- Build website page with period selector and YTD toggle
-- Selected period: IGV Collected, IGV Paid, Net IGV Payable
-- YTD cumulative section
-- Monthly breakdown table
+### Task 4.8 — Partner Contribution & Balances
+**Depends on:** Task 4.3
+Answers: "Who has contributed what to this project, and what's the settlement?"
 
-**Note:** Informal costs (igv_rate = 0) naturally contribute nothing — no special filtering needed.
+- Project selector (required — no all-projects aggregate)
+- Contributions table with proportion bars
+- Income section: invoiced, collected, outstanding
+- Settlement section: who owes whom based on contribution %
 
-### Task 4.17 — Budget vs Actual in Project detail
-**Depends on:** Task 4.4 (Projects page)
-Enhances project detail page to show budget vs actual section when `project_budgets` data exists.
+**Data source:** `v_partner_ledger`
 
-- Query `v_budget_vs_actual` for selected project
-- Show budgeted vs actual per category with variance and % used
-- Color coded: red >100%, yellow >90%, green ≤90%
-- Only rendered when budget data exists; gracefully absent otherwise
+---
 
-### Task 4.18 — Personal Position section (Alex-only)
-**Depends on:** Task 4.10 (Company P&L)
-Adds section below P&L showing Alex's profit share minus loan obligations.
+### Task 4.9 — Company P&L
+**Depends on:** Task 4.3
+Answers: "Are we making money?"
 
-- Render below Net Profit, separated by visual divider
-- Shows: Alex's profit share (from `v_partner_ledger`), loan obligations (from `v_loan_balances`), net after obligations
-- Only rendered when logged-in user is Alex (company-level view)
-- No separate SQL view needed — combines existing views at presentation layer
+- Period selector: year, quarter, or single month with columnar breakdown
+- Currency selector: PEN (default) or USD
+- Income → Project Costs → Gross Profit → SG&A → Net Profit
+- Personal position section (Alex-only): profit share minus loan obligations
+
+**Data source:** `v_project_pl`, `v_company_pl`, `v_partner_ledger`, `v_loan_balances`
+
+---
+
+### Task 4.10 — Financial Position
+**Depends on:** Task 4.3
+Answers: "What do we own vs what do we owe?"
+
+- Create `supabase/views/v_igv_position.sql` — IGV collected minus IGV paid
+- Assets: Cash in Bank, Accounts Receivable, Tax Credits (IGV Paid, Retenciones Unverified)
+- Liabilities: Accounts Payable, Tax Liabilities (IGV Collected), Loans (Alex-only)
+- Net Position = Assets minus Liabilities
+
+**Data source:** `v_bank_balances`, `v_ar_balances`, `v_cost_balances`, `v_igv_position`, `v_retencion_dashboard`, `v_loan_balances`
+
+---
+
+### Browse Pages
+
+### Task 4.11 — Projects
+**Depends on:** Task 4.3
+Split-panel: project list + selected project detail.
+
+Detail shows: header info, assigned entities, spending by entity, costs & budget section (with color-coded budget vs actual when budget exists), AR invoices, project notes.
+
+**Data source:** `projects`, `project_entities`, `costs + cost_items`, `ar_invoices`, `project_budgets`
+
+---
+
+### Task 4.12 — Entities & Contacts
+**Depends on:** Task 4.3
+Split-panel: entity list + selected entity detail.
+
+Search by legal_name, common_name, document_number. Filter by tag, entity_type, city, region. Detail shows contacts and transaction history per project (expandable).
+
+**Data source:** `entities`, `entity_contacts`, `entity_tags`, `tags`, `v_entity_transactions`
+
+---
+
+### Task 4.13 — Prices
+**Depends on:** Task 4.3
+Search-driven reference view for historical pricing.
+
+Search by item title. Results combine cost_items and quotes. Filterable by category, entity, project, date range, tag.
+
+**Data source:** `cost_items`, `quotes`, `entities`, `entity_tags`
 
 ---
 
