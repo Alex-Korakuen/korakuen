@@ -1,8 +1,7 @@
--- View: v_bank_balances
--- Purpose: Shows the calculated balance per bank account based on all payment movements.
---          Inbound payments add to balance, outbound payments subtract.
--- Source tables: payments, bank_accounts, partner_companies
--- Used by: Bank account dashboard, treasury overview
+-- Fix: Remove is_active filter on partner_companies JOIN in v_bank_balances.
+-- Consistent with other financial views (v_partner_ledger, v_entity_transactions, etc.)
+-- that preserve financial history regardless of partner/entity active status.
+-- Bank accounts still filtered by ba.is_active = true.
 
 CREATE OR REPLACE VIEW v_bank_balances
 WITH (security_invoker = on)

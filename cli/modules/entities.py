@@ -9,9 +9,12 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.helpers import (
+    get_input, get_optional_input, confirm, list_choices, clear_screen,
+    select_project,
+)
 from lib.import_helpers import (
-    RED_FILL, NO_FILL, DATA_START_ROW,
+    DATA_START_ROW,
     clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum,
     print_errors,
@@ -344,25 +347,8 @@ def assign_entity_to_project():
         return
 
     # Select project
-    projects = (
-        supabase.table("projects")
-        .select("id, project_code, name")
-        .eq("is_active", True)
-        .order("project_code")
-        .execute()
-    )
-    if not projects.data:
-        print("\n  No active projects found.")
-        input("\nPress Enter to continue...")
-        return
-
-    list_choices("Active projects", projects.data, display=["project_code", "name"])
-    proj_num = get_input("  Select project number: ")
-    try:
-        project = projects.data[int(proj_num) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    project = select_project()
+    if not project:
         return
 
     # Select role (tag)

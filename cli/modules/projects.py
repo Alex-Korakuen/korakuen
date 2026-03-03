@@ -9,9 +9,12 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.helpers import (
+    get_input, get_optional_input, confirm, list_choices, clear_screen,
+    get_currency,
+)
 from lib.import_helpers import (
-    RED_FILL, NO_FILL, DATA_START_ROW,
+    DATA_START_ROW,
     clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number,
@@ -107,10 +110,7 @@ def add_project():
             contract_value = None
     if contract_value:
         print("  Currencies: USD, PEN")
-        contract_currency = get_input("  Contract currency: ").upper()
-        while contract_currency not in ("USD", "PEN"):
-            print("  Must be USD or PEN.")
-            contract_currency = get_input("  Contract currency: ").upper()
+        contract_currency = get_currency(label="Contract currency")
 
     # --- Optional fields ---
     start_date = get_optional_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
@@ -409,10 +409,7 @@ def set_project_budget():
 
     # --- Currency ---
     print("  Currencies: USD, PEN")
-    currency = get_input("  Budget currency: ").upper()
-    while currency not in ("USD", "PEN"):
-        print("  Must be USD or PEN.")
-        currency = get_input("  Budget currency: ").upper()
+    currency = get_currency(label="Budget currency")
 
     # --- Collect amounts per category ---
     print(f"\n  Enter budgeted amount for each category ({currency}):\n")

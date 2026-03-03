@@ -6,7 +6,10 @@ Tables: payments, ar_invoices (update retencion_verified)
 """
 
 from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.helpers import (
+    get_input, get_optional_input, confirm, list_choices, clear_screen,
+    get_currency, get_exchange_rate,
+)
 
 
 def menu():
@@ -88,17 +91,8 @@ def register_payment():
         return
 
     print(f"\n  Currencies: USD, PEN (record currency: {record_currency})")
-    currency = get_input(f"  Currency (default: {record_currency}): ").upper() or record_currency
-    while currency not in ("USD", "PEN"):
-        print("  Must be USD or PEN.")
-        currency = get_input("  Currency: ").upper()
-
-    exchange_rate = get_optional_input("  Exchange rate (optional — press Enter to skip): ")
-    if exchange_rate:
-        try:
-            exchange_rate = float(exchange_rate)
-        except ValueError:
-            exchange_rate = None
+    currency = get_currency(default=record_currency)
+    exchange_rate = get_exchange_rate()
 
     # --- Bank account (conditional) ---
     bank_account = None

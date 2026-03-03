@@ -9,9 +9,12 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.helpers import (
+    get_input, get_optional_input, confirm, list_choices, clear_screen,
+    get_currency, select_project,
+)
 from lib.import_helpers import (
-    RED_FILL, NO_FILL, DATA_START_ROW,
+    DATA_START_ROW,
     clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number,
@@ -48,25 +51,8 @@ def add_valuation():
     print("\n=== Add Valuation ===\n")
 
     # --- Select project ---
-    projects = (
-        supabase.table("projects")
-        .select("id, project_code, name")
-        .eq("is_active", True)
-        .order("project_code")
-        .execute()
-    )
-    if not projects.data:
-        print("No active projects found.")
-        input("\nPress Enter to continue...")
-        return
-
-    list_choices("Active projects", projects.data, display=["project_code", "name"])
-    proj_num = get_input("  Select project number: ")
-    try:
-        project = projects.data[int(proj_num) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    project = select_project()
+    if not project:
         return
 
     # --- Auto-generate valuation number ---
@@ -116,10 +102,7 @@ def add_valuation():
             billed_value = None
     if billed_value:
         print("  Currencies: USD, PEN")
-        billed_currency = get_input("  Billed currency: ").upper()
-        while billed_currency not in ("USD", "PEN"):
-            print("  Must be USD or PEN.")
-            billed_currency = get_input("  Billed currency: ").upper()
+        billed_currency = get_currency(label="Billed currency")
 
     date_closed = None
     if status == "closed":

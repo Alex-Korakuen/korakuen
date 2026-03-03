@@ -419,7 +419,7 @@ Invoices sent to clients. One per valuation. Subtotal entered directly — no li
 
 ### Database Views — Layer 4
 
-These three views derive the financial totals for costs and AR invoices. See "Database Views — Complete List" section below for all 11 views.
+These three views derive the financial totals for costs and AR invoices. See "Database Views — Complete List" section below for all 13 views.
 
 | View | Source | Purpose |
 |---|---|---|
@@ -673,4 +673,4 @@ The comprobante type tells the accountant why IGV is zero without affecting any 
 
 ---
 
-*Layers 1-5 locked. Layers 6-7 defined and ready for migration. SQL generated in `supabase/migrations/` and `supabase/views/`.*
+*Layers 1-7 locked. All migrations written in `supabase/migrations/` and views in `supabase/views/`.*

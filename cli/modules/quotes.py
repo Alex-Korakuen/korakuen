@@ -9,9 +9,12 @@ import pandas as pd
 from openpyxl import load_workbook
 
 from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
+from lib.helpers import (
+    get_input, get_optional_input, confirm, list_choices, clear_screen,
+    get_currency, get_exchange_rate, select_project,
+)
 from lib.import_helpers import (
-    RED_FILL, NO_FILL, DATA_START_ROW,
+    DATA_START_ROW,
     clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number,
@@ -48,25 +51,8 @@ def add_quote():
     print("\n=== Add Quote ===\n")
 
     # --- Select project ---
-    projects = (
-        supabase.table("projects")
-        .select("id, project_code, name")
-        .eq("is_active", True)
-        .order("project_code")
-        .execute()
-    )
-    if not projects.data:
-        print("No active projects found.")
-        input("\nPress Enter to continue...")
-        return
-
-    list_choices("Active projects", projects.data, display=["project_code", "name"])
-    proj_num = get_input("  Select project number: ")
-    try:
-        project = projects.data[int(proj_num) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    project = select_project()
+    if not project:
         return
 
     # --- Select entity ---
@@ -135,17 +121,8 @@ def add_quote():
 
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
-    currency = get_input("  Currency: ").upper()
-    while currency not in ("USD", "PEN"):
-        print("  Must be USD or PEN.")
-        currency = get_input("  Currency: ").upper()
-
-    exchange_rate = get_optional_input("  Exchange rate (optional — press Enter to skip): ")
-    if exchange_rate:
-        try:
-            exchange_rate = float(exchange_rate)
-        except ValueError:
-            exchange_rate = None
+    currency = get_currency()
+    exchange_rate = get_exchange_rate()
 
     # --- Status ---
     print("\n  Statuses: pending, accepted, rejected")
