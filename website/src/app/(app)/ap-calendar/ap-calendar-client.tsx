@@ -406,7 +406,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
           {activeTab === 'main' && (
             <div>
               {/* Summary Cards */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-4">
                 <SummaryCard
                   title="Overdue"
                   count={buckets.overdue.count}

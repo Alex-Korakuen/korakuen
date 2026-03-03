@@ -36,8 +36,8 @@ export function SummaryCard({
       type="button"
       onClick={onClick}
       className={`
-        flex flex-col gap-1 rounded-lg border border-zinc-200 border-l-4 bg-white
-        px-4 py-3 text-left transition-shadow
+        flex min-w-[160px] flex-1 flex-col gap-1 rounded-lg border border-zinc-200 border-l-4 bg-white
+        px-5 py-4 text-left transition-shadow
         hover:shadow-md
         ${borderColor}
         ${isActive ? 'ring-2 ring-zinc-400' : ''}
