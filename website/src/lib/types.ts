@@ -300,6 +300,7 @@ export type CashFlowMonth = {
   month: string // YYYY-MM format
   label: string // "Jan 2026"
   isActual: boolean // true for past months, false for forecast
+  isCurrentMonth: boolean // true for the current month only
   cashIn: number // projectCashIn + loansCashIn
   projectCashIn: number // AR invoice payments received
   loansCashIn: number // loan disbursements received (Alex-only, 0 for partners)

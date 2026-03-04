@@ -69,8 +69,9 @@ export function CashFlowClient({
       : ''
   }
 
-  // Helper: forecast background class for a month cell
-  function forecastBg(isActual: boolean): string {
+  // Helper: background class for a month cell (actual / current / forecast)
+  function forecastBg(isActual: boolean, isCurrentMonth?: boolean): string {
+    if (isCurrentMonth) return ' bg-amber-50/60'
     return !isActual ? ' bg-zinc-50/50' : ''
   }
 
@@ -135,7 +136,7 @@ export function CashFlowClient({
                 <th
                   key={m.month}
                   className={`whitespace-nowrap px-4 py-3 text-right ${
-                    !m.isActual ? 'text-zinc-400' : ''
+                    m.isCurrentMonth ? 'text-amber-700 font-semibold' : !m.isActual ? 'text-zinc-400' : ''
                   }${forecastBorder(idx)}`}
                 >
                   {m.label}
@@ -155,7 +156,7 @@ export function CashFlowClient({
               {data.months.map((m, idx) => (
                 <td
                   key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-green-700${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-green-700${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                 >
                   {formatAmount(m.cashIn)}
                 </td>
@@ -173,7 +174,7 @@ export function CashFlowClient({
               {data.months.map((m, idx) => (
                 <td
                   key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                 >
                   {formatAmount(m.projectCashIn)}
                 </td>
@@ -192,7 +193,7 @@ export function CashFlowClient({
                 {data.months.map((m, idx) => (
                   <td
                     key={m.month}
-                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                   >
                     {formatAmount(m.loansCashIn)}
                   </td>
@@ -211,7 +212,7 @@ export function CashFlowClient({
               {data.months.map((m, idx) => (
                 <td
                   key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-700${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-700${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                 >
                   {formatAmount(m.cashOut)}
                 </td>
@@ -233,7 +234,7 @@ export function CashFlowClient({
               {data.months.map((m, idx) => (
                 <td
                   key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                 >
                   {formatAmount(m.projectCosts)}
                 </td>
@@ -258,7 +259,7 @@ export function CashFlowClient({
                 {data.months.map((m, idx) => (
                   <td
                     key={m.month}
-                    className={`whitespace-nowrap px-4 py-2 text-right font-mono text-xs text-zinc-500${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                    className={`whitespace-nowrap px-4 py-2 text-right font-mono text-xs text-zinc-500${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                   >
                     {formatAmount(m[cat.key])}
                   </td>
@@ -278,7 +279,7 @@ export function CashFlowClient({
                 {data.months.map((m, idx) => (
                   <td
                     key={m.month}
-                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                   >
                     {formatAmount(m.sga)}
                   </td>
@@ -298,7 +299,7 @@ export function CashFlowClient({
                 {data.months.map((m, idx) => (
                   <td
                     key={m.month}
-                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                   >
                     {formatAmount(m.loanRepayment)}
                   </td>

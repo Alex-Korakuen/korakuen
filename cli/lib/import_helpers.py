@@ -97,6 +97,19 @@ def validate_nonneg_number(row_num, row, field, errors):
         errors.append((row_num, field, "Must be a number"))
 
 
+def validate_exchange_rate(row_num, row, field, errors):
+    """Check that exchange rate is within a reasonable range (2.5–6.0 PEN/USD). Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    try:
+        rate = float(val)
+        if rate > 0 and not (2.5 <= rate <= 6.0):
+            errors.append((row_num, field, f"Rate {rate} is outside typical range (2.5–6.0) — verify value"))
+    except (ValueError, TypeError):
+        pass  # already caught by validate_nonneg_number
+
+
 def validate_boolean(row_num, row, field, errors):
     """Check that a field value is a boolean (true/false). Skip if empty."""
     val = row.get(field)

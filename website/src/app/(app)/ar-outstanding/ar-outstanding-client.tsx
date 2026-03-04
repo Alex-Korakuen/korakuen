@@ -395,7 +395,7 @@ export function ArOutstandingClient({
                               {row.due_date ? formatDate(row.due_date) : '--'}
                             </td>
                             <td className={`whitespace-nowrap px-4 py-3 text-right ${getAgingColorClass(row.days_overdue)}`}>
-                              {row.days_overdue}
+                              {row.days_overdue > 0 ? row.days_overdue : '—'}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                               {formatCurrency(row.gross_total, row.currency as 'PEN' | 'USD')}

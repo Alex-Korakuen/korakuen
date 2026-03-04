@@ -151,9 +151,21 @@ def add_valuation():
 def _load_valuation_lookups():
     """Pre-load lookup tables for valuation import."""
     valuations = supabase.table("valuations").select("project_id, valuation_number").execute()
+
+    # Build max valuation number per project for sequential validation
+    max_per_project = {}
+    for r in valuations.data:
+        pid = r["project_id"]
+        vn = r["valuation_number"]
+        if pid not in max_per_project or vn > max_per_project[pid]:
+            max_per_project[pid] = vn
+
     return {
         "projects": load_project_map(),
         "existing": {(r["project_id"], r["valuation_number"]) for r in valuations.data},
+        "max_per_project": max_per_project,
+        # Track pending numbers during validation to allow multi-row imports
+        "pending_max": {},
     }
 
 
@@ -185,7 +197,7 @@ def _validate_valuation_row(row_num, row, errors, lookups):
         except (ValueError, TypeError):
             pass  # already caught by validate_number
 
-    # Check uniqueness (project_id + valuation_number)
+    # Check uniqueness and sequential numbering (project_id + valuation_number)
     code = row.get("project_code")
     val_num = row.get("valuation_number")
     if code and not pd.isna(code) and val_num is not None and not pd.isna(val_num):
@@ -196,6 +208,15 @@ def _validate_valuation_row(row_num, row, errors, lookups):
                 vn = int(float(val_num))
                 if (project_id, vn) in lookups["existing"]:
                     errors.append((row_num, "valuation_number", f"Valuation #{vn} already exists for {code_str}"))
+                else:
+                    # Check sequential: must be exactly next after current max
+                    current_max = lookups["pending_max"].get(project_id, lookups["max_per_project"].get(project_id, 0))
+                    expected = current_max + 1
+                    if vn != expected:
+                        errors.append((row_num, "valuation_number", f"Expected #{expected} for {code_str} (sequential), got #{vn}"))
+                    else:
+                        # Track this number for subsequent rows in the same import
+                        lookups["pending_max"][project_id] = vn
             except (ValueError, TypeError):
                 pass
 

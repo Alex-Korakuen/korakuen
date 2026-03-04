@@ -17,7 +17,8 @@ from lib.helpers import (
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_nonneg_number, validate_boolean,
+    validate_date, validate_nonneg_number, validate_exchange_rate,
+    validate_boolean,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_partner_map,
@@ -137,7 +138,9 @@ def add_ar_invoice():
         .eq("is_active", True)
         .execute()
     )
-    list_choices("Partner companies", partners.data, display=["name", "ruc"])
+    if not list_choices("Partner companies", partners.data, display=["name", "ruc"]):
+        input("\nPress Enter to continue...")
+        return
     partner_num = get_input("  Select partner company number: ")
     try:
         partner = partners.data[int(partner_num) - 1]
@@ -359,6 +362,7 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_nonneg_number(row_num, row, "detraccion_rate", errors)
     validate_nonneg_number(row_num, row, "retencion_rate", errors)
     validate_nonneg_number(row_num, row, "exchange_rate", errors)
+    validate_exchange_rate(row_num, row, "exchange_rate", errors)
 
     validate_boolean(row_num, row, "retencion_applicable", errors)
     validate_boolean(row_num, row, "is_internal_settlement", errors)

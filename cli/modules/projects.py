@@ -354,11 +354,12 @@ def set_project_budget():
     project_code = project["project_code"]
     project_name = project["name"]
 
-    # --- Check for existing budgets ---
+    # --- Check for existing active budgets ---
     existing = (
         supabase.table("project_budgets")
         .select("category, budgeted_amount, currency, notes")
         .eq("project_id", project_id)
+        .eq("is_active", True)
         .execute()
     )
 
@@ -372,11 +373,11 @@ def set_project_budget():
             print("  Cancelled.")
             input("\nPress Enter to continue...")
             return
-        # Delete existing budgets before re-inserting
+        # Soft-delete existing budgets before re-inserting
         try:
-            supabase.table("project_budgets").delete().eq("project_id", project_id).execute()
+            supabase.table("project_budgets").update({"is_active": False}).eq("project_id", project_id).eq("is_active", True).execute()
         except Exception as e:
-            print(f"\n✗ Error clearing existing budgets: {e}")
+            print(f"\n✗ Error deactivating existing budgets: {e}")
             input("\nPress Enter to continue...")
             return
 

@@ -1544,6 +1544,7 @@ export type Database = {
           currency: string | null
           date_borrowed: string | null
           due_date: string | null
+          exchange_rate: number | null
           lender_contact: string | null
           lender_name: string | null
           loan_id: string | null

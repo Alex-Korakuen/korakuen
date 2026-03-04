@@ -363,7 +363,9 @@ def assign_entity_to_project():
 
     # Select role (tag)
     tags = supabase.table("tags").select("id, name").eq("is_active", True).order("name").execute()
-    list_choices("Available roles (tags)", tags.data, display=["name"])
+    if not list_choices("Available roles (tags)", tags.data, display=["name"]):
+        input("\nPress Enter to continue...")
+        return
     tag_num = get_input("  Select role number: ")
     try:
         tag = tags.data[int(tag_num) - 1]

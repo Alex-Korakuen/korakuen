@@ -18,6 +18,7 @@ from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number, validate_nonneg_number,
+    validate_exchange_rate,
     process_import_errors, load_project_map, load_entity_map,
 )
 
@@ -100,6 +101,12 @@ def add_quote():
     total = get_nonneg_float(f"  Total (default: {default_total:,.2f}): ", required=False)
     if total is None:
         total = default_total
+    elif abs(total - default_total) > 0.01:
+        print(f"  ⚠ Total ({total:,.2f}) differs from subtotal + IGV ({default_total:,.2f}).")
+        if not confirm("  Continue with entered total?"):
+            print("Cancelled.")
+            input("\nPress Enter to continue...")
+            return
 
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
@@ -209,6 +216,18 @@ def _validate_quote_row(row_num, row, errors, lookups):
     validate_nonneg_number(row_num, row, "igv_amount", errors)
     validate_nonneg_number(row_num, row, "total", errors)
     validate_nonneg_number(row_num, row, "exchange_rate", errors)
+    validate_exchange_rate(row_num, row, "exchange_rate", errors)
+
+    # Cross-field: total should equal subtotal + igv_amount
+    try:
+        st = float(row.get("subtotal", 0) or 0)
+        igv = float(row.get("igv_amount", 0) or 0)
+        tot = float(row.get("total", 0) or 0)
+        expected = st + igv
+        if tot > 0 and abs(tot - expected) > 0.01:
+            errors.append((row_num, "total", f"Total ({tot:,.2f}) differs from subtotal + IGV ({expected:,.2f})"))
+    except (ValueError, TypeError):
+        pass  # individual field errors already caught above
 
 
 def _build_quote_record(row, lookups):

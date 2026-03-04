@@ -35,6 +35,7 @@ SELECT
   )                     AS pct_used,
   pb.notes
 FROM project_budgets pb
+-- Only show active budget entries (soft-deleted rows excluded)
 -- No is_active filter on projects: budget history must remain visible
 -- even after project deactivation. Filtering handled at the application layer.
 JOIN projects p ON p.id = pb.project_id
@@ -42,4 +43,5 @@ LEFT JOIN actual_costs ac
   ON ac.project_id = pb.project_id
   AND ac.category = pb.category
   AND ac.currency = pb.currency
+WHERE pb.is_active = true
 ORDER BY p.project_code, pb.category;

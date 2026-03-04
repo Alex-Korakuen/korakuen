@@ -16,6 +16,7 @@ SELECT
   ba.account_type,
   ba.currency,
   ba.is_detraccion_account,
+  ba.is_active,
   COALESCE(
     SUM(
       CASE
@@ -29,6 +30,7 @@ FROM bank_accounts ba
 JOIN partner_companies pc ON pc.id = ba.partner_company_id
 LEFT JOIN payments p ON p.bank_account_id = ba.id
 WHERE ba.is_active = true
+   OR COALESCE((SELECT SUM(CASE WHEN p2.direction = 'inbound' THEN p2.amount ELSE -p2.amount END) FROM payments p2 WHERE p2.bank_account_id = ba.id), 0) <> 0
 GROUP BY
   ba.id,
   ba.partner_company_id,
@@ -37,4 +39,5 @@ GROUP BY
   ba.account_number_last4,
   ba.account_type,
   ba.currency,
-  ba.is_detraccion_account;
+  ba.is_detraccion_account,
+  ba.is_active;

@@ -33,7 +33,7 @@ export function PricesClient({ data, filterOptions }: Props) {
     }
 
     if (filters.category) {
-      rows = rows.filter((r) => r.category === filters.category)
+      rows = rows.filter((r) => r.source === 'quote' || r.category === filters.category)
     }
 
     if (filters.entityId) {

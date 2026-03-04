@@ -498,7 +498,6 @@ export async function getCashFlow(
     costBalancesResult,
     arBalancesResult,
     loanScheduleResult,
-    costItemsResult,
     loansResult,
     loanPaymentsResult,
   ] = await Promise.all([
@@ -528,10 +527,6 @@ export async function getCashFlow(
           .select('id, loan_id, scheduled_date, scheduled_amount, paid, exchange_rate, loans!fk_loan_schedule_loans(currency, project_id)')
           .eq('paid', false)
       : { data: [] },
-    // Cost items for category breakdown (for both actual and forecast)
-    supabase
-      .from('cost_items')
-      .select('cost_id, category, subtotal'),
     // Loan disbursements — cash in from loans (Alex-only)
     isAlex
       ? supabase
@@ -554,9 +549,26 @@ export async function getCashFlow(
   const costBalances = costBalancesResult.data ?? []
   const arBalances = arBalancesResult.data ?? []
   const loanSchedule = loanScheduleResult.data ?? []
-  const costItems = costItemsResult.data ?? []
   const loanDisbursements = loansResult.data ?? []
   const loanRepayments = loanPaymentsResult.data ?? []
+
+  // Collect relevant cost_ids, then fetch cost_items only for those
+  const relevantCostIds = new Set<string>()
+  for (const cb of costBalances) {
+    if (cb.cost_id) relevantCostIds.add(cb.cost_id)
+  }
+  for (const p of payments) {
+    if (p.related_to === 'cost' && p.related_id) relevantCostIds.add(p.related_id)
+  }
+  const costIdArray = [...relevantCostIds]
+  const costItems: { cost_id: string; category: string; subtotal: number }[] = []
+  if (costIdArray.length > 0) {
+    const { data } = await supabase
+      .from('cost_items')
+      .select('cost_id, category, subtotal')
+      .in('cost_id', costIdArray)
+    if (data) costItems.push(...data)
+  }
 
   // Build cost_id -> project_id map for payment filtering
   // Need to look up which project a payment belongs to via its cost/AR invoice
@@ -776,11 +788,13 @@ export async function getCashFlow(
     const cashIn = bucket.projectCashIn + bucket.loansCashIn
     const net = cashIn - cashOut
     const isActual = key <= currentMonthKey
+    const isCurrentMonth = key === currentMonthKey
 
     months.push({
       month: key,
       label: getMonthLabel(key),
       isActual,
+      isCurrentMonth,
       cashIn,
       projectCashIn: bucket.projectCashIn,
       loansCashIn: bucket.loansCashIn,
@@ -870,7 +884,7 @@ export async function getPartnerLedger(projectId: string): Promise<PartnerBalanc
       const arInfo = arPartnerMap.get(p.related_id)
       if (!arInfo) continue
       const partnerKey = arInfo.partner_company_id
-      const currencyKey = arInfo.currency
+      const currencyKey = p.currency ?? arInfo.currency
       if (!paymentsByPartner.has(partnerKey)) {
         paymentsByPartner.set(partnerKey, new Map())
       }
@@ -1041,7 +1055,7 @@ export async function getCompanyPL(
   const { start, end, monthKeys } = getPeriodRange(periodMode, year, quarter, month)
 
   // Fetch all data in parallel
-  const [arResult, costTotalsResult, costItemsResult, projectsResult, partnerLedgerResult, loanBalancesResult] = await Promise.all([
+  const [arResult, costTotalsResult, projectsResult, partnerLedgerResult, loanBalancesResult] = await Promise.all([
     supabase
       .from('ar_invoices')
       .select('id, project_id, invoice_date, subtotal, currency, exchange_rate, is_internal_settlement')
@@ -1054,9 +1068,6 @@ export async function getCompanyPL(
       .gte('date', start)
       .lte('date', end),
     supabase
-      .from('cost_items')
-      .select('cost_id, category, subtotal'),
-    supabase
       .from('projects')
       .select('id, project_code, name')
       .eq('is_active', true),
@@ -1064,18 +1075,28 @@ export async function getCompanyPL(
       ? supabase.from('v_partner_ledger').select('*')
       : { data: [] },
     isAlex
-      ? supabase.from('v_loan_balances').select('outstanding, currency')
+      ? supabase.from('v_loan_balances').select('outstanding, currency, exchange_rate')
       : { data: [] },
   ])
 
   const arInvoices = arResult.data ?? []
   const costTotals = costTotalsResult.data ?? []
-  const allCostItems = costItemsResult.data ?? []
   const projectsList = projectsResult.data ?? []
   const partnerLedger = partnerLedgerResult.data ?? []
   const loanBalances = loanBalancesResult.data ?? []
 
   const projectMap = new Map(projectsList.map(p => [p.id, { code: p.project_code, name: p.name }]))
+
+  // Fetch cost_items only for costs in the date range
+  const plCostIds = costTotals.map(c => c.cost_id).filter((id): id is string => id !== null)
+  const allCostItems: { cost_id: string; category: string; subtotal: number }[] = []
+  if (plCostIds.length > 0) {
+    const { data } = await supabase
+      .from('cost_items')
+      .select('cost_id, category, subtotal')
+      .in('cost_id', plCostIds)
+    if (data) allCostItems.push(...data)
+  }
 
   // Build cost_id -> category map (primary category per cost)
   const costCategoryMap = new Map<string, string>()
@@ -1251,14 +1272,10 @@ export async function getCompanyPL(
       // else: mixed currencies — alexProfitShare stays null (cannot compute without exchange rates)
     }
 
-    // Check if all loan currencies match reporting currency
-    const loanCurrencies = new Set(loanBalances.map(l => l.currency).filter(Boolean))
-    const allLoansSameCurrency = loanCurrencies.size <= 1 && (!loanCurrencies.size || loanCurrencies.has(reportingCurrency))
-
-    if (allLoansSameCurrency) {
-      loanObligations = loanBalances.reduce((sum, l) => sum + (l.outstanding ?? 0), 0)
-    }
-    // else: mixed currencies — loanObligations stays null
+    // Convert all loan balances to reporting currency
+    loanObligations = loanBalances.reduce((sum, l) =>
+      sum + convertAmount(l.outstanding ?? 0, l.currency, l.exchange_rate, reportingCurrency), 0
+    )
   }
 
   return { columns, byMonth, total, alexProfitShare, loanObligations }
@@ -1421,14 +1438,14 @@ export async function getBankTransactions(
 
   const [entityResult, projectResult] = await Promise.all([
     entityIds.length > 0
-      ? supabase.from('entities').select('id, legal_name').in('id', [...new Set(entityIds)])
+      ? supabase.from('entities').select('id, common_name, legal_name').in('id', [...new Set(entityIds)])
       : { data: [] },
     projectIds.length > 0
       ? supabase.from('projects').select('id, project_code').in('id', [...new Set(projectIds)])
       : { data: [] },
   ])
 
-  const entityMap = new Map((entityResult.data ?? []).map(e => [e.id, e.legal_name]))
+  const entityMap = new Map((entityResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectMap = new Map((projectResult.data ?? []).map(p => [p.id, p.project_code]))
   const costMap = new Map(costs.map(c => [c.cost_id, c]))
   const arMap = new Map(ars.map(a => [a.id, a]))

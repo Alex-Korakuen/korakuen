@@ -159,7 +159,7 @@ def add_schedule():
     # --- List active loans ---
     loans = (
         supabase.table("loans")
-        .select("id, lender_name, amount, currency, status")
+        .select("id, lender_name, amount, currency, status, date_borrowed")
         .neq("status", "settled")
         .order("date_borrowed")
         .execute()
@@ -183,7 +183,10 @@ def add_schedule():
         input("\nPress Enter to continue...")
         return
 
+    loan_date = loan.get("date_borrowed", "")
     print(f"\n  Adding schedule entries for: {loan['lender_name']} — {loan['currency']} {loan['amount']:,.2f}")
+    if loan_date:
+        print(f"  (Loan date: {loan_date})")
     print("  (Enter entries one at a time. Type 'done' when finished.)\n")
 
     entries = []
@@ -192,12 +195,19 @@ def add_schedule():
     while True:
         print(f"  Entry {entry_num}:")
         scheduled_date = get_date_input("    Scheduled date (YYYY-MM-DD): ")
+
+        if loan_date and scheduled_date < loan_date:
+            print(f"    ✗ Scheduled date ({scheduled_date}) is before loan date ({loan_date}).")
+            continue
+
         scheduled_amount = get_nonneg_float("    Scheduled amount: ")
+        exchange_rate = get_exchange_rate()
 
         entries.append({
             "loan_id": loan["id"],
             "scheduled_date": scheduled_date,
             "scheduled_amount": scheduled_amount,
+            "exchange_rate": exchange_rate,
         })
         entry_num += 1
 

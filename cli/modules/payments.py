@@ -120,7 +120,9 @@ def register_payment():
     if bank_account and bank_account.get("partner_companies"):
         default_partner = bank_account["partner_companies"]["name"]
 
-    list_choices("Partner companies", partners.data, display=["name"])
+    if not list_choices("Partner companies", partners.data, display=["name"]):
+        input("\nPress Enter to continue...")
+        return
     if default_partner:
         print(f"  (Default: {default_partner})")
     partner_num = get_input("  Select partner company number: ")
@@ -204,10 +206,19 @@ def _select_cost():
         input("\nPress Enter to continue...")
         return None
 
+    # Build project_id -> project_code map
+    project_ids = list({c["project_id"] for c in costs.data if c.get("project_id")})
+    project_map = {}
+    if project_ids:
+        projects = supabase.table("projects").select("id, project_code").in_("id", project_ids).execute()
+        project_map = {p["id"]: p["project_code"] for p in (projects.data or [])}
+
     print("\n  Costs with outstanding balances:")
     for i, c in enumerate(costs.data, start=1):
         label = c.get("document_ref") or c.get("title", "")[:30]
-        print(f"    {i}. {label} — Outstanding: {c.get('currency', 'PEN')} {c.get('outstanding', 0):,.2f} ({c.get('payment_status', '')})")
+        proj = project_map.get(c.get("project_id", ""), "")
+        proj_prefix = f"[{proj}] " if proj else ""
+        print(f"    {i}. {proj_prefix}{label} — Outstanding: {c.get('currency', 'PEN')} {c.get('outstanding', 0):,.2f} ({c.get('payment_status', '')})")
     print()
 
     selection = get_input("  Select cost number: ")
@@ -240,10 +251,19 @@ def _select_ar_invoice():
         input("\nPress Enter to continue...")
         return None
 
+    # Build project_id -> project_code map
+    project_ids = list({inv["project_id"] for inv in invoices.data if inv.get("project_id")})
+    project_map = {}
+    if project_ids:
+        projects = supabase.table("projects").select("id, project_code").in_("id", project_ids).execute()
+        project_map = {p["id"]: p["project_code"] for p in (projects.data or [])}
+
     print("\n  AR invoices with outstanding balances:")
     for i, inv in enumerate(invoices.data, start=1):
         label = inv.get("invoice_number") or inv.get("document_ref") or ""
-        print(f"    {i}. {label} — Outstanding: {inv.get('currency', 'PEN')} {inv.get('outstanding', 0):,.2f} ({inv.get('payment_status', '')})")
+        proj = project_map.get(inv.get("project_id", ""), "")
+        proj_prefix = f"[{proj}] " if proj else ""
+        print(f"    {i}. {proj_prefix}{label} — Outstanding: {inv.get('currency', 'PEN')} {inv.get('outstanding', 0):,.2f} ({inv.get('payment_status', '')})")
     print()
 
     selection = get_input("  Select AR invoice number: ")

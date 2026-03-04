@@ -1,10 +1,10 @@
--- View: v_loan_balances
--- Purpose: Shows borrowed amount, total owed (principal + return), total paid,
---          and outstanding balance per loan. Private to Alex.
--- Source tables: loans, loan_payments, loan_schedule
--- Used by: Loan tracking dashboard, personal finance section below P&L (Alex-only)
+-- Migration: Add exchange_rate column to v_loan_balances view
+-- Reason: P&L needs exchange_rate to convert cross-currency loan obligations
+-- Note: DROP + CREATE required because adding a column changes column order
 
-CREATE OR REPLACE VIEW v_loan_balances
+DROP VIEW IF EXISTS v_loan_balances;
+
+CREATE VIEW v_loan_balances
 WITH (security_invoker = on)
 AS
 WITH loan_totals AS (

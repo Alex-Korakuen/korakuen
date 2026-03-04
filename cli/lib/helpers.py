@@ -63,16 +63,20 @@ def list_choices(title, data, display):
         title: Header text to print above the list.
         data: List of dicts (from response.data).
         display: List of field names to show per row.
+
+    Returns:
+        True if data was displayed, False if empty.
     """
     if not data:
         print(f"\n  No {title.lower()} found.")
-        return
+        return False
 
     print(f"\n  {title}:")
     for i, row in enumerate(data, start=1):
         values = " — ".join(str(row.get(field, "")) for field in display)
         print(f"    {i}. {values}")
     print()
+    return True
 
 
 def clear_screen():
@@ -124,7 +128,9 @@ def get_currency(default=None, label="Currency"):
 
 
 def get_exchange_rate():
-    """Prompt for required exchange rate (PEN per USD). Loops until valid number entered."""
+    """Prompt for required exchange rate (PEN per USD). Loops until valid number entered.
+    Warns if rate is outside the typical 2.5–6.0 range and asks for confirmation.
+    """
     while True:
         value = input("  Exchange rate (PEN per USD): ").strip()
         if not value:
@@ -135,6 +141,11 @@ def get_exchange_rate():
             if rate <= 0:
                 print("  Must be a positive number.")
                 continue
+            # Sanity check — historical PEN/USD has been in the 2.5–6.0 range
+            if not (2.5 <= rate <= 6.0):
+                print(f"  Warning: {rate} is outside the typical range (2.5–6.0).")
+                if not confirm("  Use this rate anyway?"):
+                    continue
             return rate
         except ValueError:
             print("  Must be a valid number (e.g. 3.72).")

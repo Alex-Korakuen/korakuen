@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { fetchBankTransactions } from './actions'
 import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/types'
@@ -267,7 +267,7 @@ export function FPClient({ data, isAlex }: Props) {
                 {transactions.map((txn) => (
                   <tr key={txn.id} className="transition-colors hover:bg-blue-50">
                     <td className="whitespace-nowrap px-3 py-2 text-zinc-600">
-                      {txn.paymentDate}
+                      {formatDate(txn.paymentDate)}
                     </td>
                     <td className="px-3 py-2 text-zinc-700">
                       {txn.entityName ?? '—'}

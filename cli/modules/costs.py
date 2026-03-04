@@ -18,6 +18,7 @@ from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number, validate_nonneg_number,
+    validate_exchange_rate,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_quote_map,
@@ -265,7 +266,7 @@ def add_cost():
         input("\nPress Enter to continue...")
         return
 
-    # ---- INSERT HEADER ----
+    # ---- BUILD HEADER + ITEMS DATA ----
     header_data = {
         "cost_type": cost_type,
         "bank_account_id": bank_account["id"],
@@ -273,6 +274,7 @@ def add_cost():
         "title": title,
         "igv_rate": igv_rate,
         "currency": currency,
+        "exchange_rate": exchange_rate,
     }
     if project:
         header_data["project_id"] = project["id"]
@@ -284,7 +286,6 @@ def add_cost():
         header_data["quote_id"] = quote["id"]
     if detraccion_rate:
         header_data["detraccion_rate"] = detraccion_rate
-    header_data["exchange_rate"] = exchange_rate
     if comprobante_type:
         header_data["comprobante_type"] = comprobante_type
     if comprobante_number:
@@ -298,20 +299,9 @@ def add_cost():
     if notes:
         header_data["notes"] = notes
 
-    try:
-        response = supabase.table("costs").insert(header_data).execute()
-        cost_id = response.data[0]["id"]
-        print(f"\n✓ Cost header registered (ID: {cost_id[:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error inserting cost header: {e}")
-        input("\nPress Enter to continue...")
-        return
-
-    # ---- INSERT LINE ITEMS ----
-    item_records = []
+    items_data = []
     for item in items:
         record = {
-            "cost_id": cost_id,
             "title": item["title"],
             "category": item["category"],
             "subtotal": item["subtotal"],
@@ -324,13 +314,20 @@ def add_cost():
             record["unit_price"] = item["unit_price"]
         if item["notes"]:
             record["notes"] = item["notes"]
-        item_records.append(record)
+        items_data.append(record)
 
+    # ---- ATOMIC INSERT via RPC (header + items in one transaction) ----
     try:
-        response = supabase.table("cost_items").insert(item_records).execute()
-        print(f"✓ {len(response.data)} line items registered.")
+        response = supabase.rpc("fn_create_cost_with_items", {
+            "header_data": header_data,
+            "items_data": items_data,
+        }).execute()
+        result = response.data
+        cost_id = result["cost_id"]
+        items_count = result["items_count"]
+        print(f"\n✓ Cost registered (ID: {cost_id[:8]}...) with {items_count} line items.")
     except Exception as e:
-        print(f"\n✗ Error inserting line items: {e}")
+        print(f"\n✗ Error creating cost: {e}")
 
     input("\nPress Enter to continue...")
 
@@ -341,12 +338,17 @@ def add_cost():
 
 def _load_cost_lookups():
     """Pre-load all FK lookup tables for cost import."""
+    # Load existing document_refs for duplicate detection
+    existing_costs = supabase.table("costs").select("document_ref").execute()
+    existing_refs = {r["document_ref"] for r in existing_costs.data if r.get("document_ref")}
+
     return {
         "projects": load_project_map(),
         "entities": load_entity_map(),
         "bank_accounts": load_bank_account_map(),
         "valuations": load_valuation_map(),
         "quotes": load_quote_map(),
+        "existing_document_refs": existing_refs,
     }
 
 
@@ -399,6 +401,13 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_nonneg_number(row_num, row, "igv_rate", errors)
     validate_nonneg_number(row_num, row, "detraccion_rate", errors)
     validate_nonneg_number(row_num, row, "exchange_rate", errors)
+    validate_exchange_rate(row_num, row, "exchange_rate", errors)
+
+    # Duplicate detection via document_ref
+    doc_ref = row.get("document_ref")
+    if doc_ref and not pd.isna(doc_ref) and str(doc_ref).strip():
+        if str(doc_ref).strip() in lookups["existing_document_refs"]:
+            errors.append((row_num, "document_ref", f"Document ref '{str(doc_ref).strip()}' already exists in database"))
 
     # Cross-field: IGV must be 0 for non-IGV comprobante types
     no_igv_types = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
