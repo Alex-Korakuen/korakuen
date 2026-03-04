@@ -6,19 +6,19 @@ Tables: quotes
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, get_exchange_rate, select_project,
+    get_input, get_optional_input, get_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_exchange_rate, select_project,
+    get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number,
-    print_errors,
+    validate_date, validate_number, validate_nonneg_number,
+    process_import_errors, load_project_map, load_entity_map,
 )
 
 
@@ -63,27 +63,16 @@ def add_quote():
         return
 
     # --- Quote details ---
-    date_received = get_input("\n  Date received (YYYY-MM-DD): ")
+    date_received = get_date_input("\n  Date received (YYYY-MM-DD): ")
     title = get_input("  Title (what was quoted): ")
 
     # --- Quantity and pricing ---
-    quantity = get_optional_input("  Quantity (optional — press Enter to skip): ")
+    quantity = get_nonneg_float("  Quantity (optional — press Enter to skip): ", required=False)
     unit_of_measure = None
     unit_price = None
     if quantity:
-        try:
-            quantity = float(quantity)
-        except ValueError:
-            print("  Invalid number, skipping quantity.")
-            quantity = None
-    if quantity:
         unit_of_measure = get_optional_input("  Unit of measure (optional — press Enter to skip): ")
-        up = get_optional_input("  Unit price (optional — press Enter to skip): ")
-        if up:
-            try:
-                unit_price = float(up)
-            except ValueError:
-                print("  Invalid number, skipping unit price.")
+        unit_price = get_nonneg_float("  Unit price (optional — press Enter to skip): ", required=False)
 
     # --- Subtotal ---
     default_subtotal = None
@@ -91,10 +80,11 @@ def add_quote():
         default_subtotal = quantity * unit_price
         print(f"\n  Computed subtotal: {default_subtotal:,.2f}")
 
-    subtotal_input = get_input(f"  Subtotal{f' (default: {default_subtotal:,.2f})' if default_subtotal else ''}: ")
-    try:
-        subtotal = float(subtotal_input) if subtotal_input else default_subtotal
-    except ValueError:
+    subtotal = get_nonneg_float(
+        f"  Subtotal{f' (default: {default_subtotal:,.2f})' if default_subtotal else ''}: ",
+        required=not default_subtotal,
+    )
+    if subtotal is None:
         subtotal = default_subtotal
     if subtotal is None:
         print("  Subtotal is required.")
@@ -103,20 +93,12 @@ def add_quote():
 
     # --- IGV ---
     igv_suggestion = subtotal * 0.18
-    igv_input = get_optional_input(f"  IGV amount (suggested: {igv_suggestion:,.2f}, optional — press Enter to skip): ")
-    igv_amount = None
-    if igv_input:
-        try:
-            igv_amount = float(igv_input)
-        except ValueError:
-            igv_amount = None
+    igv_amount = get_nonneg_float(f"  IGV amount (suggested: {igv_suggestion:,.2f}, optional — press Enter to skip): ", required=False)
 
     # --- Total ---
     default_total = subtotal + (igv_amount or 0)
-    total_input = get_input(f"  Total (default: {default_total:,.2f}): ")
-    try:
-        total = float(total_input) if total_input else default_total
-    except ValueError:
+    total = get_nonneg_float(f"  Total (default: {default_total:,.2f}): ", required=False)
+    if total is None:
         total = default_total
 
     # --- Currency ---
@@ -126,10 +108,7 @@ def add_quote():
 
     # --- Status ---
     print("\n  Statuses: pending, accepted, rejected")
-    status = get_input("  Status (default: pending): ").lower() or "pending"
-    while status not in ("pending", "accepted", "rejected"):
-        print("  Must be pending, accepted, or rejected.")
-        status = get_input("  Status: ").lower()
+    status = get_enum_input("  Status: ", ("pending", "accepted", "rejected"))
 
     document_ref = get_optional_input("  Document ref (optional — press Enter to skip): ")
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
@@ -199,11 +178,9 @@ def add_quote():
 
 def _load_quote_lookups():
     """Pre-load lookup tables for quote import."""
-    projects = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
-    entities = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
     return {
-        "projects": {r["project_code"]: r["id"] for r in projects.data},
-        "entities": {r["document_number"]: r["id"] for r in entities.data},
+        "projects": load_project_map(),
+        "entities": load_entity_map(),
     }
 
 
@@ -226,12 +203,12 @@ def _validate_quote_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
 
     validate_date(row_num, row, "date_received", errors)
-    validate_number(row_num, row, "quantity", errors)
-    validate_number(row_num, row, "unit_price", errors)
-    validate_number(row_num, row, "subtotal", errors)
-    validate_number(row_num, row, "igv_amount", errors)
-    validate_number(row_num, row, "total", errors)
-    validate_number(row_num, row, "exchange_rate", errors)
+    validate_nonneg_number(row_num, row, "quantity", errors)
+    validate_nonneg_number(row_num, row, "unit_price", errors)
+    validate_nonneg_number(row_num, row, "subtotal", errors)
+    validate_nonneg_number(row_num, row, "igv_amount", errors)
+    validate_nonneg_number(row_num, row, "total", errors)
+    validate_nonneg_number(row_num, row, "exchange_rate", errors)
 
 
 def _build_quote_record(row, lookups):
@@ -289,21 +266,8 @@ def import_quotes():
         excel_row = idx + DATA_START_ROW
         _validate_quote_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     print(f"\n--- Summary ---")
     print(f"  File:    {file_path}")

@@ -2,7 +2,7 @@
 
 **Document version:** 3.0
 **Date:** March 2, 2026
-**Status:** Active — Phase 4 in progress (Tasks 4.1–4.5 complete).
+**Status:** Active — Phase 4 complete. Next: Phase 5 (when business revenue justifies).
 
 ---
 
@@ -61,7 +61,7 @@ All six skill files built. `docs/12_skills.md` deleted.
 - [x] Task 2.7 — Fix function search_path → `supabase/migrations/20260301000008_fix_function_search_path.sql`
 - [x] Task 2.8 — Add notes to v_cost_totals → `supabase/migrations/20260301000009_v_cost_totals_add_notes.sql`
 
-**8 Phase 2 migrations applied (17 total).** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
+**8 Phase 2 migrations applied (22 total across all phases).** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
 
 ---
 
@@ -82,7 +82,7 @@ Create:
 - `lib/db.py` — shared Supabase client setup
 - `lib/helpers.py` — shared input helpers (get_input, get_optional_input, confirm, list_choices, clear_screen)
 - `lib/import_helpers.py` — shared import validation and error highlighting utilities
-- `requirements.txt` with `supabase`, `python-dotenv`, `rich`, `pandas`, `openpyxl`
+- `requirements.txt` with `supabase`, `python-dotenv`, `pandas`, `openpyxl`
 
 Main menu structure:
 ```
@@ -350,10 +350,10 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 **Depends on:** Task 3.13
 **Output:** `cli/modules/loans.py`, updated `cli/main.py`
 
-- [x] Create `cli/modules/loans.py` with 4 operations: add_loan, add_schedule, register_repayment, view_balances
+- [x] Create `cli/modules/loans.py` with 3 operations: add_loan, add_schedule, register_repayment
 - [x] Update `cli/main.py` — add menu item 8 (Loans), import loans module
 
-**Done when:** Full loan lifecycle works — create loan, schedule payments, register repayments, view balances.
+**Done when:** Full loan lifecycle works — create loan, schedule payments, register repayments. Balance views are on the website (Financial Position, AP Calendar).
 
 ---
 
@@ -373,7 +373,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Status:** Tasks 4.1–4.10 complete. All 18 migrations applied to remote (including v_igv_position). Production live at `https://korakuen.vercel.app`.
+**Status:** Phase 4 complete. All 22 migrations applied to remote (including v_igv_position). Production live at `https://korakuen.vercel.app`.
 
 - [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
 - [x] Task 4.4 — Verify Vercel deployment
@@ -383,9 +383,9 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 - [x] Task 4.8 — Partner Contribution & Balances
 - [x] Task 4.9 — Company P&L
 - [x] Task 4.10 — Financial Position
-- [ ] Task 4.11 — Projects browse
-- [ ] Task 4.12 — Entities browse
-- [ ] Task 4.13 — Prices browse
+- [x] Task 4.11 — Projects browse
+- [x] Task 4.12 — Entities browse
+- [x] Task 4.13 — Prices browse
 
 ---
 

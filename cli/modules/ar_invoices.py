@@ -6,19 +6,21 @@ Tables: ar_invoices
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, get_exchange_rate, select_project,
+    get_input, get_optional_input, get_date_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_exchange_rate, select_project,
+    select_bank_account, get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number, validate_boolean,
-    print_errors,
+    validate_date, validate_nonneg_number, validate_boolean,
+    process_import_errors,
+    load_project_map, load_entity_map, load_bank_account_map,
+    load_valuation_map, load_partner_map,
 )
 
 
@@ -91,30 +93,8 @@ def add_ar_invoice():
         return
 
     # --- Select bank account ---
-    bank_accounts = (
-        supabase.table("bank_accounts")
-        .select("id, bank_name, account_number_last4, currency, is_detraccion_account, partner_companies(name)")
-        .eq("is_active", True)
-        .eq("is_detraccion_account", False)
-        .execute()
-    )
-    if not bank_accounts.data:
-        print("\n  No regular bank accounts found.")
-        input("\nPress Enter to continue...")
-        return
-
-    print("\n  Available bank accounts (receipt):")
-    for i, ba in enumerate(bank_accounts.data, start=1):
-        partner = ba.get("partner_companies", {}).get("name", "Unknown")
-        print(f"    {i}. {ba['bank_name']} {ba['currency']} {ba['account_number_last4']} ({partner})")
-    print()
-
-    bank_num = get_input("  Select bank account number: ")
-    try:
-        bank_account = bank_accounts.data[int(bank_num) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    bank_account = select_bank_account(detraccion_filter=False, label="regular bank")
+    if not bank_account:
         return
 
     # --- Select client entity ---
@@ -123,6 +103,32 @@ def add_ar_invoice():
     entity = _search_and_select_entity()
     if not entity:
         return
+
+    # --- Validate entity is project client (Issue 9) ---
+    project_detail = (
+        supabase.table("projects")
+        .select("client_entity_id")
+        .eq("id", project["id"])
+        .single()
+        .execute()
+    )
+    client_entity_id = project_detail.data.get("client_entity_id") if project_detail.data else None
+    if client_entity_id and entity["id"] != client_entity_id:
+        client = (
+            supabase.table("entities")
+            .select("legal_name")
+            .eq("id", client_entity_id)
+            .single()
+            .execute()
+        )
+        client_name = client.data["legal_name"] if client.data else "Unknown"
+        print(f"\n  Warning: Selected entity ({entity['legal_name']}) is not the project client ({client_name}).")
+        if not confirm("  Continue anyway?"):
+            print("  Cancelled.")
+            input("\nPress Enter to continue...")
+            return
+    elif not client_entity_id:
+        print("  Note: Project has no client entity assigned — skipping client check.")
 
     # --- Select partner company ---
     partners = (
@@ -144,45 +150,26 @@ def add_ar_invoice():
     invoice_number = get_input("\n  Invoice number: ")
 
     print("\n  Comprobante types: factura, boleta, recibo_por_honorarios")
-    comprobante_type = get_input("  Comprobante type (default: factura): ").lower() or "factura"
-    while comprobante_type not in ("factura", "boleta", "recibo_por_honorarios"):
-        print("  Must be factura, boleta, or recibo_por_honorarios.")
-        comprobante_type = get_input("  Comprobante type: ").lower()
+    comprobante_type = get_enum_input("  Comprobante type: ", ("factura", "boleta", "recibo_por_honorarios"))
 
-    invoice_date = get_input("  Invoice date (YYYY-MM-DD): ")
-    due_date = get_optional_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
+    invoice_date = get_date_input("  Invoice date (YYYY-MM-DD): ")
+    due_date = get_optional_date_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
 
     # --- Financial ---
-    subtotal_input = get_input("\n  Subtotal: ")
-    try:
-        subtotal = float(subtotal_input)
-    except ValueError:
-        print("  Invalid number.")
-        input("\nPress Enter to continue...")
-        return
+    subtotal = get_nonneg_float("\n  Subtotal: ")
 
-    igv_input = get_input("  IGV rate % (default: 18): ") or "18"
-    try:
-        igv_rate = float(igv_input)
-    except ValueError:
+    igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", required=False)
+    if igv_rate is None:
         igv_rate = 18.0
 
-    detraccion_input = get_optional_input("  Detraccion rate % (optional — press Enter to skip): ")
-    detraccion_rate = None
-    if detraccion_input:
-        try:
-            detraccion_rate = float(detraccion_input)
-        except ValueError:
-            detraccion_rate = None
+    detraccion_rate = get_nonneg_float("  Detraccion rate % (optional — press Enter to skip): ", required=False)
 
     # --- Retencion ---
     retencion_applicable = confirm("  Retencion applicable?")
     retencion_rate = None
     if retencion_applicable:
-        ret_input = get_input("  Retencion rate % (default: 3): ") or "3"
-        try:
-            retencion_rate = float(ret_input)
-        except ValueError:
+        retencion_rate = get_nonneg_float("  Retencion rate % (default: 3, press Enter for default): ", required=False)
+        if retencion_rate is None:
             retencion_rate = 3.0
 
     # --- Currency ---
@@ -192,6 +179,25 @@ def add_ar_invoice():
 
     document_ref = get_optional_input("  Document ref (e.g. PRY001-AR-001, optional — press Enter to skip): ")
     is_internal_settlement = confirm("  Is internal settlement (partner-to-partner)?")
+
+    # --- Validate internal settlement entity is a partner (Issue 10) ---
+    if is_internal_settlement:
+        partner_check = (
+            supabase.table("partner_companies")
+            .select("id, name, ruc")
+            .eq("is_active", True)
+            .execute()
+        )
+        partner_rucs = {p["ruc"]: p["name"] for p in partner_check.data}
+        entity_doc = entity.get("document_number", "")
+        if entity_doc not in partner_rucs:
+            partner_names = ", ".join(f"{name} ({ruc})" for ruc, name in partner_rucs.items())
+            print(f"\n  Error: Internal settlements must be issued to a partner company.")
+            print(f"  Selected entity: {entity['legal_name']} ({entity_doc})")
+            print(f"  Partner companies: {partner_names}")
+            input("\nPress Enter to continue...")
+            return
+
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
     # --- Tax breakdown (display-only) ---
@@ -271,29 +277,22 @@ def add_ar_invoice():
 
 def _load_ar_lookups():
     """Pre-load all FK lookup tables for AR invoice import."""
-    projects = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
-    entities = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
-    bank_accounts = supabase.table("bank_accounts").select("id, bank_name, account_number_last4").eq("is_active", True).execute()
-    valuations = supabase.table("valuations").select("id, project_id, valuation_number").execute()
-    partners = supabase.table("partner_companies").select("id, name").eq("is_active", True).execute()
+    # Load project client_entity_id for Issue 9 validation
+    project_clients_result = supabase.table("projects").select("id, client_entity_id").eq("is_active", True).execute()
+    project_clients = {r["id"]: r["client_entity_id"] for r in project_clients_result.data}
 
-    project_map = {r["project_code"]: r["id"] for r in projects.data}
-
-    bank_map = {}
-    for r in bank_accounts.data:
-        key = f"{r['bank_name']}-{r['account_number_last4']}"
-        bank_map[key] = r["id"]
-
-    valuation_map = {}
-    for r in valuations.data:
-        valuation_map[(r["project_id"], r["valuation_number"])] = r["id"]
+    # Load partner RUCs for Issue 10 validation
+    partner_rucs_result = supabase.table("partner_companies").select("ruc").eq("is_active", True).execute()
+    partner_rucs = {r["ruc"] for r in partner_rucs_result.data}
 
     return {
-        "projects": project_map,
-        "entities": {r["document_number"]: r["id"] for r in entities.data},
-        "bank_accounts": bank_map,
-        "valuations": valuation_map,
-        "partners": {r["name"]: r["id"] for r in partners.data},
+        "projects": load_project_map(),
+        "entities": load_entity_map(),
+        "bank_accounts": load_bank_account_map(),
+        "valuations": load_valuation_map(),
+        "partners": load_partner_map(),
+        "project_clients": project_clients,
+        "partner_rucs": partner_rucs,
     }
 
 
@@ -355,11 +354,11 @@ def _validate_ar_row(row_num, row, errors, lookups):
 
     validate_date(row_num, row, "invoice_date", errors)
     validate_date(row_num, row, "due_date", errors)
-    validate_number(row_num, row, "subtotal", errors)
-    validate_number(row_num, row, "igv_rate", errors)
-    validate_number(row_num, row, "detraccion_rate", errors)
-    validate_number(row_num, row, "retencion_rate", errors)
-    validate_number(row_num, row, "exchange_rate", errors)
+    validate_nonneg_number(row_num, row, "subtotal", errors)
+    validate_nonneg_number(row_num, row, "igv_rate", errors)
+    validate_nonneg_number(row_num, row, "detraccion_rate", errors)
+    validate_nonneg_number(row_num, row, "retencion_rate", errors)
+    validate_nonneg_number(row_num, row, "exchange_rate", errors)
 
     validate_boolean(row_num, row, "retencion_applicable", errors)
     validate_boolean(row_num, row, "is_internal_settlement", errors)
@@ -371,6 +370,24 @@ def _validate_ar_row(row_num, row, errors, lookups):
         ret_rate = row.get("retencion_rate")
         if ret_rate is None or pd.isna(ret_rate):
             errors.append((row_num, "retencion_rate", "Required when retencion_applicable is true"))
+
+    # Cross-field: entity should be the project client (Issue 9)
+    proj_code = row.get("project_code")
+    entity_doc = row.get("entity_document_number")
+    if proj_code and entity_doc and not pd.isna(proj_code) and not pd.isna(entity_doc):
+        project_id = lookups["projects"].get(str(proj_code).strip())
+        entity_id = lookups["entities"].get(str(entity_doc).strip())
+        if project_id and entity_id:
+            expected_client = lookups["project_clients"].get(project_id)
+            if expected_client and entity_id != expected_client:
+                errors.append((row_num, "entity_document_number", "Entity is not the project client"))
+
+    # Cross-field: if is_internal_settlement, entity must be a partner (Issue 10)
+    is_settlement = row.get("is_internal_settlement")
+    if is_settlement and not pd.isna(is_settlement) and _parse_bool(is_settlement):
+        if entity_doc and not pd.isna(entity_doc):
+            if str(entity_doc).strip() not in lookups["partner_rucs"]:
+                errors.append((row_num, "entity_document_number", "Internal settlement entity must be a partner company"))
 
 
 def _build_ar_record(row, lookups):
@@ -447,21 +464,8 @@ def import_ar_invoices():
         excel_row = idx + DATA_START_ROW
         _validate_ar_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     print(f"\n--- Summary ---")
     print(f"  File:    {file_path}")

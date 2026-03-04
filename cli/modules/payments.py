@@ -7,8 +7,10 @@ Tables: payments, ar_invoices (update retencion_verified)
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, get_exchange_rate,
+    get_input, get_optional_input, get_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_exchange_rate, select_bank_account,
+    get_nonneg_float,
 )
 
 
@@ -74,19 +76,16 @@ def register_payment():
 
     # --- Payment type ---
     print("\n  Payment types: regular, detraccion, retencion")
-    payment_type = get_input("  Payment type: ").lower()
-    while payment_type not in ("regular", "detraccion", "retencion"):
-        print("  Must be regular, detraccion, or retencion.")
-        payment_type = get_input("  Payment type: ").lower()
+    payment_type = get_enum_input("  Payment type: ", ("regular", "detraccion", "retencion"))
 
     # --- Payment details ---
-    payment_date = get_input("\n  Payment date (YYYY-MM-DD): ")
+    payment_date = get_date_input("\n  Payment date (YYYY-MM-DD): ")
 
-    amount_input = get_input("  Amount: ")
-    try:
-        amount = float(amount_input)
-    except ValueError:
-        print("  Invalid number.")
+    amount = get_nonneg_float("  Amount: ")
+
+    if amount > outstanding:
+        print(f"\n  ✗ Amount ({record_currency} {amount:,.2f}) exceeds outstanding balance ({record_currency} {outstanding:,.2f}).")
+        print("    Enter a lower amount.")
         input("\nPress Enter to continue...")
         return
 
@@ -99,36 +98,13 @@ def register_payment():
     if payment_type == "retencion":
         print("\n  Bank account: N/A (retencion — withheld by client, paid to SUNAT)")
     else:
-        # Filter by account type
-        bank_query = (
-            supabase.table("bank_accounts")
-            .select("id, bank_name, account_number_last4, currency, is_detraccion_account, partner_companies(name)")
-            .eq("is_active", True)
+        is_detraccion = payment_type == "detraccion"
+        bank_account = select_bank_account(
+            detraccion_filter=is_detraccion,
+            label="detraccion" if is_detraccion else "regular",
+            currency=currency,
         )
-        if payment_type == "detraccion":
-            bank_query = bank_query.eq("is_detraccion_account", True)
-        else:
-            bank_query = bank_query.eq("is_detraccion_account", False)
-
-        accounts = bank_query.execute()
-        if not accounts.data:
-            label = "detraccion" if payment_type == "detraccion" else "regular"
-            print(f"\n  No {label} bank accounts found.")
-            input("\nPress Enter to continue...")
-            return
-
-        print(f"\n  Available {'detraccion' if payment_type == 'detraccion' else 'regular'} accounts:")
-        for i, ba in enumerate(accounts.data, start=1):
-            partner = ba.get("partner_companies", {}).get("name", "Unknown")
-            print(f"    {i}. {ba['bank_name']} {ba['currency']} {ba['account_number_last4']} ({partner})")
-        print()
-
-        bank_num = get_input("  Select bank account number: ")
-        try:
-            bank_account = accounts.data[int(bank_num) - 1]
-        except (ValueError, IndexError):
-            print("\n  ✗ Invalid selection.")
-            input("\nPress Enter to continue...")
+        if not bank_account:
             return
 
     # --- Partner company ---

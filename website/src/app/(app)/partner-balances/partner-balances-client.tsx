@@ -24,6 +24,7 @@ export function PartnerBalancesClient({
   const [selectedPartner, setSelectedPartner] = useState<PartnerContribution | null>(null)
   const [costDetails, setCostDetails] = useState<PartnerCostDetail[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(false)
 
   // Group contributions by currency
   const byCurrency = useMemo(() => {
@@ -52,10 +53,13 @@ export function PartnerBalancesClient({
   async function handlePartnerClick(partner: PartnerContribution) {
     setSelectedPartner(partner)
     setDetailLoading(true)
+    setDetailError(false)
     setCostDetails([])
     try {
       const details = await fetchPartnerCosts(projectId!, partner.partner_company_id, partner.currency)
       setCostDetails(details)
+    } catch {
+      setDetailError(true)
     } finally {
       setDetailLoading(false)
     }
@@ -261,9 +265,15 @@ export function PartnerBalancesClient({
               </span>
             </div>
 
+            {!detailLoading && detailError && (
+              <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Could not load cost details.
+              </div>
+            )}
+
             {detailLoading ? (
               <p className="py-8 text-center text-sm text-zinc-500">Loading costs...</p>
-            ) : costDetails.length === 0 ? (
+            ) : costDetails.length === 0 && !detailError ? (
               <p className="py-8 text-center text-sm text-zinc-500">No individual costs found</p>
             ) : (
               <table className="w-full text-sm">

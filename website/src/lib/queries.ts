@@ -3,16 +3,24 @@ import type {
   ApCalendarRow,
   ArBalanceRow,
   ArDetractionEntry,
+  ArInvoiceDetailData,
   ArOutstandingRow,
   BankAccountCard,
   BankTransaction,
   CashFlowData,
   CashFlowMonth,
   CostBalanceRow,
+  CostDetailData,
   CostItem,
+  DetractionEntry,
   CurrencyAmount,
+  EntityDetailData,
+  EntityListItem,
+  EntityTransactionRow,
+  EntitiesFilterOptions,
   FinancialPositionData,
   IgvByCurrency,
+  LoanDetailData,
   PartnerBalanceData,
   PartnerCostDetail,
   Payment,
@@ -20,7 +28,14 @@ import type {
   PLLineItem,
   PLMonthColumn,
   PLPeriodMode,
+  PriceFilterOptions,
+  PriceHistoryRow,
+  ProjectArInvoice,
+  ProjectDetailData,
+  ProjectListItem,
+  ProjectTransactionGroup,
   RetencionDashboardRow,
+  SpendingByEntity,
 } from './types'
 
 export async function getApCalendar(isAlex: boolean): Promise<ApCalendarRow[]> {
@@ -40,7 +55,7 @@ export async function getApCalendar(isAlex: boolean): Promise<ApCalendarRow[]> {
   return (data ?? []) as ApCalendarRow[]
 }
 
-export async function getCostDetail(costId: string) {
+export async function getCostDetail(costId: string): Promise<CostDetailData> {
   const supabase = await createServerSupabaseClient()
 
   const [costResult, itemsResult, paymentsResult] = await Promise.all([
@@ -89,7 +104,25 @@ export async function getCostDetail(costId: string) {
   }
 }
 
-export async function getLoanDetail(loanId: string) {
+export async function getLoanIdFromSchedule(
+  scheduledDate: string,
+  scheduledAmount: number
+): Promise<string | null> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data: scheduleRow } = await supabase
+    .from('loan_schedule')
+    .select('loan_id')
+    .eq('scheduled_date', scheduledDate)
+    .eq('scheduled_amount', scheduledAmount)
+    .eq('paid', false)
+    .limit(1)
+    .single()
+
+  return scheduleRow?.loan_id ?? null
+}
+
+export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   const supabase = await createServerSupabaseClient()
 
   const [loanResult, scheduleResult, paymentsResult] = await Promise.all([
@@ -117,7 +150,7 @@ export async function getLoanDetail(loanId: string) {
   }
 }
 
-export async function getDetractionsPending() {
+export async function getDetractionsPending(): Promise<DetractionEntry[]> {
   const supabase = await createServerSupabaseClient()
 
   // Get all costs with detraccion amounts
@@ -172,7 +205,7 @@ export async function getDetractionsPending() {
   }))
 }
 
-export async function getProjectsForFilter() {
+export async function getProjectsForFilter(): Promise<{ id: string; project_code: string; name: string }[]> {
   const supabase = await createServerSupabaseClient()
   const { data } = await supabase
     .from('projects')
@@ -325,7 +358,7 @@ export async function getArDetracciones(): Promise<ArDetractionEntry[]> {
   })
 }
 
-export async function getArInvoiceDetail(arInvoiceId: string) {
+export async function getArInvoiceDetail(arInvoiceId: string): Promise<ArInvoiceDetailData> {
   const supabase = await createServerSupabaseClient()
 
   const [invoiceResult, paymentsResult] = await Promise.all([
@@ -374,7 +407,7 @@ export async function getArInvoiceDetail(arInvoiceId: string) {
   }
 }
 
-export async function getClientsForFilter() {
+export async function getClientsForFilter(): Promise<{ id: string; name: string }[]> {
   const supabase = await createServerSupabaseClient()
   // Get distinct entities that have AR invoices
   const { data: arInvoices } = await supabase
@@ -396,7 +429,7 @@ export async function getClientsForFilter() {
   }))
 }
 
-export async function getPartnerCompaniesForFilter() {
+export async function getPartnerCompaniesForFilter(): Promise<{ id: string; name: string }[]> {
   const supabase = await createServerSupabaseClient()
   const { data } = await supabase
     .from('partner_companies')
@@ -576,15 +609,6 @@ export async function getCashFlow(
     costCategoryMap.set(item.cost_id, entries)
   }
 
-  // Convert amount to reporting currency
-  function convertAmount(amount: number, currency: string | null, exchangeRate: number | null): number {
-    if (!currency || currency === reportingCurrency) return amount
-    if (!exchangeRate || exchangeRate === 0) return amount
-    // exchange_rate is PEN per USD
-    if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
-    if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
-    return amount
-  }
 
   // Build loan_id -> project_id map for project filtering on loan disbursements/repayments
   const loanProjectMap = new Map<string, string | null>()
@@ -631,7 +655,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const amount = convertAmount(p.amount, p.currency, p.exchange_rate)
+    const amount = convertAmount(p.amount, p.currency, p.exchange_rate, reportingCurrency)
 
     if (p.direction === 'inbound') {
       bucket.projectCashIn += amount
@@ -660,7 +684,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, cost.exchange_rate ?? null)
+    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, cost.exchange_rate ?? null, reportingCurrency)
     const categories = cost.cost_id ? costCategoryMap.get(cost.cost_id) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
@@ -682,7 +706,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    bucket.projectCashIn += convertAmount(ar.outstanding ?? 0, ar.currency, ar.exchange_rate)
+    bucket.projectCashIn += convertAmount(ar.outstanding ?? 0, ar.currency, ar.exchange_rate, reportingCurrency)
   }
 
   // --- Process forecast: loan schedule (Alex-only) ---
@@ -698,7 +722,7 @@ export async function getCashFlow(
       // loan_schedule joined with loans for currency
       const loanData = entry.loans as { currency: string } | null
       const loanCurrency = loanData?.currency ?? 'PEN'
-      bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null)
+      bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null, reportingCurrency)
     }
   }
 
@@ -711,7 +735,7 @@ export async function getCashFlow(
       const bucket = monthBuckets.get(monthKey)
       if (!bucket) continue
 
-      bucket.loansCashIn += convertAmount(loan.amount, loan.currency, loan.exchange_rate ?? null)
+      bucket.loansCashIn += convertAmount(loan.amount, loan.currency, loan.exchange_rate ?? null, reportingCurrency)
     }
   }
 
@@ -727,7 +751,7 @@ export async function getCashFlow(
       const bucket = monthBuckets.get(monthKey)
       if (!bucket) continue
 
-      bucket.loanRepayment += convertAmount(lp.amount, lp.currency, lp.exchange_rate ?? null)
+      bucket.loanRepayment += convertAmount(lp.amount, lp.currency, lp.exchange_rate ?? null, reportingCurrency)
     }
   }
 
@@ -981,7 +1005,8 @@ function getPeriodRange(
   }
 }
 
-function convertAmountPL(
+// Convert amount to target reporting currency using stored exchange rate (PEN per USD)
+function convertAmount(
   amount: number,
   currency: string | null,
   exchangeRate: number | null,
@@ -1072,7 +1097,7 @@ export async function getCompanyPL(
     const bucket = byMonth[mk]
     if (!bucket) continue
 
-    const amount = convertAmountPL(ar.subtotal, ar.currency, ar.exchange_rate, reportingCurrency)
+    const amount = convertAmount(ar.subtotal, ar.currency, ar.exchange_rate, reportingCurrency)
     bucket.income += amount
 
     // Track per-project income
@@ -1090,7 +1115,7 @@ export async function getCompanyPL(
     const bucket = byMonth[mk]
     if (!bucket) continue
 
-    const amount = convertAmountPL(cost.subtotal ?? 0, cost.currency, cost.exchange_rate, reportingCurrency)
+    const amount = convertAmount(cost.subtotal ?? 0, cost.currency, cost.exchange_rate, reportingCurrency)
     const items = cost.cost_id ? costItemsByCost.get(cost.cost_id) : null
     const totalItemSubtotal = items?.reduce((s, i) => s + i.subtotal, 0) ?? 0
 
@@ -1202,20 +1227,28 @@ export async function getCompanyPL(
       .single()
 
     if (alexPartner) {
-      const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
-      const alexContribution = alexLedger.reduce((sum, r) => {
-        return sum + convertAmountPL(r.contribution_amount ?? 0, r.currency, null, reportingCurrency)
-      }, 0)
-      const totalContribution = partnerLedger.reduce((sum, r) => {
-        return sum + convertAmountPL(r.contribution_amount ?? 0, r.currency, null, reportingCurrency)
-      }, 0)
-      const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
-      alexProfitShare = total.netProfit * alexPct
+      // Check if all partner ledger currencies match reporting currency
+      const ledgerCurrencies = new Set(partnerLedger.map(r => r.currency).filter(Boolean))
+      const allSameCurrency = ledgerCurrencies.size <= 1 && (!ledgerCurrencies.size || ledgerCurrencies.has(reportingCurrency))
+
+      if (allSameCurrency) {
+        const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
+        const alexContribution = alexLedger.reduce((sum, r) => sum + (r.contribution_amount ?? 0), 0)
+        const totalContribution = partnerLedger.reduce((sum, r) => sum + (r.contribution_amount ?? 0), 0)
+        const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
+        alexProfitShare = total.netProfit * alexPct
+      }
+      // else: mixed currencies — alexProfitShare stays null (cannot compute without exchange rates)
     }
 
-    loanObligations = loanBalances.reduce((sum, l) => {
-      return sum + convertAmountPL(l.outstanding ?? 0, l.currency, null, reportingCurrency)
-    }, 0)
+    // Check if all loan currencies match reporting currency
+    const loanCurrencies = new Set(loanBalances.map(l => l.currency).filter(Boolean))
+    const allLoansSameCurrency = loanCurrencies.size <= 1 && (!loanCurrencies.size || loanCurrencies.has(reportingCurrency))
+
+    if (allLoansSameCurrency) {
+      loanObligations = loanBalances.reduce((sum, l) => sum + (l.outstanding ?? 0), 0)
+    }
+    // else: mixed currencies — loanObligations stays null
   }
 
   return { columns, byMonth, total, alexProfitShare, loanObligations }
@@ -1422,4 +1455,425 @@ export async function getBankTransactions(
       description,
     }
   })
+}
+
+// --- Projects browse queries ---
+
+export async function getProjectsList(): Promise<ProjectListItem[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, project_code, name, status, contract_value, contract_currency')
+    .eq('is_active', true)
+    .order('project_code')
+
+  if (error) throw error
+  return (data ?? []) as ProjectListItem[]
+}
+
+export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {
+  const supabase = await createServerSupabaseClient()
+
+  // 1. Fetch project, project_entities, budget, AR invoices in parallel
+  const [projectResult, peResult, budgetResult, arResult] = await Promise.all([
+    supabase.from('projects').select('*').eq('id', projectId).single(),
+    supabase.from('project_entities').select('entity_id, tag_id').eq('project_id', projectId),
+    supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
+    supabase
+      .from('v_ar_balances')
+      .select('ar_invoice_id, invoice_number, invoice_date, gross_total, currency, payment_status')
+      .eq('project_id', projectId)
+      .order('invoice_date', { ascending: false }),
+  ])
+
+  if (projectResult.error) throw projectResult.error
+  const project = projectResult.data
+
+  // 2. Look up entity names and tag/role names for assigned entities
+  const peData = peResult.data ?? []
+  const entityIds = [...new Set(peData.map(pe => pe.entity_id).filter(Boolean))]
+  const tagIds = [...new Set(peData.map(pe => pe.tag_id).filter(Boolean))]
+
+  const [entitiesResult, tagsResult] = await Promise.all([
+    entityIds.length > 0
+      ? supabase.from('entities').select('id, legal_name, common_name').in('id', entityIds)
+      : { data: [] },
+    tagIds.length > 0
+      ? supabase.from('tags').select('id, name').in('id', tagIds)
+      : { data: [] },
+  ])
+
+  const entityMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
+  const tagMap = new Map((tagsResult.data ?? []).map(t => [t.id, t.name]))
+
+  const assignedEntities = peData.map(pe => ({
+    entityId: pe.entity_id,
+    entityName: entityMap.get(pe.entity_id) ?? '—',
+    roleName: pe.tag_id ? tagMap.get(pe.tag_id) ?? '—' : '—',
+  }))
+
+  // 3. Spending by entity: query v_cost_totals for this project, group by entity
+  const { data: costTotals } = await supabase
+    .from('v_cost_totals')
+    .select('entity_id, currency, subtotal')
+    .eq('project_id', projectId)
+
+  // Group by (entity_id, currency)
+  const spendingMap = new Map<string, SpendingByEntity>()
+  for (const ct of costTotals ?? []) {
+    const key = `${ct.entity_id ?? '__none__'}|${ct.currency ?? 'PEN'}`
+    const existing = spendingMap.get(key)
+    if (existing) {
+      existing.totalSpent += ct.subtotal ?? 0
+      existing.invoiceCount += 1
+    } else {
+      spendingMap.set(key, {
+        entityId: ct.entity_id,
+        entityName: ct.entity_id ? entityMap.get(ct.entity_id) ?? '—' : 'Other (no entity)',
+        totalSpent: ct.subtotal ?? 0,
+        invoiceCount: 1,
+        currency: ct.currency ?? 'PEN',
+      })
+    }
+  }
+
+  // Look up any entity names not in the assigned entities map
+  const spendingEntityIds = [...new Set(
+    (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null && !entityMap.has(id))
+  )]
+  if (spendingEntityIds.length > 0) {
+    const { data: extraEntities } = await supabase
+      .from('entities')
+      .select('id, legal_name, common_name')
+      .in('id', spendingEntityIds)
+    for (const e of extraEntities ?? []) {
+      const name = e.common_name || e.legal_name
+      // Update any spending entries that reference this entity
+      for (const [key, entry] of spendingMap) {
+        if (entry.entityId === e.id && entry.entityName === '—') {
+          entry.entityName = name
+        }
+      }
+    }
+  }
+
+  const spendingByEntity = [...spendingMap.values()].sort((a, b) => b.totalSpent - a.totalSpent)
+
+  // 4. Client name
+  let clientName: string | null = null
+  if (project.client_entity_id) {
+    const { data: clientEntity } = await supabase
+      .from('entities')
+      .select('legal_name, common_name')
+      .eq('id', project.client_entity_id)
+      .single()
+    clientName = clientEntity?.common_name || clientEntity?.legal_name || null
+  }
+
+  // 5. AR invoices
+  const arInvoices: ProjectArInvoice[] = (arResult.data ?? []).map(ar => ({
+    id: ar.ar_invoice_id!,
+    invoice_number: ar.invoice_number,
+    invoice_date: ar.invoice_date,
+    gross_total: ar.gross_total ?? 0,
+    currency: ar.currency ?? 'PEN',
+    payment_status: ar.payment_status ?? 'pending',
+  }))
+
+  return {
+    project,
+    clientName,
+    assignedEntities,
+    spendingByEntity,
+    budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
+    arInvoices,
+  }
+}
+
+// --- Entities browse queries ---
+
+export async function getEntitiesList(): Promise<EntityListItem[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch entities and all entity_tags in parallel
+  const [entitiesResult, entityTagsResult] = await Promise.all([
+    supabase
+      .from('entities')
+      .select('id, legal_name, common_name, document_type, document_number, entity_type, city, region')
+      .eq('is_active', true)
+      .order('legal_name'),
+    supabase
+      .from('entity_tags')
+      .select('entity_id, tags(name)')
+  ])
+
+  if (entitiesResult.error) throw entitiesResult.error
+
+  // Build entity -> tag names map
+  const tagsByEntity = new Map<string, string[]>()
+  for (const et of entityTagsResult.data ?? []) {
+    const tagName = (et.tags as unknown as { name: string } | null)?.name
+    if (tagName) {
+      const existing = tagsByEntity.get(et.entity_id) ?? []
+      existing.push(tagName)
+      tagsByEntity.set(et.entity_id, existing)
+    }
+  }
+
+  return (entitiesResult.data ?? []).map(e => ({
+    id: e.id,
+    legal_name: e.legal_name,
+    common_name: e.common_name,
+    document_type: e.document_type,
+    document_number: e.document_number,
+    entity_type: e.entity_type,
+    city: e.city,
+    region: e.region,
+    tags: tagsByEntity.get(e.id) ?? [],
+  }))
+}
+
+export async function getEntityDetail(entityId: string): Promise<EntityDetailData> {
+  const supabase = await createServerSupabaseClient()
+
+  const [entityResult, tagsResult, contactsResult, transactionsResult] = await Promise.all([
+    supabase.from('entities').select('*').eq('id', entityId).single(),
+    supabase.from('entity_tags').select('tags(name)').eq('entity_id', entityId),
+    supabase
+      .from('entity_contacts')
+      .select('*')
+      .eq('entity_id', entityId)
+      .order('is_primary', { ascending: false }),
+    supabase
+      .from('v_entity_transactions')
+      .select('*')
+      .eq('entity_id', entityId)
+      .order('date', { ascending: false }),
+  ])
+
+  if (entityResult.error) throw entityResult.error
+
+  const tags = (tagsResult.data ?? [])
+    .map(t => (t.tags as unknown as { name: string } | null)?.name)
+    .filter((n): n is string => n !== null)
+
+  // Group transactions by (project_id, currency)
+  const projectGroups = new Map<string, ProjectTransactionGroup>()
+  for (const tx of transactionsResult.data ?? []) {
+    const key = `${tx.project_id ?? '__none__'}|${tx.currency ?? 'PEN'}`
+    const existing = projectGroups.get(key)
+    const amount = tx.amount ?? 0
+
+    if (existing) {
+      if (tx.transaction_type === 'cost') {
+        existing.apTotal += amount
+      } else {
+        existing.arTotal += amount
+      }
+      existing.transactionCount += 1
+      if (tx.date && (!existing.lastDate || tx.date > existing.lastDate)) {
+        existing.lastDate = tx.date
+      }
+      existing.transactions.push(tx as EntityTransactionRow)
+    } else {
+      projectGroups.set(key, {
+        projectId: tx.project_id ?? '',
+        projectCode: tx.project_code ?? '—',
+        projectName: tx.project_name ?? '—',
+        apTotal: tx.transaction_type === 'cost' ? amount : 0,
+        arTotal: tx.transaction_type === 'ar_invoice' ? amount : 0,
+        net: 0, // computed below
+        transactionCount: 1,
+        lastDate: tx.date,
+        currency: tx.currency ?? 'PEN',
+        transactions: [tx as EntityTransactionRow],
+      })
+    }
+  }
+
+  // Compute net and sort
+  const transactionsByProject = [...projectGroups.values()]
+    .map(g => ({ ...g, net: g.arTotal - g.apTotal }))
+    .sort((a, b) => (b.apTotal + b.arTotal) - (a.apTotal + a.arTotal))
+
+  return {
+    entity: entityResult.data,
+    tags,
+    contacts: contactsResult.data ?? [],
+    transactionsByProject,
+  }
+}
+
+export async function getEntitiesFilterOptions(): Promise<EntitiesFilterOptions> {
+  const supabase = await createServerSupabaseClient()
+
+  const [tagsResult, entitiesResult] = await Promise.all([
+    supabase.from('tags').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('entities').select('city, region').eq('is_active', true),
+  ])
+
+  const cities = [...new Set((entitiesResult.data ?? []).map(e => e.city).filter(Boolean))] as string[]
+  const regions = [...new Set((entitiesResult.data ?? []).map(e => e.region).filter(Boolean))] as string[]
+
+  return {
+    tags: tagsResult.data ?? [],
+    cities: cities.sort(),
+    regions: regions.sort(),
+  }
+}
+
+// --- Prices browse queries ---
+
+export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch cost_items with their parent cost header info, and quotes in parallel
+  const [costItemsResult, costsResult, quotesResult] = await Promise.all([
+    supabase.from('cost_items').select('id, cost_id, title, category, quantity, unit_of_measure, unit_price'),
+    supabase
+      .from('costs')
+      .select('id, entity_id, project_id, date, currency')
+      .eq('cost_type', 'project_cost'),
+    supabase.from('quotes').select('id, entity_id, project_id, date_received, title, quantity, unit_of_measure, unit_price, currency'),
+  ])
+
+  const costItems = costItemsResult.data ?? []
+  const costs = costsResult.data ?? []
+  const quotes = quotesResult.data ?? []
+
+  // Build cost_id -> cost header map
+  const costMap = new Map(costs.map(c => [c.id, c]))
+
+  // Collect all entity and project IDs for lookups
+  const allEntityIds = new Set<string>()
+  const allProjectIds = new Set<string>()
+
+  for (const c of costs) {
+    if (c.entity_id) allEntityIds.add(c.entity_id)
+    if (c.project_id) allProjectIds.add(c.project_id)
+  }
+  for (const q of quotes) {
+    if (q.entity_id) allEntityIds.add(q.entity_id)
+    if (q.project_id) allProjectIds.add(q.project_id)
+  }
+
+  // Fetch entity names, project codes, and entity tags in parallel
+  const [entitiesResult, projectsResult, entityTagsResult] = await Promise.all([
+    allEntityIds.size > 0
+      ? supabase.from('entities').select('id, legal_name, common_name').in('id', [...allEntityIds])
+      : { data: [] },
+    allProjectIds.size > 0
+      ? supabase.from('projects').select('id, project_code').in('id', [...allProjectIds])
+      : { data: [] },
+    allEntityIds.size > 0
+      ? supabase.from('entity_tags').select('entity_id, tags(name)').in('entity_id', [...allEntityIds])
+      : { data: [] },
+  ])
+
+  const entityNameMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
+  const projectCodeMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
+
+  // Build entity -> tags map
+  const entityTagsMap = new Map<string, string[]>()
+  for (const et of entityTagsResult.data ?? []) {
+    const tagName = (et.tags as unknown as { name: string } | null)?.name
+    if (tagName) {
+      const existing = entityTagsMap.get(et.entity_id) ?? []
+      existing.push(tagName)
+      entityTagsMap.set(et.entity_id, existing)
+    }
+  }
+
+  // Build result: cost_items
+  const rows: PriceHistoryRow[] = []
+
+  for (const item of costItems) {
+    const cost = costMap.get(item.cost_id)
+    if (!cost) continue // skip cost_items without matching project_cost header
+
+    rows.push({
+      id: item.id,
+      date: cost.date ?? '',
+      source: 'cost',
+      entityId: cost.entity_id,
+      entityName: cost.entity_id ? entityNameMap.get(cost.entity_id) ?? '—' : '—',
+      projectId: cost.project_id,
+      projectCode: cost.project_id ? projectCodeMap.get(cost.project_id) ?? '—' : '—',
+      title: item.title ?? '',
+      category: item.category,
+      quantity: item.quantity,
+      unit_of_measure: item.unit_of_measure,
+      unit_price: item.unit_price,
+      currency: cost.currency ?? 'PEN',
+      entityTags: cost.entity_id ? entityTagsMap.get(cost.entity_id) ?? [] : [],
+    })
+  }
+
+  // Build result: quotes
+  for (const q of quotes) {
+    rows.push({
+      id: q.id,
+      date: q.date_received ?? '',
+      source: 'quote',
+      entityId: q.entity_id,
+      entityName: q.entity_id ? entityNameMap.get(q.entity_id) ?? '—' : '—',
+      projectId: q.project_id,
+      projectCode: q.project_id ? projectCodeMap.get(q.project_id) ?? '—' : '—',
+      title: q.title ?? '',
+      category: null,
+      quantity: q.quantity,
+      unit_of_measure: q.unit_of_measure,
+      unit_price: q.unit_price,
+      currency: q.currency ?? 'PEN',
+      entityTags: q.entity_id ? entityTagsMap.get(q.entity_id) ?? [] : [],
+    })
+  }
+
+  // Sort by date descending
+  rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+  return rows
+}
+
+export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
+  const supabase = await createServerSupabaseClient()
+
+  const [projectsResult, tagsResult, categoriesResult] = await Promise.all([
+    supabase.from('projects').select('id, project_code, name').eq('is_active', true).order('project_code'),
+    supabase.from('tags').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('cost_items').select('category'),
+  ])
+
+  // Distinct categories
+  const categories = [...new Set(
+    (categoriesResult.data ?? []).map(c => c.category).filter(Boolean)
+  )] as string[]
+
+  // Get entities that appear in costs or quotes
+  const [costEntitiesResult, quoteEntitiesResult] = await Promise.all([
+    supabase.from('costs').select('entity_id').eq('cost_type', 'project_cost').not('entity_id', 'is', null),
+    supabase.from('quotes').select('entity_id').not('entity_id', 'is', null),
+  ])
+
+  const entityIds = [...new Set([
+    ...(costEntitiesResult.data ?? []).map(c => c.entity_id),
+    ...(quoteEntitiesResult.data ?? []).map(q => q.entity_id),
+  ].filter((id): id is string => id !== null))]
+
+  let entities: { id: string; name: string }[] = []
+  if (entityIds.length > 0) {
+    const { data } = await supabase
+      .from('entities')
+      .select('id, legal_name, common_name')
+      .in('id', entityIds)
+      .order('legal_name')
+    entities = (data ?? []).map(e => ({ id: e.id, name: e.common_name || e.legal_name }))
+  }
+
+  return {
+    projects: projectsResult.data ?? [],
+    entities,
+    tags: tagsResult.data ?? [],
+    categories: categories.sort(),
+  }
 }

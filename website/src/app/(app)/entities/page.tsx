@@ -1,8 +1,26 @@
-export default function EntitiesPage() {
+import { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from '@/lib/queries'
+import { EntitiesWrapper } from './entities-wrapper'
+
+type Props = {
+  searchParams: Promise<{ selected?: string }>
+}
+
+export default async function EntitiesPage({ searchParams }: Props) {
+  const params = await searchParams
+  const selectedId = params.selected || null
+
+  const [entities, filterOptions, detail] = await Promise.all([
+    getEntitiesList(),
+    getEntitiesFilterOptions(),
+    selectedId ? getEntityDetail(selectedId) : Promise.resolve(null),
+  ])
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Entities</h1>
-      <p className="mt-2 text-zinc-500">Coming soon</p>
-    </div>
+    <EntitiesWrapper
+      entities={entities}
+      filterOptions={filterOptions}
+      detail={detail}
+      selectedId={selectedId}
+    />
   )
 }

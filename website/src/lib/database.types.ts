@@ -1252,6 +1252,7 @@ export type Database = {
           retencion_amount: number | null
           retencion_applicable: boolean | null
           retencion_rate: number | null
+          retencion_verified: boolean | null
           subtotal: number | null
           valuation_id: string | null
         }

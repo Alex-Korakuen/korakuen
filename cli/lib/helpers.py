@@ -3,6 +3,9 @@ Shared input helpers — used by all CLI modules.
 """
 
 import os
+from datetime import datetime
+
+from lib.db import supabase
 
 
 def get_input(prompt):
@@ -18,6 +21,33 @@ def get_optional_input(prompt):
     """Prompt for optional input. Returns None if empty."""
     value = input(prompt).strip()
     return value if value else None
+
+
+def get_date_input(prompt):
+    """Prompt for required date in YYYY-MM-DD format. Loops until valid."""
+    while True:
+        value = input(prompt).strip()
+        if not value:
+            print("  This field is required.")
+            continue
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+            return value
+        except ValueError:
+            print("  Invalid date. Use YYYY-MM-DD format (e.g. 2026-03-15).")
+
+
+def get_optional_date_input(prompt):
+    """Prompt for optional date in YYYY-MM-DD format. Returns None if empty."""
+    value = input(prompt).strip()
+    if not value:
+        return None
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return value
+    except ValueError:
+        print("  Invalid date. Use YYYY-MM-DD format (e.g. 2026-03-15). Skipping.")
+        return None
 
 
 def confirm(message):
@@ -48,6 +78,31 @@ def list_choices(title, data, display):
 def clear_screen():
     """Clear the terminal screen."""
     os.system("clear")
+
+
+def get_enum_input(prompt, allowed_values, transform="lower"):
+    """Prompt until user enters a value in the allowed set.
+
+    Args:
+        prompt: The input prompt string.
+        allowed_values: Collection of valid string values.
+        transform: "lower", "upper", or None.
+    """
+    value = get_input(prompt)
+    if transform == "lower":
+        value = value.lower()
+    elif transform == "upper":
+        value = value.upper()
+
+    while value not in allowed_values:
+        print(f"  Must be one of: {', '.join(allowed_values)}")
+        value = get_input(prompt)
+        if transform == "lower":
+            value = value.lower()
+        elif transform == "upper":
+            value = value.upper()
+
+    return value
 
 
 def get_currency(default=None, label="Currency"):
@@ -85,14 +140,36 @@ def get_exchange_rate():
             print("  Must be a valid number (e.g. 3.72).")
 
 
+def get_nonneg_float(prompt, required=True):
+    """Prompt for a non-negative number. Loops until valid.
+
+    Args:
+        prompt: The input prompt string.
+        required: If True, loops on empty input. If False, returns None on empty.
+    """
+    while True:
+        value = input(prompt).strip()
+        if not value:
+            if required:
+                print("  This field is required.")
+                continue
+            return None
+        try:
+            num = float(value)
+            if num < 0:
+                print("  Must not be negative.")
+                continue
+            return num
+        except ValueError:
+            print("  Must be a valid number.")
+
+
 def select_project(optional=False):
     """Query active projects and let user select one.
 
     Returns the selected project dict, or None if cancelled/invalid.
     When optional=True, user can press Enter to skip.
     """
-    from lib.db import supabase
-
     projects = (
         supabase.table("projects")
         .select("id, project_code, name")
@@ -123,4 +200,46 @@ def select_project(optional=False):
         else:
             print("\n  ✗ Invalid selection.")
             input("\nPress Enter to continue...")
+        return None
+
+
+def select_bank_account(detraccion_filter=None, label="bank account", currency=None):
+    """Query active bank accounts and let user select one.
+
+    Args:
+        detraccion_filter: None=all, True=detraccion only, False=regular only.
+        label: Display label for messages.
+        currency: If provided, only show accounts matching this currency (USD/PEN).
+
+    Returns the selected bank_account dict, or None.
+    """
+    query = (
+        supabase.table("bank_accounts")
+        .select("id, bank_name, account_number_last4, currency, is_detraccion_account, partner_companies(name)")
+        .eq("is_active", True)
+    )
+    if detraccion_filter is not None:
+        query = query.eq("is_detraccion_account", detraccion_filter)
+    if currency is not None:
+        query = query.eq("currency", currency)
+
+    bank_accounts = query.execute()
+
+    if not bank_accounts.data:
+        print(f"\n  No {label} accounts found.")
+        input("\nPress Enter to continue...")
+        return None
+
+    print(f"\n  Available {label} accounts:")
+    for i, ba in enumerate(bank_accounts.data, start=1):
+        partner = ba.get("partner_companies", {}).get("name", "Unknown")
+        print(f"    {i}. {ba['bank_name']} {ba['currency']} {ba['account_number_last4']} ({partner})")
+    print()
+
+    bank_num = get_input("  Select bank account number: ")
+    try:
+        return bank_accounts.data[int(bank_num) - 1]
+    except (ValueError, IndexError):
+        print("\n  ✗ Invalid selection.")
+        input("\nPress Enter to continue...")
         return None

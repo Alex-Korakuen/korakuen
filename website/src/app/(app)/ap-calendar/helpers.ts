@@ -21,29 +21,4 @@ export function formatType(type: string | null): string {
   return type ?? '--'
 }
 
-export function formatComprobanteType(type: string | null): string {
-  if (!type) return '--'
-  const map: Record<string, string> = {
-    factura: 'Factura',
-    boleta: 'Boleta',
-    recibo_por_honorarios: 'Recibo por Honorarios',
-    liquidacion_de_compra: 'Liquidacion de Compra',
-    planilla_jornales: 'Planilla de Jornales',
-    none: 'Sin comprobante',
-  }
-  return map[type] ?? type
-}
 
-export function formatPaymentStatus(status: string | null): string {
-  if (status === 'pending') return 'Pending'
-  if (status === 'partial') return 'Partial'
-  if (status === 'paid') return 'Paid'
-  return status ?? '--'
-}
-
-export function statusBadgeClass(status: string | null): string {
-  if (status === 'pending') return 'bg-yellow-100 text-yellow-800'
-  if (status === 'partial') return 'bg-orange-100 text-orange-800'
-  if (status === 'paid') return 'bg-green-100 text-green-800'
-  return 'bg-zinc-100 text-zinc-600'
-}

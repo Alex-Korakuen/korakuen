@@ -1,8 +1,5 @@
--- View: v_ar_balances
--- Purpose: Derives igv_amount, gross_total, detraccion, retencion, net_receivable,
---          amount_paid, outstanding, and payment_status per AR invoice
--- Source tables: ar_invoices, payments
--- Used by: v_settlement_dashboard, AR detail pages, project P&L, company P&L
+-- Migration: Add retencion_verified to v_ar_balances
+-- Fixes bug where ar-outstanding-detail.tsx used retencion_applicable instead of retencion_verified
 
 CREATE OR REPLACE VIEW v_ar_balances
 WITH (security_invoker = on)

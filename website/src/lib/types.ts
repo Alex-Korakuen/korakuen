@@ -72,7 +72,7 @@ export type PaymentDirection = 'inbound' | 'outbound'
 
 export type LoanStatus = 'active' | 'partially_paid' | 'settled'
 
-export type ReturnType = 'percentage' | 'fixed' | 'none'
+export type ReturnType = 'percentage' | 'fixed'
 
 export type ApCalendarEntryType = 'supplier_invoice' | 'loan_payment'
 
@@ -109,28 +109,8 @@ export type CostDetailData = {
     bank_account_id: string | null
     document_ref: string | null
   } | null
-  items: {
-    id: string
-    cost_id: string
-    title: string
-    quantity: number
-    unit_of_measure: string | null
-    unit_price: number
-    category: string
-    created_at: string
-    updated_at: string
-  }[]
-  payments: {
-    id: string
-    payment_date: string
-    payment_type: string
-    amount: number
-    currency: string
-    related_id: string
-    related_to: string
-    created_at: string
-    updated_at: string
-  }[]
+  items: CostItem[]
+  payments: Payment[]
   header: {
     comprobante_type: string | null
     comprobante_number: string | null
@@ -416,4 +396,135 @@ export type FinancialPositionData = {
   loans: { loanId: string; lenderName: string; outstanding: number; currency: string }[]
   igv: IgvByCurrency[]
   retencionesUnverified: CurrencyAmount[]
+}
+
+// --- Projects browse types ---
+
+export type ProjectListItem = {
+  id: string
+  project_code: string
+  name: string
+  status: string
+  contract_value: number | null
+  contract_currency: string | null
+}
+
+export type AssignedEntity = {
+  entityId: string
+  entityName: string
+  roleName: string
+}
+
+export type SpendingByEntity = {
+  entityId: string | null
+  entityName: string
+  totalSpent: number
+  invoiceCount: number
+  currency: string
+}
+
+export type ProjectArInvoice = {
+  id: string
+  invoice_number: string | null
+  invoice_date: string | null
+  gross_total: number
+  currency: string
+  payment_status: string
+}
+
+export type ProjectDetailData = {
+  project: Project
+  clientName: string | null
+  assignedEntities: AssignedEntity[]
+  spendingByEntity: SpendingByEntity[]
+  budget: BudgetVsActualRow[]
+  arInvoices: ProjectArInvoice[]
+}
+
+export type ProjectStatusFilter = 'all' | ProjectStatus
+
+// --- Entities browse types ---
+
+export type EntityListItem = {
+  id: string
+  legal_name: string
+  common_name: string | null
+  document_type: string | null
+  document_number: string | null
+  entity_type: string
+  city: string | null
+  region: string | null
+  tags: string[]
+}
+
+export type ProjectTransactionGroup = {
+  projectId: string
+  projectCode: string
+  projectName: string
+  apTotal: number
+  arTotal: number
+  net: number
+  transactionCount: number
+  lastDate: string | null
+  currency: string
+  transactions: EntityTransactionRow[]
+}
+
+export type EntityDetailData = {
+  entity: Entity
+  tags: string[]
+  contacts: EntityContact[]
+  transactionsByProject: ProjectTransactionGroup[]
+}
+
+export type EntityFilters = {
+  search: string
+  entityType: string
+  tagId: string
+  city: string
+  region: string
+}
+
+export type EntitiesFilterOptions = {
+  tags: { id: string; name: string }[]
+  cities: string[]
+  regions: string[]
+}
+
+// --- Prices browse types ---
+
+export type PriceHistoryRow = {
+  id: string
+  date: string
+  source: 'cost' | 'quote'
+  entityId: string | null
+  entityName: string
+  projectId: string | null
+  projectCode: string
+  title: string
+  category: string | null
+  quantity: number | null
+  unit_of_measure: string | null
+  unit_price: number | null
+  currency: string
+  entityTags: string[]
+}
+
+export type PriceFilters = {
+  titleSearch: string
+  category: string
+  entityId: string
+  projectId: string
+  tagId: string
+  dateFrom: string
+  dateTo: string
+}
+
+export type PriceSortColumn = 'date' | 'title' | 'entityName' | 'projectCode' | 'unit_price' | 'quantity'
+
+export type PriceFilterOptions = {
+  projects: { id: string; project_code: string; name: string }[]
+  entities: { id: string; name: string }[]
+  tags: { id: string; name: string }[]
+  categories: string[]
 }

@@ -1,7 +1,7 @@
 # Module Specifications
 
-**Document version:** 2.0
-**Date:** February 28, 2026
+**Document version:** 2.1
+**Date:** March 3, 2026
 **Status:** Active — schema fully locked, see 08_schema.md
 
 ---
@@ -78,6 +78,8 @@ COSTS          QUOTES        VALUATIONS      AR INVOICES
 - Entity type: Company or Individual
 - RUC (if company) or DNI (if individual)
 - Razón Social (if company) or Full Name (if individual)
+- City (nullable — e.g. "Arequipa", enables geographic filtering)
+- Region (nullable — Peruvian department)
 - Category tags (see 2.3)
 - Notes
 
@@ -193,11 +195,12 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - IGV rate (default 18%, editable)
 - Detraccion rate % (nullable, editable)
 - Currency: USD or PEN
-- Exchange rate (reference only)
-- Comprobante type (nullable): Factura, Boleta, Recibo por Honorarios
+- Exchange rate (mandatory NOT NULL — stored at historical rate per transaction, enables application-layer conversion)
+- Comprobante type (nullable): Factura, Boleta, Recibo por Honorarios, Liquidación de Compra, Planilla de Jornales, None
 - Comprobante number (nullable, e.g. F001-00234)
 - Document reference code (nullable, e.g. PRY001-AP-001)
 - Due date (nullable — feeds AP calendar)
+- Payment method (nullable): bank_transfer, cash, check — indicates payment channel
 
 **Key attributes — `cost_items` (line items, one or many per cost):**
 - Line item title
@@ -331,7 +334,7 @@ Net receivable to regular account:     S/ 109,740
 - Retencion applicable: Yes/No
 - Retencion rate (default 3% if applicable)
 - Currency: USD or PEN
-- Exchange rate (reference only)
+- Exchange rate (mandatory NOT NULL — stored at historical rate per transaction, enables application-layer conversion)
 - Is internal settlement: Yes/No (flags partner-to-partner invoices)
 - Document reference code (nullable, e.g. PRY001-AR-001)
 - Notes
@@ -416,6 +419,69 @@ Partner 3                  S/   30,377   43.40%
 When partners settle up, one partner company issues a formal AR invoice to another partner company using the standard `ar_invoices` flow. The invoice is flagged with `is_internal_settlement = true`. Payment flows through the `payments` table as normal. No separate settlement table exists.
 
 **Connects to:** Costs (source data), AR Invoices + Payments (source data)
+
+---
+
+## Module 9: Loans (Private — Alex Only)
+
+**Purpose:** Tracks private loans Alex takes from friends, family, or informal lenders to fund project operations. These are personal financial obligations — never visible to partners.
+
+**Business rules:**
+- Every loan records the lender, amount, and terms (percentage or fixed return)
+- A loan can optionally be linked to a project it funded
+- Return can be percentage-based (e.g. 8%) or a fixed agreed amount
+- Repayments are tracked separately from business payments — uses `loan_payments` table, not `payments`
+- Loan schedule entries feed `v_ap_calendar` as a UNION source (type = 'loan_payment') — only visible to Alex
+- Loans are permanent financial records — no soft delete via `is_active`
+
+**Loan status:**
+- Active — loan is outstanding
+- Partially Paid — some repayments made
+- Settled — fully repaid
+
+**Key attributes — `loans` (header):**
+- Loan ID (system generated)
+- Lender name
+- Lender contact (nullable — phone or email)
+- Amount (principal borrowed)
+- Currency: USD or PEN
+- Exchange rate
+- Date borrowed
+- Project (nullable — references Projects, which project this funded)
+- Purpose (freeform description)
+- Return type: percentage or fixed
+- Agreed return rate % (nullable — e.g. 8.00)
+- Agreed return amount (nullable — if fixed instead of %)
+- Due date (nullable — overall repayment deadline)
+- Status: active, partially_paid, settled
+- Notes
+
+**Key attributes — `loan_schedule` (agreed repayment schedule, optional):**
+- Schedule entry ID
+- Loan (references Loans)
+- Scheduled date
+- Scheduled amount
+- Exchange rate
+- Paid (boolean, default false)
+- Actual payment ID (nullable — references loan_payments when settled)
+
+**Key attributes — `loan_payments` (actual repayments):**
+- Payment ID
+- Loan (references Loans)
+- Payment date
+- Amount
+- Currency: USD or PEN
+- Exchange rate
+- Source (nullable): project_settlement, personal_funds, other
+- Settlement reference (nullable — e.g. PRY001-Settlement-1, links repayment to profit event)
+- Notes
+
+**Derived via database views:**
+- Total owed (principal + return) — via `v_loan_balances`
+- Total paid — SUM from loan_payments
+- Outstanding balance — total owed minus total paid
+
+**Connects to:** Projects (optional), Bank Accounts (indirectly via AP Calendar)
 
 ---
 

@@ -6,19 +6,19 @@ Tables: projects, project_budgets
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
+from modules.costs import PROJECT_CATEGORIES
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency,
+    get_input, get_optional_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number,
-    print_errors,
+    validate_date, validate_nonneg_number,
+    process_import_errors, load_entity_map,
 )
 
 
@@ -77,17 +77,11 @@ def add_project():
 
     # --- Project type ---
     print("\n  Project types: subcontractor, oxi")
-    project_type = get_input("  Project type: ").lower()
-    while project_type not in ("subcontractor", "oxi"):
-        print("  Must be 'subcontractor' or 'oxi'.")
-        project_type = get_input("  Project type: ").lower()
+    project_type = get_enum_input("  Project type: ", ("subcontractor", "oxi"))
 
     # --- Status ---
     print("\n  Statuses: prospect, active, completed, cancelled")
-    status = get_input("  Status: ").lower()
-    while status not in ("prospect", "active", "completed", "cancelled"):
-        print("  Must be prospect, active, completed, or cancelled.")
-        status = get_input("  Status: ").lower()
+    status = get_enum_input("  Status: ", ("prospect", "active", "completed", "cancelled"))
 
     # --- Client entity (optional) ---
     client_entity_id = None
@@ -100,20 +94,14 @@ def add_project():
             client_name = entity["legal_name"]
 
     # --- Contract value (optional) ---
-    contract_value = get_optional_input("\n  Contract value (optional — press Enter to skip): ")
+    contract_value = get_nonneg_float("\n  Contract value (optional — press Enter to skip): ", required=False)
     contract_currency = None
-    if contract_value:
-        try:
-            contract_value = float(contract_value)
-        except ValueError:
-            print("  Invalid number, skipping contract value.")
-            contract_value = None
     if contract_value:
         print("  Currencies: USD, PEN")
         contract_currency = get_currency(label="Contract currency")
 
     # --- Optional fields ---
-    start_date = get_optional_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
+    start_date = get_optional_date_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
     location = get_optional_input("  Location (optional — press Enter to skip): ")
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
@@ -173,10 +161,9 @@ def add_project():
 
 def _load_project_lookups():
     """Pre-load lookup tables for project import validation."""
-    entities = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
     existing = supabase.table("projects").select("project_code").execute()
     return {
-        "entities": {r["document_number"]: r["id"] for r in entities.data},
+        "entities": load_entity_map(),
         "existing_codes": {r["project_code"] for r in existing.data},
     }
 
@@ -196,7 +183,7 @@ def _validate_project_row(row_num, row, errors, lookups):
     validate_date(row_num, row, "start_date", errors)
     validate_date(row_num, row, "expected_end_date", errors)
     validate_date(row_num, row, "actual_end_date", errors)
-    validate_number(row_num, row, "contract_value", errors)
+    validate_nonneg_number(row_num, row, "contract_value", errors)
 
     # Validate project_code format and uniqueness if provided
     code = row.get("project_code")
@@ -208,15 +195,17 @@ def _validate_project_row(row_num, row, errors, lookups):
             errors.append((row_num, "project_code", "Already exists in database"))
 
 
-def _build_project_record(row, lookups, next_code_num):
-    """Convert a spreadsheet row to a database record."""
-    # Auto-generate project_code if blank
+def _build_project_record(row, lookups, auto_code_num):
+    """Convert a spreadsheet row to a database record.
+
+    auto_code_num: the PRY### number to use if project_code is blank,
+                   or None if the row provides its own code.
+    """
     code = row.get("project_code")
     if code and not pd.isna(code):
         project_code = str(code).strip()
     else:
-        project_code = f"PRY{next_code_num[0]:03d}"
-        next_code_num[0] += 1
+        project_code = f"PRY{auto_code_num:03d}"
 
     data = {
         "project_code": project_code,
@@ -283,22 +272,8 @@ def import_projects():
         excel_row = idx + DATA_START_ROW
         _validate_project_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    # Clear previous highlighting
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     # Show summary
     print(f"\n--- Summary ---")
@@ -319,13 +294,18 @@ def import_projects():
     # Determine next code number for auto-generation
     all_codes = lookups["existing_codes"]
     if all_codes:
-        max_num = max(int(c.replace("PRY", "")) for c in all_codes)
+        next_code_num = max(int(c.replace("PRY", "")) for c in all_codes) + 1
     else:
-        max_num = 0
-    next_code_num = [max_num + 1]  # mutable counter
+        next_code_num = 1
 
     try:
-        records = [_build_project_record(row, lookups, next_code_num) for _, row in df.iterrows()]
+        records = []
+        for _, row in df.iterrows():
+            code = row.get("project_code")
+            needs_auto = not code or pd.isna(code)
+            records.append(_build_project_record(row, lookups, next_code_num if needs_auto else None))
+            if needs_auto:
+                next_code_num += 1
         response = supabase.table("projects").insert(records).execute()
         print(f"\n✓ {len(response.data)} projects imported successfully.")
     except Exception as e:
@@ -338,15 +318,8 @@ def import_projects():
 # Set Project Budget
 # ============================================================
 
-# Must match cost_items project cost categories exactly
-PROJECT_BUDGET_CATEGORIES = [
-    "materials",
-    "labor",
-    "subcontractor",
-    "equipment_rental",
-    "permits_regulatory",
-    "other",
-]
+# Reuse the canonical list from costs.py
+PROJECT_BUDGET_CATEGORIES = PROJECT_CATEGORIES
 
 
 def set_project_budget():
@@ -416,16 +389,7 @@ def set_project_budget():
     budget_entries = []
     for category in PROJECT_BUDGET_CATEGORIES:
         display_name = category.replace("_", " ").title()
-        while True:
-            amount_str = get_input(f"    {display_name}: ")
-            try:
-                amount = float(amount_str)
-                if amount < 0:
-                    print("    Amount must be zero or positive.")
-                    continue
-                break
-            except ValueError:
-                print("    Invalid number. Enter a valid amount.")
+        amount = get_nonneg_float(f"    {display_name}: ")
         budget_entries.append({"category": category, "amount": amount})
 
     # --- Notes ---

@@ -72,7 +72,13 @@ korakuen/
 │   │   ├── 20260302000005_phase35_views.sql
 │   │   ├── 20260302000006_phase35_indexes.sql
 │   │   ├── 20260302000007_fix_payments_index.sql
-│   │   └── 20260303000001_fix_v_bank_balances_is_active.sql
+│   │   ├── 20260303000001_fix_v_bank_balances_is_active.sql
+│   │   ├── 20260303000002_rls_authenticated_read.sql
+│   │   ├── 20260303000003_exchange_rate_required.sql
+│   │   ├── 20260303000004_views_exchange_rate_passthrough.sql
+│   │   ├── 20260303000005_dummy_data.sql
+│   │   ├── 20260303000006_dummy_partner_costs.sql
+│   │   └── 20260303000007_create_v_igv_position.sql
 │   ├── views/              → individual view source files (combined into migration above)
 │   │   ├── v_ap_calendar.sql
 │   │   ├── v_ar_balances.sql
@@ -86,7 +92,8 @@ korakuen/
 │   │   ├── v_retencion_dashboard.sql
 │   │   ├── v_settlement_dashboard.sql
 │   │   ├── v_loan_balances.sql
-│   │   └── v_budget_vs_actual.sql
+│   │   ├── v_budget_vs_actual.sql
+│   │   └── v_igv_position.sql
 │   └── seeds/
 │       ├── 001_tags.sql
 │       ├── 002_partner_companies.sql

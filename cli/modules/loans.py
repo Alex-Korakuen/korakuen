@@ -7,8 +7,10 @@ Tables: loans, loan_schedule, loan_payments
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, get_exchange_rate, select_project,
+    get_input, get_optional_input, get_date_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_exchange_rate, select_project,
+    get_nonneg_float,
 )
 
 
@@ -48,13 +50,7 @@ def add_loan():
     lender_contact = get_optional_input("  Lender contact (optional — press Enter to skip): ")
 
     # --- Principal ---
-    amount_input = get_input("  Amount (principal borrowed): ")
-    try:
-        amount = float(amount_input)
-    except ValueError:
-        print("\n  ✗ Invalid number.")
-        input("\nPress Enter to continue...")
-        return
+    amount = get_nonneg_float("  Amount (principal borrowed): ")
 
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
@@ -63,7 +59,7 @@ def add_loan():
     exchange_rate = get_exchange_rate()
 
     # --- Date borrowed ---
-    date_borrowed = get_input("\n  Date borrowed (YYYY-MM-DD): ")
+    date_borrowed = get_date_input("\n  Date borrowed (YYYY-MM-DD): ")
 
     # --- Project (optional) ---
     project = select_project(optional=True)
@@ -73,35 +69,20 @@ def add_loan():
 
     # --- Return type ---
     print("\n  Return types: percentage, fixed")
-    return_type = get_input("  Return type: ").lower()
-    while return_type not in ("percentage", "fixed"):
-        print("  Must be 'percentage' or 'fixed'.")
-        return_type = get_input("  Return type: ").lower()
+    return_type = get_enum_input("  Return type: ", ("percentage", "fixed"))
 
     agreed_return_rate = None
     agreed_return_amount = None
 
     if return_type == "percentage":
-        rate_input = get_input("  Agreed return rate (%): ")
-        try:
-            agreed_return_rate = float(rate_input)
-        except ValueError:
-            print("\n  ✗ Invalid number.")
-            input("\nPress Enter to continue...")
-            return
+        agreed_return_rate = get_nonneg_float("  Agreed return rate (%): ")
         total_owed = amount + (amount * agreed_return_rate / 100)
     else:
-        amt_input = get_input("  Agreed return amount (fixed): ")
-        try:
-            agreed_return_amount = float(amt_input)
-        except ValueError:
-            print("\n  ✗ Invalid number.")
-            input("\nPress Enter to continue...")
-            return
+        agreed_return_amount = get_nonneg_float("  Agreed return amount (fixed): ")
         total_owed = amount + agreed_return_amount
 
     # --- Due date (optional) ---
-    due_date = get_optional_input("\n  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
+    due_date = get_optional_date_input("\n  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
 
     # --- Notes (optional) ---
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
@@ -210,13 +191,8 @@ def add_schedule():
 
     while True:
         print(f"  Entry {entry_num}:")
-        scheduled_date = get_input("    Scheduled date (YYYY-MM-DD): ")
-        amount_input = get_input("    Scheduled amount: ")
-        try:
-            scheduled_amount = float(amount_input)
-        except ValueError:
-            print("    Invalid number, skipping entry.")
-            continue
+        scheduled_date = get_date_input("    Scheduled date (YYYY-MM-DD): ")
+        scheduled_amount = get_nonneg_float("    Scheduled amount: ")
 
         entries.append({
             "loan_id": loan["id"],
@@ -320,13 +296,13 @@ def register_repayment():
     print(f"  Outstanding: {loan_currency} {outstanding:,.2f}")
 
     # --- Collect repayment details ---
-    payment_date = get_input("\n  Payment date (YYYY-MM-DD): ")
+    payment_date = get_date_input("\n  Payment date (YYYY-MM-DD): ")
 
-    amount_input = get_input("  Amount: ")
-    try:
-        amount = float(amount_input)
-    except ValueError:
-        print("\n  ✗ Invalid number.")
+    amount = get_nonneg_float("  Amount: ")
+
+    if amount > outstanding:
+        print(f"\n  ✗ Amount ({loan_currency} {amount:,.2f}) exceeds outstanding balance ({loan_currency} {outstanding:,.2f}).")
+        print("    Enter a lower amount.")
         input("\nPress Enter to continue...")
         return
 

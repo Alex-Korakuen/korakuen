@@ -112,7 +112,7 @@ Every transaction captures the full Peruvian tax reality from day one:
 - **IGV (18%):** tracked separately on all costs and invoices
 - **Detracciones:** tracked on AR and AP, rate editable per transaction, Banco de la Nación as a special account type
 - **Retenciones:** tracked on AR only — Korakuen is not a retention agent
-- **Comprobante type:** Factura, Boleta, or Recibo por Honorarios — stored per transaction
+- **Comprobante type:** Factura, Boleta, Recibo por Honorarios, Liquidación de Compra, Planilla de Jornales, or None — stored per transaction
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables reliable currency conversion at the application layer. Amounts always stored in natural currency (USD or PEN) — never converted at storage
 
 ---
@@ -167,7 +167,7 @@ The system serves two audiences with different needs. Every applicable page has 
 
 **Project View (all partners + Alex):** One project at a time, all partners combined, no private data. Answers "How is this project doing?"
 
-Same pages, same database views — the difference is a filter parameter. SQL already supports it (`v_project_pl` filtered by project = project view; `v_company_pl` = company view). UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
+Same pages, same underlying data — the difference is a filter parameter. P&L is computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion) rather than via SQL views. The SQL views `v_project_pl` and `v_company_pl` exist for simple queries but the website computes P&L directly for full flexibility. UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
 
 ---
 
@@ -185,9 +185,9 @@ Privacy: CLI-only in V0 (automatic — only Alex runs the CLI). Admin-only in V1
 ### 4.15 P&L vs Cash Flow — Two Financial Statements
 The system provides two distinct financial views:
 
-**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. `v_company_pl`, `v_project_pl`. Shows business profitability.
+**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. Computed in `queries.ts` with period filtering and currency conversion (SQL views `v_company_pl`/`v_project_pl` exist for simple queries). Shows business profitability.
 
-**Cash Flow (cash basis):** Actual cash movements through bank accounts. `v_cash_flow` (planned). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule. Shows cash position.
+**Cash Flow (cash basis):** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule. Shows cash position.
 
 Loan obligations are NOT on the P&L — they are personal, not business expenses. They appear in the personal position section below the P&L (Alex-only) and in the cash flow forecast (as outflows, Alex-only).
 

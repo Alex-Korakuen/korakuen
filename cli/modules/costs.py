@@ -6,19 +6,21 @@ Tables: costs, cost_items
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, get_exchange_rate, select_project,
+    get_input, get_optional_input, get_date_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, get_exchange_rate, select_project,
+    select_bank_account, get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number,
-    print_errors,
+    validate_date, validate_number, validate_nonneg_number,
+    process_import_errors,
+    load_project_map, load_entity_map, load_bank_account_map,
+    load_valuation_map, load_quote_map,
 )
 
 # Cost item categories by cost type
@@ -62,10 +64,7 @@ def add_cost():
 
     # --- Cost type ---
     print("  Cost types: project_cost, sga")
-    cost_type = get_input("  Cost type: ").lower()
-    while cost_type not in ("project_cost", "sga"):
-        print("  Must be 'project_cost' or 'sga'.")
-        cost_type = get_input("  Cost type: ").lower()
+    cost_type = get_enum_input("  Cost type: ", ("project_cost", "sga"))
 
     # --- Project (optional for SGA, expected for project_cost) ---
     project = None
@@ -95,29 +94,8 @@ def add_cost():
                     print("  Invalid selection, skipping valuation.")
 
     # --- Bank account (required) ---
-    bank_accounts = (
-        supabase.table("bank_accounts")
-        .select("id, bank_name, account_number_last4, currency, partner_companies(name)")
-        .eq("is_active", True)
-        .execute()
-    )
-    if not bank_accounts.data:
-        print("\n  No bank accounts found.")
-        input("\nPress Enter to continue...")
-        return
-
-    print("\n  Available bank accounts:")
-    for i, ba in enumerate(bank_accounts.data, start=1):
-        partner = ba.get("partner_companies", {}).get("name", "Unknown")
-        print(f"    {i}. {ba['bank_name']} {ba['currency']} {ba['account_number_last4']} ({partner})")
-    print()
-
-    bank_num = get_input("  Select bank account number: ")
-    try:
-        bank_account = bank_accounts.data[int(bank_num) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    bank_account = select_bank_account()
+    if not bank_account:
         return
 
     # --- Entity (optional) ---
@@ -146,39 +124,36 @@ def add_cost():
                     print("  Invalid selection, skipping quote.")
 
     # --- Date, title ---
-    date_str = get_input("\n  Date (YYYY-MM-DD): ")
+    date_str = get_date_input("\n  Date (YYYY-MM-DD): ")
     title = get_input("  Title: ")
 
-    # --- Tax rates ---
-    igv_input = get_input("  IGV rate % (default: 18): ") or "18"
-    try:
-        igv_rate = float(igv_input)
-    except ValueError:
-        igv_rate = 18.0
-
-    detraccion_input = get_optional_input("  Detraccion rate % (optional — press Enter to skip): ")
-    detraccion_rate = None
-    if detraccion_input:
-        try:
-            detraccion_rate = float(detraccion_input)
-        except ValueError:
-            detraccion_rate = None
-
-    # --- Currency ---
-    print("\n  Currencies: USD, PEN")
-    currency = get_currency()
-    exchange_rate = get_exchange_rate()
-
-    # --- Comprobante (optional) ---
+    # --- Comprobante (before IGV — determines whether IGV credit applies) ---
     comprobante_type = None
     comprobante_number = None
     valid_comprobante_types = ("factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none")
+    NO_IGV_CREDIT_TYPES = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
     comp = get_optional_input("  Comprobante type (factura/boleta/recibo_por_honorarios/liquidacion_de_compra/planilla_jornales/none, optional — press Enter to skip): ")
     if comp:
         comp = comp.lower()
         if comp in valid_comprobante_types:
             comprobante_type = comp
             comprobante_number = get_optional_input("  Comprobante number (optional — press Enter to skip): ")
+
+    # --- Tax rates ---
+    if comprobante_type in NO_IGV_CREDIT_TYPES:
+        igv_rate = 0.0
+        print(f"  IGV rate: 0% (no IGV credit for {comprobante_type})")
+    else:
+        igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", required=False)
+        if igv_rate is None:
+            igv_rate = 18.0
+
+    detraccion_rate = get_nonneg_float("  Detraccion rate % (optional — press Enter to skip): ", required=False)
+
+    # --- Currency ---
+    print("\n  Currencies: USD, PEN")
+    currency = get_currency()
+    exchange_rate = get_exchange_rate()
 
     # --- Payment method (optional) ---
     payment_method = None
@@ -189,7 +164,7 @@ def add_cost():
             payment_method = pm
 
     document_ref = get_optional_input("  Document ref (e.g. PRY001-AP-001, optional — press Enter to skip): ")
-    due_date = get_optional_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
+    due_date = get_optional_date_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
     # ---- STEP 2: LINE ITEMS ----
@@ -207,36 +182,24 @@ def add_cost():
         item_title = get_input("    Title: ")
 
         print(f"    Categories: {', '.join(categories)}")
-        category = get_input("    Category: ").lower()
-        while category not in categories:
-            print(f"    Must be one of: {', '.join(categories)}")
-            category = get_input("    Category: ").lower()
+        category = get_enum_input("    Category: ", categories)
 
-        qty = get_optional_input("    Quantity (optional — press Enter for lump sum): ")
+        qty = get_nonneg_float("    Quantity (optional — press Enter for lump sum): ", required=False)
         uom = None
         up = None
         if qty:
-            try:
-                qty = float(qty)
-            except ValueError:
-                qty = None
-        if qty:
             uom = get_optional_input("    Unit of measure (optional — press Enter to skip): ")
-            up_input = get_optional_input("    Unit price (optional — press Enter to skip): ")
-            if up_input:
-                try:
-                    up = float(up_input)
-                except ValueError:
-                    up = None
+            up = get_nonneg_float("    Unit price (optional — press Enter to skip): ", required=False)
 
         # Subtotal
         default_sub = qty * up if (qty and up) else None
         if default_sub:
             print(f"    Computed: {default_sub:,.2f}")
-        sub_input = get_input(f"    Subtotal{f' (default: {default_sub:,.2f})' if default_sub else ''}: ")
-        try:
-            item_subtotal = float(sub_input) if sub_input else default_sub
-        except ValueError:
+        item_subtotal = get_nonneg_float(
+            f"    Subtotal{f' (default: {default_sub:,.2f})' if default_sub else ''}: ",
+            required=not default_sub,
+        )
+        if item_subtotal is None:
             item_subtotal = default_sub
         if item_subtotal is None:
             print("    Subtotal is required.")
@@ -378,38 +341,12 @@ def add_cost():
 
 def _load_cost_lookups():
     """Pre-load all FK lookup tables for cost import."""
-    projects = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
-    entities = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
-    bank_accounts = supabase.table("bank_accounts").select("id, bank_name, account_number_last4").eq("is_active", True).execute()
-    valuations = supabase.table("valuations").select("id, project_id, valuation_number").execute()
-    quotes = supabase.table("quotes").select("id, document_ref").execute()
-
-    # Build project_code -> id map
-    project_map = {r["project_code"]: r["id"] for r in projects.data}
-
-    # Build composite bank account lookup: "BankName-Last4" -> id
-    bank_map = {}
-    for r in bank_accounts.data:
-        key = f"{r['bank_name']}-{r['account_number_last4']}"
-        bank_map[key] = r["id"]
-
-    # Build composite valuation lookup: (project_id, valuation_number) -> id
-    valuation_map = {}
-    for r in valuations.data:
-        valuation_map[(r["project_id"], r["valuation_number"])] = r["id"]
-
-    # Build quote lookup: document_ref -> id
-    quote_map = {}
-    for r in quotes.data:
-        if r.get("document_ref"):
-            quote_map[r["document_ref"]] = r["id"]
-
     return {
-        "projects": project_map,
-        "entities": {r["document_number"]: r["id"] for r in entities.data},
-        "bank_accounts": bank_map,
-        "valuations": valuation_map,
-        "quotes": quote_map,
+        "projects": load_project_map(),
+        "entities": load_entity_map(),
+        "bank_accounts": load_bank_account_map(),
+        "valuations": load_valuation_map(),
+        "quotes": load_quote_map(),
     }
 
 
@@ -459,9 +396,21 @@ def _validate_cost_row(row_num, row, errors, lookups):
 
     validate_date(row_num, row, "date", errors)
     validate_date(row_num, row, "due_date", errors)
-    validate_number(row_num, row, "igv_rate", errors)
-    validate_number(row_num, row, "detraccion_rate", errors)
-    validate_number(row_num, row, "exchange_rate", errors)
+    validate_nonneg_number(row_num, row, "igv_rate", errors)
+    validate_nonneg_number(row_num, row, "detraccion_rate", errors)
+    validate_nonneg_number(row_num, row, "exchange_rate", errors)
+
+    # Cross-field: IGV must be 0 for non-IGV comprobante types
+    no_igv_types = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
+    comp_val = row.get("comprobante_type")
+    igv_val = row.get("igv_rate")
+    if comp_val and not pd.isna(comp_val) and str(comp_val).strip().lower() in no_igv_types:
+        if igv_val is not None and not pd.isna(igv_val):
+            try:
+                if float(igv_val) > 0:
+                    errors.append((row_num, "igv_rate", f"IGV must be 0 for comprobante_type '{str(comp_val).strip()}' (no IGV credit)"))
+            except (ValueError, TypeError):
+                pass
 
 
 def _build_cost_record(row, lookups):
@@ -550,21 +499,8 @@ def import_costs():
         excel_row = idx + DATA_START_ROW
         _validate_cost_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     print(f"\n--- Summary ---")
     print(f"  File:    {file_path}")
@@ -609,9 +545,9 @@ def _validate_cost_item_row(row_num, row, errors, lookups):
 
     validate_enum(row_num, row, "category", ALL_CATEGORIES, errors)
     validate_lookup(row_num, row, "cost_document_ref", lookups["costs"], errors)
-    validate_number(row_num, row, "quantity", errors)
-    validate_number(row_num, row, "unit_price", errors)
-    validate_number(row_num, row, "subtotal", errors)
+    validate_nonneg_number(row_num, row, "quantity", errors)
+    validate_nonneg_number(row_num, row, "unit_price", errors)
+    validate_nonneg_number(row_num, row, "subtotal", errors)
 
 
 def _build_cost_item_record(row, lookups):
@@ -664,21 +600,8 @@ def import_cost_items():
         excel_row = idx + DATA_START_ROW
         _validate_cost_item_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     print(f"\n--- Summary ---")
     print(f"  File:    {file_path}")

@@ -45,6 +45,7 @@ SELECT
   awt.currency,
   awt.retencion_verified,
   (CURRENT_DATE - awt.invoice_date) AS days_since_invoice
+-- No is_active filter on projects/entities: retencion history must remain visible
 FROM ar_with_totals awt
 JOIN projects p ON p.id = awt.project_id
 JOIN entities e ON e.id = awt.entity_id

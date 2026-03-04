@@ -1,8 +1,11 @@
-export default function PricesPage() {
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Prices</h1>
-      <p className="mt-2 text-zinc-500">Coming soon</p>
-    </div>
-  )
+import { getPriceHistory, getPriceFilterOptions } from '@/lib/queries'
+import { PricesClient } from './prices-client'
+
+export default async function PricesPage() {
+  const [data, filterOptions] = await Promise.all([
+    getPriceHistory(),
+    getPriceFilterOptions(),
+  ])
+
+  return <PricesClient data={data} filterOptions={filterOptions} />
 }

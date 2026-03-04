@@ -6,19 +6,19 @@ Tables: valuations
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    get_currency, select_project,
+    get_input, get_optional_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, get_currency, select_project,
+    get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number,
-    print_errors,
+    validate_date, validate_number, validate_nonneg_number,
+    process_import_errors, load_project_map,
 )
 
 
@@ -86,27 +86,18 @@ def add_valuation():
 
     # --- Status ---
     print("\n  Statuses: open, closed")
-    status = get_input("  Status (default: open): ").lower() or "open"
-    while status not in ("open", "closed"):
-        print("  Must be 'open' or 'closed'.")
-        status = get_input("  Status: ").lower()
+    status = get_enum_input("  Status: ", ("open", "closed"))
 
     # --- Optional fields ---
-    billed_value = get_optional_input("  Billed value (optional — press Enter to skip): ")
+    billed_value = get_nonneg_float("  Billed value (optional — press Enter to skip): ", required=False)
     billed_currency = None
-    if billed_value:
-        try:
-            billed_value = float(billed_value)
-        except ValueError:
-            print("  Invalid number, skipping billed value.")
-            billed_value = None
     if billed_value:
         print("  Currencies: USD, PEN")
         billed_currency = get_currency(label="Billed currency")
 
     date_closed = None
     if status == "closed":
-        date_closed = get_optional_input("  Date closed (YYYY-MM-DD, optional — press Enter to skip): ")
+        date_closed = get_optional_date_input("  Date closed (YYYY-MM-DD, optional — press Enter to skip): ")
 
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
@@ -159,10 +150,9 @@ def add_valuation():
 
 def _load_valuation_lookups():
     """Pre-load lookup tables for valuation import."""
-    projects = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
     valuations = supabase.table("valuations").select("project_id, valuation_number").execute()
     return {
-        "projects": {r["project_code"]: r["id"] for r in projects.data},
+        "projects": load_project_map(),
         "existing": {(r["project_id"], r["valuation_number"]) for r in valuations.data},
     }
 
@@ -182,7 +172,7 @@ def _validate_valuation_row(row_num, row, errors, lookups):
     validate_number(row_num, row, "valuation_number", errors)
     validate_number(row_num, row, "period_month", errors)
     validate_number(row_num, row, "period_year", errors)
-    validate_number(row_num, row, "billed_value", errors)
+    validate_nonneg_number(row_num, row, "billed_value", errors)
     validate_date(row_num, row, "date_closed", errors)
 
     # Validate period_month range
@@ -262,21 +252,8 @@ def import_valuations():
         excel_row = idx + DATA_START_ROW
         _validate_valuation_row(excel_row, row, errors, lookups)
 
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     print(f"\n--- Summary ---")
     print(f"  File:    {file_path}")

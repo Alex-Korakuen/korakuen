@@ -27,16 +27,3 @@ export function getRetencionAgingColor(daysSinceInvoice: number, verified: boole
   return 'text-red-600'
 }
 
-export function formatPaymentStatus(status: string | null): string {
-  if (status === 'pending') return 'Pending'
-  if (status === 'partial') return 'Partial'
-  if (status === 'paid') return 'Paid'
-  return status ?? '--'
-}
-
-export function statusBadgeClass(status: string | null): string {
-  if (status === 'pending') return 'bg-yellow-100 text-yellow-800'
-  if (status === 'partial') return 'bg-orange-100 text-orange-800'
-  if (status === 'paid') return 'bg-green-100 text-green-800'
-  return 'bg-zinc-100 text-zinc-600'
-}

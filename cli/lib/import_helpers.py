@@ -4,6 +4,7 @@ Used by all CLI modules that have Excel import functions.
 """
 
 import pandas as pd
+from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
 # Error highlighting — dark red fill for invalid cells
@@ -83,6 +84,19 @@ def validate_number(row_num, row, field, errors):
         errors.append((row_num, field, "Must be a number"))
 
 
+def validate_nonneg_number(row_num, row, field, errors):
+    """Check that a field value is a non-negative number. Skip if empty."""
+    val = row.get(field)
+    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+        return
+    try:
+        num = float(val)
+        if num < 0:
+            errors.append((row_num, field, "Must not be negative"))
+    except (ValueError, TypeError):
+        errors.append((row_num, field, "Must be a number"))
+
+
 def validate_boolean(row_num, row, field, errors):
     """Check that a field value is a boolean (true/false). Skip if empty."""
     val = row.get(field)
@@ -104,3 +118,78 @@ def print_errors(errors, file_path):
         print(f"  {row_num:<8}{col_name:<30}{message}")
     print(f"\n  Errors highlighted in red in: {file_path}")
     print("  Fix the highlighted cells and re-run.")
+
+
+def process_import_errors(file_path, errors):
+    """Handle the error/clean-highlighting cycle after import validation.
+
+    Returns True if errors were found (caller should return early),
+    False if validation passed (caller should continue with import).
+    """
+    if errors:
+        wb = load_workbook(file_path)
+        ws = wb.active
+        headers = [cell.value for cell in ws[1]]
+        clear_highlighting(ws)
+        apply_error_highlighting(ws, errors, headers)
+        wb.save(file_path)
+        print_errors(errors, file_path)
+        input("\nPress Enter to continue...")
+        return True
+
+    # Clear previous highlighting on clean run
+    wb = load_workbook(file_path)
+    ws = wb.active
+    clear_highlighting(ws)
+    wb.save(file_path)
+    return False
+
+
+# ============================================================
+# Shared Lookup Builders — used by import functions across modules
+# ============================================================
+
+def load_project_map():
+    """Return {project_code: id} for all active projects."""
+    from lib.db import supabase
+    result = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
+    return {r["project_code"]: r["id"] for r in result.data}
+
+
+def load_entity_map():
+    """Return {document_number: id} for all active entities."""
+    from lib.db import supabase
+    result = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
+    return {r["document_number"]: r["id"] for r in result.data}
+
+
+def load_bank_account_map():
+    """Return {"BankName-Last4": id} for all active bank accounts."""
+    from lib.db import supabase
+    result = supabase.table("bank_accounts").select("id, bank_name, account_number_last4").eq("is_active", True).execute()
+    bank_map = {}
+    for r in result.data:
+        key = f"{r['bank_name']}-{r['account_number_last4']}"
+        bank_map[key] = r["id"]
+    return bank_map
+
+
+def load_valuation_map():
+    """Return {(project_id, valuation_number): id} for all valuations."""
+    from lib.db import supabase
+    result = supabase.table("valuations").select("id, project_id, valuation_number").execute()
+    return {(r["project_id"], r["valuation_number"]): r["id"] for r in result.data}
+
+
+def load_partner_map():
+    """Return {name: id} for all active partner companies."""
+    from lib.db import supabase
+    result = supabase.table("partner_companies").select("id, name").eq("is_active", True).execute()
+    return {r["name"]: r["id"] for r in result.data}
+
+
+def load_quote_map():
+    """Return {document_ref: id} for all quotes with a document_ref."""
+    from lib.db import supabase
+    result = supabase.table("quotes").select("id, document_ref").execute()
+    return {r["document_ref"]: r["id"] for r in result.data if r.get("document_ref")}

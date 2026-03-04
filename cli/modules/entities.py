@@ -6,18 +6,17 @@ Tables: entities, entity_contacts, tags, entity_tags, project_entities
 """
 
 import pandas as pd
-from openpyxl import load_workbook
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, confirm, list_choices, clear_screen,
-    select_project,
+    get_input, get_optional_input, get_optional_date_input,
+    confirm, list_choices, clear_screen,
+    get_enum_input, select_project,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
-    clear_highlighting, apply_error_highlighting,
     validate_required, validate_enum,
-    print_errors,
+    process_import_errors,
 )
 
 
@@ -63,17 +62,11 @@ def add_entity():
 
     # --- Entity type ---
     print("  Entity types: company, individual")
-    entity_type = get_input("  Entity type: ").lower()
-    while entity_type not in ("company", "individual"):
-        print("  Must be 'company' or 'individual'.")
-        entity_type = get_input("  Entity type: ").lower()
+    entity_type = get_enum_input("  Entity type: ", ("company", "individual"))
 
     # --- Document type ---
     print("\n  Document types: RUC, DNI, CE, Pasaporte")
-    document_type = get_input("  Document type: ").upper()
-    while document_type not in ("RUC", "DNI", "CE", "PASAPORTE"):
-        print("  Must be RUC, DNI, CE, or Pasaporte.")
-        document_type = get_input("  Document type: ").upper()
+    document_type = get_enum_input("  Document type: ", ("RUC", "DNI", "CE", "PASAPORTE"), transform="upper")
     # Normalize casing
     if document_type == "PASAPORTE":
         document_type = "Pasaporte"
@@ -84,6 +77,23 @@ def add_entity():
         print(f"  Warning: RUC should be 11 digits (got {len(document_number)}).")
     elif document_type == "DNI" and len(document_number) != 8:
         print(f"  Warning: DNI should be 8 digits (got {len(document_number)}).")
+
+    # --- Duplicate check ---
+    existing = (
+        supabase.table("entities")
+        .select("id, document_type, document_number, legal_name, is_active")
+        .eq("document_number", document_number)
+        .execute()
+    )
+    if existing.data:
+        e = existing.data[0]
+        status = "active" if e.get("is_active") else "INACTIVE"
+        print(f"\n  Warning: Entity already exists with this document number:")
+        print(f"    {e['document_type']} {e['document_number']} — {e['legal_name']} ({status})")
+        if not confirm("\n  Continue adding a new entity anyway?"):
+            print("  Cancelled.")
+            input("\nPress Enter to continue...")
+            return
 
     # --- Names ---
     legal_name = get_input("  Legal name (razón social): ")
@@ -363,8 +373,8 @@ def assign_entity_to_project():
         return
 
     # Optional dates and notes
-    start_date = get_optional_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
-    end_date = get_optional_input("  End date (YYYY-MM-DD, optional — press Enter to skip): ")
+    start_date = get_optional_date_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
+    end_date = get_optional_date_input("  End date (YYYY-MM-DD, optional — press Enter to skip): ")
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
     # Summary
@@ -497,23 +507,8 @@ def import_entities():
         excel_row = idx + DATA_START_ROW
         _validate_entity_row(excel_row, row, errors, existing_doc_numbers)
 
-    # Handle errors
-    if errors:
-        wb = load_workbook(file_path)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        clear_highlighting(ws)
-        apply_error_highlighting(ws, errors, headers)
-        wb.save(file_path)
-        print_errors(errors, file_path)
-        input("\nPress Enter to continue...")
+    if process_import_errors(file_path, errors):
         return
-
-    # Clear previous highlighting on clean run
-    wb = load_workbook(file_path)
-    ws = wb.active
-    clear_highlighting(ws)
-    wb.save(file_path)
 
     # Show summary
     print(f"\n--- Summary ---")

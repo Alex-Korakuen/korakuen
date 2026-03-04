@@ -1,8 +1,24 @@
-export default function ProjectsPage() {
+import { getProjectsList, getProjectDetail } from '@/lib/queries'
+import { ProjectsWrapper } from './projects-wrapper'
+
+type Props = {
+  searchParams: Promise<{ selected?: string }>
+}
+
+export default async function ProjectsPage({ searchParams }: Props) {
+  const params = await searchParams
+  const selectedId = params.selected || null
+
+  const projects = await getProjectsList()
+
+  // Only fetch detail data if a project is selected
+  const detail = selectedId ? await getProjectDetail(selectedId) : null
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Projects</h1>
-      <p className="mt-2 text-zinc-500">Coming soon</p>
-    </div>
+    <ProjectsWrapper
+      projects={projects}
+      detail={detail}
+      selectedId={selectedId}
+    />
   )
 }
