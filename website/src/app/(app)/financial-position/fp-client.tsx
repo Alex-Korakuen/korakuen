@@ -43,13 +43,6 @@ export function FPClient({ data, isAlex }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-800">Financial Position</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Point-in-time snapshot — all amounts in original currency
-        </p>
-      </div>
 
       {/* CASH */}
       <section className="rounded-lg border border-zinc-200 bg-white">

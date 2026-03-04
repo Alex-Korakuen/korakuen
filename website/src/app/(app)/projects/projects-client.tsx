@@ -4,8 +4,6 @@ import { useMemo, useState } from 'react'
 import {
   formatCurrency,
   formatDate,
-  formatPaymentStatus,
-  statusBadgeClass,
   formatProjectStatus,
   projectStatusBadgeClass,
   formatProjectType,
@@ -52,10 +50,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Projects</h1>
-      <p className="mt-1 text-sm text-zinc-500">Browse and view project details</p>
-
-      <div className="mt-6 flex flex-col gap-6 md:flex-row">
+      <div className="mt-0 flex flex-col gap-6 md:flex-row">
         {/* Left panel — project list */}
         <div
           className={`w-full shrink-0 md:w-[320px] ${
@@ -176,7 +171,7 @@ function ProjectDetail({
   totalActual: number
   totalBudgeted: number | null
 }) {
-  const { project, clientName, assignedEntities, spendingByEntity, arInvoices } = detail
+  const { project, clientName, entities, arInvoices } = detail
 
   return (
     <div className="space-y-6">
@@ -234,50 +229,14 @@ function ProjectDetail({
         </div>
       </div>
 
-      {/* 2. Assigned Entities */}
+      {/* 2. Entities */}
       <div className="rounded-lg border border-zinc-200">
         <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="text-sm font-medium text-zinc-700">Assigned Entities</h3>
+          <h3 className="text-sm font-medium text-zinc-700">Entities</h3>
         </div>
-        {assignedEntities.length === 0 ? (
+        {entities.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-zinc-400">
-            No entities assigned
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium">Entity Name</th>
-                <th className="px-4 py-2 text-left font-medium">Role</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {assignedEntities.map((ae, i) => (
-                <tr key={`${ae.entityId}-${i}`} className="transition-colors hover:bg-blue-50">
-                  <td className="px-4 py-2">
-                    <a
-                      href={`/entities?selected=${ae.entityId}`}
-                      className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {ae.entityName}
-                    </a>
-                  </td>
-                  <td className="px-4 py-2 text-zinc-600">{ae.roleName}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* 3. Spending by Entity */}
-      <div className="rounded-lg border border-zinc-200">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="text-sm font-medium text-zinc-700">Spending by Entity</h3>
-        </div>
-        {spendingByEntity.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-zinc-400">
-            No costs recorded
+            No entities assigned or costs recorded
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -285,36 +244,54 @@ function ProjectDetail({
               <thead className="bg-zinc-50 text-xs text-zinc-500">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">Entity Name</th>
+                  <th className="px-4 py-2 text-left font-medium">Role</th>
                   <th className="px-4 py-2 text-right font-medium">Total Spent</th>
                   <th className="px-4 py-2 text-right font-medium"># Invoices</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {spendingByEntity.map((se, i) => (
-                  <tr key={`${se.entityId ?? 'none'}-${se.currency}-${i}`} className="transition-colors hover:bg-blue-50">
-                    <td className="px-4 py-2 font-medium text-zinc-800">{se.entityName}</td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
-                      {formatCurrency(se.totalSpent, se.currency as Currency)}
+                {entities.map((e, i) => (
+                  <tr key={`${e.entityId ?? 'none'}-${e.currency}-${i}`} className="transition-colors hover:bg-blue-50">
+                    <td className="px-4 py-2">
+                      {e.entityId ? (
+                        <a
+                          href={`/entities?selected=${e.entityId}`}
+                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {e.entityName}
+                        </a>
+                      ) : (
+                        <span className="font-medium text-zinc-800">{e.entityName}</span>
+                      )}
                     </td>
-                    <td className="px-4 py-2 text-right text-zinc-600">{se.invoiceCount}</td>
+                    <td className="px-4 py-2 text-zinc-600">{e.roleName ?? '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                      {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency as Currency) : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-right text-zinc-600">
+                      {e.invoiceCount ?? '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 {(() => {
-                  const byCurrency: Record<string, { total: number; count: number }> = {};
-                  for (const se of spendingByEntity) {
-                    const c = se.currency;
-                    if (!byCurrency[c]) byCurrency[c] = { total: 0, count: 0 };
-                    byCurrency[c].total += se.totalSpent;
-                    byCurrency[c].count += se.invoiceCount;
+                  const byCurrency: Record<string, { total: number; count: number }> = {}
+                  for (const e of entities) {
+                    if (e.totalSpent === null) continue
+                    const c = e.currency
+                    if (!byCurrency[c]) byCurrency[c] = { total: 0, count: 0 }
+                    byCurrency[c].total += e.totalSpent
+                    byCurrency[c].count += e.invoiceCount ?? 0
                   }
-                  const currencies = Object.keys(byCurrency).sort();
+                  const currencies = Object.keys(byCurrency).sort()
+                  if (currencies.length === 0) return null
                   return currencies.map((c, i) => (
                     <tr key={c} className={`${i === 0 ? 'border-t border-zinc-200' : ''} bg-zinc-50`}>
                       <td className="px-4 py-2 text-sm font-medium text-zinc-700">
                         {currencies.length > 1 ? `Total ${c}` : 'Total'}
                       </td>
+                      <td className="px-4 py-2" />
                       <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
                         {formatCurrency(byCurrency[c].total, c as Currency)}
                       </td>
@@ -322,7 +299,7 @@ function ProjectDetail({
                         {byCurrency[c].count}
                       </td>
                     </tr>
-                  ));
+                  ))
                 })()}
               </tfoot>
             </table>
@@ -459,7 +436,6 @@ function ProjectDetail({
                   <th className="px-4 py-2 text-left font-medium">Invoice #</th>
                   <th className="px-4 py-2 text-left font-medium">Date</th>
                   <th className="px-4 py-2 text-right font-medium">Gross Total</th>
-                  <th className="px-4 py-2 text-left font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -473,15 +449,6 @@ function ProjectDetail({
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(ar.gross_total, ar.currency as Currency)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(
-                          ar.payment_status
-                        )}`}
-                      >
-                        {formatPaymentStatus(ar.payment_status)}
-                      </span>
                     </td>
                   </tr>
                 ))}

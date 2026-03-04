@@ -81,11 +81,6 @@ export function PartnerBalancesClient({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Partner Balances</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Contribution breakdown and settlement position per project
-      </p>
-
       {/* Project selector */}
       <div className="mt-6 flex flex-col gap-1">
         <label className="text-xs font-medium text-zinc-500">Project</label>

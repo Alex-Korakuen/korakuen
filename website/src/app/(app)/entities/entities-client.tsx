@@ -8,6 +8,7 @@ import type {
   EntitiesFilterOptions,
   EntityFilters,
   Currency,
+  ProjectTransactionGroup,
 } from '@/lib/types'
 
 type Props = {
@@ -53,7 +54,7 @@ export function EntitiesClient({
     region: '',
   })
 
-  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set())
+  const [modalGroup, setModalGroup] = useState<ProjectTransactionGroup | null>(null)
 
   // Build tag id -> name lookup for filtering
   const tagNameById = useMemo(() => {
@@ -93,18 +94,6 @@ export function EntitiesClient({
       return true
     })
   }, [entities, filters, tagNameById])
-
-  function toggleProject(key: string) {
-    setExpandedProjectIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }
 
   // --- Mobile: show detail or list ---
   const showDetailMobile = selectedId && detail
@@ -361,24 +350,47 @@ export function EntitiesClient({
                           <th className="px-4 py-2 text-right font-medium">AP Total</th>
                           <th className="px-4 py-2 text-right font-medium">AR Total</th>
                           <th className="px-4 py-2 text-right font-medium">Net</th>
-                          <th className="px-4 py-2 text-right font-medium"># Txns</th>
                           <th className="px-4 py-2 text-right font-medium">Last Date</th>
                           <th className="px-4 py-2 text-right font-medium">Currency</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
                         {detail.transactionsByProject.map((group) => {
-                          const groupKey = `${group.projectId}|${group.currency}`
-                          const isExpanded = expandedProjectIds.has(groupKey)
-
+                          const cur = group.currency as Currency
                           return (
-                            <ProjectRow
-                              key={groupKey}
-                              group={group}
-                              groupKey={groupKey}
-                              isExpanded={isExpanded}
-                              onToggle={() => toggleProject(groupKey)}
-                            />
+                            <tr
+                              key={`${group.projectId}|${group.currency}`}
+                              onClick={() => setModalGroup(group)}
+                              className="cursor-pointer transition-colors hover:bg-blue-50"
+                            >
+                              <td className="px-4 py-2">
+                                <a
+                                  href={`/projects?selected=${group.projectId}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                  {group.projectCode}
+                                </a>
+                                <span className="ml-1.5 hidden text-zinc-500 lg:inline">— {group.projectName}</span>
+                              </td>
+                              <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                                {group.apTotal > 0 ? formatCurrency(group.apTotal, cur) : '—'}
+                              </td>
+                              <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                                {group.arTotal > 0 ? formatCurrency(group.arTotal, cur) : '—'}
+                              </td>
+                              <td
+                                className={`px-4 py-2 text-right font-mono font-medium ${
+                                  group.net > 0 ? 'text-green-600' : group.net < 0 ? 'text-red-600' : 'text-zinc-600'
+                                }`}
+                              >
+                                {formatCurrency(group.net, cur)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-zinc-600">
+                                {group.lastDate ? formatDate(group.lastDate) : '—'}
+                              </td>
+                              <td className="px-4 py-2 text-right text-zinc-600">{group.currency}</td>
+                            </tr>
                           )
                         })}
                       </tbody>
@@ -390,94 +402,95 @@ export function EntitiesClient({
           )}
         </div>
       </div>
+
+      {/* Transaction detail modal */}
+      {modalGroup && (
+        <TransactionModal group={modalGroup} onClose={() => setModalGroup(null)} />
+      )}
     </div>
   )
 }
 
-// --- Expandable project row component ---
+// --- Transaction detail modal ---
 
-type ProjectRowProps = {
-  group: EntityDetailData['transactionsByProject'][number]
-  groupKey: string
-  isExpanded: boolean
-  onToggle: () => void
-}
-
-function ProjectRow({ group, isExpanded, onToggle }: ProjectRowProps) {
+function TransactionModal({
+  group,
+  onClose,
+}: {
+  group: ProjectTransactionGroup
+  onClose: () => void
+}) {
   const cur = group.currency as Currency
 
   return (
-    <>
-      <tr
-        onClick={onToggle}
-        className="cursor-pointer transition-colors hover:bg-blue-50"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="mx-4 max-h-[80vh] w-full max-w-xl overflow-hidden rounded-lg bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <td className="px-4 py-2">
-          <div className="flex items-center gap-1.5">
-            <svg
-              className={`h-3 w-3 shrink-0 text-zinc-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-            <a
-              href={`/projects?selected=${group.projectId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              {group.projectCode}
-            </a>
-            <span className="hidden text-zinc-500 lg:inline">— {group.projectName}</span>
+        {/* Modal header */}
+        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+          <div>
+            <h3 className="text-base font-semibold text-zinc-800">
+              {group.projectCode} — {group.projectName}
+            </h3>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {group.transactions.length} transaction{group.transactions.length === 1 ? '' : 's'} · {group.currency}
+            </p>
           </div>
-        </td>
-        <td className="px-4 py-2 text-right font-mono text-zinc-700">
-          {group.apTotal > 0 ? formatCurrency(group.apTotal, cur) : '—'}
-        </td>
-        <td className="px-4 py-2 text-right font-mono text-zinc-700">
-          {group.arTotal > 0 ? formatCurrency(group.arTotal, cur) : '—'}
-        </td>
-        <td
-          className={`px-4 py-2 text-right font-mono font-medium ${
-            group.net > 0 ? 'text-green-600' : group.net < 0 ? 'text-red-600' : 'text-zinc-600'
-          }`}
-        >
-          {formatCurrency(group.net, cur)}
-        </td>
-        <td className="px-4 py-2 text-right text-zinc-600">{group.transactionCount}</td>
-        <td className="px-4 py-2 text-right text-zinc-600">
-          {group.lastDate ? formatDate(group.lastDate) : '—'}
-        </td>
-        <td className="px-4 py-2 text-right text-zinc-600">{group.currency}</td>
-      </tr>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-      {/* Expanded sub-table */}
-      {isExpanded &&
-        group.transactions.map((tx) => (
-          <tr key={tx.transaction_id} className="bg-zinc-50/50">
-            <td className="py-1.5 pl-10 pr-4 text-xs text-zinc-600">
-              {tx.date ? formatDate(tx.date) : '—'}
-            </td>
-            <td className="px-4 py-1.5" colSpan={2}>
-              <span
-                className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                  tx.transaction_type === 'cost'
-                    ? 'bg-zinc-100 text-zinc-600'
-                    : 'bg-blue-100 text-blue-700'
-                }`}
-              >
-                {tx.transaction_type === 'cost' ? 'Cost' : 'AR Invoice'}
-              </span>
-              <span className="ml-2 text-xs text-zinc-700">{tx.title ?? '—'}</span>
-            </td>
-            <td className="px-4 py-1.5 text-right font-mono text-xs text-zinc-700">
-              {tx.amount != null ? formatCurrency(tx.amount, cur) : '—'}
-            </td>
-            <td className="px-4 py-1.5" colSpan={3} />
-          </tr>
-        ))}
-    </>
+        {/* Transaction list */}
+        <div className="max-h-[60vh] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-zinc-50 text-xs text-zinc-500">
+              <tr>
+                <th className="px-5 py-2 text-left font-medium">Date</th>
+                <th className="px-4 py-2 text-left font-medium">Type</th>
+                <th className="px-4 py-2 text-left font-medium">Title</th>
+                <th className="px-4 py-2 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {group.transactions.map((tx) => (
+                <tr key={tx.transaction_id} className="transition-colors hover:bg-zinc-50">
+                  <td className="whitespace-nowrap px-5 py-2 text-zinc-700">
+                    {tx.date ? formatDate(tx.date) : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2">
+                    <span
+                      className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        tx.transaction_type === 'cost'
+                          ? 'bg-zinc-100 text-zinc-600'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {tx.transaction_type === 'cost' ? 'Cost' : 'AR Invoice'}
+                    </span>
+                  </td>
+                  <td className="max-w-[200px] truncate px-4 py-2 text-zinc-700">
+                    {tx.title ?? '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                    {tx.amount != null ? formatCurrency(tx.amount, cur) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   )
 }

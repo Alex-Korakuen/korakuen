@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { formatCurrency, formatDate, formatPaymentStatus, statusBadgeClass } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
@@ -194,12 +194,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">AP Payment Calendar</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Upcoming and overdue payment obligations
-      </p>
-
-      <div className="mt-6">
+      <div className="mt-0">
         <Tabs
           tabs={tabItems}
           activeTab={activeTab}
@@ -354,18 +349,29 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
+                        onClick={() => handleSort('total')}
+                      >
+                        Gross <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
+                      </th>
+                      <th
+                        className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
                         onClick={() => handleSort('outstanding')}
                       >
                         Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th className="px-4 py-3">Cur.</th>
-                      <th className="px-4 py-3">Status</th>
+                      <th
+                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                        onClick={() => handleSort('document_ref')}
+                      >
+                        Invoice # <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {filteredData.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                        <td colSpan={10} className="px-4 py-8 text-center text-zinc-400">
                           No payment obligations found
                         </td>
                       </tr>
@@ -409,6 +415,11 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                             {row.title ?? '--'}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
+                            {row.total !== null && row.currency
+                              ? formatCurrency(row.total, row.currency as 'PEN' | 'USD')
+                              : '--'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
                             {row.outstanding !== null && row.currency
                               ? formatCurrency(row.outstanding, row.currency as 'PEN' | 'USD')
                               : '--'}
@@ -416,12 +427,8 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
                           <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                             {row.currency ?? '--'}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-3">
-                            <span
-                              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(row.payment_status)}`}
-                            >
-                              {formatPaymentStatus(row.payment_status)}
-                            </span>
+                          <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
+                            {row.document_ref ?? '--'}
                           </td>
                         </tr>
                       ))

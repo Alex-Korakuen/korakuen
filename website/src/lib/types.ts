@@ -173,7 +173,7 @@ export type ApCalendarFilters = {
   titleSearch: string
 }
 
-export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'title' | 'outstanding'
+export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'title' | 'total' | 'outstanding' | 'document_ref'
 export type ApCalendarSortDirection = 'asc' | 'desc'
 
 // --- Category values (cost_items.category) ---
@@ -247,15 +247,13 @@ export type ArOutstandingFilters = {
   currency: string
 }
 export type ArOutstandingSortColumn =
-  | 'invoice_number'
-  | 'project_code'
-  | 'client_name'
-  | 'invoice_date'
   | 'due_date'
   | 'days_overdue'
+  | 'client_name'
+  | 'project_code'
+  | 'invoice_number'
   | 'gross_total'
   | 'outstanding'
-  | 'net_receivable'
 
 // --- Partner Balances component types ---
 
@@ -411,17 +409,12 @@ export type ProjectListItem = {
   contract_currency: string | null
 }
 
-export type AssignedEntity = {
-  entityId: string
-  entityName: string
-  roleName: string
-}
-
-export type SpendingByEntity = {
+export type ProjectEntitySummary = {
   entityId: string | null
   entityName: string
-  totalSpent: number
-  invoiceCount: number
+  roleName: string | null
+  totalSpent: number | null
+  invoiceCount: number | null
   currency: string
 }
 
@@ -437,8 +430,7 @@ export type ProjectArInvoice = {
 export type ProjectDetailData = {
   project: Project
   clientName: string | null
-  assignedEntities: AssignedEntity[]
-  spendingByEntity: SpendingByEntity[]
+  entities: ProjectEntitySummary[]
   budget: BudgetVsActualRow[]
   arInvoices: ProjectArInvoice[]
 }

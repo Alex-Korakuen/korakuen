@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { formatCurrency, formatDate, formatPaymentStatus, statusBadgeClass } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
@@ -116,13 +116,9 @@ export function ArOutstandingClient({
         .reduce(
           (acc, r) => ({
             gross: acc.gross + r.gross_total,
-            detraccion: acc.detraccion + r.detraccion_amount,
-            retencion: acc.retencion + r.retencion_amount,
-            net: acc.net + r.net_receivable,
-            paid: acc.paid + r.amount_paid,
             outstanding: acc.outstanding + r.outstanding,
           }),
-          { gross: 0, detraccion: 0, retencion: 0, net: 0, paid: 0, outstanding: 0 }
+          { gross: 0, outstanding: 0 }
         )
     return { pen: sumFor('PEN'), usd: sumFor('USD') }
   }, [filteredData])
@@ -174,12 +170,7 @@ export function ArOutstandingClient({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">AR Outstanding & Collections</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Pending receivables and aging analysis
-      </p>
-
-      <div className="mt-6">
+      <div className="mt-0">
         <Tabs
           tabs={tabItems}
           activeTab={activeTab}
@@ -308,15 +299,15 @@ export function ArOutstandingClient({
                     <tr>
                       <th
                         className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('invoice_number')}
+                        onClick={() => handleSort('due_date')}
                       >
-                        Invoice# <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('project_code')}
+                        onClick={() => handleSort('days_overdue')}
                       >
-                        Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        Days <SortIndicator column="days_overdue" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 hover:text-zinc-700"
@@ -326,21 +317,15 @@ export function ArOutstandingClient({
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('invoice_date')}
+                        onClick={() => handleSort('project_code')}
                       >
-                        Inv. Date <SortIndicator column="invoice_date" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('due_date')}
+                        onClick={() => handleSort('invoice_number')}
                       >
-                        Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                        onClick={() => handleSort('days_overdue')}
-                      >
-                        Days <SortIndicator column="days_overdue" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        Title <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th
                         className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
@@ -348,28 +333,25 @@ export function ArOutstandingClient({
                       >
                         Gross <SortIndicator column="gross_total" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
-                      <th className="px-4 py-3 text-right">Detr.</th>
-                      <th className="px-4 py-3 text-right">Ret.</th>
-                      <th
-                        className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                        onClick={() => handleSort('net_receivable')}
-                      >
-                        Net Recv. <SortIndicator column="net_receivable" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th className="px-4 py-3 text-right">Paid</th>
                       <th
                         className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
                         onClick={() => handleSort('outstanding')}
                       >
-                        Outstdg. <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+                        Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
-                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Cur.</th>
+                      <th
+                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                        onClick={() => handleSort('invoice_number')}
+                      >
+                        Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {filteredData.length === 0 ? (
                       <tr>
-                        <td colSpan={13} className="px-4 py-8 text-center text-zinc-400">
+                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                           No outstanding AR invoices found
                         </td>
                       </tr>
@@ -381,102 +363,60 @@ export function ArOutstandingClient({
                             className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getAgingRowBorderClass(row.days_overdue)}`}
                             onClick={() => handleRowClick(row)}
                           >
-                            <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-700">
-                              {row.invoice_number ?? '--'}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                              {row.project_code}
-                            </td>
-                            <td className="px-4 py-3 text-zinc-700">{row.client_name}</td>
-                            <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
-                              {row.invoice_date ? formatDate(row.invoice_date) : '--'}
-                            </td>
                             <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
                               {row.due_date ? formatDate(row.due_date) : '--'}
                             </td>
-                            <td className={`whitespace-nowrap px-4 py-3 text-right ${getAgingColorClass(row.days_overdue)}`}>
+                            <td className={`whitespace-nowrap px-4 py-3 ${getAgingColorClass(row.days_overdue)}`}>
                               {row.days_overdue > 0 ? row.days_overdue : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-zinc-700">{row.client_name}</td>
+                            <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
+                              {row.project_code}
+                            </td>
+                            <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700">
+                              {row.invoice_number ?? '--'}
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                               {formatCurrency(row.gross_total, row.currency as 'PEN' | 'USD')}
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {row.detraccion_amount > 0
-                                ? formatCurrency(row.detraccion_amount, row.currency as 'PEN' | 'USD')
-                                : '--'}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {row.retencion_amount > 0
-                                ? formatCurrency(row.retencion_amount, row.currency as 'PEN' | 'USD')
-                                : '--'}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
-                              {formatCurrency(row.net_receivable, row.currency as 'PEN' | 'USD')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                              {formatCurrency(row.amount_paid, row.currency as 'PEN' | 'USD')}
-                            </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
                               {formatCurrency(row.outstanding, row.currency as 'PEN' | 'USD')}
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3">
-                              <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(row.payment_status)}`}>
-                                {formatPaymentStatus(row.payment_status)}
-                              </span>
+                            <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                              {row.currency}
+                            </td>
+                            <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
+                              {row.invoice_number ?? '--'}
                             </td>
                           </tr>
                         ))}
                         {/* Total rows (one per currency with data) */}
                         {totals.pen.outstanding !== 0 && (
                           <tr className="bg-zinc-50 font-medium">
-                            <td colSpan={6} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                            <td colSpan={5} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
                               Total PEN ({filteredData.filter(r => r.currency === 'PEN').length} invoices)
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                               {formatCurrency(totals.pen.gross, 'PEN')}
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {formatCurrency(totals.pen.detraccion, 'PEN')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {formatCurrency(totals.pen.retencion, 'PEN')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
-                              {formatCurrency(totals.pen.net, 'PEN')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                              {formatCurrency(totals.pen.paid, 'PEN')}
-                            </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
                               {formatCurrency(totals.pen.outstanding, 'PEN')}
                             </td>
-                            <td />
+                            <td colSpan={2} />
                           </tr>
                         )}
                         {totals.usd.outstanding !== 0 && (
                           <tr className="bg-zinc-50 font-medium">
-                            <td colSpan={6} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                            <td colSpan={5} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
                               Total USD ({filteredData.filter(r => r.currency === 'USD').length} invoices)
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                               {formatCurrency(totals.usd.gross, 'USD')}
                             </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {formatCurrency(totals.usd.detraccion, 'USD')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-500">
-                              {formatCurrency(totals.usd.retencion, 'USD')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-800">
-                              {formatCurrency(totals.usd.net, 'USD')}
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                              {formatCurrency(totals.usd.paid, 'USD')}
-                            </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
                               {formatCurrency(totals.usd.outstanding, 'USD')}
                             </td>
-                            <td />
+                            <td colSpan={2} />
                           </tr>
                         )}
                       </>

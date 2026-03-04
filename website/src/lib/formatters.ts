@@ -31,20 +31,6 @@ export function formatDateShort(dateStr: string): string {
   })
 }
 
-export function formatPaymentStatus(status: string | null): string {
-  if (status === 'pending') return 'Pending'
-  if (status === 'partial') return 'Partial'
-  if (status === 'paid') return 'Paid'
-  return status ?? '--'
-}
-
-export function statusBadgeClass(status: string | null): string {
-  if (status === 'pending') return 'bg-yellow-100 text-yellow-800'
-  if (status === 'partial') return 'bg-orange-100 text-orange-800'
-  if (status === 'paid') return 'bg-green-100 text-green-800'
-  return 'bg-zinc-100 text-zinc-600'
-}
-
 export function formatProjectStatus(status: string | null): string {
   if (status === 'prospect') return 'Prospect'
   if (status === 'active') return 'Active'

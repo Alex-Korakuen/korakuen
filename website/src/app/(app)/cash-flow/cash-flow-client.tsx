@@ -77,11 +77,6 @@ export function CashFlowClient({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Cash Flow</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Actual cash movements and forecast
-      </p>
-
       {/* Selectors */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="flex flex-col gap-1">

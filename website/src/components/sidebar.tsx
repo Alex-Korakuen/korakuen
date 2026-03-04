@@ -131,11 +131,14 @@ export function Sidebar() {
         } ${collapsed ? 'w-[var(--sidebar-collapsed-width)]' : 'w-[var(--sidebar-width)]'}`}
       >
         {/* Sidebar header */}
-        <div className="flex h-14 items-center border-b border-zinc-200 px-4">
+        <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4">
+          <span className="text-lg font-bold tracking-widest text-zinc-800">
+            {collapsed ? 'K' : 'KORAKUEN'}
+          </span>
           {/* Mobile close button */}
           <button
             onClick={() => setMobileOpen(false)}
-            className="ml-auto rounded-md p-1 text-zinc-400 hover:text-zinc-600 md:hidden"
+            className="rounded-md p-1 text-zinc-400 hover:text-zinc-600 md:hidden"
             aria-label="Close navigation"
           >
             <svg

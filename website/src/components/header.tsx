@@ -1,9 +1,22 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+
+const pageTitles: Record<string, string> = {
+  '/projects': 'Projects',
+  '/entities': 'Entities',
+  '/prices': 'Prices',
+  '/ap-calendar': 'AP Calendar',
+  '/ar-outstanding': 'AR Outstanding',
+  '/cash-flow': 'Cash Flow',
+  '/partner-balances': 'Partner Balances',
+  '/pl': 'P&L',
+  '/financial-position': 'Financial Position',
+  '/settings/password': 'Change Password',
+}
 
 interface HeaderProps {
   partnerName: string
@@ -11,8 +24,10 @@ interface HeaderProps {
 
 export function Header({ partnerName }: HeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const pageTitle = pageTitles[pathname] || ''
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -43,13 +58,13 @@ export function Header({ partnerName }: HeaderProps) {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4">
-      {/* Left: Branding */}
+      {/* Left: Page title */}
       <div className="flex items-center">
         {/* Spacer for mobile hamburger button */}
         <div className="w-10 md:hidden" />
-        <span className="text-lg font-bold tracking-widest text-zinc-800">
-          KORAKUEN
-        </span>
+        <h1 className="text-lg font-semibold text-zinc-800">
+          {pageTitle}
+        </h1>
       </div>
 
       {/* Right: Partner dropdown */}

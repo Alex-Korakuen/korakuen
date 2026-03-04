@@ -101,11 +101,6 @@ export function PricesClient({ data, filterOptions }: Props) {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-800">Prices</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Historical pricing reference from costs and quotes
-      </p>
-
       {/* Search */}
       <div className="mt-6">
         <input
