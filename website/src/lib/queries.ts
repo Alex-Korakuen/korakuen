@@ -459,9 +459,16 @@ type CategoryTotals = {
   subcontractor: number
   equipment: number
   other: number
+  sga: number
 }
 
+const SGA_CATEGORIES = new Set([
+  'software_licenses', 'partner_compensation', 'business_development',
+  'professional_services', 'office_admin',
+])
+
 function mapCategory(category: string | null): keyof CategoryTotals {
+  if (category && SGA_CATEGORIES.has(category)) return 'sga'
   switch (category) {
     case 'materials': return 'materials'
     case 'labor': return 'labor'
@@ -472,7 +479,7 @@ function mapCategory(category: string | null): keyof CategoryTotals {
 }
 
 function emptyCategoryTotals(): CategoryTotals {
-  return { materials: 0, labor: 0, subcontractor: 0, equipment: 0, other: 0 }
+  return { materials: 0, labor: 0, subcontractor: 0, equipment: 0, other: 0, sga: 0 }
 }
 
 export async function getCashFlow(
@@ -518,7 +525,7 @@ export async function getCashFlow(
     isAlex
       ? supabase
           .from('loan_schedule')
-          .select('id, loan_id, scheduled_date, scheduled_amount, paid, exchange_rate, loans!fk_loan_schedule_loans(currency)')
+          .select('id, loan_id, scheduled_date, scheduled_amount, paid, exchange_rate, loans!fk_loan_schedule_loans(currency, project_id)')
           .eq('paid', false)
       : { data: [] },
     // Cost items for category breakdown (for both actual and forecast)
@@ -716,11 +723,13 @@ export async function getCashFlow(
       const monthKey = toMonthKey(entry.scheduled_date)
       if (monthKey <= currentMonthKey || monthKey < `${year}-01` || monthKey > `${year}-12`) continue
 
+      // Project filter — match disbursements and repayments behavior
+      const loanData = entry.loans as { currency: string; project_id: string | null } | null
+      if (projectId && loanData?.project_id !== projectId) continue
+
       const bucket = monthBuckets.get(monthKey)
       if (!bucket) continue
 
-      // loan_schedule joined with loans for currency
-      const loanData = entry.loans as { currency: string } | null
       const loanCurrency = loanData?.currency ?? 'PEN'
       bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null, reportingCurrency)
     }
@@ -763,7 +772,7 @@ export async function getCashFlow(
     const projectCosts = bucket.categories.materials + bucket.categories.labor +
       bucket.categories.subcontractor + bucket.categories.equipment +
       bucket.categories.other
-    const cashOut = projectCosts + bucket.loanRepayment
+    const cashOut = projectCosts + bucket.categories.sga + bucket.loanRepayment
     const cashIn = bucket.projectCashIn + bucket.loansCashIn
     const net = cashIn - cashOut
     const isActual = key <= currentMonthKey
@@ -781,6 +790,7 @@ export async function getCashFlow(
       equipment: bucket.categories.equipment,
       other: bucket.categories.other,
       projectCosts,
+      sga: bucket.categories.sga,
       loanRepayment: bucket.loanRepayment,
       cashOut,
       net,

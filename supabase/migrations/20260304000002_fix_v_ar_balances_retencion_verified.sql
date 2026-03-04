@@ -1,7 +1,11 @@
 -- Migration: Add retencion_verified to v_ar_balances
 -- Fixes bug where ar-outstanding-detail.tsx used retencion_applicable instead of retencion_verified
+-- Must DROP dependent views first (v_settlement_dashboard depends on v_ar_balances)
 
-CREATE OR REPLACE VIEW v_ar_balances
+DROP VIEW IF EXISTS v_settlement_dashboard;
+DROP VIEW IF EXISTS v_ar_balances;
+
+CREATE VIEW v_ar_balances
 WITH (security_invoker = on)
 AS
 WITH ar_base AS (
@@ -110,3 +114,38 @@ GROUP BY
   ac.gross_total,
   ac.detraccion_amount,
   ac.retencion_amount;
+
+-- Recreate dependent view: v_settlement_dashboard
+CREATE OR REPLACE VIEW v_settlement_dashboard
+WITH (security_invoker = on)
+AS
+SELECT
+  ab.ar_invoice_id,
+  ab.project_id,
+  p.project_code,
+  p.name                    AS project_name,
+  ab.partner_company_id,
+  pc.name                   AS issuing_partner_name,
+  ab.entity_id,
+  COALESCE(e.common_name, e.legal_name) AS receiving_entity_name,
+  ab.invoice_number,
+  ab.invoice_date,
+  ab.due_date,
+  ab.currency,
+  ab.subtotal,
+  ab.igv_amount,
+  ab.gross_total,
+  ab.detraccion_amount,
+  ab.retencion_amount,
+  ab.net_receivable,
+  ab.amount_paid,
+  ab.outstanding,
+  ab.payment_status,
+  ab.document_ref,
+  ab.notes
+FROM v_ar_balances ab
+JOIN projects p             ON p.id = ab.project_id
+JOIN partner_companies pc   ON pc.id = ab.partner_company_id
+JOIN entities e             ON e.id = ab.entity_id
+WHERE ab.is_internal_settlement = true
+ORDER BY ab.invoice_date DESC;

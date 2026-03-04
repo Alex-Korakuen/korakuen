@@ -301,18 +301,29 @@ function ProjectDetail({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-zinc-200 bg-zinc-50">
-                  <td className="px-4 py-2 text-sm font-medium text-zinc-700">Total</td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
-                    {formatCurrency(
-                      spendingByEntity.reduce((sum, se) => sum + se.totalSpent, 0),
-                      contractCurrency
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-medium text-zinc-700">
-                    {spendingByEntity.reduce((sum, se) => sum + se.invoiceCount, 0)}
-                  </td>
-                </tr>
+                {(() => {
+                  const byCurrency: Record<string, { total: number; count: number }> = {};
+                  for (const se of spendingByEntity) {
+                    const c = se.currency;
+                    if (!byCurrency[c]) byCurrency[c] = { total: 0, count: 0 };
+                    byCurrency[c].total += se.totalSpent;
+                    byCurrency[c].count += se.invoiceCount;
+                  }
+                  const currencies = Object.keys(byCurrency).sort();
+                  return currencies.map((c, i) => (
+                    <tr key={c} className={`${i === 0 ? 'border-t border-zinc-200' : ''} bg-zinc-50`}>
+                      <td className="px-4 py-2 text-sm font-medium text-zinc-700">
+                        {currencies.length > 1 ? `Total ${c}` : 'Total'}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                        {formatCurrency(byCurrency[c].total, c as Currency)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-medium text-zinc-700">
+                        {byCurrency[c].count}
+                      </td>
+                    </tr>
+                  ));
+                })()}
               </tfoot>
             </table>
           </div>

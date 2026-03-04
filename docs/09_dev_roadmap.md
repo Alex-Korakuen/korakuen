@@ -373,7 +373,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Status:** Phase 4 complete. All 22 migrations applied to remote (including v_igv_position). Production live at `https://korakuen.vercel.app`.
+**Status:** Phase 4 complete. All 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
 
 - [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
 - [x] Task 4.4 — Verify Vercel deployment
@@ -588,6 +588,22 @@ Search-driven reference view for historical pricing.
 Search by item title. Results combine cost_items and quotes. Filterable by category, entity, project, date range, tag.
 
 **Data source:** `cost_items`, `quotes`, `entities`, `entity_tags`
+
+---
+
+## Post-Phase 4 Bugfixes
+
+Fixes applied after Phase 4 audit.
+
+- [x] **Issue 11 — v_partner_ledger settlement filter:** Internal settlements (`is_internal_settlement=true`) were counted as project revenue, inflating income and skewing partner profit shares. Fixed: added `WHERE is_internal_settlement = false` to `project_income` CTE. Migration `20260304000003`.
+- [x] **Issue 13 — Projects page mixed currency total:** Spending footer summed PEN and USD amounts together. Fixed: split footer into separate total rows per currency.
+- [x] **Issue 14 — Cash Flow SG&A in project categories:** SG&A costs mapped to "other" and mixed with project costs in All Projects scope. Fixed: added dedicated SG&A category to `CategoryTotals` and Cash Flow UI.
+- [x] **Issue 15 — Cash Flow loan forecast project filter:** Loan schedule forecast entries were not filtered by project. Fixed: added `project_id` to loan schedule join and project filter check.
+- [x] **Migration fix — v_ar_balances column addition:** `CREATE OR REPLACE VIEW` can't add columns in PostgreSQL. Fixed migration `20260304000002` to `DROP VIEW` + `CREATE VIEW` with dependent view cascade. Migration applied.
+
+Issues confirmed not bugs:
+- **Issue 10 — CLI internal settlement validation:** Already implemented in current code (both interactive and import paths).
+- **Issue 12 — AP/AR outstanding based on gross_total:** Working as designed — users record detraccion/retencion as separate payments.
 
 ---
 

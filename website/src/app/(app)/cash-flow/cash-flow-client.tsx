@@ -44,6 +44,7 @@ export function CashFlowClient({
         equipment: acc.equipment + m.equipment,
         other: acc.other + m.other,
         projectCosts: acc.projectCosts + m.projectCosts,
+        sga: acc.sga + m.sga,
         loanRepayment: acc.loanRepayment + m.loanRepayment,
         cashOut: acc.cashOut + m.cashOut,
         net: acc.net + m.net,
@@ -51,7 +52,7 @@ export function CashFlowClient({
       {
         cashIn: 0, projectCashIn: 0, loansCashIn: 0,
         materials: 0, labor: 0, subcontractor: 0, equipment: 0, other: 0,
-        projectCosts: 0, loanRepayment: 0, cashOut: 0, net: 0,
+        projectCosts: 0, sga: 0, loanRepayment: 0, cashOut: 0, net: 0,
       }
     )
   }, [data.months])
@@ -267,6 +268,26 @@ export function CashFlowClient({
                 </td>
               </tr>
             ))}
+
+            {/* SG&A row — only shows when there's SG&A data */}
+            {totals.sga !== 0 && (
+              <tr>
+                <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
+                  SG&amp;A
+                </td>
+                {data.months.map((m, idx) => (
+                  <td
+                    key={m.month}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual)}${forecastBorder(idx)}`}
+                  >
+                    {formatAmount(m.sga)}
+                  </td>
+                ))}
+                <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
+                  {formatAmount(totals.sga)}
+                </td>
+              </tr>
+            )}
 
             {/* Loan Repayment — Alex only */}
             {isAlex && (

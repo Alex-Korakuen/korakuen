@@ -1,8 +1,6 @@
--- View: v_partner_ledger
--- Purpose: Shows each partner's financial contribution per project, calculates
---          proportional ownership percentages, and income distribution.
--- Source tables: costs, bank_accounts, partner_companies, projects, v_cost_totals, ar_invoices, payments
--- Used by: Partner ledger page, settlement calculations, partner dashboard
+-- Migration: Fix v_partner_ledger to exclude internal settlements from project income
+-- Issue: Internal settlements (is_internal_settlement=true) were counted as project revenue,
+--        inflating income and skewing partner profit share calculations.
 
 CREATE OR REPLACE VIEW v_partner_ledger
 WITH (security_invoker = on)

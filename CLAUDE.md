@@ -214,7 +214,7 @@ Read these documents for context on specific tasks:
 
 **Phase 3.5 complete — Schema & CLI Extensions.** Four new tables (loans, loan_schedule, loan_payments, project_budgets) in 4 migrations. Two new fields on existing tables (city/region on entities, payment_method on costs). Expanded comprobante_type to 6 values. New loans CLI module (menu item 8). Budget entry added to projects module. Two new views (`v_loan_balances`, `v_budget_vs_actual`), two updated views (`v_cost_totals` with payment_method, `v_ap_calendar` with loan UNION). All Excel templates regenerated. `v_cash_flow` skipped as SQL view — computed in `queries.ts` instead.
 
-**Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 14 views deployed (including `v_igv_position`). 22 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 14 views deployed (including `v_igv_position`). 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
 
 See `docs/09_dev_roadmap.md` for full task list and completion status.
 

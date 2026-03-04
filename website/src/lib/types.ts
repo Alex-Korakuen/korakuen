@@ -309,8 +309,9 @@ export type CashFlowMonth = {
   equipment: number
   other: number
   projectCosts: number // sum of material/labor/subcontractor/equipment/other
+  sga: number // SG&A overhead costs (All Projects scope only)
   loanRepayment: number // Alex-only, 0 for partners
-  cashOut: number // projectCosts + loanRepayment
+  cashOut: number // projectCosts + sga + loanRepayment
   net: number // cashIn - cashOut
 }
 
