@@ -486,8 +486,8 @@ export async function getCashFlow(
   year: number,
   projectId: string | null,
   isAlex: boolean,
-  reportingCurrency: 'PEN' | 'USD'
 ): Promise<CashFlowData> {
+  const reportingCurrency = 'PEN' as const
   const supabase = await createServerSupabaseClient()
   const yearStart = `${year}-01-01`
   const yearEnd = `${year}-12-31`
@@ -500,6 +500,7 @@ export async function getCashFlow(
     loanScheduleResult,
     loansResult,
     loanPaymentsResult,
+    latestRate,
   ] = await Promise.all([
     // All payments in the year (actual cash movements)
     supabase
@@ -543,8 +544,16 @@ export async function getCashFlow(
           .gte('payment_date', yearStart)
           .lte('payment_date', yearEnd)
       : { data: [] },
+    // Latest exchange rate for forecast conversion
+    supabase
+      .from('exchange_rates')
+      .select('mid_rate, rate_date')
+      .order('rate_date', { ascending: false })
+      .limit(1)
+      .single(),
   ])
 
+  const forecastRate = latestRate.data ? Number(latestRate.data.mid_rate) : null
   const payments = paymentsResult.data ?? []
   const costBalances = costBalancesResult.data ?? []
   const arBalances = arBalancesResult.data ?? []
@@ -703,7 +712,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, cost.exchange_rate ?? null, reportingCurrency)
+    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, forecastRate ?? cost.exchange_rate ?? null, reportingCurrency)
     const categories = cost.cost_id ? costCategoryMap.get(cost.cost_id) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
@@ -725,7 +734,7 @@ export async function getCashFlow(
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    bucket.projectCashIn += convertAmount(ar.outstanding ?? 0, ar.currency, ar.exchange_rate, reportingCurrency)
+    bucket.projectCashIn += convertAmount(ar.outstanding ?? 0, ar.currency, forecastRate ?? ar.exchange_rate, reportingCurrency)
   }
 
   // --- Process forecast: loan schedule (Alex-only) ---
@@ -743,7 +752,7 @@ export async function getCashFlow(
       if (!bucket) continue
 
       const loanCurrency = loanData?.currency ?? 'PEN'
-      bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, entry.exchange_rate ?? null, reportingCurrency)
+      bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, forecastRate ?? entry.exchange_rate ?? null, reportingCurrency)
     }
   }
 
@@ -816,10 +825,13 @@ export async function getCashFlow(
 
 // --- Partner Balances queries ---
 
-export async function getPartnerLedger(projectId: string): Promise<PartnerBalanceData> {
+export async function getPartnerLedger(
+  projectId: string,
+  currentRate: number // today's mid_rate for converting USD AR payments to PEN
+): Promise<PartnerBalanceData> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch partner ledger for this project
+  // Fetch partner ledger for this project (all amounts already in PEN via view)
   const { data: ledger, error: ledgerError } = await supabase
     .from('v_partner_ledger')
     .select('*')
@@ -844,18 +856,18 @@ export async function getPartnerLedger(projectId: string): Promise<PartnerBalanc
   const projectCode = ledger[0].project_code ?? '—'
   const projectName = ledger[0].project_name ?? '—'
 
+  // View now returns one row per partner per project, all in PEN
   const contributions = ledger.map(row => ({
     partner_company_id: row.partner_company_id!,
     partner_name: row.partner_name ?? '—',
-    currency: row.currency ?? 'PEN',
-    contribution_amount: row.contribution_amount ?? 0,
+    contribution_amount_pen: row.contribution_amount_pen ?? 0,
     contribution_pct: row.contribution_pct ?? 0,
-    project_income: row.project_income ?? 0,
-    income_share: row.income_share ?? 0,
+    project_income_pen: row.project_income_pen ?? 0,
+    income_share_pen: row.income_share_pen ?? 0,
   }))
 
   // Fetch actual AR payments received per partner for this project
-  // Get AR invoices for this project
+  // Settlements use current rate for USD->PEN conversion (settlements happen in the present)
   const { data: arInvoices } = await supabase
     .from('ar_invoices')
     .select('id, partner_company_id, currency')
@@ -863,7 +875,8 @@ export async function getPartnerLedger(projectId: string): Promise<PartnerBalanc
     .eq('is_internal_settlement', false)
 
   const arIds = (arInvoices ?? []).map(a => a.id)
-  let paymentsByPartner = new Map<string, Map<string, number>>() // partner_id -> currency -> amount
+  // partner_id -> total received in PEN
+  const receivedByPartner = new Map<string, number>()
 
   if (arIds.length > 0) {
     const { data: payments } = await supabase
@@ -884,26 +897,23 @@ export async function getPartnerLedger(projectId: string): Promise<PartnerBalanc
       const arInfo = arPartnerMap.get(p.related_id)
       if (!arInfo) continue
       const partnerKey = arInfo.partner_company_id
-      const currencyKey = p.currency ?? arInfo.currency
-      if (!paymentsByPartner.has(partnerKey)) {
-        paymentsByPartner.set(partnerKey, new Map())
-      }
-      const currMap = paymentsByPartner.get(partnerKey)!
-      currMap.set(currencyKey, (currMap.get(currencyKey) ?? 0) + (p.amount ?? 0))
+      const paymentCurrency = p.currency ?? arInfo.currency
+      const amount = p.amount ?? 0
+      // Convert USD payments to PEN at current rate for settlement purposes
+      const amountPen = paymentCurrency === 'USD' ? amount * currentRate : amount
+      receivedByPartner.set(partnerKey, (receivedByPartner.get(partnerKey) ?? 0) + amountPen)
     }
   }
 
-  // Build settlements
+  // Build settlements — all in PEN
   const settlements = contributions.map(c => {
-    const currMap = paymentsByPartner.get(c.partner_company_id)
-    const actuallyReceived = currMap?.get(c.currency) ?? 0
+    const actuallyReceivedPen = receivedByPartner.get(c.partner_company_id) ?? 0
     return {
       partner_company_id: c.partner_company_id,
       partner_name: c.partner_name,
-      currency: c.currency,
-      income_share: c.income_share,
-      actually_received: actuallyReceived,
-      settlement_balance: c.income_share - actuallyReceived,
+      income_share_pen: c.income_share_pen,
+      actually_received_pen: Math.round(actuallyReceivedPen * 100) / 100,
+      settlement_balance_pen: Math.round((c.income_share_pen - actuallyReceivedPen) * 100) / 100,
     }
   })
 
@@ -913,7 +923,6 @@ export async function getPartnerLedger(projectId: string): Promise<PartnerBalanc
 export async function getPartnerCostDetails(
   projectId: string,
   partnerCompanyId: string,
-  currency: string
 ): Promise<PartnerCostDetail[]> {
   const supabase = await createServerSupabaseClient()
 
@@ -927,12 +936,11 @@ export async function getPartnerCostDetails(
 
   const bankIds = bankAccounts.map(b => b.id)
 
-  // Get costs for this project from these bank accounts in this currency
+  // Get all costs for this project from these bank accounts (both PEN and USD)
   const { data: costs, error } = await supabase
     .from('v_cost_totals')
-    .select('cost_id, date, title, currency, subtotal')
+    .select('cost_id, date, title, currency, subtotal, exchange_rate')
     .eq('project_id', projectId)
-    .eq('currency', currency)
     .in('bank_account_id', bankIds)
     .order('date', { ascending: false })
 
@@ -954,14 +962,21 @@ export async function getPartnerCostDetails(
     }
   }
 
-  return costs.map(c => ({
-    cost_id: c.cost_id!,
-    date: c.date,
-    title: c.title,
-    category: categoryMap.get(c.cost_id!) ?? 'other',
-    subtotal: c.subtotal ?? 0,
-    currency: c.currency,
-  }))
+  return costs.map(c => {
+    const subtotal = c.subtotal ?? 0
+    const rate = c.exchange_rate ? Number(c.exchange_rate) : 1
+    return {
+      cost_id: c.cost_id!,
+      date: c.date,
+      title: c.title,
+      category: categoryMap.get(c.cost_id!) ?? 'other',
+      subtotal,
+      currency: c.currency,
+      exchange_rate: c.exchange_rate ? Number(c.exchange_rate) : null,
+      // USD costs converted at transaction-date rate; PEN passes through
+      subtotal_pen: c.currency === 'USD' ? Math.round(subtotal * rate * 100) / 100 : subtotal,
+    }
+  })
 }
 
 // --- P&L queries ---
@@ -1258,18 +1273,13 @@ export async function getCompanyPL(
       .single()
 
     if (alexPartner) {
-      // Check if all partner ledger currencies match reporting currency
-      const ledgerCurrencies = new Set(partnerLedger.map(r => r.currency).filter(Boolean))
-      const allSameCurrency = ledgerCurrencies.size <= 1 && (!ledgerCurrencies.size || ledgerCurrencies.has(reportingCurrency))
-
-      if (allSameCurrency) {
-        const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
-        const alexContribution = alexLedger.reduce((sum, r) => sum + (r.contribution_amount ?? 0), 0)
-        const totalContribution = partnerLedger.reduce((sum, r) => sum + (r.contribution_amount ?? 0), 0)
-        const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
-        alexProfitShare = total.netProfit * alexPct
-      }
-      // else: mixed currencies — alexProfitShare stays null (cannot compute without exchange rates)
+      // v_partner_ledger now returns all amounts in PEN (converted at transaction-date rates)
+      // so we can always compute Alex's share without currency concerns
+      const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
+      const alexContribution = alexLedger.reduce((sum, r) => sum + (r.contribution_amount_pen ?? 0), 0)
+      const totalContribution = partnerLedger.reduce((sum, r) => sum + (r.contribution_amount_pen ?? 0), 0)
+      const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
+      alexProfitShare = total.netProfit * alexPct
     }
 
     // Convert all loan balances to reporting currency
@@ -1931,4 +1941,20 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
     tags: tagsResult.data ?? [],
     categories: categories.sort(),
   }
+}
+
+// ============================================================
+// Exchange Rate
+// ============================================================
+
+export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_date: string } | null> {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('exchange_rates')
+    .select('mid_rate, rate_date')
+    .order('rate_date', { ascending: false })
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
 }

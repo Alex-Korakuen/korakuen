@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import { PLClient } from './pl-client'
-import type { PLData, PLPeriodMode, Currency } from '@/lib/types'
+import type { PLData, PLPeriodMode } from '@/lib/types'
 
 type Props = {
   initialData: PLData
@@ -12,7 +12,7 @@ type Props = {
   year: number
   quarter: number
   month: number
-  currency: Currency
+  exchangeRate: { mid_rate: number; rate_date: string } | null
 }
 
 export function PLWrapper({
@@ -22,18 +22,17 @@ export function PLWrapper({
   year,
   quarter,
   month,
-  currency,
+  exchangeRate,
 }: Props) {
   const router = useRouter()
 
   const handleParamsChange = useCallback(
-    (newPeriod: PLPeriodMode, newYear: number, newQuarter: number, newMonth: number, newCurrency: Currency) => {
+    (newPeriod: PLPeriodMode, newYear: number, newQuarter: number, newMonth: number) => {
       const params = new URLSearchParams()
       if (newPeriod !== 'year') params.set('period', newPeriod)
       if (newYear !== new Date().getFullYear()) params.set('year', String(newYear))
       if (newPeriod === 'quarter') params.set('quarter', String(newQuarter))
       if (newPeriod === 'month') params.set('month', String(newMonth))
-      if (newCurrency !== 'PEN') params.set('currency', newCurrency)
       const qs = params.toString()
       router.push(`/pl${qs ? `?${qs}` : ''}`)
     },
@@ -48,7 +47,7 @@ export function PLWrapper({
       year={year}
       quarter={quarter}
       month={month}
-      currency={currency}
+      exchangeRate={exchangeRate}
       onParamsChange={handleParamsChange}
     />
   )

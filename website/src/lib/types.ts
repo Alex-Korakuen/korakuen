@@ -24,6 +24,7 @@ export type Loan = Database['public']['Tables']['loans']['Row']
 export type LoanSchedule = Database['public']['Tables']['loan_schedule']['Row']
 export type LoanPayment = Database['public']['Tables']['loan_payments']['Row']
 export type ProjectBudget = Database['public']['Tables']['project_budgets']['Row']
+export type ExchangeRate = Database['public']['Tables']['exchange_rates']['Row']
 
 // --- View row types ---
 export type ApCalendarRow = Database['public']['Views']['v_ap_calendar']['Row']
@@ -260,20 +261,18 @@ export type ArOutstandingSortColumn =
 export type PartnerContribution = {
   partner_company_id: string
   partner_name: string
-  currency: string
-  contribution_amount: number
+  contribution_amount_pen: number
   contribution_pct: number
-  project_income: number
-  income_share: number
+  project_income_pen: number
+  income_share_pen: number
 }
 
 export type PartnerSettlement = {
   partner_company_id: string
   partner_name: string
-  currency: string
-  income_share: number
-  actually_received: number
-  settlement_balance: number
+  income_share_pen: number
+  actually_received_pen: number
+  settlement_balance_pen: number
 }
 
 export type PartnerBalanceData = {
@@ -290,6 +289,8 @@ export type PartnerCostDetail = {
   category: string
   subtotal: number
   currency: string | null
+  exchange_rate: number | null
+  subtotal_pen: number // subtotal * exchange_rate for USD, subtotal for PEN
 }
 
 // --- Cash Flow component types ---

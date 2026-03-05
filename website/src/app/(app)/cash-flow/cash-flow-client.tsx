@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
 import { getNetColorClass } from './helpers'
+import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { CashFlowData, Currency } from '@/lib/types'
 
 type Props = {
@@ -11,8 +12,8 @@ type Props = {
   isAlex: boolean
   year: number
   projectId: string | null
-  currency: Currency
-  onParamsChange: (year: number, projectId: string | null, currency: Currency) => void
+  exchangeRate: { mid_rate: number; rate_date: string } | null
+  onParamsChange: (year: number, projectId: string | null) => void
 }
 
 export function CashFlowClient({
@@ -21,11 +22,11 @@ export function CashFlowClient({
   isAlex,
   year,
   projectId,
-  currency,
+  exchangeRate,
   onParamsChange,
 }: Props) {
   const data = initialData
-  const cur = currency
+  const cur: Currency = 'PEN'
   const [costsExpanded, setCostsExpanded] = useState(false)
 
   // Find first forecast month index for separator
@@ -83,7 +84,7 @@ export function CashFlowClient({
           <label className="text-xs font-medium text-zinc-500">Scope</label>
           <select
             value={projectId ?? ''}
-            onChange={(e) => onParamsChange(year, e.target.value || null, currency)}
+            onChange={(e) => onParamsChange(year, e.target.value || null)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           >
             <option value="">All Projects</option>
@@ -99,7 +100,7 @@ export function CashFlowClient({
           <label className="text-xs font-medium text-zinc-500">Year</label>
           <select
             value={year}
-            onChange={(e) => onParamsChange(Number(e.target.value), projectId, currency)}
+            onChange={(e) => onParamsChange(Number(e.target.value), projectId)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           >
             {[2025, 2026, 2027].map((y) => (
@@ -108,18 +109,9 @@ export function CashFlowClient({
           </select>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Currency</label>
-          <select
-            value={currency}
-            onChange={(e) => onParamsChange(year, projectId, e.target.value as Currency)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="PEN">PEN</option>
-            <option value="USD">USD</option>
-          </select>
-        </div>
       </div>
+
+      <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />
 
       {/* Monthly table — months as columns, categories as rows */}
       <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
@@ -329,6 +321,7 @@ export function CashFlowClient({
       <p className="mt-3 text-xs text-zinc-400">
         Actual months reflect payments made. Forecast months use due dates from outstanding costs and AR invoices.
         {isAlex && ' Loan disbursements and repayment obligations included.'}
+        {' '}Actual months: USD converted at transaction-date rate. Forecast months: USD converted at latest exchange rate.
       </p>
     </div>
   )

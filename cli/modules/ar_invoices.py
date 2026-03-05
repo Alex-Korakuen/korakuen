@@ -178,7 +178,7 @@ def add_ar_invoice():
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
     currency = get_currency()
-    exchange_rate = get_exchange_rate()
+    exchange_rate = get_exchange_rate(transaction_date=invoice_date)
 
     document_ref = get_optional_input("  Document ref (e.g. PRY001-AR-001, optional — press Enter to skip): ")
     is_internal_settlement = confirm("  Is internal settlement (partner-to-partner)?")

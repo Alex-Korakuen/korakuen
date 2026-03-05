@@ -10,6 +10,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   isAlex: boolean
   projectId: string | null
+  exchangeRate: { mid_rate: number; rate_date: string } | null
 }
 
 export function PartnerBalancesWrapper({
@@ -17,6 +18,7 @@ export function PartnerBalancesWrapper({
   projects,
   isAlex,
   projectId,
+  exchangeRate,
 }: Props) {
   const router = useRouter()
 
@@ -37,6 +39,7 @@ export function PartnerBalancesWrapper({
       projects={projects}
       isAlex={isAlex}
       projectId={projectId}
+      exchangeRate={exchangeRate}
       onProjectChange={handleProjectChange}
     />
   )

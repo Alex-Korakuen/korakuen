@@ -1,9 +1,13 @@
--- View: v_partner_ledger
--- Purpose: Shows each partner's financial contribution per project in PEN,
---          using transaction-date exchange rates for USD conversion.
---          Calculates proportional ownership percentages and income distribution.
--- Source tables: costs, bank_accounts, partner_companies, projects, v_cost_totals, ar_invoices
--- Used by: Partner ledger page, settlement calculations, partner dashboard
+-- ============================================================
+-- Korakuen Management System — v_partner_ledger PEN Contributions
+-- Migration: 20260304000009
+-- Date: 2026-03-04
+-- Purpose: Convert all partner contributions to PEN using transaction-date
+--          exchange rates for proper partner settlement calculations.
+--          One row per partner per project (no currency split).
+-- ============================================================
+
+DROP VIEW IF EXISTS v_partner_ledger;
 
 CREATE OR REPLACE VIEW v_partner_ledger
 WITH (security_invoker = on)

@@ -52,14 +52,14 @@ def add_loan():
     # --- Principal ---
     amount = get_nonneg_float("  Amount (principal borrowed): ")
 
+    # --- Date borrowed ---
+    date_borrowed = get_date_input("\n  Date borrowed (YYYY-MM-DD): ")
+
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
     currency = get_currency()
 
-    exchange_rate = get_exchange_rate()
-
-    # --- Date borrowed ---
-    date_borrowed = get_date_input("\n  Date borrowed (YYYY-MM-DD): ")
+    exchange_rate = get_exchange_rate(transaction_date=date_borrowed)
 
     # --- Project (optional) ---
     project = select_project(optional=True)
@@ -201,7 +201,7 @@ def add_schedule():
             continue
 
         scheduled_amount = get_nonneg_float("    Scheduled amount: ")
-        exchange_rate = get_exchange_rate()
+        exchange_rate = get_exchange_rate(transaction_date=scheduled_date)
 
         entries.append({
             "loan_id": loan["id"],
@@ -318,7 +318,7 @@ def register_repayment():
 
     currency = loan_currency
     print(f"\n  Currency: {currency} (matches loan)")
-    exchange_rate = get_exchange_rate()
+    exchange_rate = get_exchange_rate(transaction_date=payment_date)
 
     print("\n  Source options: project_settlement, personal_funds, other")
     source = get_optional_input("  Source (optional — press Enter to skip): ")

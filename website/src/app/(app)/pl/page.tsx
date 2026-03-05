@@ -1,10 +1,10 @@
 import { isCompanyView } from '@/lib/auth'
-import { getCompanyPL } from '@/lib/queries'
-import type { Currency, PLPeriodMode } from '@/lib/types'
+import { getCompanyPL, getLatestExchangeRate } from '@/lib/queries'
+import type { PLPeriodMode } from '@/lib/types'
 import { PLWrapper } from './pl-wrapper'
 
 type Props = {
-  searchParams: Promise<{ period?: string; year?: string; quarter?: string; month?: string; currency?: string }>
+  searchParams: Promise<{ period?: string; year?: string; quarter?: string; month?: string }>
 }
 
 export default async function PLPage({ searchParams }: Props) {
@@ -17,9 +17,11 @@ export default async function PLPage({ searchParams }: Props) {
   const year = params.year ? Number(params.year) : new Date().getFullYear()
   const quarter = params.quarter ? Number(params.quarter) : Math.ceil((new Date().getMonth() + 1) / 3)
   const month = params.month ? Number(params.month) : new Date().getMonth() + 1
-  const currency = (params.currency === 'USD' ? 'USD' : 'PEN') as Currency
 
-  const data = await getCompanyPL(periodMode, year, quarter, month, currency, isAlex)
+  const [data, exchangeRate] = await Promise.all([
+    getCompanyPL(periodMode, year, quarter, month, 'PEN', isAlex),
+    getLatestExchangeRate(),
+  ])
 
   return (
     <PLWrapper
@@ -29,7 +31,7 @@ export default async function PLPage({ searchParams }: Props) {
       year={year}
       quarter={quarter}
       month={month}
-      currency={currency}
+      exchangeRate={exchangeRate}
     />
   )
 }

@@ -74,10 +74,13 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
         r.days_remaining <= 30
     )
 
-    const sumByCurrency = (rows: ApCalendarRow[]) => ({
-      pen: rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0),
-      usd: rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0),
-    })
+    // PEN total includes USD items converted at today's mid rate for aggregate reporting
+    const sumByCurrency = (rows: ApCalendarRow[]) => {
+      const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
+      const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
+      const usdConverted = exchangeRate ? usdNative * exchangeRate.mid_rate : 0
+      return { pen: penNative + usdConverted, usd: usdNative }
+    }
 
     return {
       overdue: { rows: overdue, count: overdue.length, ...sumByCurrency(overdue) },
@@ -85,7 +88,7 @@ export function ApCalendarClient({ data, detractions, projects, isAlex }: Props)
       'this-week': { rows: thisWeek, count: thisWeek.length, ...sumByCurrency(thisWeek) },
       'next-30': { rows: next30, count: next30.length, ...sumByCurrency(next30) },
     }
-  }, [data, daysToEndOfWeek])
+  }, [data, daysToEndOfWeek, exchangeRate])
 
   // --- Unique suppliers for filter dropdown ---
   const uniqueSuppliers = useMemo(() => {

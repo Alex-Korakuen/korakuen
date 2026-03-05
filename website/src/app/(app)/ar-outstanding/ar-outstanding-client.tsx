@@ -68,10 +68,13 @@ export function ArOutstandingClient({
     const d61_90 = data.filter((r) => r.days_overdue > 60 && r.days_overdue <= 90)
     const d90plus = data.filter((r) => r.days_overdue > 90)
 
-    const sumByCurrency = (rows: ArOutstandingRow[]) => ({
-      pen: rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + r.outstanding, 0),
-      usd: rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + r.outstanding, 0),
-    })
+    // PEN total includes USD items converted at today's mid rate for aggregate reporting
+    const sumByCurrency = (rows: ArOutstandingRow[]) => {
+      const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + r.outstanding, 0)
+      const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + r.outstanding, 0)
+      const usdConverted = exchangeRate ? usdNative * exchangeRate.mid_rate : 0
+      return { pen: penNative + usdConverted, usd: usdNative }
+    }
 
     return {
       current: { count: current.length, ...sumByCurrency(current) },
@@ -79,7 +82,7 @@ export function ArOutstandingClient({
       '61-90': { count: d61_90.length, ...sumByCurrency(d61_90) },
       '90+': { count: d90plus.length, ...sumByCurrency(d90plus) },
     }
-  }, [data])
+  }, [data, exchangeRate])
 
   // --- Filtered and sorted data ---
   const filteredData = useMemo(() => {

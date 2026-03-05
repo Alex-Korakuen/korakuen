@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import { CashFlowClient } from './cash-flow-client'
-import type { CashFlowData, Currency } from '@/lib/types'
+import type { CashFlowData } from '@/lib/types'
 
 type Props = {
   initialData: CashFlowData
@@ -11,7 +11,7 @@ type Props = {
   isAlex: boolean
   year: number
   projectId: string | null
-  currency: Currency
+  exchangeRate: { mid_rate: number; rate_date: string } | null
 }
 
 export function CashFlowWrapper({
@@ -20,16 +20,15 @@ export function CashFlowWrapper({
   isAlex,
   year,
   projectId,
-  currency,
+  exchangeRate,
 }: Props) {
   const router = useRouter()
 
   const handleParamsChange = useCallback(
-    (newYear: number, newProjectId: string | null, newCurrency: Currency) => {
+    (newYear: number, newProjectId: string | null) => {
       const params = new URLSearchParams()
       if (newYear !== new Date().getFullYear()) params.set('year', String(newYear))
       if (newProjectId) params.set('project', newProjectId)
-      if (newCurrency !== 'PEN') params.set('currency', newCurrency)
       const qs = params.toString()
       router.push(`/cash-flow${qs ? `?${qs}` : ''}`)
     },
@@ -43,7 +42,7 @@ export function CashFlowWrapper({
       isAlex={isAlex}
       year={year}
       projectId={projectId}
-      currency={currency}
+      exchangeRate={exchangeRate}
       onParamsChange={handleParamsChange}
     />
   )

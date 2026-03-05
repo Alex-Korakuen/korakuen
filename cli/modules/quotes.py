@@ -111,7 +111,7 @@ def add_quote():
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
     currency = get_currency()
-    exchange_rate = get_exchange_rate()
+    exchange_rate = get_exchange_rate(transaction_date=date_received)
 
     # --- Status ---
     print("\n  Statuses: pending, accepted, rejected")

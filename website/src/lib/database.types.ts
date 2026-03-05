@@ -534,6 +534,39 @@ export type Database = {
           },
         ]
       }
+      exchange_rates: {
+        Row: {
+          buy_rate: number
+          created_at: string
+          id: string
+          mid_rate: number
+          rate_date: string
+          sell_rate: number
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          buy_rate: number
+          created_at?: string
+          id?: string
+          mid_rate: number
+          rate_date: string
+          sell_rate: number
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buy_rate?: number
+          created_at?: string
+          id?: string
+          mid_rate?: number
+          rate_date?: string
+          sell_rate?: number
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_payments: {
         Row: {
           amount: number
@@ -849,6 +882,7 @@ export type Database = {
           created_at: string
           currency: string
           id: string
+          is_active: boolean
           notes: string | null
           project_id: string
           updated_at: string
@@ -859,6 +893,7 @@ export type Database = {
           created_at?: string
           currency: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           project_id: string
           updated_at?: string
@@ -869,6 +904,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           project_id?: string
           updated_at?: string
@@ -1577,15 +1613,14 @@ export type Database = {
       }
       v_partner_ledger: {
         Row: {
-          contribution_amount: number | null
+          contribution_amount_pen: number | null
           contribution_pct: number | null
-          currency: string | null
-          income_share: number | null
+          income_share_pen: number | null
           partner_company_id: string | null
           partner_name: string | null
           project_code: string | null
           project_id: string | null
-          project_income: number | null
+          project_income_pen: number | null
           project_name: string | null
         }
         Relationships: [

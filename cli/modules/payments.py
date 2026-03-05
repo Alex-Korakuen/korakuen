@@ -91,7 +91,7 @@ def register_payment():
 
     currency = record_currency
     print(f"\n  Currency: {currency} (matches document)")
-    exchange_rate = get_exchange_rate()
+    exchange_rate = get_exchange_rate(transaction_date=payment_date)
 
     # --- Bank account (conditional) ---
     bank_account = None

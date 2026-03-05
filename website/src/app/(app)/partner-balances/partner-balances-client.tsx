@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { fetchPartnerCosts } from './actions'
+import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { PartnerBalanceData, PartnerContribution, PartnerCostDetail, Currency } from '@/lib/types'
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   isAlex: boolean
   projectId: string | null
+  exchangeRate: { mid_rate: number; rate_date: string } | null
   onProjectChange: (projectId: string | null) => void
 }
 
@@ -19,6 +21,7 @@ export function PartnerBalancesClient({
   projects,
   isAlex,
   projectId,
+  exchangeRate,
   onProjectChange,
 }: Props) {
   const [selectedPartner, setSelectedPartner] = useState<PartnerContribution | null>(null)
@@ -26,37 +29,13 @@ export function PartnerBalancesClient({
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState(false)
 
-  // Group contributions by currency
-  const byCurrency = useMemo(() => {
-    const map = new Map<string, PartnerBalanceData['contributions']>()
-    if (!data) return map
-    for (const c of data.contributions) {
-      const arr = map.get(c.currency) ?? []
-      arr.push(c)
-      map.set(c.currency, arr)
-    }
-    return map
-  }, [data])
-
-  // Group settlements by currency
-  const settlementsByCurrency = useMemo(() => {
-    const map = new Map<string, PartnerBalanceData['settlements']>()
-    if (!data) return map
-    for (const s of data.settlements) {
-      const arr = map.get(s.currency) ?? []
-      arr.push(s)
-      map.set(s.currency, arr)
-    }
-    return map
-  }, [data])
-
   async function handlePartnerClick(partner: PartnerContribution) {
     setSelectedPartner(partner)
     setDetailLoading(true)
     setDetailError(false)
     setCostDetails([])
     try {
-      const details = await fetchPartnerCosts(projectId!, partner.partner_company_id, partner.currency)
+      const details = await fetchPartnerCosts(projectId!, partner.partner_company_id)
       setCostDetails(details)
     } catch {
       setDetailError(true)
@@ -79,6 +58,11 @@ export function PartnerBalancesClient({
     other: 'Other',
   }
 
+  const contributions = data?.contributions ?? []
+  const settlements = data?.settlements ?? []
+  const totalContribution = contributions.reduce((sum, c) => sum + c.contribution_amount_pen, 0)
+  const totalIncome = contributions[0]?.project_income_pen ?? 0
+
   return (
     <div>
       {/* Project selector */}
@@ -98,6 +82,8 @@ export function PartnerBalancesClient({
         </select>
       </div>
 
+      <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />
+
       {!projectId && (
         <div className="mt-8 rounded-lg border border-zinc-200 bg-zinc-50 px-6 py-12 text-center">
           <p className="text-zinc-500">Select a project to view partner balances</p>
@@ -112,135 +98,133 @@ export function PartnerBalancesClient({
             {data.projectName}
           </p>
 
-          {data.contributions.length === 0 ? (
+          {contributions.length === 0 ? (
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-6 py-12 text-center">
               <p className="text-zinc-500">No cost contributions recorded for this project</p>
             </div>
           ) : (
-            Array.from(byCurrency.entries()).map(([currency, contributions]) => {
-              const cur = currency as Currency
-              const totalContribution = contributions.reduce((sum, c) => sum + c.contribution_amount, 0)
-              const totalIncome = contributions[0]?.project_income ?? 0
-              const settlements = settlementsByCurrency.get(currency) ?? []
-
-              return (
-                <div key={currency} className="space-y-4">
-                  <h2 className="text-lg font-semibold text-zinc-700">{currency}</h2>
-
-                  {/* Contributions */}
-                  <div className="rounded-lg border border-zinc-200">
-                    <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-                      <h3 className="text-sm font-medium text-zinc-700">Contributions</h3>
-                      <p className="text-xs text-zinc-500">
-                        Total: {formatCurrency(totalContribution, cur)}
-                      </p>
-                    </div>
-                    <div className="divide-y divide-zinc-100">
-                      {contributions.map((c) => (
-                        <div
-                          key={c.partner_company_id}
-                          className="flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-blue-50"
-                          onClick={() => handlePartnerClick(c)}
-                        >
-                          <div className="flex-1">
-                            <span className="font-medium text-zinc-800">
-                              {c.partner_name}
-                            </span>
-                            {/* Proportion bar */}
-                            <div className="mt-1.5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-100">
-                              <div
-                                className="h-full rounded-full bg-blue-500"
-                                style={{ width: `${c.contribution_pct}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-mono text-sm font-medium text-zinc-800">
-                              {formatCurrency(c.contribution_amount, cur)}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {c.contribution_pct}%
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Income */}
-                  <div className="rounded-lg border border-zinc-200">
-                    <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-                      <h3 className="text-sm font-medium text-zinc-700">Project Income</h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      <div className="flex justify-between py-1">
-                        <span className="text-sm text-zinc-600">Total AR Invoiced</span>
-                        <span className="font-mono text-sm font-medium text-zinc-800">
-                          {formatCurrency(totalIncome, cur)}
+            <div className="space-y-4">
+              {/* Contributions — all in PEN at transaction-date rates */}
+              <div className="rounded-lg border border-zinc-200">
+                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <h3 className="text-sm font-medium text-zinc-700">
+                    Contributions (in PEN at transaction-date rates)
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    Total: {formatCurrency(totalContribution, 'PEN')}
+                  </p>
+                </div>
+                <div className="divide-y divide-zinc-100">
+                  {contributions.map((c) => (
+                    <div
+                      key={c.partner_company_id}
+                      className="flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-blue-50"
+                      onClick={() => handlePartnerClick(c)}
+                    >
+                      <div className="flex-1">
+                        <span className="font-medium text-zinc-800">
+                          {c.partner_name}
                         </span>
+                        {/* Proportion bar */}
+                        <div className="mt-1.5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-100">
+                          <div
+                            className="h-full rounded-full bg-blue-500"
+                            style={{ width: `${c.contribution_pct}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-sm font-medium text-zinc-800">
+                          {formatCurrency(c.contribution_amount_pen, 'PEN')}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {c.contribution_pct}%
+                        </p>
                       </div>
                     </div>
-                  </div>
+                  ))}
+                </div>
+              </div>
 
-                  {/* Settlement */}
-                  <div className="rounded-lg border border-zinc-200">
-                    <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-                      <h3 className="text-sm font-medium text-zinc-700">Settlement Position</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-zinc-50 text-xs text-zinc-500">
-                          <tr>
-                            <th className="px-4 py-2 text-left font-medium">Partner</th>
-                            <th className="px-4 py-2 text-right font-medium">Should Receive</th>
-                            <th className="px-4 py-2 text-right font-medium">Actually Received</th>
-                            <th className="px-4 py-2 text-right font-medium">Balance</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100">
-                          {settlements.map((s) => (
-                            <tr key={s.partner_company_id} className="transition-colors hover:bg-blue-50">
-                              <td className="px-4 py-2 font-medium text-zinc-800">
-                                {s.partner_name}
-                              </td>
-                              <td className="px-4 py-2 text-right font-mono text-zinc-700">
-                                {formatCurrency(s.income_share, cur)}
-                              </td>
-                              <td className="px-4 py-2 text-right font-mono text-zinc-700">
-                                {formatCurrency(s.actually_received, cur)}
-                              </td>
-                              <td
-                                className={`px-4 py-2 text-right font-mono font-medium ${
-                                  s.settlement_balance > 0
-                                    ? 'text-amber-600'
-                                    : s.settlement_balance < 0
-                                    ? 'text-red-600'
-                                    : 'text-green-600'
-                                }`}
-                              >
-                                {s.settlement_balance === 0
-                                  ? 'Settled'
-                                  : formatCurrency(s.settlement_balance, cur)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div className="border-t border-zinc-200 px-4 py-2">
-                      <p className="text-xs text-zinc-400">
-                        Positive balance = partner is owed. Negative = partner has been overpaid.
-                      </p>
-                    </div>
+              {/* Income — in PEN at transaction-date rates */}
+              <div className="rounded-lg border border-zinc-200">
+                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <h3 className="text-sm font-medium text-zinc-700">
+                    Project Income (in PEN at transaction-date rates)
+                  </h3>
+                </div>
+                <div className="px-4 py-3">
+                  <div className="flex justify-between py-1">
+                    <span className="text-sm text-zinc-600">Total AR Invoiced</span>
+                    <span className="font-mono text-sm font-medium text-zinc-800">
+                      {formatCurrency(totalIncome, 'PEN')}
+                    </span>
                   </div>
                 </div>
-              )
-            })
+              </div>
+
+              {/* Settlement — in PEN */}
+              <div className="rounded-lg border border-zinc-200">
+                <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <h3 className="text-sm font-medium text-zinc-700">Settlement Position (in PEN)</h3>
+                  {exchangeRate && (
+                    <p className="text-xs text-zinc-500">
+                      USD payments converted at current rate: {exchangeRate.mid_rate} ({exchangeRate.rate_date})
+                    </p>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-zinc-50 text-xs text-zinc-500">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">Partner</th>
+                        <th className="px-4 py-2 text-right font-medium">Should Receive</th>
+                        <th className="px-4 py-2 text-right font-medium">Actually Received</th>
+                        <th className="px-4 py-2 text-right font-medium">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {settlements.map((s) => (
+                        <tr key={s.partner_company_id} className="transition-colors hover:bg-blue-50">
+                          <td className="px-4 py-2 font-medium text-zinc-800">
+                            {s.partner_name}
+                          </td>
+                          <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                            {formatCurrency(s.income_share_pen, 'PEN')}
+                          </td>
+                          <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                            {formatCurrency(s.actually_received_pen, 'PEN')}
+                          </td>
+                          <td
+                            className={`px-4 py-2 text-right font-mono font-medium ${
+                              s.settlement_balance_pen > 0
+                                ? 'text-amber-600'
+                                : s.settlement_balance_pen < 0
+                                ? 'text-red-600'
+                                : 'text-green-600'
+                            }`}
+                          >
+                            {s.settlement_balance_pen === 0
+                              ? 'Settled'
+                              : formatCurrency(s.settlement_balance_pen, 'PEN')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="border-t border-zinc-200 px-4 py-2">
+                  <p className="text-xs text-zinc-400">
+                    Positive balance = partner is owed. Negative = partner has been overpaid.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Cost detail modal */}
+      {/* Cost detail modal — shows original currency alongside PEN equivalent */}
       <Modal
         isOpen={!!selectedPartner}
         onClose={handleCloseModal}
@@ -250,13 +234,10 @@ export function PartnerBalancesClient({
           <div>
             <div className="mb-4 flex items-center justify-between rounded-md bg-zinc-50 px-3 py-2">
               <span className="text-sm text-zinc-600">
-                Total contribution ({selectedPartner.currency})
+                Total contribution (PEN)
               </span>
               <span className="font-mono text-sm font-semibold text-zinc-800">
-                {formatCurrency(
-                  selectedPartner.contribution_amount,
-                  selectedPartner.currency as Currency
-                )}
+                {formatCurrency(selectedPartner.contribution_amount_pen, 'PEN')}
               </span>
             </div>
 
@@ -277,7 +258,8 @@ export function PartnerBalancesClient({
                     <th className="pb-2 text-left font-medium">Date</th>
                     <th className="pb-2 text-left font-medium">Title</th>
                     <th className="pb-2 text-left font-medium">Category</th>
-                    <th className="pb-2 text-right font-medium">Amount</th>
+                    <th className="pb-2 text-right font-medium">Original</th>
+                    <th className="pb-2 text-right font-medium">PEN</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -292,19 +274,22 @@ export function PartnerBalancesClient({
                       <td className="py-2 whitespace-nowrap text-zinc-600">
                         {categoryLabels[d.category] ?? d.category}
                       </td>
+                      <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
+                        {formatCurrency(d.subtotal, (d.currency ?? 'PEN') as Currency)}
+                      </td>
                       <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
-                        {formatCurrency(d.subtotal, selectedPartner.currency as Currency)}
+                        {formatCurrency(d.subtotal_pen, 'PEN')}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-zinc-200">
-                    <td colSpan={3} className="py-2 text-sm font-medium text-zinc-700">Total</td>
+                    <td colSpan={4} className="py-2 text-sm font-medium text-zinc-700">Total (PEN)</td>
                     <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-zinc-800">
                       {formatCurrency(
-                        costDetails.reduce((sum, d) => sum + d.subtotal, 0),
-                        selectedPartner.currency as Currency
+                        costDetails.reduce((sum, d) => sum + d.subtotal_pen, 0),
+                        'PEN'
                       )}
                     </td>
                   </tr>

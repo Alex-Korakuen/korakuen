@@ -127,15 +127,47 @@ def get_currency(default=None, label="Currency"):
     return currency
 
 
-def get_exchange_rate():
+def get_exchange_rate(transaction_date=None):
     """Prompt for required exchange rate (PEN per USD). Loops until valid number entered.
     Warns if rate is outside the typical 2.5–6.0 range and asks for confirmation.
+
+    If transaction_date is provided (YYYY-MM-DD string), queries the exchange_rates
+    table for the most recent rate on or before that date and offers it as a default.
     """
+    # Look up suggested rate from exchange_rates table
+    suggested_rate = None
+    suggested_date = None
+    if transaction_date:
+        try:
+            result = (
+                supabase.table("exchange_rates")
+                .select("mid_rate, rate_date")
+                .lte("rate_date", transaction_date)
+                .order("rate_date", desc=True)
+                .limit(1)
+                .execute()
+            )
+            if result.data:
+                suggested_rate = float(result.data[0]["mid_rate"])
+                suggested_date = result.data[0]["rate_date"]
+        except Exception:
+            pass  # Fall through to manual entry
+
     while True:
-        value = input("  Exchange rate (PEN per USD): ").strip()
+        if suggested_rate:
+            prompt = f"  Exchange rate (PEN per USD) [{suggested_rate:.4f} from {suggested_date}]: "
+        else:
+            prompt = "  Exchange rate (PEN per USD): "
+
+        value = input(prompt).strip()
+
+        # Accept suggestion on empty input
         if not value:
+            if suggested_rate:
+                return suggested_rate
             print("  This field is required.")
             continue
+
         try:
             rate = float(value)
             if rate <= 0:

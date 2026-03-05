@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
+import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { PLData, PLPeriodMode, PLLineItem, Currency } from '@/lib/types'
 
 type Props = {
@@ -11,8 +12,8 @@ type Props = {
   year: number
   quarter: number
   month: number
-  currency: Currency
-  onParamsChange: (period: PLPeriodMode, year: number, quarter: number, month: number, currency: Currency) => void
+  exchangeRate: { mid_rate: number; rate_date: string } | null
+  onParamsChange: (period: PLPeriodMode, year: number, quarter: number, month: number) => void
 }
 
 const PROJECT_COST_CATEGORIES = [
@@ -43,13 +44,13 @@ export function PLClient({
   year,
   quarter,
   month,
-  currency,
+  exchangeRate,
   onParamsChange,
 }: Props) {
   const [incomeExpanded, setIncomeExpanded] = useState(false)
   const [projectCostsExpanded, setProjectCostsExpanded] = useState(false)
   const [sgaExpanded, setSgaExpanded] = useState(false)
-  const cur = currency
+  const cur: Currency = 'PEN'
   const showTotal = data.columns.length > 1
 
   function fmt(amount: number): string {
@@ -80,7 +81,7 @@ export function PLClient({
           <label className="text-xs font-medium text-zinc-500">Period</label>
           <select
             value={periodMode}
-            onChange={(e) => onParamsChange(e.target.value as PLPeriodMode, year, quarter, month, currency)}
+            onChange={(e) => onParamsChange(e.target.value as PLPeriodMode, year, quarter, month)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           >
             <option value="year">Year</option>
@@ -93,7 +94,7 @@ export function PLClient({
           <label className="text-xs font-medium text-zinc-500">Year</label>
           <select
             value={year}
-            onChange={(e) => onParamsChange(periodMode, Number(e.target.value), quarter, month, currency)}
+            onChange={(e) => onParamsChange(periodMode, Number(e.target.value), quarter, month)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           >
             {[2025, 2026, 2027].map((y) => (
@@ -107,7 +108,7 @@ export function PLClient({
             <label className="text-xs font-medium text-zinc-500">Quarter</label>
             <select
               value={quarter}
-              onChange={(e) => onParamsChange(periodMode, year, Number(e.target.value), month, currency)}
+              onChange={(e) => onParamsChange(periodMode, year, Number(e.target.value), month)}
               className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
             >
               {QUARTER_LABELS.map((q, i) => (
@@ -122,7 +123,7 @@ export function PLClient({
             <label className="text-xs font-medium text-zinc-500">Month</label>
             <select
               value={month}
-              onChange={(e) => onParamsChange(periodMode, year, quarter, Number(e.target.value), currency)}
+              onChange={(e) => onParamsChange(periodMode, year, quarter, Number(e.target.value))}
               className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
             >
               {MONTH_NAMES.map((name, i) => (
@@ -132,18 +133,9 @@ export function PLClient({
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Currency</label>
-          <select
-            value={currency}
-            onChange={(e) => onParamsChange(periodMode, year, quarter, month, e.target.value as Currency)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="PEN">PEN</option>
-            <option value="USD">USD</option>
-          </select>
-        </div>
       </div>
+
+      <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />
 
       {/* P&L table */}
       <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
@@ -429,8 +421,7 @@ export function PLClient({
 
       <p className="mt-3 text-xs text-zinc-400">
         Amounts are accrual-based (when invoiced/recorded, not when paid).
-        {currency === 'USD' ? ' PEN transactions converted at historical exchange rate.' : ''}
-        {currency === 'PEN' ? ' USD transactions converted at historical exchange rate.' : ''}
+        {' '}USD transactions converted at historical transaction-date exchange rate.
       </p>
     </div>
   )
