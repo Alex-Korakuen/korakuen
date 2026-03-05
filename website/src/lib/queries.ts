@@ -1163,6 +1163,7 @@ export async function getCompanyPL(
   }
 
   // Process costs → project costs and SG&A
+  const periodCostsByProject = new Map<string, number>()
   for (const cost of costTotals) {
     if (!cost.date) continue
     const mk = cost.date.substring(0, 7)
@@ -1175,6 +1176,9 @@ export async function getCompanyPL(
 
     if (cost.cost_type === 'project_cost') {
       bucket.projectCosts += amount
+      if (cost.project_id) {
+        periodCostsByProject.set(cost.project_id, (periodCostsByProject.get(cost.project_id) ?? 0) + amount)
+      }
       // Distribute by category proportionally
       if (items && totalItemSubtotal > 0) {
         for (const item of items) {
@@ -1221,6 +1225,14 @@ export async function getCompanyPL(
     }
   }
 
+  // Aggregate per-project income across all months in the period
+  const periodIncomeByProject = new Map<string, number>()
+  for (const projMap of incomeByProjectByMonth.values()) {
+    for (const [pid, amt] of projMap) {
+      periodIncomeByProject.set(pid, (periodIncomeByProject.get(pid) ?? 0) + amt)
+    }
+  }
+
   // Compute derived values for each month
   for (const mk of monthKeys) {
     computeDerived(byMonth[mk])
@@ -1258,22 +1270,10 @@ export async function getCompanyPL(
     return { key: mk, label: MONTH_LABELS[parseInt(m, 10) - 1] }
   })
 
-  // Alex personal position
+  // Alex personal position — per-project weighted profit share
   let alexProfitShare: number | null = null
   let loanObligations: number | null = null
   if (isAlex) {
-    // Find Alex's average contribution_pct across all projects
-    // Use the first partner company (Alex is ruc 20000000001 but we find by checking partner_ledger)
-    const alexRows = partnerLedger.filter(r => {
-      // Alex's partner_company is the one with bank_tracking_full = true
-      // In v_partner_ledger the first partner listed is typically Alex
-      // We use partner_company_id matching the first one
-      return true // include all for weighted average
-    })
-    // Weighted average: sum(contribution_amount) / sum(total_project_costs per project)
-    // Simpler: use the net profit * Alex's overall contribution share
-    // For now, approximate using total contribution across projects
-    // Get Alex's partner_company_id (first one in the system)
     const { data: alexPartner } = await supabase
       .from('partner_companies')
       .select('id')
@@ -1281,13 +1281,33 @@ export async function getCompanyPL(
       .single()
 
     if (alexPartner) {
-      // v_partner_ledger now returns all amounts in PEN (converted at transaction-date rates)
-      // so we can always compute Alex's share without currency concerns
-      const alexLedger = partnerLedger.filter(r => r.partner_company_id === alexPartner.id)
-      const alexContribution = alexLedger.reduce((sum, r) => sum + (r.contribution_amount_pen ?? 0), 0)
-      const totalContribution = partnerLedger.reduce((sum, r) => sum + (r.contribution_amount_pen ?? 0), 0)
-      const alexPct = totalContribution > 0 ? alexContribution / totalContribution : 0
-      alexProfitShare = total.netProfit * alexPct
+      // Build Alex's contribution_pct lookup by project from v_partner_ledger
+      const alexPctByProject = new Map<string, number>()
+      for (const r of partnerLedger) {
+        if (r.partner_company_id === alexPartner.id && r.project_id) {
+          alexPctByProject.set(r.project_id, r.contribution_pct ?? 0)
+        }
+      }
+
+      // Compute Alex's share of per-project profit (income - costs) weighted by contribution %
+      let alexProjectShare = 0
+      const allProjectIds = new Set([...periodIncomeByProject.keys(), ...periodCostsByProject.keys()])
+      for (const pid of allProjectIds) {
+        const income = periodIncomeByProject.get(pid) ?? 0
+        const costs = periodCostsByProject.get(pid) ?? 0
+        const alexPct = alexPctByProject.get(pid) ?? 0
+        alexProjectShare += (income - costs) * alexPct
+      }
+
+      // SGA split: weight by each project's costs in the period
+      const totalPeriodCosts = [...periodCostsByProject.values()].reduce((s, v) => s + v, 0)
+      let alexSgaPct = 0
+      if (totalPeriodCosts > 0) {
+        for (const [pid, costs] of periodCostsByProject) {
+          alexSgaPct += (costs / totalPeriodCosts) * (alexPctByProject.get(pid) ?? 0)
+        }
+      }
+      alexProfitShare = alexProjectShare - total.sga * alexSgaPct
     }
 
     // Convert all loan balances to reporting currency
