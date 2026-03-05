@@ -10,7 +10,7 @@ import pandas as pd
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     select_bank_account, get_nonneg_float,
 )
@@ -18,10 +18,11 @@ from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number, validate_exchange_rate,
-    validate_boolean,
+    validate_boolean, parse_bool,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_partner_map,
+    load_excel_file, print_import_summary,
 )
 
 
@@ -232,8 +233,7 @@ def add_ar_invoice():
         print(f"  Internal:   Yes (partner settlement)")
 
     if not confirm("\nRegister this AR invoice?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -299,13 +299,6 @@ def _load_ar_lookups():
     }
 
 
-def _parse_bool(val):
-    """Parse a boolean value from Excel (handles Python bool, string, etc.)."""
-    if isinstance(val, bool):
-        return val
-    if pd.isna(val):
-        return False
-    return str(val).strip().lower() == "true"
 
 
 def _validate_ar_row(row_num, row, errors, lookups):
@@ -370,7 +363,7 @@ def _validate_ar_row(row_num, row, errors, lookups):
 
     # Cross-field: if retencion_applicable, retencion_rate must be present
     ret_app = row.get("retencion_applicable")
-    if ret_app and not pd.isna(ret_app) and _parse_bool(ret_app):
+    if ret_app and not pd.isna(ret_app) and parse_bool(ret_app):
         ret_rate = row.get("retencion_rate")
         if ret_rate is None or pd.isna(ret_rate):
             errors.append((row_num, "retencion_rate", "Required when retencion_applicable is true"))
@@ -388,7 +381,7 @@ def _validate_ar_row(row_num, row, errors, lookups):
 
     # Cross-field: if is_internal_settlement, entity must be a partner (Issue 10)
     is_settlement = row.get("is_internal_settlement")
-    if is_settlement and not pd.isna(is_settlement) and _parse_bool(is_settlement):
+    if is_settlement and not pd.isna(is_settlement) and parse_bool(is_settlement):
         if entity_doc and not pd.isna(entity_doc):
             if str(entity_doc).strip() not in lookups["partner_rucs"]:
                 errors.append((row_num, "entity_document_number", "Internal settlement entity must be a partner company"))
@@ -413,11 +406,11 @@ def _build_ar_record(row, lookups):
         "invoice_date": pd.Timestamp(row["invoice_date"]).strftime("%Y-%m-%d"),
         "subtotal": float(row["subtotal"]),
         "igv_rate": float(row["igv_rate"]),
-        "retencion_applicable": _parse_bool(row.get("retencion_applicable")),
+        "retencion_applicable": parse_bool(row.get("retencion_applicable")),
         "currency": str(row["currency"]).strip(),
         "exchange_rate": float(row["exchange_rate"]),
-        "is_internal_settlement": _parse_bool(row.get("is_internal_settlement")),
-        "retencion_verified": _parse_bool(row.get("retencion_verified")),
+        "is_internal_settlement": parse_bool(row.get("is_internal_settlement")),
+        "retencion_verified": parse_bool(row.get("retencion_verified")),
     }
 
     # Optional numeric
@@ -442,24 +435,10 @@ def _build_ar_record(row, lookups):
 
 def import_ar_invoices():
     """Import AR invoices from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import AR Invoices ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import AR Invoices")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     lookups = _load_ar_lookups()
 
@@ -471,16 +450,11 @@ def import_ar_invoices():
     if process_import_errors(file_path, errors):
         return
 
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
-        print(f"    {i+1}. {row.get('project_code', '')} — {row.get('invoice_number', '')} — {row.get('subtotal', '')}")
+    print_import_summary(file_path, df,
+        lambda i, row: f"{i}. {row.get('project_code', '')} — {row.get('invoice_number', '')} — {row.get('subtotal', '')}")
 
     if not confirm(f"\nImport {len(df)} AR invoices?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     try:

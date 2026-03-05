@@ -8,7 +8,7 @@ Tables: payments, ar_invoices (update retencion_verified)
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_bank_account,
     get_nonneg_float,
 )
@@ -161,8 +161,7 @@ def register_payment():
         print(f"    Status:      partial")
 
     if not confirm("\nRegister this payment?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -335,8 +334,7 @@ def verify_retencion():
     print(f"  Current status: NOT VERIFIED")
 
     if not confirm("\nMark retencion as verified?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     try:

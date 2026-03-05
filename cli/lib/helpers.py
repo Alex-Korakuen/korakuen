@@ -84,6 +84,12 @@ def list_choices(title, data, display):
     return True
 
 
+def cancel_and_wait():
+    """Print cancellation message and wait for Enter."""
+    print("Cancelled.")
+    input("\nPress Enter to continue...")
+
+
 def clear_screen():
     """Clear the terminal screen."""
     os.system("clear")

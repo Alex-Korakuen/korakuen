@@ -7,12 +7,62 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
+from lib.helpers import get_input
+
 # Error highlighting — dark red fill for invalid cells
 RED_FILL = PatternFill(fill_type="solid", fgColor="8B0000")
 NO_FILL = PatternFill(fill_type=None)
 
 # Excel template layout: rows 1-4 are headers, data starts at row 5
 DATA_START_ROW = 5
+
+
+def load_excel_file(title):
+    """Prompt for Excel file path, read it, and return (df, file_path).
+
+    Handles the common import preamble: clear screen, print title, prompt for
+    file path, read with pd.read_excel (skipping template header rows 2-4),
+    check for empty data, and print row count.
+
+    Returns (df, file_path) on success, or None on failure.
+    """
+    from lib.helpers import clear_screen
+    clear_screen()
+    print(f"\n=== {title} ===\n")
+
+    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
+
+    try:
+        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
+    except Exception as e:
+        print(f"\n✗ Error reading file: {e}")
+        input("\nPress Enter to continue...")
+        return None
+
+    if df.empty:
+        print("✗ No data rows found in file.")
+        input("\nPress Enter to continue...")
+        return None
+
+    print(f"Found {len(df)} data rows.")
+    return df, file_path
+
+
+def print_import_summary(file_path, df, format_row):
+    """Print the standard import summary header and first 3 preview rows.
+
+    Args:
+        file_path: Path to the Excel file being imported.
+        df: The pandas DataFrame of import data.
+        format_row: Callable(i, row) -> str that formats one preview row.
+            i is 1-indexed, row is a pandas Series.
+    """
+    print(f"\n--- Summary ---")
+    print(f"  File:    {file_path}")
+    print(f"  Records: {len(df)}")
+    print(f"\n  First 3 rows:")
+    for i, (_, row) in enumerate(df.head(3).iterrows()):
+        print(f"    {format_row(i + 1, row)}")
 
 
 def clear_highlighting(ws):
@@ -98,16 +148,27 @@ def validate_nonneg_number(row_num, row, field, errors):
 
 
 def validate_exchange_rate(row_num, row, field, errors):
-    """Check that exchange rate is within a reasonable range (2.5–6.0 PEN/USD). Skip if empty."""
+    """Check that exchange rate is within a reasonable range. Skip if empty."""
+    from lib.helpers import EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX
     val = row.get(field)
     if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
         return
     try:
         rate = float(val)
-        if rate > 0 and not (2.5 <= rate <= 6.0):
-            errors.append((row_num, field, f"Rate {rate} is outside typical range (2.5–6.0) — verify value"))
+        if rate > 0 and not (EXCHANGE_RATE_MIN <= rate <= EXCHANGE_RATE_MAX):
+            errors.append((row_num, field, f"Rate {rate} is outside typical range ({EXCHANGE_RATE_MIN}–{EXCHANGE_RATE_MAX}) — verify value"))
     except (ValueError, TypeError):
         pass  # already caught by validate_nonneg_number
+
+
+def parse_bool(val):
+    """Parse a boolean value from Excel (handles Python bool, string, NaN).
+    Returns False for empty/NaN values."""
+    if isinstance(val, bool):
+        return val
+    if pd.isna(val):
+        return False
+    return str(val).strip().lower() == "true"
 
 
 def validate_boolean(row_num, row, field, errors):

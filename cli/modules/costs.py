@@ -10,7 +10,7 @@ import pandas as pd
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     select_bank_account, get_nonneg_float,
 )
@@ -22,6 +22,7 @@ from lib.import_helpers import (
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_quote_map,
+    load_excel_file, print_import_summary,
 )
 
 # Cost item categories by cost type
@@ -262,8 +263,7 @@ def add_cost():
         print(f"  Detraccion ({detraccion_rate}%): {currency} {detraccion_amount:,.2f}")
 
     if not confirm("\nRegister this cost?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # ---- BUILD HEADER + ITEMS DATA ----
@@ -482,24 +482,10 @@ def _build_cost_record(row, lookups):
 
 def import_costs():
     """Import costs from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import Costs ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import Costs")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     lookups = _load_cost_lookups()
 
@@ -511,16 +497,11 @@ def import_costs():
     if process_import_errors(file_path, errors):
         return
 
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
-        print(f"    {i+1}. {row.get('project_code', 'SGA')} — {row.get('title', '')}")
+    print_import_summary(file_path, df,
+        lambda i, row: f"{i}. {row.get('project_code', 'SGA')} — {row.get('title', '')}")
 
     if not confirm(f"\nImport {len(df)} costs?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     try:
@@ -583,24 +564,10 @@ def _build_cost_item_record(row, lookups):
 
 def import_cost_items():
     """Import cost items from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import Cost Items ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import Cost Items")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     lookups = _load_cost_item_lookups()
 
@@ -612,16 +579,11 @@ def import_cost_items():
     if process_import_errors(file_path, errors):
         return
 
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
-        print(f"    {i+1}. [{row.get('cost_document_ref', '')}] {row.get('title', '')} — {row.get('subtotal', '')}")
+    print_import_summary(file_path, df,
+        lambda i, row: f"{i}. [{row.get('cost_document_ref', '')}] {row.get('title', '')} — {row.get('subtotal', '')}")
 
     if not confirm(f"\nImport {len(df)} cost items?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     try:

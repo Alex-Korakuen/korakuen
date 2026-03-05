@@ -8,7 +8,7 @@ Tables: exchange_rates
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_date_input, get_optional_input,
-    confirm, clear_screen, get_nonneg_float,
+    confirm, clear_screen, cancel_and_wait, get_nonneg_float,
     EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX,
 )
 
@@ -68,8 +68,7 @@ def add_rate():
 
     # --- Confirm ---
     if not confirm("\nSave this rate?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---

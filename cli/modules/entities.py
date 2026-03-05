@@ -10,13 +10,14 @@ import pandas as pd
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, select_project,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum,
     process_import_errors,
+    load_excel_file, print_import_summary,
 )
 
 
@@ -121,8 +122,7 @@ def add_entity():
         print(f"  Notes:           {notes}")
 
     if not confirm("\nRegister this entity?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -256,8 +256,7 @@ def add_tag():
         print(f"  Notes: {notes}")
 
     if not confirm("\nRegister this tag?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     data = {"name": name}
@@ -392,8 +391,7 @@ def assign_entity_to_project():
         print(f"  Notes:   {notes}")
 
     if not confirm("\nAssign entity to project?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     data = {
@@ -468,25 +466,10 @@ def _build_entity_record(row):
 
 def import_entities():
     """Import entities from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import Entities ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    # Read file — header in row 1, skip rows 2-4, data starts at row 5
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import Entities")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     # Load existing document numbers for uniqueness check
     existing = supabase.table("entities").select("document_number").execute()
@@ -512,17 +495,11 @@ def import_entities():
     if process_import_errors(file_path, errors):
         return
 
-    # Show summary
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
-        print(f"    {i+1}. {row.get('document_type', '')} {row.get('document_number', '')} — {row.get('legal_name', '')}")
+    print_import_summary(file_path, df,
+        lambda i, row: f"{i}. {row.get('document_type', '')} {row.get('document_number', '')} — {row.get('legal_name', '')}")
 
     if not confirm(f"\nImport {len(df)} entities?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # Batch insert

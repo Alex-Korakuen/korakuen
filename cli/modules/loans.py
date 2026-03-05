@@ -8,7 +8,7 @@ Tables: loans, loan_schedule, loan_payments
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     get_nonneg_float,
 )
@@ -110,8 +110,7 @@ def add_loan():
 
     # --- Confirm ---
     if not confirm("\nRegister this loan?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -230,8 +229,7 @@ def add_schedule():
 
     # --- Confirm ---
     if not confirm(f"\nAdd {len(entries)} schedule entries?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Batch insert ---
@@ -352,8 +350,7 @@ def register_repayment():
 
     # --- Confirm ---
     if not confirm("\nRegister this repayment?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---

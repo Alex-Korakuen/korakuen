@@ -11,7 +11,7 @@ from lib.db import supabase
 from modules.costs import PROJECT_CATEGORIES
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_nonneg_float,
 )
 from lib.import_helpers import (
@@ -19,6 +19,7 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number,
     process_import_errors, load_entity_map,
+    load_excel_file, print_import_summary,
 )
 
 
@@ -123,8 +124,7 @@ def add_project():
         print(f"  Notes:    {notes}")
 
     if not confirm("\nRegister this project?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -245,24 +245,10 @@ def _build_project_record(row, lookups, auto_code_num):
 
 def import_projects():
     """Import projects from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import Projects ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import Projects")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     lookups = _load_project_lookups()
 
@@ -275,20 +261,16 @@ def import_projects():
     if process_import_errors(file_path, errors):
         return
 
-    # Show summary
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
+    def _format_project_row(i, row):
         code = row.get("project_code", "auto")
         if pd.isna(code):
             code = "auto"
-        print(f"    {i+1}. {code} — {row.get('name', '')}")
+        return f"{i}. {code} — {row.get('name', '')}"
+
+    print_import_summary(file_path, df, _format_project_row)
 
     if not confirm(f"\nImport {len(df)} projects?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # Determine next code number for auto-generation
@@ -412,8 +394,7 @@ def set_project_budget():
         print(f"\n  Notes: {notes}")
 
     if not confirm("\nSet this budget?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Batch insert ---

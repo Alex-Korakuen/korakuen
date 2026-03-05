@@ -10,16 +10,17 @@ import pandas as pd
 from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input,
-    confirm, list_choices, clear_screen,
+    confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number, validate_nonneg_number,
+    validate_date, validate_nonneg_number,
     validate_exchange_rate,
     process_import_errors, load_project_map, load_entity_map,
+    load_excel_file, print_import_summary,
 )
 
 
@@ -104,8 +105,7 @@ def add_quote():
     elif abs(total - default_total) > 0.01:
         print(f"  ⚠ Total ({total:,.2f}) differs from subtotal + IGV ({default_total:,.2f}).")
         if not confirm("  Continue with entered total?"):
-            print("Cancelled.")
-            input("\nPress Enter to continue...")
+            cancel_and_wait()
             return
 
     # --- Currency ---
@@ -141,8 +141,7 @@ def add_quote():
         print(f"  Notes:         {notes}")
 
     if not confirm("\nRegister this quote?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     # --- Insert ---
@@ -259,24 +258,10 @@ def _build_quote_record(row, lookups):
 
 def import_quotes():
     """Import quotes from an Excel spreadsheet."""
-    clear_screen()
-    print("\n=== Import Quotes ===\n")
-
-    file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
-
-    try:
-        df = pd.read_excel(file_path, header=0, skiprows=[1, 2, 3], engine="openpyxl")
-    except Exception as e:
-        print(f"\n✗ Error reading file: {e}")
-        input("\nPress Enter to continue...")
+    result = load_excel_file("Import Quotes")
+    if not result:
         return
-
-    if df.empty:
-        print("✗ No data rows found in file.")
-        input("\nPress Enter to continue...")
-        return
-
-    print(f"Found {len(df)} data rows.")
+    df, file_path = result
 
     lookups = _load_quote_lookups()
 
@@ -288,16 +273,11 @@ def import_quotes():
     if process_import_errors(file_path, errors):
         return
 
-    print(f"\n--- Summary ---")
-    print(f"  File:    {file_path}")
-    print(f"  Records: {len(df)}")
-    print(f"\n  First 3 rows:")
-    for i, (_, row) in enumerate(df.head(3).iterrows()):
-        print(f"    {i+1}. {row.get('project_code', '')} — {row.get('title', '')}")
+    print_import_summary(file_path, df,
+        lambda i, row: f"{i}. {row.get('project_code', '')} — {row.get('title', '')}")
 
     if not confirm(f"\nImport {len(df)} quotes?"):
-        print("Cancelled.")
-        input("\nPress Enter to continue...")
+        cancel_and_wait()
         return
 
     try:
