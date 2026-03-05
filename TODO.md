@@ -30,6 +30,10 @@ The cost import is a two-step workflow (import headers, then import items). No v
 
 Fixed: Alex's profit share now weights each project's profit by Alex's per-project `contribution_pct` from `v_partner_ledger`, then splits SGA proportionally by period cost share. Previously used a single blended ratio across all projects and time periods.
 
+### ~~is_internal_settlement Removed~~ [DONE]
+
+Removed: `is_internal_settlement` column from `ar_invoices`, `v_settlement_dashboard` view, CLI prompts, 5 query filters, import template field, and all documentation. Partners never invoice each other — the flag was always false.
+
 ### ~~Unique Invoice Number Constraints~~ [FIXED]
 
 Fixed: Migration `20260305000001` adds:
