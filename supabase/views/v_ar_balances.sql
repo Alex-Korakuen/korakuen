@@ -2,7 +2,7 @@
 -- Purpose: Derives igv_amount, gross_total, detraccion, retencion, net_receivable,
 --          amount_paid, outstanding, and payment_status per AR invoice
 -- Source tables: ar_invoices, payments
--- Used by: v_settlement_dashboard, AR detail pages, project P&L, company P&L
+-- Used by: AR detail pages, project P&L, company P&L
 
 CREATE OR REPLACE VIEW v_ar_balances
 WITH (security_invoker = on)
@@ -27,7 +27,6 @@ WITH ar_base AS (
     ar.currency,
     ar.exchange_rate,
     ar.document_ref,
-    ar.is_internal_settlement,
     ar.notes,
     ROUND(ar.subtotal * (ar.igv_rate / 100), 2) AS igv_amount
   FROM ar_invoices ar
@@ -67,7 +66,6 @@ SELECT
   ac.currency,
   ac.exchange_rate,
   ac.document_ref,
-  ac.is_internal_settlement,
   ac.notes,
   ac.igv_amount,
   ac.gross_total,
@@ -104,7 +102,6 @@ GROUP BY
   ac.currency,
   ac.exchange_rate,
   ac.document_ref,
-  ac.is_internal_settlement,
   ac.notes,
   ac.igv_amount,
   ac.gross_total,

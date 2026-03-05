@@ -232,11 +232,10 @@ export async function getProjectsForFilter(): Promise<{ id: string; project_code
 export async function getArOutstanding(): Promise<ArOutstandingRow[]> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch unpaid/partial AR invoices (exclude internal settlements and paid)
+  // Fetch unpaid/partial AR invoices (exclude paid)
   const { data: invoices, error } = await supabase
     .from('v_ar_balances')
     .select('*')
-    .eq('is_internal_settlement', false)
     .in('payment_status', ['pending', 'partial'])
     .order('due_date', { ascending: true })
 
@@ -314,7 +313,6 @@ export async function getArDetracciones(): Promise<ArDetractionEntry[]> {
     .from('v_ar_balances')
     .select('ar_invoice_id, project_id, entity_id, invoice_number, detraccion_amount, currency')
     .gt('detraccion_amount', 0)
-    .eq('is_internal_settlement', false)
 
   if (error) throw error
   if (!invoices || invoices.length === 0) return []
@@ -519,9 +517,8 @@ export async function getCashFlow(
     // Outstanding AR invoices with due dates (forecast in)
     supabase
       .from('v_ar_balances')
-      .select('ar_invoice_id, project_id, due_date, outstanding, currency, exchange_rate, is_internal_settlement')
+      .select('ar_invoice_id, project_id, due_date, outstanding, currency, exchange_rate')
       .in('payment_status', ['pending', 'partial'])
-      .eq('is_internal_settlement', false)
       .not('due_date', 'is', null),
     // Unpaid loan schedule entries (forecast out, Alex-only)
     isAlex
@@ -875,12 +872,10 @@ export async function getPartnerLedger(
   }))
 
   // Fetch actual AR payments received per partner for this project
-  // Settlements use current rate for USD->PEN conversion (settlements happen in the present)
   const { data: arInvoices } = await supabase
     .from('ar_invoices')
     .select('id, partner_company_id, currency')
     .eq('project_id', projectId)
-    .eq('is_internal_settlement', false)
 
   const arIds = (arInvoices ?? []).map(a => a.id)
   // partner_id -> total received in PEN
@@ -907,7 +902,7 @@ export async function getPartnerLedger(
       const partnerKey = arInfo.partner_company_id
       const paymentCurrency = p.currency ?? arInfo.currency
       const amount = p.amount ?? 0
-      // Convert USD payments to PEN at current rate for settlement purposes
+      // Convert USD payments to PEN at current rate
       const amountPen = paymentCurrency === 'USD' ? amount * currentRate : amount
       receivedByPartner.set(partnerKey, (receivedByPartner.get(partnerKey) ?? 0) + amountPen)
     }
@@ -1081,10 +1076,9 @@ export async function getCompanyPL(
   const [arResult, costTotalsResult, projectsResult, partnerLedgerResult, loanBalancesResult] = await Promise.all([
     supabase
       .from('ar_invoices')
-      .select('id, project_id, invoice_date, subtotal, currency, exchange_rate, is_internal_settlement')
+      .select('id, project_id, invoice_date, subtotal, currency, exchange_rate')
       .gte('invoice_date', start)
-      .lte('invoice_date', end)
-      .eq('is_internal_settlement', false),
+      .lte('invoice_date', end),
     supabase
       .from('v_cost_totals')
       .select('cost_id, project_id, cost_type, date, subtotal, currency, exchange_rate')

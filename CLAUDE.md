@@ -112,7 +112,6 @@ Key facts:
 - **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on AR only — Korakuen is NOT a retencion agent)
 - **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on costs — cash purchases and informal suppliers are valid
 - **Partner asymmetry:** Alex's bank accounts are fully tracked. Partner bank accounts are reference only — partner identity is derived from bank_account on costs, explicit on ar_invoices and payments
-- **Partner settlements are AR invoices:** flagged with `is_internal_settlement = true` — no separate table
 - **Costs have line items:** `costs` is the header, `cost_items` holds detail. Category lives on cost_items, not the header
 - **PO module hook:** `costs` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null in V0
 - **No stored totals:** subtotal, igv_amount, total on costs are derived from cost_items via `v_cost_totals`. Payment status derived from payments via `v_cost_balances` and `v_ar_balances`
@@ -213,7 +212,7 @@ Read these documents for context on specific tasks:
 
 **Phase 3.5 complete — Schema & CLI Extensions.** Four new tables (loans, loan_schedule, loan_payments, project_budgets) in 4 migrations. Two new fields on existing tables (city/region on entities, payment_method on costs). Expanded comprobante_type to 6 values. New loans CLI module (menu item 8). Budget entry added to projects module. Two new views (`v_loan_balances`, `v_budget_vs_actual`), two updated views (`v_cost_totals` with payment_method, `v_ap_calendar` with loan UNION). All Excel templates regenerated. `v_cash_flow` skipped as SQL view — computed in `queries.ts` instead.
 
-**Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 14 views deployed (including `v_igv_position`). 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 13 views deployed (including `v_igv_position`; `v_settlement_dashboard` removed). 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
 
 **Phase 5 in progress — PEN Functional Currency.** New `exchange_rates` table with daily SUNAT USD/PEN rates. New exchange_rates CLI module (menu item 8). CLI suggests current exchange rate during data entry. Dashboards converted to PEN functional currency: P&L and Cash Flow report in PEN only, AP Calendar and AR Outstanding show PEN aggregate summary cards, Partner Balances uses transaction-date PEN conversion. `v_partner_ledger` view rewritten (one row per partner per project, all in PEN). Valuations table removed (dormant infrastructure, never displayed on website).
 

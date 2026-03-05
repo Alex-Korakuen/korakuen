@@ -38,7 +38,6 @@ export type CostTotalRow = Database['public']['Views']['v_cost_totals']['Row']
 export type ProjectPlRow = Database['public']['Views']['v_project_pl']['Row']
 export type CompanyPlRow = Database['public']['Views']['v_company_pl']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
-export type SettlementDashboardRow = Database['public']['Views']['v_settlement_dashboard']['Row']
 export type IgvPositionRow = Database['public']['Views']['v_igv_position']['Row']
 
 // --- Enums matching schema VARCHAR values ---

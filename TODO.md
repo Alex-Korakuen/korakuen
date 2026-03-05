@@ -6,14 +6,13 @@ Updated March 5, 2026.
 
 ## To Investigate
 
-### Settlements — Review Business Logic
+### Partner Balances — Review Calculation Logic
 
-The current settlement model treats partner settlements as AR invoices (`is_internal_settlement = true`). This is elegant (reuses AR + payment infrastructure, and partners do issue facturas to each other), but needs validation:
+The Partner Balances page calculates who owes whom based on contribution % vs actual payments received. Needs validation:
 
-- [ ] Confirm settlement balance formula: `income_share - actually_received` — does this match how partners actually agree to settle?
-- [ ] AR payments in `getPartnerLedger` include all `payment_type` values (regular, detraccion, retencion). Detraccion goes to Banco de la Nacion (restricted use) and retencion is withheld by the client — should these count as "actually received" for settlement purposes, or only regular bank payments?
-- [ ] Settlement section converts USD at current rate ("settlements happen in the present") while contributions use transaction-date rates. This is a deliberate choice but creates a conceptual mismatch — verify this reflects how the partners think about it
-- [ ] No structured mechanism for partial settlements during execution (the handbook says "weekly balancing attempts during execution") — is the current invoice-based settlement flow sufficient, or do partners need a lighter-weight way to record interim balancing?
+- [ ] Confirm balance formula: `income_share - actually_received` — does this match how partners actually agree to settle?
+- [ ] AR payments include all `payment_type` values (regular, detraccion, retencion). Detraccion goes to Banco de la Nacion (restricted use) and retencion is withheld by the client — should these count as "actually received", or only regular bank payments?
+- [ ] Balance section converts USD at current rate while contributions use transaction-date rates. This is a deliberate choice but creates a conceptual mismatch — verify this reflects how the partners think about it
 
 ---
 
@@ -58,5 +57,5 @@ These were discussed and decided on March 4, 2026:
 
 ## Business Decisions Locked
 
-1. **Partner settlement currency** — PEN. All contributions converted to PEN at transaction-date rates. Settlements calculated and paid in PEN.
+1. **Partner balance currency** — PEN. All contributions converted to PEN at transaction-date rates. Balances calculated in PEN.
 2. **Buy vs sell rate per transaction type** — Mid-rate for everything in the management system. The `buy_rate` and `sell_rate` columns exist in the table for the external accountant to reference if needed for SUNAT-compliant filings, but the CLI and website default to `mid_rate`.

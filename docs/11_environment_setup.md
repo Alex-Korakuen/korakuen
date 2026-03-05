@@ -89,7 +89,6 @@ korakuen/
 │   │   ├── v_partner_ledger.sql
 │   │   ├── v_project_pl.sql
 │   │   ├── v_retencion_dashboard.sql
-│   │   ├── v_settlement_dashboard.sql
 │   │   ├── v_loan_balances.sql
 │   │   ├── v_budget_vs_actual.sql
 │   │   └── v_igv_position.sql

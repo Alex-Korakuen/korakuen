@@ -573,12 +573,6 @@ AR_INVOICES = [
         "allowed_values": "",
     },
     {
-        "name": "is_internal_settlement",
-        "example": "false",
-        "description": "Required. True when invoicing a partner company for settlement. BOOLEAN. Default false.",
-        "allowed_values": "true | false",
-    },
-    {
         "name": "retencion_verified",
         "example": "false",
         "description": "Required. Manually set to true once confirmed that client paid retención to SUNAT. BOOLEAN. Default false.",

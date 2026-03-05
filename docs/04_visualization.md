@@ -196,7 +196,7 @@ Two sections:
 
 ### Partner Contribution & Balances
 
-**Business question:** Who has contributed what to this project, and what's the settlement?
+**Business question:** Who has contributed what to this project, and who owes whom?
 
 **Priority:** High
 
@@ -206,7 +206,7 @@ Two sections:
 
 **Income section:** Total invoiced, total collected, outstanding for the selected project.
 
-**Settlement section:** Calculates what each partner should receive (contribution % x total collected income) vs what they actually received (inbound payments to their bank accounts). Shows who owes whom and how much. When the owing partner pays the others (recorded as internal settlement AR invoices with `is_internal_settlement = true`), the amounts zero out.
+**Settlement section:** Calculates what each partner should receive (contribution % x total collected income) vs what they actually received (inbound payments to their bank accounts). Shows who owes whom and how much.
 
 **Data source:** Costs table grouped by bank_account -> partner_company per project, AR invoices + Payments (via v_partner_ledger view)
 

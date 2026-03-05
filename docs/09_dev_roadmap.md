@@ -221,7 +221,7 @@ Submenu:
 Select option:
 ```
 
-**Add AR invoice:** project (list active), bank_account, entity (client — search), partner_company (list), invoice_number, invoice_date, due_date, subtotal, igv_rate, detraccion_rate (optional), retencion_applicable, retencion_rate (if applicable), currency, exchange_rate, document_ref, is_internal_settlement, notes.
+**Add AR invoice:** project (list active), bank_account, entity (client — search), partner_company (list), invoice_number, invoice_date, due_date, subtotal, igv_rate, detraccion_rate (optional), retencion_applicable, retencion_rate (if applicable), currency, exchange_rate, document_ref, notes.
 
 Displays calculated breakdown before confirming:
 ```
@@ -500,13 +500,13 @@ Cash flow computed in application layer (queries.ts) instead of SQL view — the
 
 ### Task 4.8 — Partner Contribution & Balances [COMPLETE]
 **Depends on:** Task 4.3
-Answers: "Who has contributed what to this project, and what's the settlement?"
+Answers: "Who has contributed what to this project, and who owes whom?"
 
 - Project selector (required — no all-projects aggregate)
 - Contributions table with proportion bars, clickable rows open cost detail modal
-- Settlement section: who owes whom based on contribution %
+- Balance section: who owes whom based on contribution %
 
-**Data source:** `v_partner_ledger`, `v_settlement_dashboard`, `v_cost_totals`
+**Data source:** `v_partner_ledger`, `v_cost_totals`
 
 ---
 
@@ -574,14 +574,14 @@ Search by item title. Results combine cost_items and quotes. Filterable by categ
 
 Fixes applied after Phase 4 audit.
 
-- [x] **Issue 11 — v_partner_ledger settlement filter:** Internal settlements (`is_internal_settlement=true`) were counted as project revenue, inflating income and skewing partner profit shares. Fixed: added `WHERE is_internal_settlement = false` to `project_income` CTE. Migration `20260304000003`.
+- [x] **Issue 11 — v_partner_ledger income filter:** Fixed in migration `20260304000003`. Later simplified: `is_internal_settlement` column removed entirely (migration `20260305000003`) — partners never invoice each other.
 - [x] **Issue 13 — Projects page mixed currency total:** Spending footer summed PEN and USD amounts together. Fixed: split footer into separate total rows per currency.
 - [x] **Issue 14 — Cash Flow SG&A in project categories:** SG&A costs mapped to "other" and mixed with project costs in All Projects scope. Fixed: added dedicated SG&A category to `CategoryTotals` and Cash Flow UI.
 - [x] **Issue 15 — Cash Flow loan forecast project filter:** Loan schedule forecast entries were not filtered by project. Fixed: added `project_id` to loan schedule join and project filter check.
 - [x] **Migration fix — v_ar_balances column addition:** `CREATE OR REPLACE VIEW` can't add columns in PostgreSQL. Fixed migration `20260304000002` to `DROP VIEW` + `CREATE VIEW` with dependent view cascade. Migration applied.
 
 Issues confirmed not bugs:
-- **Issue 10 — CLI internal settlement validation:** Already implemented in current code (both interactive and import paths).
+- **Issue 10 — CLI internal settlement validation:** Removed — `is_internal_settlement` column dropped (partners never invoice each other).
 - **Issue 12 — AP/AR outstanding based on gross_total:** Working as designed — users record detraccion/retencion as separate payments.
 
 ---

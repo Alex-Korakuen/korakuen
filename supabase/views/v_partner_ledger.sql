@@ -3,7 +3,7 @@
 --          using transaction-date exchange rates for USD conversion.
 --          Calculates proportional ownership percentages and income distribution.
 -- Source tables: costs, bank_accounts, partner_companies, projects, v_cost_totals, ar_invoices
--- Used by: Partner ledger page, settlement calculations, partner dashboard
+-- Used by: Partner ledger page, partner dashboard
 
 CREATE OR REPLACE VIEW v_partner_ledger
 WITH (security_invoker = on)
@@ -35,7 +35,6 @@ project_totals AS (
 ),
 project_income AS (
   -- Total AR income per project, converted to PEN at transaction-date rate
-  -- Excludes internal settlements (partner-to-partner transfers are not real revenue)
   SELECT
     ar.project_id,
     COALESCE(SUM(
@@ -45,7 +44,6 @@ project_income AS (
       END
     ), 0) AS total_income_pen
   FROM ar_invoices ar
-  WHERE ar.is_internal_settlement = false
   GROUP BY ar.project_id
 )
 SELECT

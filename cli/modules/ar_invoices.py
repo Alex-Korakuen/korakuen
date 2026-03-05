@@ -147,25 +147,6 @@ def add_ar_invoice():
     exchange_rate = get_exchange_rate(transaction_date=invoice_date)
 
     document_ref = get_optional_input("  Document ref (e.g. PRY001-AR-001, optional — press Enter to skip): ")
-    is_internal_settlement = confirm("  Is internal settlement (partner-to-partner)?")
-
-    # --- Validate internal settlement entity is a partner (Issue 10) ---
-    if is_internal_settlement:
-        partner_check = (
-            supabase.table("partner_companies")
-            .select("id, name, ruc")
-            .eq("is_active", True)
-            .execute()
-        )
-        partner_rucs = {p["ruc"]: p["name"] for p in partner_check.data}
-        entity_doc = entity.get("document_number", "")
-        if entity_doc not in partner_rucs:
-            partner_names = ", ".join(f"{name} ({ruc})" for ruc, name in partner_rucs.items())
-            print(f"\n  Error: Internal settlements must be issued to a partner company.")
-            print(f"  Selected entity: {entity['legal_name']} ({entity_doc})")
-            print(f"  Partner companies: {partner_names}")
-            input("\nPress Enter to continue...")
-            return
 
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")
 
@@ -193,8 +174,6 @@ def add_ar_invoice():
     print(f"  Partner:    {partner['name']}")
     print(f"  Invoice:    {invoice_number} ({comprobante_type})")
     print(f"  Date:       {invoice_date}")
-    if is_internal_settlement:
-        print(f"  Internal:   Yes (partner settlement)")
 
     if not confirm("\nRegister this AR invoice?"):
         cancel_and_wait()
@@ -213,7 +192,6 @@ def add_ar_invoice():
         "igv_rate": igv_rate,
         "retencion_applicable": retencion_applicable,
         "currency": currency,
-        "is_internal_settlement": is_internal_settlement,
         "retencion_verified": False,
     }
     if due_date:
@@ -247,10 +225,6 @@ def _load_ar_lookups():
     project_clients_result = supabase.table("projects").select("id, client_entity_id").eq("is_active", True).execute()
     project_clients = {r["id"]: r["client_entity_id"] for r in project_clients_result.data}
 
-    # Load partner RUCs for Issue 10 validation
-    partner_rucs_result = supabase.table("partner_companies").select("ruc").eq("is_active", True).execute()
-    partner_rucs = {r["ruc"] for r in partner_rucs_result.data}
-
     # Load existing (partner_company_id, invoice_number) pairs for duplicate detection
     existing_ar = supabase.table("ar_invoices").select("partner_company_id, invoice_number").execute()
     existing_partner_invoices = {
@@ -263,7 +237,6 @@ def _load_ar_lookups():
         "bank_accounts": load_bank_account_map(),
         "partners": load_partner_map(),
         "project_clients": project_clients,
-        "partner_rucs": partner_rucs,
         "existing_partner_invoices": existing_partner_invoices,
     }
 
@@ -285,7 +258,6 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "currency", errors)
     validate_required(row_num, row, "exchange_rate", errors)
     validate_required(row_num, row, "retencion_applicable", errors)
-    validate_required(row_num, row, "is_internal_settlement", errors)
     validate_required(row_num, row, "retencion_verified", errors)
 
     validate_enum(row_num, row, "comprobante_type", ["factura", "boleta", "recibo_por_honorarios"], errors)
@@ -307,7 +279,6 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_exchange_rate(row_num, row, "exchange_rate", errors)
 
     validate_boolean(row_num, row, "retencion_applicable", errors)
-    validate_boolean(row_num, row, "is_internal_settlement", errors)
     validate_boolean(row_num, row, "retencion_verified", errors)
 
     # Cross-field: if retencion_applicable, retencion_rate must be present
@@ -327,13 +298,6 @@ def _validate_ar_row(row_num, row, errors, lookups):
             expected_client = lookups["project_clients"].get(project_id)
             if expected_client and entity_id != expected_client:
                 errors.append((row_num, "entity_document_number", "Entity is not the project client"))
-
-    # Cross-field: if is_internal_settlement, entity must be a partner (Issue 10)
-    is_settlement = row.get("is_internal_settlement")
-    if is_settlement and not pd.isna(is_settlement) and parse_bool(is_settlement):
-        if entity_doc and not pd.isna(entity_doc):
-            if str(entity_doc).strip() not in lookups["partner_rucs"]:
-                errors.append((row_num, "entity_document_number", "Internal settlement entity must be a partner company"))
 
     # Duplicate detection: (partner_company_id, invoice_number) must be unique
     partner_name = row.get("partner_company_name")
@@ -366,7 +330,6 @@ def _build_ar_record(row, lookups):
         "retencion_applicable": parse_bool(row.get("retencion_applicable")),
         "currency": str(row["currency"]).strip(),
         "exchange_rate": float(row["exchange_rate"]),
-        "is_internal_settlement": parse_bool(row.get("is_internal_settlement")),
         "retencion_verified": parse_bool(row.get("retencion_verified")),
     }
 

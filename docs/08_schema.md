@@ -375,7 +375,6 @@ Invoices sent to clients. Subtotal entered directly. Totals and payment status d
 | currency | VARCHAR(3) | NO | USD or PEN |
 | exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | document_ref | VARCHAR | YES | e.g. PRY001-AR-001 |
-| is_internal_settlement | BOOLEAN | NO | default false — true when invoicing a partner company |
 | retencion_verified | BOOLEAN | NO | default false — manually set to true once confirmed that client paid retencion to SUNAT |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
@@ -441,27 +440,6 @@ row 1: inbound | ar_invoice_id | detraccion | S/   4,720 | Banco de la Nación
 row 2: inbound | ar_invoice_id | retencion  | S/   3,540 | null — withheld by client, paid to SUNAT
 row 3: inbound | ar_invoice_id | regular    | S/ 109,740 | Interbank account
 ```
-
----
-
-## Partner Settlements — No Separate Table
-
-Partner settlements are formal invoices between partner companies — not a separate module. Each partner company is registered as an entity in the `entities` table (they have their own RUC). When it's time to settle, one partner issues an AR invoice to another partner using the normal `ar_invoices` flow.
-
-The `ar_invoices` table has one additional field to identify internal settlements:
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| is_internal_settlement | BOOLEAN | NO | default false — true when invoicing a partner company |
-
-Payment of the settlement flows through the `payments` table as normal.
-
-**The partner settlement dashboard** on the visualization website derives everything from existing data:
-- `costs` grouped by `bank_account_id` → partner contributions
-- `ar_invoices` + `payments` → income collected
-- `ar_invoices` filtered by `is_internal_settlement = true` → settlement invoices and status
-
-No extra table. No extra module. One dashboard view.
 
 ---
 
@@ -611,7 +589,6 @@ Layer 7 (project extensions):
 | `v_bank_balances` | payments grouped by bank_account | running balance per account |
 | `v_project_pl` | ar_invoices + costs per project | income, costs, gross profit per project (accrual basis) |
 | `v_company_pl` | all projects + SG&A costs | consolidated P&L including SG&A (accrual basis) |
-| `v_settlement_dashboard` | ar_invoices (is_internal_settlement=true) | partner settlement invoices and status |
 | `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |
 | `v_loan_balances` | loans + loan_payments + loan_schedule | borrowed, total owed, paid, outstanding per loan |
 | `v_budget_vs_actual` | project_budgets + cost_items | budgeted vs actual per project per category |
@@ -636,7 +613,7 @@ Layer 7 (project extensions):
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.
 - **Partner is derived from bank_account** on costs. Partner is explicit on ar_invoices and payments.
 - **Tags serve all classification needs** — entity categorization and project roles use the same master list.
-- **Partner settlements are AR invoices** flagged with is_internal_settlement = true. No separate table.
+- **Partner balances are derived** from costs (via bank_account) and AR invoices + payments per project. No separate settlement table.
 
 ---
 

@@ -54,7 +54,6 @@ export type Database = {
           igv_rate: number
           invoice_date: string
           invoice_number: string
-          is_internal_settlement: boolean
           notes: string | null
           partner_company_id: string
           project_id: string
@@ -79,7 +78,6 @@ export type Database = {
           igv_rate?: number
           invoice_date: string
           invoice_number: string
-          is_internal_settlement?: boolean
           notes?: string | null
           partner_company_id: string
           project_id: string
@@ -104,7 +102,6 @@ export type Database = {
           igv_rate?: number
           invoice_date?: string
           invoice_number?: string
-          is_internal_settlement?: boolean
           notes?: string | null
           partner_company_id?: string
           project_id?: string
@@ -1278,7 +1275,6 @@ export type Database = {
           igv_rate: number | null
           invoice_date: string | null
           invoice_number: string | null
-          is_internal_settlement: boolean | null
           net_receivable: number | null
           notes: string | null
           outstanding: number | null
@@ -1676,63 +1672,6 @@ export type Database = {
           retencion_verified: boolean | null
         }
         Relationships: []
-      }
-      v_settlement_dashboard: {
-        Row: {
-          amount_paid: number | null
-          ar_invoice_id: string | null
-          currency: string | null
-          detraccion_amount: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string | null
-          gross_total: number | null
-          igv_amount: number | null
-          invoice_date: string | null
-          invoice_number: string | null
-          issuing_partner_name: string | null
-          net_receivable: number | null
-          notes: string | null
-          outstanding: number | null
-          partner_company_id: string | null
-          payment_status: string | null
-          project_code: string | null
-          project_id: string | null
-          project_name: string | null
-          receiving_entity_name: string | null
-          retencion_amount: number | null
-          subtotal: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_ar_invoices_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-        ]
       }
     }
     Functions: {

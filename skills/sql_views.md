@@ -23,7 +23,6 @@
 | `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
 | `v_project_pl.sql` | `v_project_pl` | Income, costs, gross profit per project |
 | `v_company_pl.sql` | `v_company_pl` | Consolidated P&L including SG&A |
-| `v_settlement_dashboard.sql` | `v_settlement_dashboard` | Internal settlement invoices and status |
 | `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
 
 ---
@@ -169,11 +168,6 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 ### v_company_pl
 - Source: all `ar_invoices` (income), all `costs` (project + SG&A)
 - Shows total income, project costs, SG&A, and net profit
-
-### v_settlement_dashboard
-- Source: `ar_invoices` WHERE `is_internal_settlement = true`
-- Joined with payments for status
-- Shows outstanding settlements between partners
 
 ### v_retencion_dashboard
 - Source: `ar_invoices` WHERE `retencion_applicable = true`, JOIN `projects`, JOIN `entities`

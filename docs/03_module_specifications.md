@@ -299,7 +299,6 @@ Net receivable to regular account:     S/ 109,740
 - Retencion rate (default 3% if applicable)
 - Currency: USD or PEN
 - Exchange rate (mandatory NOT NULL — stored at historical rate per transaction, enables application-layer conversion)
-- Is internal settlement: Yes/No (flags partner-to-partner invoices)
 - Document reference code (nullable, e.g. PRY001-AR-001)
 - Notes
 
@@ -353,7 +352,7 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 
 ## Module 7: Partner Ledger (View, Not a Table)
 
-**Purpose:** Shows each partner's financial contribution per project, calculates proportional ownership stakes, and displays inter-partner balances for settlement.
+**Purpose:** Shows each partner's financial contribution per project, calculates proportional ownership stakes, and displays inter-partner balances.
 
 **How it works:**
 This is not a database table — it is a view derived entirely from the Costs table (via bank_account → partner_company) and AR Invoices + Payments tables per project. No data is stored separately. The view is always current because it reads directly from source data.
@@ -378,9 +377,6 @@ Partner 1                  S/   13,208   18.87%
 Partner 2                  S/   26,415   37.74%
 Partner 3                  S/   30,377   43.40%
 ```
-
-**Partner Settlements:**
-When partners settle up, one partner company issues a formal AR invoice to another partner company using the standard `ar_invoices` flow. The invoice is flagged with `is_internal_settlement = true`. Payment flows through the `payments` table as normal. No separate settlement table exists.
 
 **Connects to:** Costs (source data), AR Invoices + Payments (source data)
 
