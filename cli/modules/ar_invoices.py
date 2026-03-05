@@ -19,10 +19,10 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number, validate_exchange_rate,
     validate_boolean, parse_bool,
-    validate_bank_account, validate_valuation,
+    validate_bank_account,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
-    load_valuation_map, load_partner_map,
+    load_partner_map,
     load_excel_file, print_import_summary,
 )
 
@@ -61,41 +61,6 @@ def add_ar_invoice():
     # --- Select project ---
     project = select_project()
     if not project:
-        return
-
-    # --- Select valuation (exclude those with existing AR invoices) ---
-    all_vals = (
-        supabase.table("valuations")
-        .select("id, valuation_number, period_month, period_year, status")
-        .eq("project_id", project["id"])
-        .order("valuation_number")
-        .execute()
-    )
-    existing_ar = (
-        supabase.table("ar_invoices")
-        .select("valuation_id")
-        .eq("project_id", project["id"])
-        .execute()
-    )
-    used_val_ids = {r["valuation_id"] for r in existing_ar.data}
-    available_vals = [v for v in all_vals.data if v["id"] not in used_val_ids]
-
-    if not available_vals:
-        print("\n  No valuations available (all already have AR invoices).")
-        input("\nPress Enter to continue...")
-        return
-
-    print("\n  Available valuations:")
-    for i, v in enumerate(available_vals, start=1):
-        print(f"    {i}. Val #{v['valuation_number']} — {v['period_month']}/{v['period_year']} ({v['status']})")
-    print()
-
-    val_num = get_input("  Select valuation number: ")
-    try:
-        valuation = available_vals[int(val_num) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
         return
 
     # --- Select bank account ---
@@ -224,7 +189,6 @@ def add_ar_invoice():
     # --- Full Summary ---
     print("\n--- Summary ---")
     print(f"  Project:    {project['project_code']} — {project['name']}")
-    print(f"  Valuation:  #{valuation['valuation_number']}")
     print(f"  Client:     {entity['legal_name']}")
     print(f"  Partner:    {partner['name']}")
     print(f"  Invoice:    {invoice_number} ({comprobante_type})")
@@ -239,7 +203,6 @@ def add_ar_invoice():
     # --- Insert ---
     data = {
         "project_id": project["id"],
-        "valuation_id": valuation["id"],
         "bank_account_id": bank_account["id"],
         "entity_id": entity["id"],
         "partner_company_id": partner["id"],
@@ -298,7 +261,6 @@ def _load_ar_lookups():
         "projects": load_project_map(),
         "entities": load_entity_map(),
         "bank_accounts": load_bank_account_map(),
-        "valuations": load_valuation_map(),
         "partners": load_partner_map(),
         "project_clients": project_clients,
         "partner_rucs": partner_rucs,
@@ -311,7 +273,6 @@ def _load_ar_lookups():
 def _validate_ar_row(row_num, row, errors, lookups):
     """Validate a single AR invoice row."""
     validate_required(row_num, row, "project_code", errors)
-    validate_required(row_num, row, "valuation_number", errors)
     validate_required(row_num, row, "bank_name", errors)
     validate_required(row_num, row, "bank_account_last4", errors)
     validate_required(row_num, row, "entity_document_number", errors)
@@ -335,7 +296,6 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "partner_company_name", lookups["partners"], errors)
 
     validate_bank_account(row_num, row, lookups, errors)
-    validate_valuation(row_num, row, lookups, errors)
 
     validate_date(row_num, row, "invoice_date", errors)
     validate_date(row_num, row, "due_date", errors)
@@ -392,11 +352,9 @@ def _build_ar_record(row, lookups):
     project_id = lookups["projects"][proj_code]
 
     bank_key = f"{str(row['bank_name']).strip()}-{str(row['bank_account_last4']).strip()}"
-    vn = int(float(row["valuation_number"]))
 
     data = {
         "project_id": project_id,
-        "valuation_id": lookups["valuations"][(project_id, vn)],
         "bank_account_id": lookups["bank_accounts"][bank_key],
         "entity_id": lookups["entities"][str(row["entity_document_number"]).strip()],
         "partner_company_id": lookups["partners"][str(row["partner_company_name"]).strip()],

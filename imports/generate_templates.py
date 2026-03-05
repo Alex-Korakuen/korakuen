@@ -214,63 +214,6 @@ PROJECTS = [
     },
 ]
 
-VALUATIONS = [
-    {
-        "name": "project_code",
-        "example": "PRY001",
-        "description": "Required. Project code. Must exist in projects table.",
-        "allowed_values": "Lookup → projects.project_code",
-    },
-    {
-        "name": "valuation_number",
-        "example": "1",
-        "description": "Required. Sequential number per project (1, 2, 3...). Must be unique within the project.",
-        "allowed_values": "",
-    },
-    {
-        "name": "period_month",
-        "example": "3",
-        "description": "Required. Month of the billing period. INTEGER 1-12.",
-        "allowed_values": "1-12",
-    },
-    {
-        "name": "period_year",
-        "example": "2026",
-        "description": "Required. Year of the billing period. INTEGER.",
-        "allowed_values": "",
-    },
-    {
-        "name": "status",
-        "example": "open",
-        "description": "Required. Valuation status.",
-        "allowed_values": "open | closed",
-    },
-    {
-        "name": "billed_value",
-        "example": "150000.00",
-        "description": "Optional. Amount actually invoiced. NUMERIC(15,2). May differ from total costs.",
-        "allowed_values": "",
-    },
-    {
-        "name": "billed_currency",
-        "example": "PEN",
-        "description": "Optional. Currency of billed value.",
-        "allowed_values": "USD | PEN",
-    },
-    {
-        "name": "date_closed",
-        "example": "2026-04-01",
-        "description": "Optional. Date the valuation was closed. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "notes",
-        "example": "March 2026 progress billing",
-        "description": "Optional. Free text notes.",
-        "allowed_values": "",
-    },
-]
-
 QUOTES = [
     {
         "name": "project_code",
@@ -370,12 +313,6 @@ COSTS = [
         "example": "PRY001",
         "description": "Optional. Project code. Null if SG&A. Must exist in projects table.",
         "allowed_values": "Lookup → projects.project_code",
-    },
-    {
-        "name": "valuation_number",
-        "example": "1",
-        "description": "Optional. Valuation number within the project. Requires project_code.",
-        "allowed_values": "Lookup → valuations (by project + number)",
     },
     {
         "name": "bank_name",
@@ -540,12 +477,6 @@ AR_INVOICES = [
         "allowed_values": "Lookup → projects.project_code",
     },
     {
-        "name": "valuation_number",
-        "example": "1",
-        "description": "Required. Valuation number within the project. Must exist.",
-        "allowed_values": "Lookup → valuations (by project + number)",
-    },
-    {
         "name": "bank_name",
         "example": "Interbank",
         "description": "Required. Bank name of the receipt account. Used with bank_account_last4.",
@@ -596,7 +527,7 @@ AR_INVOICES = [
     {
         "name": "subtotal",
         "example": "150000.00",
-        "description": "Required. NUMERIC(15,2). Entered directly from valuation billed value.",
+        "description": "Required. NUMERIC(15,2). Invoice subtotal amount.",
         "allowed_values": "",
     },
     {
@@ -655,7 +586,7 @@ AR_INVOICES = [
     },
     {
         "name": "notes",
-        "example": "March 2026 valuation billing",
+        "example": "March 2026 billing",
         "description": "Optional. Free text notes.",
         "allowed_values": "",
     },
@@ -668,7 +599,6 @@ def main():
     templates = [
         ("entities.xlsx", ENTITIES),
         ("projects.xlsx", PROJECTS),
-        ("valuations.xlsx", VALUATIONS),
         ("quotes.xlsx", QUOTES),
         ("costs.xlsx", COSTS),
         ("cost_items.xlsx", COST_ITEMS),

@@ -67,8 +67,6 @@ Dashboards
 - AR invoices issued for this project
 - Project notes at the bottom (from projects.notes field) — displayed when not null
 
-**Removed:** Valuations list. Valuations are kept in the database as dormant infrastructure but not displayed on the website. Costs are grouped by date, not by valuation period.
-
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
 
 **Data source:** Projects table, project_entities, costs + cost_items, ar_invoices, project_budgets
@@ -280,10 +278,6 @@ Two sections:
 ### ~~Settlement Dashboard~~ (Dropped)
 
 Dropped — partner settlements are handled via the Settlement section within Partner Contribution & Balances page. No separate dashboard.
-
-### ~~Valuations~~ (Hidden)
-
-Valuations table kept in database as dormant infrastructure. Not displayed on any website view. Costs are grouped by date, not by valuation period. If valuations become useful in practice, the infrastructure is ready without schema changes.
 
 ### ~~Bank Account Balances~~ (Merged)
 

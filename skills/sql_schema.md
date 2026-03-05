@@ -37,16 +37,15 @@ Generate tables in this exact order so foreign keys never reference a table that
 6. `entity_contacts`
 7. `projects`
 8. `project_entities`
-9. `valuations`
-10. `quotes`
-11. `costs`
-12. `cost_items`
-13. `ar_invoices`
-14. `payments`
-15. `loans`
-16. `loan_schedule`
-17. `loan_payments`
-18. `project_budgets`
+9. `quotes`
+10. `costs`
+11. `cost_items`
+12. `ar_invoices`
+13. `payments`
+14. `loans`
+15. `loan_schedule`
+16. `loan_payments`
+17. `project_budgets`
 
 ---
 
@@ -99,7 +98,7 @@ Reference/master data tables only (partner_companies, bank_accounts, entities, e
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule, loan_payments) and historical reference tables (valuations, quotes, project_entities, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule, loan_payments) and historical reference tables (quotes, project_entities, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -158,8 +157,6 @@ Known enum values per field:
 | `projects.project_type` | subcontractor, oxi |
 | `projects.status` | prospect, active, completed, cancelled |
 | `projects.contract_currency` | USD, PEN |
-| `valuations.status` | open, closed |
-| `valuations.billed_currency` | USD, PEN |
 | `quotes.status` | pending, accepted, rejected |
 | `quotes.currency` | USD, PEN |
 | `costs.cost_type` | project_cost, sga |

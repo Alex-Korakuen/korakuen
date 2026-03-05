@@ -108,7 +108,7 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 ### Active Records Only
 
-Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records and do not have `is_active` — never filter them.
+Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records and do not have `is_active` — never filter them.
 
 **Exception — financial/historical views:** Views that report on financial history (e.g., `v_partner_ledger`, `v_project_pl`, `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 

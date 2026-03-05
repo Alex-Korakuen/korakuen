@@ -193,21 +193,6 @@ def validate_bank_account(row_num, row, lookups, errors):
             errors.append((row_num, "bank_name", f"Bank account {key} not found"))
 
 
-def validate_valuation(row_num, row, lookups, errors):
-    """Check that project_code + valuation_number match a known valuation. Skip if empty."""
-    proj_code = row.get("project_code")
-    val_num = row.get("valuation_number")
-    if proj_code and val_num and not pd.isna(proj_code) and not pd.isna(val_num):
-        project_id = lookups["projects"].get(str(proj_code).strip())
-        if project_id:
-            try:
-                vn = int(float(val_num))
-                if (project_id, vn) not in lookups["valuations"]:
-                    errors.append((row_num, "valuation_number", f"Valuation #{vn} not found for {proj_code}"))
-            except (ValueError, TypeError):
-                errors.append((row_num, "valuation_number", "Must be a number"))
-
-
 def print_errors(errors, file_path):
     """Print a formatted error table to the terminal."""
     print(f"\n✗ {len(errors)} validation error(s) found:\n")
@@ -271,13 +256,6 @@ def load_bank_account_map():
         key = f"{r['bank_name']}-{r['account_number_last4']}"
         bank_map[key] = r["id"]
     return bank_map
-
-
-def load_valuation_map():
-    """Return {(project_id, valuation_number): id} for all valuations."""
-    from lib.db import supabase
-    result = supabase.table("valuations").select("id, project_id, valuation_number").execute()
-    return {(r["project_id"], r["valuation_number"]): r["id"] for r in result.data}
 
 
 def load_partner_map():

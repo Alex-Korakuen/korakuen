@@ -10,7 +10,6 @@ WITH item_sums AS (
   SELECT
     c.id                  AS cost_id,
     c.project_id,
-    c.valuation_id,
     c.bank_account_id,
     c.entity_id,
     c.quote_id,
@@ -34,7 +33,6 @@ WITH item_sums AS (
   GROUP BY
     c.id,
     c.project_id,
-    c.valuation_id,
     c.bank_account_id,
     c.entity_id,
     c.quote_id,
@@ -62,7 +60,6 @@ with_igv AS (
 SELECT
   cost_id,
   project_id,
-  valuation_id,
   bank_account_id,
   entity_id,
   quote_id,

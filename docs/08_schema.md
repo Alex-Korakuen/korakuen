@@ -8,14 +8,14 @@
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 19 tables total across 7 layers.
+**Table count:** 18 tables total across 7 layers.
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_entities, valuations, quotes
+Layer 3: project_entities, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
 Layer 6 (private): loans, loan_schedule, loan_payments
@@ -203,28 +203,6 @@ Bridge table linking entities to projects with a specific role. Answers "who par
 
 ---
 
-### `valuations`
-Monthly billing periods per project. Groups costs for invoicing. Each valuation eventually triggers one AR invoice. Total costs under a valuation are always derived dynamically from the costs table — never stored as a calculated field.
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| id | UUID | NO | primary key |
-| project_id | UUID | NO | references projects |
-| valuation_number | INTEGER | NO | sequential per project — 1, 2, 3... |
-| period_month | INTEGER | NO | 1-12 |
-| period_year | INTEGER | NO | e.g. 2026 |
-| status | VARCHAR | NO | open, closed |
-| billed_value | NUMERIC(15,2) | YES | amount actually invoiced — may differ from total costs |
-| billed_currency | VARCHAR(3) | YES | USD or PEN |
-| date_closed | DATE | YES | populated when status changes to closed |
-| notes | TEXT | YES | |
-| created_at | TIMESTAMP | NO | auto |
-| updated_at | TIMESTAMP | NO | auto |
-
-**Note:** `ar_invoice_id` is not stored here — the AR invoice references the valuation instead, avoiding a circular dependency.
-
----
-
 ### `quotes`
 Quotes received from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the cost record they generated, enabling quote vs actual price comparison.
 
@@ -304,7 +282,6 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | YES | references projects — null if SG&A |
-| valuation_id | UUID | YES | references valuations — null if SG&A or untagged |
 | bank_account_id | UUID | NO | references bank_accounts — partner derived from this |
 | entity_id | UUID | YES | references entities — null if informal/unassigned |
 | quote_id | UUID | YES | references quotes — null if no prior quote |
@@ -377,13 +354,12 @@ One or many rows per cost. Holds the detail of what was purchased. Category live
 ---
 
 ### `ar_invoices`
-Invoices sent to clients. One per valuation. Subtotal entered directly — no line items table since AR invoices are simple (1-2 lines per valuation). Totals and payment status derived via views.
+Invoices sent to clients. Subtotal entered directly. Totals and payment status derived via views.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | NO | references projects |
-| valuation_id | UUID | NO | references valuations |
 | bank_account_id | UUID | NO | references bank_accounts — regular receipt account |
 | entity_id | UUID | NO | references entities — the client |
 | partner_company_id | UUID | NO | references partner_companies — who issued invoice |
@@ -391,7 +367,7 @@ Invoices sent to clients. One per valuation. Subtotal entered directly — no li
 | comprobante_type | VARCHAR | NO | always factura for construction AR |
 | invoice_date | DATE | NO | |
 | due_date | DATE | YES | |
-| subtotal | NUMERIC(15,2) | NO | entered directly from valuation billed value |
+| subtotal | NUMERIC(15,2) | NO | invoice subtotal amount |
 | igv_rate | NUMERIC(5,2) | NO | default 18 |
 | detraccion_rate | NUMERIC(5,2) | YES | editable, null if not applicable |
 | retencion_applicable | BOOLEAN | NO | default false |
@@ -582,7 +558,7 @@ Budget targets per project per category. Compared against actual costs from `v_c
 
 ## Complete Table List — Final
 
-**19 tables total:**
+**18 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -599,7 +575,6 @@ Layer 2 (depends on Layer 1):
 
 Layer 3 (depends on Layer 2):
   project_entities
-  valuations
   quotes
 
 Layer 4 (depends on Layer 3):
@@ -655,7 +630,7 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on costs.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.

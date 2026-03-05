@@ -5,7 +5,7 @@ Run: python main.py
 """
 
 from lib.helpers import get_input, clear_screen
-from modules import projects, entities, costs, quotes, valuations, ar_invoices, payments, loans, exchange_rates
+from modules import projects, entities, costs, quotes, ar_invoices, payments, loans, exchange_rates
 
 
 def main():
@@ -16,11 +16,10 @@ def main():
         print("2. Entities & Contacts")
         print("3. Costs")
         print("4. Quotes")
-        print("5. Valuations")
-        print("6. AR Invoices")
-        print("7. Payments")
-        print("8. Loans")
-        print("9. Exchange Rates")
+        print("5. AR Invoices")
+        print("6. Payments")
+        print("7. Loans")
+        print("8. Exchange Rates")
         print("0. Exit")
 
         choice = get_input("\nSelect option: ")
@@ -34,14 +33,12 @@ def main():
         elif choice == "4":
             quotes.menu()
         elif choice == "5":
-            valuations.menu()
-        elif choice == "6":
             ar_invoices.menu()
-        elif choice == "7":
+        elif choice == "6":
             payments.menu()
-        elif choice == "8":
+        elif choice == "7":
             loans.menu()
-        elif choice == "9":
+        elif choice == "8":
             exchange_rates.menu()
         elif choice == "0":
             print("\nGoodbye.\n")

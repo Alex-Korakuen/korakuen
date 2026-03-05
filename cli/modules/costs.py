@@ -19,10 +19,10 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number, validate_nonneg_number,
     validate_exchange_rate,
-    validate_bank_account, validate_valuation,
+    validate_bank_account,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
-    load_valuation_map, load_quote_map,
+    load_quote_map,
     load_excel_file, print_import_summary,
 )
 
@@ -78,26 +78,6 @@ def add_cost():
         project = select_project()
         if not project:
             return
-
-    # --- Valuation (optional) ---
-    valuation = None
-    if project:
-        vals = (
-            supabase.table("valuations")
-            .select("id, valuation_number, period_month, period_year")
-            .eq("project_id", project["id"])
-            .eq("status", "open")
-            .order("valuation_number")
-            .execute()
-        )
-        if vals.data:
-            list_choices("Open valuations", vals.data, display=["valuation_number", "period_month", "period_year"])
-            val_num = get_optional_input("  Select valuation number (optional — press Enter to skip): ")
-            if val_num:
-                try:
-                    valuation = vals.data[int(val_num) - 1]
-                except (ValueError, IndexError):
-                    print("  Invalid selection, skipping valuation.")
 
     # --- Bank account (required) ---
     bank_account = select_bank_account()
@@ -275,8 +255,6 @@ def add_cost():
     }
     if project:
         header_data["project_id"] = project["id"]
-    if valuation:
-        header_data["valuation_id"] = valuation["id"]
     if entity:
         header_data["entity_id"] = entity["id"]
     if quote:
@@ -350,7 +328,6 @@ def _load_cost_lookups():
         "projects": load_project_map(),
         "entities": load_entity_map(),
         "bank_accounts": load_bank_account_map(),
-        "valuations": load_valuation_map(),
         "quotes": load_quote_map(),
         "existing_document_refs": existing_refs,
         "existing_entity_comprobantes": existing_entity_comprobantes,
@@ -378,7 +355,6 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
 
     validate_bank_account(row_num, row, lookups, errors)
-    validate_valuation(row_num, row, lookups, errors)
 
     # Quote lookup
     validate_lookup(row_num, row, "quote_document_ref", lookups["quotes"], errors)
@@ -442,15 +418,6 @@ def _build_cost_record(row, lookups):
     entity_doc = row.get("entity_document_number")
     if entity_doc and not pd.isna(entity_doc) and str(entity_doc).strip():
         data["entity_id"] = lookups["entities"][str(entity_doc).strip()]
-
-    val_num = row.get("valuation_number")
-    if proj_code and val_num and not pd.isna(proj_code) and not pd.isna(val_num):
-        project_id = lookups["projects"].get(str(proj_code).strip())
-        if project_id:
-            vn = int(float(val_num))
-            val_key = (project_id, vn)
-            if val_key in lookups["valuations"]:
-                data["valuation_id"] = lookups["valuations"][val_key]
 
     quote_ref = row.get("quote_document_ref")
     if quote_ref and not pd.isna(quote_ref) and str(quote_ref).strip():

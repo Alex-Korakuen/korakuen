@@ -43,10 +43,8 @@ def _load_cost_lookups():
     bank_accounts = supabase.table("bank_accounts").select(
         "id, bank_name, account_number_last4"
     ).eq("is_active", True).execute()
-    valuations = supabase.table("valuations").select("id, project_id, valuation_number").execute()
     quotes = supabase.table("quotes").select("id, document_ref").execute()
 
-    # Build project_code → id map for resolving valuation keys
     project_map = {r["project_code"]: r["id"] for r in projects.data}
 
     return {
@@ -55,10 +53,6 @@ def _load_cost_lookups():
         "bank_accounts": {
             (r["bank_name"], r["account_number_last4"]): r["id"]
             for r in bank_accounts.data
-        },
-        "valuations": {
-            (r["project_id"], r["valuation_number"]): r["id"]
-            for r in valuations.data
         },
         "quotes": {r["document_ref"]: r["id"] for r in quotes.data if r["document_ref"]},
     }
@@ -101,18 +95,6 @@ def _validate_cost_row(row_num, row, errors, lookups):
 
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
 
-    # Composite FK lookup (project_code + valuation_number → valuation_id)
-    if not pd.isna(row.get("valuation_number")) and str(row.get("valuation_number", "")).strip():
-        project_code = str(row.get("project_code", "")).strip() if not pd.isna(row.get("project_code")) else ""
-        project_id = lookups["projects"].get(project_code)
-        if project_id:
-            key = (project_id, int(row["valuation_number"]))
-            if key not in lookups["valuations"]:
-                errors.append((row_num, "valuation_number", "Not found in database"))
-        else:
-            errors.append((row_num, "valuation_number",
-                           "Cannot resolve — project_code is missing or invalid"))
-
     validate_lookup(row_num, row, "quote_document_ref", lookups["quotes"], errors)
 
     # Cross-field validation
@@ -138,9 +120,6 @@ def _build_cost_record(row, lookups):
         data["project_id"] = lookups["projects"][row["project_code"]]
     if not pd.isna(row.get("entity_document_number")) and str(row["entity_document_number"]).strip():
         data["entity_id"] = lookups["entities"][row["entity_document_number"]]
-    if not pd.isna(row.get("valuation_number")) and str(row["valuation_number"]).strip():
-        project_id = lookups["projects"][row["project_code"]]
-        data["valuation_id"] = lookups["valuations"][(project_id, int(row["valuation_number"]))]
     if not pd.isna(row.get("quote_document_ref")) and str(row["quote_document_ref"]).strip():
         data["quote_id"] = lookups["quotes"][row["quote_document_ref"]]
     if not pd.isna(row.get("detraccion_rate")):
@@ -303,7 +282,6 @@ Templates use human-readable identifiers instead of UUIDs:
 | `client_entity_document_number` | `client_entity_id` | entities (by document_number) |
 | `bank_name` + `bank_account_last4` | `bank_account_id` | bank_accounts (by bank_name + account_number_last4) |
 | `partner_company_name` | `partner_company_id` | partner_companies (by name) |
-| `valuation_number` | `valuation_id` | valuations (by valuation_number + project) |
 | `cost_document_ref` | `cost_id` | costs (by document_ref) |
 | `quote_document_ref` | `quote_id` | quotes (by document_ref) |
 
@@ -369,11 +347,10 @@ Import functions must be run in dependency order matching the database schema la
 
 1. `entities.import_entities()` — no dependencies (Layer 1)
 2. `projects.import_projects()` — depends on entities for client lookup (Layer 2)
-3. `valuations.import_valuations()` — depends on projects (Layer 3)
-4. `quotes.import_quotes()` — depends on projects and entities (Layer 3)
-5. `costs.import_costs()` — depends on projects, valuations, entities, bank_accounts (Layer 4)
-6. `costs.import_cost_items()` — depends on costs (Layer 4)
-7. `ar_invoices.import_ar_invoices()` — depends on projects, valuations, entities, bank_accounts, partner_companies (Layer 4)
+3. `quotes.import_quotes()` — depends on projects and entities (Layer 3)
+4. `costs.import_costs()` — depends on projects, entities, bank_accounts (Layer 4)
+5. `costs.import_cost_items()` — depends on costs (Layer 4)
+6. `ar_invoices.import_ar_invoices()` — depends on projects, entities, bank_accounts, partner_companies (Layer 4)
 
 ---
 

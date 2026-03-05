@@ -73,7 +73,7 @@ Data entry happens exclusively through Python terminal scripts. Visualization ha
 ### 4.3 Separate Tables for Income and Expenses
 AR invoices (income) and Costs (expenses) live in separate tables despite both being financial transactions.
 
-**Why:** They have fundamentally different fields, lifecycles, and purposes. Costs are granular daily transactions with quantity, unit price, category, and bank account. AR invoices are high-level billing documents tied to valuations with collection records. Mixing them makes the P&L calculation messy and error-prone. Separate tables keeps the data clean and the P&L unambiguous.
+**Why:** They have fundamentally different fields, lifecycles, and purposes. Costs are granular daily transactions with quantity, unit price, category, and bank account. AR invoices are high-level billing documents tied to projects with collection records. Mixing them makes the P&L calculation messy and error-prone. Separate tables keeps the data clean and the P&L unambiguous.
 
 ---
 
@@ -124,21 +124,14 @@ Alex's bank accounts are tracked fully — every transaction in and out, reconci
 
 ---
 
-### 4.9 Valuations as a Standalone Table
-Monthly billing periods (Valuation #1, #2, etc.) are a proper table, not just a text tag on costs.
-
-**Why:** A valuation has its own attributes — period, status, billed value, linked AR invoice. Storing it as a table makes these queryable and links cleanly to AR. A text tag would be unstructured and unqueryable.
-
----
-
-### 4.10 Partner Ledger as a View, Not a Table
+### 4.9 Partner Ledger as a View, Not a Table
 Partner contribution tracking and settlement calculations are database views derived from the costs table filtered by partner company via bank_account. No standalone ledger table.
 
 **Why:** All the data already exists in the costs table. A separate ledger table would duplicate data and create consistency risk. The view is always up to date because it reads directly from the source. The partner ledger is displayed on the visualization website as a dashboard.
 
 ---
 
-### 4.11 SG&A Two-Level Categorization
+### 4.10 SG&A Two-Level Categorization
 Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Category (specific subcategory within each type). Project field is nullable — null project means SG&A.
 
 **SG&A Categories:**
@@ -151,7 +144,7 @@ Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Categ
 
 ---
 
-### 4.12 Purchase Order Extensibility Hook
+### 4.11 Purchase Order Extensibility Hook
 The `costs` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null — costs reference quotes directly via `quote_id`. When POs are introduced, the flow shifts from `quote → cost` to `quote → purchase_order → cost` using the existing field. No schema migration needed on `costs` when this happens.
 
 **Current flow:** `quote_id` filled, `purchase_order_id` null
@@ -160,7 +153,7 @@ The `costs` table includes a nullable `purchase_order_id` field reserved for a f
 
 ---
 
-### 4.13 Dual-View Architecture
+### 4.12 Dual-View Architecture
 The system serves two audiences with different needs. Every applicable page has two modes:
 
 **Company View (Alex only):** Cross-project aggregation, Korakuen's portion only, includes private data (loans, financing costs). Answers "How is my business doing?"
@@ -171,7 +164,7 @@ Same pages, same underlying data — the difference is a filter parameter. P&L i
 
 ---
 
-### 4.14 Loans Module (Private)
+### 4.13 Loans Module (Private)
 A private module to track Alex's personal debt obligations — money borrowed from friends, family, or informal lenders to fund project contributions.
 
 **Key principle:** All capital contributed to a project counts as own capital regardless of source. The partnership never sees loan data. Profit split is proportional to capital contributed. What each partner does with their profit share is their own business.
@@ -182,7 +175,7 @@ Privacy: CLI-only in V0 (automatic — only Alex runs the CLI). Admin-only in V1
 
 ---
 
-### 4.15 P&L vs Cash Flow — Two Financial Statements
+### 4.14 P&L vs Cash Flow — Two Financial Statements
 The system provides two distinct financial views:
 
 **P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. Computed in `queries.ts` with period filtering and currency conversion (SQL views `v_company_pl`/`v_project_pl` exist for simple queries). Shows business profitability.

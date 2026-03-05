@@ -104,7 +104,7 @@ Purpose: Main menu for the Korakuen Management System
 """
 
 from lib.helpers import get_input, clear_screen
-from modules import projects, entities, costs, quotes, valuations, ar_invoices, payments, loans
+from modules import projects, entities, costs, quotes, ar_invoices, payments, loans
 
 
 def main():
@@ -115,10 +115,9 @@ def main():
         print("2. Entities & Contacts")
         print("3. Costs")
         print("4. Quotes")
-        print("5. Valuations")
-        print("6. AR Invoices")
-        print("7. Payments")
-        print("8. Loans")
+        print("5. AR Invoices")
+        print("6. Payments")
+        print("7. Loans")
         print("0. Exit")
         choice = get_input("\nSelect option: ")
         if choice == "1":
@@ -130,12 +129,10 @@ def main():
         elif choice == "4":
             quotes.menu()
         elif choice == "5":
-            valuations.menu()
-        elif choice == "6":
             ar_invoices.menu()
-        elif choice == "7":
+        elif choice == "6":
             payments.menu()
-        elif choice == "8":
+        elif choice == "7":
             loans.menu()
         elif choice == "0":
             print("\nGoodbye.\n")

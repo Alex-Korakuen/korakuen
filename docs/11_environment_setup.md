@@ -45,7 +45,6 @@ korakuen/
 │   │   ├── entities.py     → add entity, contact, tag + import
 │   │   ├── costs.py        → add single + import costs/cost_items
 │   │   ├── quotes.py       → add single + import from Excel
-│   │   ├── valuations.py   → add single + import from Excel
 │   │   ├── ar_invoices.py  → add single + import from Excel
 │   │   ├── payments.py     → register payment, verify retencion
 │   │   └── loans.py        → add loan, schedule, register repayment

@@ -15,15 +15,6 @@ The current settlement model treats partner settlements as AR invoices (`is_inte
 - [ ] Settlement section converts USD at current rate ("settlements happen in the present") while contributions use transaction-date rates. This is a deliberate choice but creates a conceptual mismatch — verify this reflects how the partners think about it
 - [ ] No structured mechanism for partial settlements during execution (the handbook says "weekly balancing attempts during execution") — is the current invoice-based settlement flow sufficient, or do partners need a lighter-weight way to record interim balancing?
 
-### Valuations — Review Necessity
-
-Valuations (monthly billing periods) are standard in Peruvian construction and are modeled in the database, but their role in the system has been reduced:
-
-- [ ] Valuations were removed from the Projects page display ("kept as dormant infrastructure"). Costs are grouped by date, not by valuation period. Is this still the right call, or do the partners actually think in terms of valuations when reviewing project spending?
-- [ ] AR invoices reference `valuation_id` — this is the primary linkage. But if a project doesn't use monthly valuations (e.g., a simple subcontractor job with a single final invoice), the current flow still forces selecting a valuation. Is this friction justified?
-- [ ] The interactive AR entry prevents duplicate invoices per valuation, but the import path does not check this. Partially addressed by planned unique invoice number constraints (see Known Issues) — but the valuation-level check is a separate business rule
-- [ ] `billed_value` on valuations can differ from both the sum of costs and the AR invoice amount for that period. Is this field actually being used, or is it redundant with the AR invoice subtotal?
-
 ---
 
 ## Known Issues
@@ -35,6 +26,10 @@ Fixed: `mapCategory()` now receives `cost_type` and routes SG&A "other" correctl
 ### Cost Import — Headers Without Items Warning [LOW]
 
 The cost import is a two-step workflow (import headers, then import items). No validation ensures imported headers get corresponding items. Orphaned headers show zero totals — not corrupt, but confusing. Fix: add a post-import warning that checks for costs with no items.
+
+### ~~P&L Profit Share Used Blended All-Time Ratios~~ [FIXED]
+
+Fixed: Alex's profit share now weights each project's profit by Alex's per-project `contribution_pct` from `v_partner_ledger`, then splits SGA proportionally by period cost share. Previously used a single blended ratio across all projects and time periods.
 
 ### ~~Unique Invoice Number Constraints~~ [FIXED]
 

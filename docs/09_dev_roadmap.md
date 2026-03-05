@@ -92,10 +92,10 @@ Main menu structure:
 2. Entities & Contacts
 3. Costs
 4. Quotes
-5. Valuations
-6. AR Invoices
-7. Payments
-8. Loans
+5. AR Invoices
+6. Payments
+7. Loans
+8. Exchange Rates
 0. Exit
 
 Select option:
@@ -176,10 +176,10 @@ Select option:
 ```
 
 **Add cost:** Most complex operation. Two-step process:
-- Step 1 — Header: project (optional, list active), valuation (optional, list open for project), bank_account (list by partner), entity (optional, search), quote (optional, list accepted quotes for project), cost_type, date, title, igv_rate, detraccion_rate (optional), currency, exchange_rate, comprobante_type (optional), comprobante_number (optional), document_ref (optional), due_date (optional), notes (optional)
+- Step 1 — Header: project (optional, list active), bank_account (list by partner), entity (optional, search), quote (optional, list accepted quotes for project), cost_type, date, title, igv_rate, detraccion_rate (optional), currency, exchange_rate, comprobante_type (optional), comprobante_number (optional), document_ref (optional), due_date (optional), notes (optional)
 - Step 2 — Line items: loop adding items until user says done. Each line: title, category (show options), quantity (optional), unit_of_measure (optional), unit_price (optional), subtotal, notes. Displays running total. Confirms full summary before insert (header + all lines).
 
-**Import costs:** Reads costs.xlsx, validates, resolves FK lookups (project_code, entity_document_number, bank_name+last4), batch inserts headers. Import order: 4th — depends on projects, valuations, entities, bank_accounts.
+**Import costs:** Reads costs.xlsx, validates, resolves FK lookups (project_code, entity_document_number, bank_name+last4), batch inserts headers. Import order: 4th — depends on projects, entities, bank_accounts.
 
 **Import cost items:** Reads cost_items.xlsx, validates (cost must exist by document_ref), batch inserts. Import order: 5th — depends on costs.
 
@@ -206,28 +206,7 @@ Select option:
 
 ---
 
-### Task 3.6 — valuations.py
-**Depends on:** Task 3.1
-**Output:** `cli/modules/valuations.py`
-
-Submenu:
-```
-=== Valuations ===
-
-1. Add valuation
-2. Import valuations from Excel
-3. Back
-
-Select option:
-```
-
-**Add valuation:** project (list active), period_month, period_year, billed_value, billed_currency, notes. Auto-generates valuation_number (next sequential for that project). Confirms before insert.
-
-**Import valuations:** Reads .xlsx, validates, resolves project_code lookup. Import order: 3rd — depends on projects.
-
----
-
-### Task 3.7 — ar_invoices.py
+### Task 3.6 — ar_invoices.py
 **Depends on:** Task 3.1
 **Output:** `cli/modules/ar_invoices.py`
 
@@ -242,7 +221,7 @@ Submenu:
 Select option:
 ```
 
-**Add AR invoice:** project (list active), valuation (list closed valuations without AR invoice), bank_account, entity (client — search), partner_company (list), invoice_number, invoice_date, due_date, subtotal, igv_rate, detraccion_rate (optional), retencion_applicable, retencion_rate (if applicable), currency, exchange_rate, document_ref, is_internal_settlement, notes.
+**Add AR invoice:** project (list active), bank_account, entity (client — search), partner_company (list), invoice_number, invoice_date, due_date, subtotal, igv_rate, detraccion_rate (optional), retencion_applicable, retencion_rate (if applicable), currency, exchange_rate, document_ref, is_internal_settlement, notes.
 
 Displays calculated breakdown before confirming:
 ```
@@ -254,11 +233,11 @@ Retencion (3%):  S/   3,540
 Net receivable:  S/ 109,740
 ```
 
-**Import AR invoices:** Reads .xlsx, validates, resolves all FK lookups. Import order: 5th — depends on projects, valuations, entities, bank_accounts, partner_companies.
+**Import AR invoices:** Reads .xlsx, validates, resolves all FK lookups. Import order: 5th — depends on projects, entities, bank_accounts, partner_companies.
 
 ---
 
-### Task 3.8 — payments.py
+### Task 3.7 — payments.py
 **Depends on:** Task 3.1
 **Output:** `cli/modules/payments.py`
 
@@ -281,7 +260,7 @@ No import — payments are always registered individually.
 
 ---
 
-### Task 3.9 — views.py (Retired)
+### Task 3.8 — views.py (Retired)
 **Status:** Retired — `views.py` deleted. Read-only dashboards moved exclusively to the website.
 
 The CLI views module (AP Payment Calendar, Partner Balances, Retencion Dashboard) was built as a transitional tool during Phase 3. With Phase 4 (website) underway, CLI views have been retired. The database views they read from (`v_ap_calendar`, `v_partner_ledger`, `v_retencion_dashboard`) remain in place — they are the data source for the website.
@@ -290,8 +269,8 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.10 — Integration test
-**Depends on:** Tasks 3.2-3.9
+### Task 3.9 — Integration test
+**Depends on:** Tasks 3.2-3.8
 **Test:** Full menu flow — navigate every menu path, add one record per module, verify back navigation, verify clean exit.
 
 **Done when:** All menu paths accessible, all single-entry functions insert records successfully, all import functions accept and process .xlsx files, screen clears between every menu transition.
@@ -306,7 +285,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.11 — Entity location fields [COMPLETE]
+### Task 3.10 — Entity location fields [COMPLETE]
 **Depends on:** Phase 3 complete
 **Output:** Migration SQL, updated `cli/modules/entities.py`, updated templates
 
@@ -319,7 +298,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.12 — Informal payment support [COMPLETE]
+### Task 3.11 — Informal payment support [COMPLETE]
 **Depends on:** Phase 3 complete
 **Output:** Migration SQL, updated `cli/modules/costs.py`, updated templates
 
@@ -334,7 +313,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.13 — Loans module (schema) [COMPLETE]
+### Task 3.12 — Loans module (schema) [COMPLETE]
 **Depends on:** Phase 3 complete
 **Output:** Migration SQL, view SQL
 
@@ -346,8 +325,8 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.14 — Loans module (CLI) [COMPLETE]
-**Depends on:** Task 3.13
+### Task 3.13 — Loans module (CLI) [COMPLETE]
+**Depends on:** Task 3.12
 **Output:** `cli/modules/loans.py`, updated `cli/main.py`
 
 - [x] Create `cli/modules/loans.py` with 3 operations: add_loan, add_schedule, register_repayment
@@ -357,7 +336,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 ---
 
-### Task 3.15 — Project budgets [COMPLETE]
+### Task 3.14 — Project budgets [COMPLETE]
 **Depends on:** Phase 3 complete
 **Output:** Migration SQL, view SQL, updated `cli/modules/projects.py`
 

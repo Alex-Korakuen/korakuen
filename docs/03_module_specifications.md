@@ -16,13 +16,13 @@ The system is organized around a central costs/transactions table with supportin
                         |
                         | referenced by all financial records
                         |
-PROJECT ─────────────────────────────────────────────
-   |              |              |              |
-COSTS          QUOTES        VALUATIONS      AR INVOICES
-+ COST_ITEMS (received)    (billing periods)  (income)
-(expenses)        |              |              |
+PROJECT ─────────────────────────────────────
+   |              |              |
+COSTS          QUOTES        AR INVOICES
++ COST_ITEMS (received)      (income)
+(expenses)        |              |
                   └──── links to COSTS when accepted
-                                 |              |
+                                 |
                               PAYMENTS (unified — both AP and AR)
 ```
 
@@ -32,12 +32,12 @@ COSTS          QUOTES        VALUATIONS      AR INVOICES
 
 ## Module 1: Projects
 
-**Purpose:** The anchor for all other data. Every cost, invoice, quote, and valuation belongs to a project. The project code drives the document naming convention throughout SharePoint.
+**Purpose:** The anchor for all other data. Every cost, invoice, and quote belongs to a project. The project code drives the document naming convention throughout SharePoint.
 
 **Business rules:**
 - Every project gets a unique sequential code: PRY001, PRY002, PRY003...
 - This code is used in all document filenames: `PRY001-AP-001.pdf`
-- A project must exist before costs, quotes, valuations, or AR invoices can be registered against it
+- A project must exist before costs, quotes, or AR invoices can be registered against it
 - Projects are never deleted — set to Cancelled if abandoned
 - Contract value (what the client will pay total) is stored here — this is the revenue ceiling
 - Contract value is editable as scope changes during execution
@@ -160,7 +160,6 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Entity field is nullable — supports fully informal/unassigned expenses
 - Comprobante fields are nullable — supports expenses without formal invoices
 - A cost can reference a quote (when the purchase was preceded by a quote)
-- A cost is tagged to a valuation period when it belongs to a billable project period
 
 **Cost Type (Level 1):**
 - Project Cost — tagged to a specific project
@@ -187,7 +186,6 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Date
 - Cost type: Project Cost or SG&A
 - Project (nullable — null if SG&A)
-- Valuation (nullable — references Valuations table)
 - Bank account paid from (references Bank Accounts — partner derived from this)
 - Entity (nullable — references Entities)
 - Quote reference (nullable — references Quotes if this cost originated from a quote)
@@ -218,7 +216,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Total — subtotal + igv_amount
 - Amount paid, outstanding, payment status — from payments table
 
-**Connects to:** Projects, Entities, Valuations, Bank Accounts, Quotes
+**Connects to:** Projects, Entities, Bank Accounts, Quotes
 
 ---
 
@@ -262,45 +260,12 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 
 ---
 
-## Module 5: Valuations
-
-**Purpose:** Monthly billing periods that group project costs for invoicing. Each valuation represents one billing cycle and triggers one AR invoice to the client.
-
-**Business rules:**
-- Valuations are sequential per project: 1, 2, 3... (integer, no prefix)
-- Each valuation covers a specific month and year
-- Costs are tagged to a valuation at registration time
-- When a valuation is closed, it triggers creation of an AR invoice
-- A closed valuation cannot be modified
-- The billed value may differ from total costs — depends on contract measurement
-- One AR invoice per valuation
-
-**Key attributes (stored):**
-- Valuation ID (system generated)
-- Valuation number (sequential integer per project — 1, 2, 3...)
-- Project (references Projects)
-- Period: month and year (e.g. January 2026)
-- Status: Open, Closed
-- Billed value (the amount actually invoiced — may differ from cost total)
-- Billed currency
-- Date closed (nullable — populated when status changes to closed)
-- Notes
-
-**Derived dynamically (never stored):**
-- Total costs tagged to this valuation — SUM from costs table
-
-**Note:** AR invoice ID is not stored on valuations — the AR invoice references the valuation instead, avoiding a circular dependency.
-
-**Connects to:** Projects, Costs (via tag), AR Invoices
-
----
-
-## Module 6: AR — Accounts Receivable
+## Module 5: AR — Accounts Receivable
 
 **Purpose:** Invoices sent to clients. Tracks the full lifecycle from invoice issuance to collection, including all Peruvian tax withholdings. Kept as a separate table from Costs because income and expenses have fundamentally different structures and must be separated for a clean P&L.
 
 **Business rules:**
-- Every AR invoice is linked to a project and a valuation
+- Every AR invoice is linked to a project
 - The issuing partner company is recorded — each partner invoices independently
 - IGV, detraccion, and retencion are all tracked separately
 - Partial collections are supported — multiple collection records per invoice
@@ -320,7 +285,6 @@ Net receivable to regular account:     S/ 109,740
 **Key attributes (stored):**
 - AR ID (system generated)
 - Project (references Projects)
-- Valuation (references Valuations)
 - Bank account (references Bank Accounts — regular receipt account)
 - Issuing partner company (references Partner Companies)
 - Client entity (references Entities)
@@ -328,7 +292,7 @@ Net receivable to regular account:     S/ 109,740
 - Comprobante type: Factura
 - Invoice date
 - Due date (nullable)
-- Subtotal (entered directly from valuation billed value)
+- Subtotal (invoice subtotal amount)
 - IGV rate (default 18%, editable)
 - Detraccion rate % (nullable, editable)
 - Retencion applicable: Yes/No
@@ -350,11 +314,11 @@ Net receivable to regular account:     S/ 109,740
 **Payments (via unified payments table):**
 Actual money received against this AR invoice is recorded in the `payments` table with `related_to = 'ar_invoice'`. Multiple payment records per invoice are supported — regular transfer, detraccion deposit to Banco de la Nación, and retencion withheld by client. Payment status and outstanding balance are always derived dynamically from the payments table via database views.
 
-**Connects to:** Projects, Valuations, Entities, Bank Accounts
+**Connects to:** Projects, Entities, Bank Accounts
 
 ---
 
-## Module 7: Bank Accounts
+## Module 6: Bank Accounts
 
 **Purpose:** Tracks bank accounts used by the partners for project transactions. Full tracking for Alex's accounts. Reference only for partner accounts.
 
@@ -387,7 +351,7 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 
 ---
 
-## Module 8: Partner Ledger (View, Not a Table)
+## Module 7: Partner Ledger (View, Not a Table)
 
 **Purpose:** Shows each partner's financial contribution per project, calculates proportional ownership stakes, and displays inter-partner balances for settlement.
 
@@ -422,7 +386,7 @@ When partners settle up, one partner company issues a formal AR invoice to anoth
 
 ---
 
-## Module 9: Loans (Private — Alex Only)
+## Module 8: Loans (Private — Alex Only)
 
 **Purpose:** Tracks private loans Alex takes from friends, family, or informal lenders to fund project operations. These are personal financial obligations — never visible to partners.
 
@@ -487,15 +451,13 @@ When partners settle up, one partner company issues a formal AR invoice to anoth
 
 ## Cross-Module Business Rules
 
-- A project must exist before costs, quotes, valuations, or AR invoices can be registered
+- A project must exist before costs, quotes, or AR invoices can be registered
 - An entity must exist before being referenced in any transaction — but transactions can have null entity
 - Costs with null project are SG&A — they appear in the company P&L but not in any project P&L
 - Cost totals (subtotal, IGV, total) are always derived from cost_items via database views — never stored on the costs header. AR invoice calculated fields (igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable) are also derived via views, never stored
 - Currency is always stored in natural currency — amounts are never converted at storage
 - Exchange rate is mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting — no conversion occurs at storage. Payment currency must match the parent document currency
 - Document reference codes follow the format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`
-- Valuations are sequential integers per project (1, 2, 3...) and never reset
-- Closed valuations cannot be modified
 
 ---
 
