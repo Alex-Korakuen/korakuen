@@ -7,7 +7,7 @@ import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Tabs } from '@/components/ui/tabs'
-import { fetchArInvoiceDetail } from './actions'
+import { fetchArInvoiceDetail } from '@/lib/actions'
 import {
   getAgingBucket,
   getAgingColorClass,
@@ -32,6 +32,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   clients: { id: string; name: string }[]
   partners: { id: string; name: string }[]
+  exchangeRate: { mid_rate: number; rate_date: string } | null
 }
 
 export function ArOutstandingClient({
@@ -41,6 +42,7 @@ export function ArOutstandingClient({
   projects,
   clients,
   partners,
+  exchangeRate,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'main' | 'taxes'>('main')
   const [activeBucket, setActiveBucket] = useState<BucketId>('all')

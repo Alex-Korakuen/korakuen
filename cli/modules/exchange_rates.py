@@ -9,6 +9,7 @@ from lib.db import supabase
 from lib.helpers import (
     get_input, get_date_input, get_optional_input,
     confirm, clear_screen, get_nonneg_float,
+    EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX,
 )
 
 
@@ -162,8 +163,8 @@ def _get_rate(prompt):
             if rate <= 0:
                 print("  Must be a positive number.")
                 continue
-            if not (2.5 <= rate <= 6.0):
-                print(f"  Warning: {rate} is outside the typical range (2.5–6.0).")
+            if not (EXCHANGE_RATE_MIN <= rate <= EXCHANGE_RATE_MAX):
+                print(f"  Warning: {rate} is outside the typical range ({EXCHANGE_RATE_MIN}–{EXCHANGE_RATE_MAX}).")
                 if not confirm("  Use this rate anyway?"):
                     continue
             return rate

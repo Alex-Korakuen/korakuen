@@ -12,7 +12,7 @@ import type {
   CostBalanceRow,
   CostDetailData,
   CostItem,
-  DetractionEntry,
+  CostDetractionEntry,
   CurrencyAmount,
   EntityDetailData,
   EntityListItem,
@@ -150,7 +150,7 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   }
 }
 
-export async function getDetractionsPending(): Promise<DetractionEntry[]> {
+export async function getDetractionsPending(): Promise<CostDetractionEntry[]> {
   const supabase = await createServerSupabaseClient()
 
   // Get all costs with detraccion amounts

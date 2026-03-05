@@ -117,7 +117,8 @@ cli/
 │   ├── valuations.py          → add single + import from Excel
 │   ├── ar_invoices.py         → add single + import from Excel
 │   ├── payments.py            → register payment, verify retencion
-│   └── loans.py               → add loan, schedule, payments + import
+│   ├── loans.py               → add loan, schedule, payments + import
+│   └── exchange_rates.py      → add daily SUNAT rate, list recent rates
 ├── lib/
 │   ├── __init__.py
 │   ├── db.py                  → shared Supabase client

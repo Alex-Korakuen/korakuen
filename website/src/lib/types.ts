@@ -79,7 +79,7 @@ export type ApCalendarEntryType = 'supplier_invoice' | 'loan_payment'
 
 // --- AP Calendar component types ---
 
-export type DetractionEntry = {
+export type CostDetractionEntry = {
   cost_id: string | null
   entity_name: string
   project_code: string
@@ -175,7 +175,6 @@ export type ApCalendarFilters = {
 }
 
 export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'title' | 'total' | 'outstanding' | 'document_ref'
-export type ApCalendarSortDirection = 'asc' | 'desc'
 
 // --- Category values (cost_items.category) ---
 export type CostCategory =

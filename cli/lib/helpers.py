@@ -8,6 +8,11 @@ from datetime import datetime
 from lib.db import supabase
 
 
+# PEN/USD exchange rate — historical range for sanity checks
+EXCHANGE_RATE_MIN = 2.5
+EXCHANGE_RATE_MAX = 6.0
+
+
 def get_input(prompt):
     """Prompt for required input. Loops until non-empty."""
     while True:
@@ -173,9 +178,8 @@ def get_exchange_rate(transaction_date=None):
             if rate <= 0:
                 print("  Must be a positive number.")
                 continue
-            # Sanity check — historical PEN/USD has been in the 2.5–6.0 range
-            if not (2.5 <= rate <= 6.0):
-                print(f"  Warning: {rate} is outside the typical range (2.5–6.0).")
+            if not (EXCHANGE_RATE_MIN <= rate <= EXCHANGE_RATE_MAX):
+                print(f"  Warning: {rate} is outside the typical range ({EXCHANGE_RATE_MIN}–{EXCHANGE_RATE_MAX}).")
                 if not confirm("  Use this rate anyway?"):
                     continue
             return rate

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
-import { fetchPartnerCosts } from './actions'
+import { fetchPartnerCosts } from '@/lib/actions'
 import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { PartnerBalanceData, PartnerContribution, PartnerCostDetail, Currency } from '@/lib/types'
 

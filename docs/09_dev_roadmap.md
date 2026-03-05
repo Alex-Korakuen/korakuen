@@ -373,7 +373,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Status:** Phase 4 complete. All 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Status:** Phase 4 complete. All 31 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
 
 - [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
 - [x] Task 4.4 — Verify Vercel deployment

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
-import { fetchBankTransactions } from './actions'
+import { fetchBankTransactions } from '@/lib/actions'
 import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/types'
 
 type Props = {

@@ -59,7 +59,8 @@ korakuen/
 │   │   ├── valuations.py
 │   │   ├── ar_invoices.py
 │   │   ├── payments.py
-│   │   └── loans.py          → private loans module (Phase 3.5)
+│   │   ├── loans.py          → private loans module (Phase 3.5)
+│   │   └── exchange_rates.py → SUNAT daily exchange rates (Phase 5)
 │   ├── lib/
 │   │   ├── db.py           → shared Supabase client
 │   │   ├── helpers.py      → shared input helpers
@@ -81,10 +82,10 @@ korakuen/
 
 ---
 
-## Database — 18 Tables
+## Database — 19 Tables
 
 ```
-Layer 1: partner_companies, bank_accounts, entities
+Layer 1: partner_companies, bank_accounts, entities, exchange_rates
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, valuations, quotes
 Layer 4: costs, cost_items, ar_invoices
@@ -215,6 +216,8 @@ Read these documents for context on specific tasks:
 **Phase 3.5 complete — Schema & CLI Extensions.** Four new tables (loans, loan_schedule, loan_payments, project_budgets) in 4 migrations. Two new fields on existing tables (city/region on entities, payment_method on costs). Expanded comprobante_type to 6 values. New loans CLI module (menu item 8). Budget entry added to projects module. Two new views (`v_loan_balances`, `v_budget_vs_actual`), two updated views (`v_cost_totals` with payment_method, `v_ap_calendar` with loan UNION). All Excel templates regenerated. `v_cash_flow` skipped as SQL view — computed in `queries.ts` instead.
 
 **Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 14 views deployed (including `v_igv_position`). 24 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+
+**Phase 5 in progress — PEN Functional Currency.** New `exchange_rates` table with daily SUNAT USD/PEN rates. New exchange_rates CLI module (menu item 9). CLI suggests current exchange rate during data entry. Dashboards converted to PEN functional currency: P&L and Cash Flow report in PEN only, AP Calendar and AR Outstanding show PEN aggregate summary cards, Partner Balances uses transaction-date PEN conversion. `v_partner_ledger` view rewritten (one row per partner per project, all in PEN).
 
 See `docs/09_dev_roadmap.md` for full task list and completion status.
 

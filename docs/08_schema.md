@@ -10,10 +10,10 @@
 
 PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (valuations, quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 18 tables total across 7 layers.
+**Table count:** 19 tables total across 7 layers.
 
 ```
-Layer 1: partner_companies, bank_accounts, entities
+Layer 1: partner_companies, bank_accounts, entities, exchange_rates
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, valuations, quotes
 Layer 4: costs, cost_items, ar_invoices
@@ -582,13 +582,14 @@ Budget targets per project per category. Compared against actual costs from `v_c
 
 ## Complete Table List — Final
 
-**18 tables total:**
+**19 tables total:**
 
 ```
 Layer 1 (no dependencies):
   partner_companies
   bank_accounts
   entities
+  exchange_rates
 
 Layer 2 (depends on Layer 1):
   tags

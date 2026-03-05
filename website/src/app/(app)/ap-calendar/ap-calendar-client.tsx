@@ -7,7 +7,7 @@ import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Tabs } from '@/components/ui/tabs'
-import { fetchCostDetail, fetchLoanDetailFromSchedule } from './actions'
+import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
 import {
   getDaysUntilEndOfWeek,
   getRowBorderClass,
@@ -16,7 +16,7 @@ import {
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
 import type { ApCalendarRow } from '@/lib/types'
 import type {
-  DetractionEntry,
+  CostDetractionEntry,
   CostDetailData,
   LoanDetailData,
   ApCalendarBucketId as BucketId,
@@ -26,14 +26,15 @@ import type {
 
 type Props = {
   data: ApCalendarRow[]
-  detractions: DetractionEntry[]
+  detractions: CostDetractionEntry[]
   projects: { id: string; project_code: string; name: string }[]
+  exchangeRate: { mid_rate: number; rate_date: string } | null
   isAlex: boolean
 }
 
 // --- Component ---
 
-export function ApCalendarClient({ data, detractions, projects, isAlex }: Props) {
+export function ApCalendarClient({ data, detractions, projects, exchangeRate, isAlex }: Props) {
   const [activeTab, setActiveTab] = useState<'main' | 'taxes'>('main')
   const [activeBucket, setActiveBucket] = useState<BucketId>('all')
   const [filters, setFilters] = useState<Filters>({
