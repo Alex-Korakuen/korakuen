@@ -1,6 +1,7 @@
 -- Migration: Fix v_partner_ledger to exclude internal settlements from project income
 -- Issue: Internal settlements (is_internal_settlement=true) were counted as project revenue,
 --        inflating income and skewing partner profit share calculations.
+-- NOTE: Superseded by migration 20260304000009 (v_partner_ledger rewritten for PEN contributions).
 
 CREATE OR REPLACE VIEW v_partner_ledger
 WITH (security_invoker = on)

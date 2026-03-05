@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { FilterSelect } from '@/components/ui/filter-select'
 import { getRetencionAgingColor } from './helpers'
 import type { RetencionDashboardRow, ArDetractionEntry } from '@/lib/types'
 
@@ -41,48 +43,30 @@ export function ArOutstandingTaxes({ retenciones, detracciones, projects, unique
 
         {/* Retencion filters */}
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Project</label>
-            <select
-              value={retFilter.projectCode}
-              onChange={(e) => setRetFilter((f) => ({ ...f, projectCode: e.target.value }))}
-              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-            >
-              <option value="">All projects</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.project_code}>
-                  {p.project_code}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Client</label>
-            <select
-              value={retFilter.client}
-              onChange={(e) => setRetFilter((f) => ({ ...f, client: e.target.value }))}
-              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-            >
-              <option value="">All clients</option>
-              {uniqueClients.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Status</label>
-            <select
-              value={retFilter.status}
-              onChange={(e) => setRetFilter((f) => ({ ...f, status: e.target.value }))}
-              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-            >
-              <option value="">All</option>
-              <option value="unverified">Unverified</option>
-              <option value="verified">Verified</option>
-            </select>
-          </div>
+          <FilterSelect
+            label="Project"
+            value={retFilter.projectCode}
+            onChange={(v) => setRetFilter((f) => ({ ...f, projectCode: v }))}
+            options={projects.map((p) => ({ value: p.project_code, label: p.project_code }))}
+            placeholder="All projects"
+          />
+          <FilterSelect
+            label="Client"
+            value={retFilter.client}
+            onChange={(v) => setRetFilter((f) => ({ ...f, client: v }))}
+            options={uniqueClients.map((name) => ({ value: name, label: name }))}
+            placeholder="All clients"
+          />
+          <FilterSelect
+            label="Status"
+            value={retFilter.status}
+            onChange={(v) => setRetFilter((f) => ({ ...f, status: v }))}
+            options={[
+              { value: 'unverified', label: 'Unverified' },
+              { value: 'verified', label: 'Verified' },
+            ]}
+            placeholder="All"
+          />
         </div>
 
         <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
@@ -125,15 +109,10 @@ export function ArOutstandingTaxes({ retenciones, detracciones, projects, unique
                       {formatCurrency(r.retencion_amount ?? 0, (r.currency ?? 'PEN') as 'PEN' | 'USD')}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                          r.retencion_verified
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {r.retencion_verified ? 'Verified' : 'Unverified'}
-                      </span>
+                      <StatusBadge
+                        label={r.retencion_verified ? 'Verified' : 'Unverified'}
+                        variant={r.retencion_verified ? 'green' : 'yellow'}
+                      />
                     </td>
                   </tr>
                 ))

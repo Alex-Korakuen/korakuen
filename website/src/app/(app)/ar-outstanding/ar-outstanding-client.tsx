@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
+import { FilterSelect } from '@/components/ui/filter-select'
 import { Modal } from '@/components/ui/modal'
 import { Tabs } from '@/components/ui/tabs'
 import { fetchArInvoiceDetail } from '@/lib/actions'
@@ -70,19 +71,13 @@ export function ArOutstandingClient({
     const d61_90 = data.filter((r) => r.days_overdue > 60 && r.days_overdue <= 90)
     const d90plus = data.filter((r) => r.days_overdue > 90)
 
-    // PEN total includes USD items converted at today's mid rate for aggregate reporting
-    const sumByCurrency = (rows: ArOutstandingRow[]) => {
-      const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + r.outstanding, 0)
-      const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + r.outstanding, 0)
-      const usdConverted = exchangeRate ? usdNative * exchangeRate.mid_rate : 0
-      return { pen: penNative + usdConverted, usd: usdNative }
-    }
+    const midRate = exchangeRate?.mid_rate ?? null
 
     return {
-      current: { count: current.length, ...sumByCurrency(current) },
-      '31-60': { count: d31_60.length, ...sumByCurrency(d31_60) },
-      '61-90': { count: d61_90.length, ...sumByCurrency(d61_90) },
-      '90+': { count: d90plus.length, ...sumByCurrency(d90plus) },
+      current: { count: current.length, ...sumByCurrency(current, midRate) },
+      '31-60': { count: d31_60.length, ...sumByCurrency(d31_60, midRate) },
+      '61-90': { count: d61_90.length, ...sumByCurrency(d61_90, midRate) },
+      '90+': { count: d90plus.length, ...sumByCurrency(d90plus, midRate) },
     }
   }, [data, exchangeRate])
 
@@ -225,66 +220,40 @@ export function ArOutstandingClient({
 
               {/* Filters */}
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Project</label>
-                  <select
-                    value={filters.projectId}
-                    onChange={(e) => setFilters((f) => ({ ...f, projectId: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All projects</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.project_code}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FilterSelect
+                  label="Project"
+                  value={filters.projectId}
+                  onChange={(v) => setFilters((f) => ({ ...f, projectId: v }))}
+                  options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
+                  placeholder="All projects"
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Client</label>
-                  <select
-                    value={filters.client}
-                    onChange={(e) => setFilters((f) => ({ ...f, client: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All clients</option>
-                    {uniqueClients.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FilterSelect
+                  label="Client"
+                  value={filters.client}
+                  onChange={(v) => setFilters((f) => ({ ...f, client: v }))}
+                  options={uniqueClients.map((name) => ({ value: name, label: name }))}
+                  placeholder="All clients"
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Partner</label>
-                  <select
-                    value={filters.partnerCompanyId}
-                    onChange={(e) => setFilters((f) => ({ ...f, partnerCompanyId: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All partners</option>
-                    {partners.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FilterSelect
+                  label="Partner"
+                  value={filters.partnerCompanyId}
+                  onChange={(v) => setFilters((f) => ({ ...f, partnerCompanyId: v }))}
+                  options={partners.map((p) => ({ value: p.id, label: p.name }))}
+                  placeholder="All partners"
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Currency</label>
-                  <select
-                    value={filters.currency}
-                    onChange={(e) => setFilters((f) => ({ ...f, currency: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All</option>
-                    <option value="PEN">PEN</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
+                <FilterSelect
+                  label="Currency"
+                  value={filters.currency}
+                  onChange={(v) => setFilters((f) => ({ ...f, currency: v }))}
+                  options={[
+                    { value: 'PEN', label: 'PEN' },
+                    { value: 'USD', label: 'USD' },
+                  ]}
+                  placeholder="All"
+                />
 
                 {hasActiveFilters && (
                   <button

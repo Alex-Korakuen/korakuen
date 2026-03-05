@@ -5,10 +5,13 @@ import {
   formatCurrency,
   formatDate,
   formatProjectStatus,
-  projectStatusBadgeClass,
+  projectStatusBadgeVariant,
   formatProjectType,
   formatCategory,
 } from '@/lib/formatters'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { SectionCard } from '@/components/ui/section-card'
+
 import type {
   ProjectListItem,
   ProjectDetailData,
@@ -103,13 +106,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
                       </td>
                       <td className="px-3 py-2 text-zinc-700">{p.name}</td>
                       <td className="px-3 py-2">
-                        <span
-                          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${projectStatusBadgeClass(
-                            p.status
-                          )}`}
-                        >
-                          {formatProjectStatus(p.status)}
-                        </span>
+                        <StatusBadge label={formatProjectStatus(p.status)} variant={projectStatusBadgeVariant(p.status)} />
                       </td>
                     </tr>
                   ))
@@ -181,16 +178,8 @@ function ProjectDetail({
           <h2 className="text-lg font-semibold text-zinc-800">
             {project.project_code} — {project.name}
           </h2>
-          <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${projectStatusBadgeClass(
-              project.status
-            )}`}
-          >
-            {formatProjectStatus(project.status)}
-          </span>
-          <span className="inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
-            {formatProjectType(project.project_type)}
-          </span>
+          <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
+          <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
@@ -230,10 +219,7 @@ function ProjectDetail({
       </div>
 
       {/* 2. Entities */}
-      <div className="rounded-lg border border-zinc-200">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="text-sm font-medium text-zinc-700">Entities</h3>
-        </div>
+      <SectionCard title="Entities">
         {entities.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-zinc-400">
             No entities assigned or costs recorded
@@ -305,13 +291,10 @@ function ProjectDetail({
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* 4. Costs & Budget */}
-      <div className="rounded-lg border border-zinc-200">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="text-sm font-medium text-zinc-700">Costs &amp; Budget</h3>
-        </div>
+      <SectionCard title="Costs & Budget">
         {budgetRows.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-zinc-400">
             No cost data available
@@ -417,13 +400,10 @@ function ProjectDetail({
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* 5. AR Invoices */}
-      <div className="rounded-lg border border-zinc-200">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="text-sm font-medium text-zinc-700">AR Invoices</h3>
-        </div>
+      <SectionCard title="AR Invoices">
         {arInvoices.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-zinc-400">
             No AR invoices
@@ -456,7 +436,7 @@ function ProjectDetail({
             </table>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* 6. Notes */}
       {project.notes && (

@@ -50,6 +50,9 @@ def menu():
             import_entities()
         elif choice == "7":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================

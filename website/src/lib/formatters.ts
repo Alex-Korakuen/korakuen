@@ -32,12 +32,11 @@ export function formatProjectStatus(status: string | null): string {
   return status ?? '--'
 }
 
-export function projectStatusBadgeClass(status: string | null): string {
-  if (status === 'active') return 'bg-green-100 text-green-800'
-  if (status === 'prospect') return 'bg-blue-100 text-blue-800'
-  if (status === 'completed') return 'bg-zinc-100 text-zinc-600'
-  if (status === 'cancelled') return 'bg-red-100 text-red-800'
-  return 'bg-zinc-100 text-zinc-600'
+export function projectStatusBadgeVariant(status: string | null): 'green' | 'blue' | 'zinc' | 'red' {
+  if (status === 'active') return 'green'
+  if (status === 'prospect') return 'blue'
+  if (status === 'cancelled') return 'red'
+  return 'zinc'
 }
 
 export function formatProjectType(type: string | null): string {
@@ -58,6 +57,20 @@ export function formatCategory(category: string | null): string {
     .split('_')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+}
+
+/**
+ * Aggregate outstanding amounts by currency — PEN total includes USD converted at mid rate.
+ * Used by AP Calendar and AR Outstanding for summary card totals.
+ */
+export function sumByCurrency(
+  rows: { currency: string | null; outstanding: number | null }[],
+  midRate: number | null
+): { pen: number; usd: number } {
+  const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
+  const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
+  const usdConverted = midRate ? usdNative * midRate : 0
+  return { pen: penNative + usdConverted, usd: usdNative }
 }
 
 export function formatComprobanteType(type: string | null): string {

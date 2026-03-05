@@ -1,4 +1,6 @@
 import { formatCurrency, formatDate, formatComprobanteType } from '@/lib/formatters'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
 import type { ApCalendarRow, CostDetailData, LoanDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
@@ -128,37 +130,7 @@ export function CostDetailContent({
       )}
 
       {/* Payment history */}
-      {detail.payments.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Payment History</h3>
-          <div className="overflow-x-auto rounded border border-zinc-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
-                <tr>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
-                  <th className="px-3 py-2">Currency</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {detail.payments.map((pmt) => (
-                  <tr key={pmt.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
-                      {formatDate(pmt.payment_date)}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-500 capitalize">{pmt.payment_type}</td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
-                      {formatCurrency(pmt.amount, pmt.currency as 'PEN' | 'USD')}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-500">{pmt.currency}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <PaymentHistoryTable payments={detail.payments} />
 
       {/* Payment summary */}
       {cost && (
@@ -255,15 +227,10 @@ export function LoanDetailContent({
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                          entry.paid
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {entry.paid ? 'Paid' : 'Pending'}
-                      </span>
+                      <StatusBadge
+                        label={entry.paid ? 'Paid' : 'Pending'}
+                        variant={entry.paid ? 'green' : 'yellow'}
+                      />
                     </td>
                   </tr>
                 ))}

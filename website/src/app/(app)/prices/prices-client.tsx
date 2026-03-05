@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { formatCurrency, formatDate, formatCategory } from '@/lib/formatters'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
+import { FilterSelect } from '@/components/ui/filter-select'
 import type { PriceHistoryRow, PriceFilters, PriceSortColumn, PriceFilterOptions } from '@/lib/types'
 
 type Props = {
@@ -114,53 +116,29 @@ export function PricesClient({ data, filterOptions }: Props) {
 
       {/* Filter row */}
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Category</label>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="">All categories</option>
-            {filterOptions.categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {formatCategory(cat)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Category"
+          value={filters.category}
+          onChange={(v) => setFilters((f) => ({ ...f, category: v }))}
+          options={filterOptions.categories.map((cat) => ({ value: cat, label: formatCategory(cat) }))}
+          placeholder="All categories"
+        />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Supplier</label>
-          <select
-            value={filters.entityId}
-            onChange={(e) => setFilters((f) => ({ ...f, entityId: e.target.value }))}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="">All suppliers</option>
-            {filterOptions.entities.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Supplier"
+          value={filters.entityId}
+          onChange={(v) => setFilters((f) => ({ ...f, entityId: v }))}
+          options={filterOptions.entities.map((e) => ({ value: e.id, label: e.name }))}
+          placeholder="All suppliers"
+        />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Project</label>
-          <select
-            value={filters.projectId}
-            onChange={(e) => setFilters((f) => ({ ...f, projectId: e.target.value }))}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="">All projects</option>
-            {filterOptions.projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.project_code}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Project"
+          value={filters.projectId}
+          onChange={(v) => setFilters((f) => ({ ...f, projectId: v }))}
+          options={filterOptions.projects.map((p) => ({ value: p.id, label: p.project_code }))}
+          placeholder="All projects"
+        />
 
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-500">Date from</label>
@@ -182,21 +160,13 @@ export function PricesClient({ data, filterOptions }: Props) {
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Tag</label>
-          <select
-            value={filters.tagId}
-            onChange={(e) => setFilters((f) => ({ ...f, tagId: e.target.value }))}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="">All tags</option>
-            {filterOptions.tags.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Tag"
+          value={filters.tagId}
+          onChange={(v) => setFilters((f) => ({ ...f, tagId: v }))}
+          options={filterOptions.tags.map((t) => ({ value: t.id, label: t.name }))}
+          placeholder="All tags"
+        />
 
         {hasActiveFilters && (
           <button
@@ -276,15 +246,10 @@ export function PricesClient({ data, filterOptions }: Props) {
                     {row.date ? formatDate(row.date) : '--'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                        row.source === 'cost'
-                          ? 'bg-zinc-100 text-zinc-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {row.source === 'cost' ? 'Cost' : 'Quote'}
-                    </span>
+                    <StatusBadge
+                      label={row.source === 'cost' ? 'Cost' : 'Quote'}
+                      variant={row.source === 'cost' ? 'zinc' : 'blue'}
+                    />
                   </td>
                   <td className="px-4 py-3 text-zinc-700">
                     {row.entityName}

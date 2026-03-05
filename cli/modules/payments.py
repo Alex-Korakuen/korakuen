@@ -31,6 +31,9 @@ def menu():
             verify_retencion()
         elif choice == "3":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================

@@ -1,9 +1,8 @@
--- View: v_ap_calendar
--- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
---          Combines supplier invoices (from costs) and loan repayment schedule (from loan_schedule).
---          Feeds the Accounts Payable payment calendar on the website.
--- Source tables: v_cost_balances, projects, entities, loan_schedule, loans
--- Used by: AP calendar page, payment planning dashboard
+-- Migration: Fix v_ap_calendar loan WHERE clause
+-- Issue: The OR clause (lp.amount IS NOT NULL AND lp.amount < ls.scheduled_amount)
+--        could surface fully-paid loan schedules if they had a partial payment record.
+--        Simplified to WHERE NOT ls.paid — the CASE statement already handles
+--        partial vs pending classification within unpaid entries.
 
 CREATE OR REPLACE VIEW v_ap_calendar
 WITH (security_invoker = on)

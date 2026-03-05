@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
+import { PROJECT_COST_CATEGORIES, SGA_CATEGORIES } from '@/lib/constants'
+import { FilterSelect } from '@/components/ui/filter-select'
 import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { PLData, PLPeriodMode, PLLineItem, Currency } from '@/lib/types'
 
@@ -15,24 +17,6 @@ type Props = {
   exchangeRate: { mid_rate: number; rate_date: string } | null
   onParamsChange: (period: PLPeriodMode, year: number, quarter: number, month: number) => void
 }
-
-const PROJECT_COST_CATEGORIES = [
-  { key: 'materials', label: 'Materials' },
-  { key: 'labor', label: 'Labor' },
-  { key: 'subcontractor', label: 'Subcontractor' },
-  { key: 'equipment_rental', label: 'Equipment' },
-  { key: 'permits_regulatory', label: 'Permits' },
-  { key: 'other', label: 'Other' },
-]
-
-const SGA_CATEGORIES = [
-  { key: 'software_licenses', label: 'Software Licenses' },
-  { key: 'partner_compensation', label: 'Partner Compensation' },
-  { key: 'business_development', label: 'Business Development' },
-  { key: 'professional_services', label: 'Professional Services' },
-  { key: 'office_admin', label: 'Office & Admin' },
-  { key: 'other', label: 'Other' },
-]
 
 const QUARTER_LABELS = ['Q1', 'Q2', 'Q3', 'Q4']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -77,62 +61,41 @@ export function PLClient({
     <div>
       {/* Selectors */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Period</label>
-          <select
-            value={periodMode}
-            onChange={(e) => onParamsChange(e.target.value as PLPeriodMode, year, quarter, month)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="year">Year</option>
-            <option value="quarter">Quarter</option>
-            <option value="month">Month</option>
-          </select>
-        </div>
+        <FilterSelect
+          label="Period"
+          value={periodMode}
+          onChange={(v) => onParamsChange(v as PLPeriodMode, year, quarter, month)}
+          options={[
+            { value: 'year', label: 'Year' },
+            { value: 'quarter', label: 'Quarter' },
+            { value: 'month', label: 'Month' },
+          ]}
+        />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Year</label>
-          <select
-            value={year}
-            onChange={(e) => onParamsChange(periodMode, Number(e.target.value), quarter, month)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            {[2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Year"
+          value={String(year)}
+          onChange={(v) => onParamsChange(periodMode, Number(v), quarter, month)}
+          options={[2025, 2026, 2027].map((y) => ({ value: String(y), label: String(y) }))}
+        />
 
         {periodMode === 'quarter' && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Quarter</label>
-            <select
-              value={quarter}
-              onChange={(e) => onParamsChange(periodMode, year, Number(e.target.value), month)}
-              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-            >
-              {QUARTER_LABELS.map((q, i) => (
-                <option key={i} value={i + 1}>{q}</option>
-              ))}
-            </select>
-          </div>
+          <FilterSelect
+            label="Quarter"
+            value={String(quarter)}
+            onChange={(v) => onParamsChange(periodMode, year, Number(v), month)}
+            options={QUARTER_LABELS.map((q, i) => ({ value: String(i + 1), label: q }))}
+          />
         )}
 
         {periodMode === 'month' && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-zinc-500">Month</label>
-            <select
-              value={month}
-              onChange={(e) => onParamsChange(periodMode, year, quarter, Number(e.target.value))}
-              className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-            >
-              {MONTH_NAMES.map((name, i) => (
-                <option key={i} value={i + 1}>{name}</option>
-              ))}
-            </select>
-          </div>
+          <FilterSelect
+            label="Month"
+            value={String(month)}
+            onChange={(v) => onParamsChange(periodMode, year, quarter, Number(v))}
+            options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
+          />
         )}
-
       </div>
 
       <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />

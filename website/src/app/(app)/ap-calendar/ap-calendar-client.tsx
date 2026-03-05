@@ -1,19 +1,17 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
-import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Tabs } from '@/components/ui/tabs'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
-import {
-  getDaysUntilEndOfWeek,
-  getRowBorderClass,
-  formatType,
-} from './helpers'
+import { getDaysUntilEndOfWeek, formatType } from './helpers'
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
+import { ApCalendarFilters } from './ap-calendar-filters'
+import { ApCalendarTable } from './ap-calendar-table'
+import { ApCalendarTaxes } from './ap-calendar-taxes'
 import type { ApCalendarRow } from '@/lib/types'
 import type {
   CostDetractionEntry,
@@ -58,6 +56,7 @@ export function ApCalendarClient({ data, detractions, projects, exchangeRate, is
 
   // --- Bucket calculations ---
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
+  const midRate = exchangeRate?.mid_rate ?? null
 
   const buckets = useMemo(() => {
     const overdue = data.filter((r) => r.days_remaining !== null && r.days_remaining < 0)
@@ -75,21 +74,13 @@ export function ApCalendarClient({ data, detractions, projects, exchangeRate, is
         r.days_remaining <= 30
     )
 
-    // PEN total includes USD items converted at today's mid rate for aggregate reporting
-    const sumByCurrency = (rows: ApCalendarRow[]) => {
-      const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
-      const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
-      const usdConverted = exchangeRate ? usdNative * exchangeRate.mid_rate : 0
-      return { pen: penNative + usdConverted, usd: usdNative }
-    }
-
     return {
-      overdue: { rows: overdue, count: overdue.length, ...sumByCurrency(overdue) },
-      today: { rows: today, count: today.length, ...sumByCurrency(today) },
-      'this-week': { rows: thisWeek, count: thisWeek.length, ...sumByCurrency(thisWeek) },
-      'next-30': { rows: next30, count: next30.length, ...sumByCurrency(next30) },
+      overdue: { rows: overdue, count: overdue.length, ...sumByCurrency(overdue, midRate) },
+      today: { rows: today, count: today.length, ...sumByCurrency(today, midRate) },
+      'this-week': { rows: thisWeek, count: thisWeek.length, ...sumByCurrency(thisWeek, midRate) },
+      'next-30': { rows: next30, count: next30.length, ...sumByCurrency(next30, midRate) },
     }
-  }, [data, daysToEndOfWeek, exchangeRate])
+  }, [data, daysToEndOfWeek, midRate])
 
   // --- Unique suppliers for filter dropdown ---
   const uniqueSuppliers = useMemo(() => {
@@ -246,267 +237,28 @@ export function ApCalendarClient({ data, detractions, projects, exchangeRate, is
                 />
               </div>
 
-              {/* Filters */}
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Project</label>
-                  <select
-                    value={filters.projectId}
-                    onChange={(e) => setFilters((f) => ({ ...f, projectId: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All projects</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.project_code}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <ApCalendarFilters
+                filters={filters}
+                setFilters={setFilters}
+                projects={projects}
+                uniqueSuppliers={uniqueSuppliers}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={clearFilters}
+              />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Supplier</label>
-                  <select
-                    value={filters.supplier}
-                    onChange={(e) => setFilters((f) => ({ ...f, supplier: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All suppliers</option>
-                    {uniqueSuppliers.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Currency</label>
-                  <select
-                    value={filters.currency}
-                    onChange={(e) => setFilters((f) => ({ ...f, currency: e.target.value }))}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  >
-                    <option value="">All</option>
-                    <option value="PEN">PEN</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-500">Search title</label>
-                  <input
-                    type="text"
-                    value={filters.titleSearch}
-                    onChange={(e) => setFilters((f) => ({ ...f, titleSearch: e.target.value }))}
-                    placeholder="Filter by title..."
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-                  />
-                </div>
-
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="self-end rounded px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700 hover:underline"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-
-              {/* Table */}
-              <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <tr>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('due_date')}
-                      >
-                        Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('days_remaining')}
-                      >
-                        Days <SortIndicator column="days_remaining" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th className="px-4 py-3">Type</th>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('entity_name')}
-                      >
-                        Supplier <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('project_code')}
-                      >
-                        Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('title')}
-                      >
-                        Title <SortIndicator column="title" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                        onClick={() => handleSort('total')}
-                      >
-                        Gross <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
-                        className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                        onClick={() => handleSort('outstanding')}
-                      >
-                        Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th className="px-4 py-3">Cur.</th>
-                      <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('document_ref')}
-                      >
-                        Invoice # <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {filteredData.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center text-zinc-400">
-                          No payment obligations found
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredData.map((row) => (
-                        <tr
-                          key={row.cost_id ?? `loan-${row.entity_name}-${row.due_date}`}
-                          className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getRowBorderClass(row.days_remaining)}`}
-                          onClick={() => handleRowClick(row)}
-                        >
-                          <td className="whitespace-nowrap px-4 py-3 text-zinc-700">
-                            {row.due_date ? formatDate(row.due_date) : '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3">
-                            {row.days_remaining !== null ? (
-                              <span
-                                className={
-                                  row.days_remaining < 0
-                                    ? 'font-medium text-red-600'
-                                    : row.days_remaining === 0
-                                      ? 'font-medium text-orange-600'
-                                      : 'text-zinc-600'
-                                }
-                              >
-                                {row.days_remaining}
-                              </span>
-                            ) : (
-                              '--'
-                            )}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                            {formatType(row.type)}
-                          </td>
-                          <td className="px-4 py-3 text-zinc-700">
-                            {row.entity_name ?? '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                            {row.project_code ?? '--'}
-                          </td>
-                          <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700">
-                            {row.title ?? '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                            {row.total !== null && row.currency
-                              ? formatCurrency(row.total, row.currency as 'PEN' | 'USD')
-                              : '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                            {row.outstanding !== null && row.currency
-                              ? formatCurrency(row.outstanding, row.currency as 'PEN' | 'USD')
-                              : '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                            {row.currency ?? '--'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                            {row.document_ref ?? '--'}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Row count */}
-              <div className="mt-2 text-xs text-zinc-400">
-                {filteredData.length} of {data.length} items
-              </div>
+              <ApCalendarTable
+                data={filteredData}
+                totalCount={data.length}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                onRowClick={handleRowClick}
+              />
             </div>
           )}
 
           {activeTab === 'taxes' && (
-            <div>
-              <h2 className="text-lg font-semibold text-zinc-800">Detracciones</h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                SPOT detraccion obligations — amounts to be deposited to supplier Banco de la Nacion accounts.
-              </p>
-
-              <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <tr>
-                      <th className="px-4 py-3">Supplier</th>
-                      <th className="px-4 py-3">Project</th>
-                      <th className="px-4 py-3">Invoice Title</th>
-                      <th className="px-4 py-3 text-right">Detraccion Amt</th>
-                      <th className="px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100">
-                    {detractions.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
-                          No detraccion obligations found
-                        </td>
-                      </tr>
-                    ) : (
-                      detractions.map((d) => (
-                        <tr key={d.cost_id}>
-                          <td className="px-4 py-3 text-zinc-700">{d.entity_name}</td>
-                          <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                            {d.project_code}
-                          </td>
-                          <td className="px-4 py-3 text-zinc-700">{d.title ?? '--'}</td>
-                          <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                            {formatCurrency(d.detraccion_amount, d.currency as 'PEN' | 'USD')}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3">
-                            <span
-                              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                                d.status === 'deposited'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}
-                            >
-                              {d.status === 'deposited' ? 'Deposited' : 'Pending'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <p className="mt-3 text-xs text-zinc-400">
-                Detracciones must be deposited to the supplier&apos;s Banco de la Nacion account
-                within the timeframe established by SUNAT.
-              </p>
-            </div>
+            <ApCalendarTaxes detractions={detractions} />
           )}
         </Tabs>
       </div>

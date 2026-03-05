@@ -120,6 +120,27 @@ def get_enum_input(prompt, allowed_values, transform="lower"):
     return value
 
 
+def get_optional_enum_input(prompt, allowed_values, transform="lower"):
+    """Prompt for an optional enum value. Returns None if empty, re-prompts if invalid."""
+    value = input(prompt).strip()
+    if not value:
+        return None
+    if transform == "lower":
+        value = value.lower()
+    elif transform == "upper":
+        value = value.upper()
+    while value not in allowed_values:
+        print(f"  Must be one of: {', '.join(allowed_values)} (or press Enter to skip)")
+        value = input(prompt).strip()
+        if not value:
+            return None
+        if transform == "lower":
+            value = value.lower()
+        elif transform == "upper":
+            value = value.upper()
+    return value
+
+
 def get_currency(default=None, label="Currency"):
     """Prompt for USD/PEN currency selection. Returns the selected currency string.
 
@@ -193,16 +214,19 @@ def get_exchange_rate(transaction_date=None):
             print("  Must be a valid number (e.g. 3.72).")
 
 
-def get_nonneg_float(prompt, required=True):
+def get_nonneg_float(prompt, required=True, default=None):
     """Prompt for a non-negative number. Loops until valid.
 
     Args:
         prompt: The input prompt string.
         required: If True, loops on empty input. If False, returns None on empty.
+        default: If set, return this value on empty input (overrides required).
     """
     while True:
         value = input(prompt).strip()
         if not value:
+            if default is not None:
+                return default
             if required:
                 print("  This field is required.")
                 continue

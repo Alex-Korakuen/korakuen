@@ -19,6 +19,7 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number, validate_exchange_rate,
     validate_boolean, parse_bool,
+    validate_bank_account, validate_valuation,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_partner_map,
@@ -43,6 +44,9 @@ def menu():
             import_ar_invoices()
         elif choice == "3":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================
@@ -162,9 +166,7 @@ def add_ar_invoice():
     # --- Financial ---
     subtotal = get_nonneg_float("\n  Subtotal: ")
 
-    igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", required=False)
-    if igv_rate is None:
-        igv_rate = 18.0
+    igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", default=18.0)
 
     detraccion_rate = get_nonneg_float("  Detraccion rate % (optional — press Enter to skip): ", required=False)
 
@@ -172,9 +174,7 @@ def add_ar_invoice():
     retencion_applicable = confirm("  Retencion applicable?")
     retencion_rate = None
     if retencion_applicable:
-        retencion_rate = get_nonneg_float("  Retencion rate % (default: 3, press Enter for default): ", required=False)
-        if retencion_rate is None:
-            retencion_rate = 3.0
+        retencion_rate = get_nonneg_float("  Retencion rate % (default: 3, press Enter for default): ", default=3.0)
 
     # --- Currency ---
     print("\n  Currencies: USD, PEN")
@@ -288,6 +288,12 @@ def _load_ar_lookups():
     partner_rucs_result = supabase.table("partner_companies").select("ruc").eq("is_active", True).execute()
     partner_rucs = {r["ruc"] for r in partner_rucs_result.data}
 
+    # Load existing (partner_company_id, invoice_number) pairs for duplicate detection
+    existing_ar = supabase.table("ar_invoices").select("partner_company_id, invoice_number").execute()
+    existing_partner_invoices = {
+        (r["partner_company_id"], r["invoice_number"]) for r in existing_ar.data
+    }
+
     return {
         "projects": load_project_map(),
         "entities": load_entity_map(),
@@ -296,6 +302,7 @@ def _load_ar_lookups():
         "partners": load_partner_map(),
         "project_clients": project_clients,
         "partner_rucs": partner_rucs,
+        "existing_partner_invoices": existing_partner_invoices,
     }
 
 
@@ -327,26 +334,8 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
     validate_lookup(row_num, row, "partner_company_name", lookups["partners"], errors)
 
-    # Composite bank account lookup
-    bank_name = row.get("bank_name")
-    last4 = row.get("bank_account_last4")
-    if bank_name and last4 and not pd.isna(bank_name) and not pd.isna(last4):
-        key = f"{str(bank_name).strip()}-{str(last4).strip()}"
-        if key not in lookups["bank_accounts"]:
-            errors.append((row_num, "bank_name", f"Bank account {key} not found"))
-
-    # Composite valuation lookup
-    proj_code = row.get("project_code")
-    val_num = row.get("valuation_number")
-    if proj_code and val_num and not pd.isna(proj_code) and not pd.isna(val_num):
-        project_id = lookups["projects"].get(str(proj_code).strip())
-        if project_id:
-            try:
-                vn = int(float(val_num))
-                if (project_id, vn) not in lookups["valuations"]:
-                    errors.append((row_num, "valuation_number", f"Valuation #{vn} not found for {proj_code}"))
-            except (ValueError, TypeError):
-                errors.append((row_num, "valuation_number", "Must be a number"))
+    validate_bank_account(row_num, row, lookups, errors)
+    validate_valuation(row_num, row, lookups, errors)
 
     validate_date(row_num, row, "invoice_date", errors)
     validate_date(row_num, row, "due_date", errors)
@@ -385,6 +374,16 @@ def _validate_ar_row(row_num, row, errors, lookups):
         if entity_doc and not pd.isna(entity_doc):
             if str(entity_doc).strip() not in lookups["partner_rucs"]:
                 errors.append((row_num, "entity_document_number", "Internal settlement entity must be a partner company"))
+
+    # Duplicate detection: (partner_company_id, invoice_number) must be unique
+    partner_name = row.get("partner_company_name")
+    inv_num = row.get("invoice_number")
+    if partner_name and inv_num and not pd.isna(partner_name) and not pd.isna(inv_num):
+        partner_id = lookups["partners"].get(str(partner_name).strip())
+        if partner_id:
+            key = (partner_id, str(inv_num).strip())
+            if key in lookups["existing_partner_invoices"]:
+                errors.append((row_num, "invoice_number", f"Invoice '{str(inv_num).strip()}' already exists for this partner"))
 
 
 def _build_ar_record(row, lookups):
@@ -446,6 +445,19 @@ def import_ar_invoices():
     for idx, row in df.iterrows():
         excel_row = idx + DATA_START_ROW
         _validate_ar_row(excel_row, row, errors, lookups)
+
+    # Within-file duplicate detection: (partner, invoice_number)
+    seen_keys = {}
+    for idx, row in df.iterrows():
+        excel_row = idx + DATA_START_ROW
+        partner_name = row.get("partner_company_name")
+        inv_num = row.get("invoice_number")
+        if partner_name and inv_num and not pd.isna(partner_name) and not pd.isna(inv_num):
+            key = (str(partner_name).strip(), str(inv_num).strip())
+            if key in seen_keys:
+                errors.append((excel_row, "invoice_number", f"Duplicate in file (same as row {seen_keys[key]})"))
+            else:
+                seen_keys[key] = excel_row
 
     if process_import_errors(file_path, errors):
         return

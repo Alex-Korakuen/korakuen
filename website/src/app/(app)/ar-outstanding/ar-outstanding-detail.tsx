@@ -1,4 +1,6 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
 import type { ArOutstandingRow, ArInvoiceDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
@@ -73,37 +75,7 @@ export function InvoiceDetailContent({
       )}
 
       {/* Payment history */}
-      {detail.payments.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Payment History</h3>
-          <div className="overflow-x-auto rounded border border-zinc-200">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
-                <tr>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
-                  <th className="px-3 py-2">Currency</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {detail.payments.map((pmt) => (
-                  <tr key={pmt.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
-                      {formatDate(pmt.payment_date)}
-                    </td>
-                    <td className="px-3 py-2 capitalize text-zinc-500">{pmt.payment_type}</td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
-                      {formatCurrency(pmt.amount, pmt.currency as 'PEN' | 'USD')}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-500">{pmt.currency}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <PaymentHistoryTable payments={detail.payments} />
 
       {/* Payment summary */}
       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -122,15 +94,10 @@ export function InvoiceDetailContent({
         <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-zinc-500">Retencion verification:</span>
-            <span
-              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                invoice.retencion_verified
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}
-            >
-              {invoice.retencion_verified ? 'Verified' : 'Unverified'}
-            </span>
+            <StatusBadge
+              label={invoice.retencion_verified ? 'Verified' : 'Unverified'}
+              variant={invoice.retencion_verified ? 'green' : 'yellow'}
+            />
           </div>
         </div>
       )}

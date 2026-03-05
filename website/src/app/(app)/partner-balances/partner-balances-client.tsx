@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { categoryLabels } from '@/lib/constants'
 import { Modal } from '@/components/ui/modal'
 import { fetchPartnerCosts } from '@/lib/actions'
 import { RateIndicator } from '@/components/ui/rate-indicator'
@@ -47,15 +48,6 @@ export function PartnerBalancesClient({
   function handleCloseModal() {
     setSelectedPartner(null)
     setCostDetails([])
-  }
-
-  const categoryLabels: Record<string, string> = {
-    materials: 'Materials',
-    labor: 'Labor',
-    subcontractor: 'Subcontractor',
-    equipment_rental: 'Equipment',
-    permits_regulatory: 'Permits',
-    other: 'Other',
   }
 
   const contributions = data?.contributions ?? []

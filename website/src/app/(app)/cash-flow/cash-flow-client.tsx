@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
+import { FilterSelect } from '@/components/ui/filter-select'
 import { getNetColorClass } from './helpers'
 import { RateIndicator } from '@/components/ui/rate-indicator'
 import type { CashFlowData, Currency } from '@/lib/types'
@@ -80,35 +81,20 @@ export function CashFlowClient({
     <div>
       {/* Selectors */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Scope</label>
-          <select
-            value={projectId ?? ''}
-            onChange={(e) => onParamsChange(year, e.target.value || null)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            <option value="">All Projects</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.project_code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          label="Scope"
+          value={projectId ?? ''}
+          onChange={(v) => onParamsChange(year, v || null)}
+          options={projects.map((p) => ({ value: p.id, label: `${p.project_code} — ${p.name}` }))}
+          placeholder="All Projects"
+        />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Year</label>
-          <select
-            value={year}
-            onChange={(e) => onParamsChange(Number(e.target.value), projectId)}
-            className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-          >
-            {[2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-
+        <FilterSelect
+          label="Year"
+          value={String(year)}
+          onChange={(v) => onParamsChange(Number(v), projectId)}
+          options={[2025, 2026, 2027].map((y) => ({ value: String(y), label: String(y) }))}
+        />
       </div>
 
       <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />

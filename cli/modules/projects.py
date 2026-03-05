@@ -43,6 +43,9 @@ def menu():
             set_project_budget()
         elif choice == "4":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================

@@ -30,6 +30,9 @@ def menu():
             list_rates()
         elif choice == "3":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================

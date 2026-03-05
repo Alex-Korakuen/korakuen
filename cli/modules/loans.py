@@ -9,8 +9,8 @@ from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
-    get_enum_input, get_currency, get_exchange_rate, select_project,
-    get_nonneg_float,
+    get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
+    select_project, get_nonneg_float,
 )
 
 
@@ -34,6 +34,9 @@ def menu():
             register_repayment()
         elif choice == "4":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================
@@ -183,13 +186,43 @@ def add_schedule():
         return
 
     loan_date = loan.get("date_borrowed", "")
-    print(f"\n  Adding schedule entries for: {loan['lender_name']} — {loan['currency']} {loan['amount']:,.2f}")
+    loan_id = loan["id"]
+    loan_currency = loan["currency"]
+
+    # --- Fetch total_owed and existing scheduled total ---
+    balance = (
+        supabase.table("v_loan_balances")
+        .select("total_owed")
+        .eq("loan_id", loan_id)
+        .execute()
+    )
+    if not balance.data:
+        print("\n  ✗ Could not load loan balance.")
+        input("\nPress Enter to continue...")
+        return
+    total_owed = float(balance.data[0]["total_owed"])
+
+    existing_schedule = (
+        supabase.table("loan_schedule")
+        .select("scheduled_amount")
+        .eq("loan_id", loan_id)
+        .execute()
+    )
+    already_scheduled = sum(float(s["scheduled_amount"]) for s in (existing_schedule.data or []))
+
+    print(f"\n  Adding schedule entries for: {loan['lender_name']} — {loan_currency} {loan['amount']:,.2f}")
+    print(f"  Total owed:      {loan_currency} {total_owed:,.2f}")
+    if already_scheduled > 0:
+        print(f"  Already scheduled: {loan_currency} {already_scheduled:,.2f}")
+    remaining = total_owed - already_scheduled
+    print(f"  Available to schedule: {loan_currency} {remaining:,.2f}")
     if loan_date:
         print(f"  (Loan date: {loan_date})")
     print("  (Enter entries one at a time. Type 'done' when finished.)\n")
 
     entries = []
     entry_num = 1
+    new_scheduled = 0.0
 
     while True:
         print(f"  Entry {entry_num}:")
@@ -200,14 +233,22 @@ def add_schedule():
             continue
 
         scheduled_amount = get_nonneg_float("    Scheduled amount: ")
+
+        if already_scheduled + new_scheduled + scheduled_amount > total_owed:
+            available = total_owed - already_scheduled - new_scheduled
+            print(f"    ✗ Would exceed total owed ({loan_currency} {total_owed:,.2f}).")
+            print(f"      Available to schedule: {loan_currency} {available:,.2f}")
+            continue
+
         exchange_rate = get_exchange_rate(transaction_date=scheduled_date)
 
         entries.append({
-            "loan_id": loan["id"],
+            "loan_id": loan_id,
             "scheduled_date": scheduled_date,
             "scheduled_amount": scheduled_amount,
             "exchange_rate": exchange_rate,
         })
+        new_scheduled += scheduled_amount
         entry_num += 1
 
         if not confirm("\n  Add another entry?"):
@@ -220,12 +261,16 @@ def add_schedule():
 
     # --- Summary ---
     schedule_total = sum(e["scheduled_amount"] for e in entries)
+    cumulative = already_scheduled + schedule_total
     print(f"\n--- Schedule Summary ---")
-    print(f"  Loan:    {loan['lender_name']} — {loan['currency']} {loan['amount']:,.2f}")
+    print(f"  Loan:    {loan['lender_name']} — {loan_currency} {loan['amount']:,.2f}")
     print(f"  Entries: {len(entries)}")
     for i, entry in enumerate(entries, start=1):
-        print(f"    {i}. {entry['scheduled_date']} — {loan['currency']} {entry['scheduled_amount']:,.2f}")
-    print(f"  Total:   {loan['currency']} {schedule_total:,.2f}")
+        print(f"    {i}. {entry['scheduled_date']} — {loan_currency} {entry['scheduled_amount']:,.2f}")
+    print(f"  New total:        {loan_currency} {schedule_total:,.2f}")
+    if already_scheduled > 0:
+        print(f"  Previously sched: {loan_currency} {already_scheduled:,.2f}")
+    print(f"  Cumulative:       {loan_currency} {cumulative:,.2f} / {total_owed:,.2f}")
 
     # --- Confirm ---
     if not confirm(f"\nAdd {len(entries)} schedule entries?"):
@@ -319,12 +364,9 @@ def register_repayment():
     exchange_rate = get_exchange_rate(transaction_date=payment_date)
 
     print("\n  Source options: project_settlement, personal_funds, other")
-    source = get_optional_input("  Source (optional — press Enter to skip): ")
-    if source and source.lower() not in ("project_settlement", "personal_funds", "other"):
-        print("  Invalid source, skipping.")
-        source = None
-    elif source:
-        source = source.lower()
+    source = get_optional_enum_input(
+        "  Source (optional — press Enter to skip): ",
+        ("project_settlement", "personal_funds", "other"))
 
     settlement_ref = get_optional_input("  Settlement ref (e.g. PRY001-Settlement-1, optional — press Enter to skip): ")
     notes = get_optional_input("  Notes (optional — press Enter to skip): ")

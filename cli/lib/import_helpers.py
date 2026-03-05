@@ -183,6 +183,31 @@ def validate_boolean(row_num, row, field, errors):
         errors.append((row_num, field, "Must be true or false"))
 
 
+def validate_bank_account(row_num, row, lookups, errors):
+    """Check that bank_name + bank_account_last4 match a known bank account. Skip if empty."""
+    bank_name = row.get("bank_name")
+    last4 = row.get("bank_account_last4")
+    if bank_name and last4 and not pd.isna(bank_name) and not pd.isna(last4):
+        key = f"{str(bank_name).strip()}-{str(last4).strip()}"
+        if key not in lookups["bank_accounts"]:
+            errors.append((row_num, "bank_name", f"Bank account {key} not found"))
+
+
+def validate_valuation(row_num, row, lookups, errors):
+    """Check that project_code + valuation_number match a known valuation. Skip if empty."""
+    proj_code = row.get("project_code")
+    val_num = row.get("valuation_number")
+    if proj_code and val_num and not pd.isna(proj_code) and not pd.isna(val_num):
+        project_id = lookups["projects"].get(str(proj_code).strip())
+        if project_id:
+            try:
+                vn = int(float(val_num))
+                if (project_id, vn) not in lookups["valuations"]:
+                    errors.append((row_num, "valuation_number", f"Valuation #{vn} not found for {proj_code}"))
+            except (ValueError, TypeError):
+                errors.append((row_num, "valuation_number", "Must be a number"))
+
+
 def print_errors(errors, file_path):
     """Print a formatted error table to the terminal."""
     print(f"\n✗ {len(errors)} validation error(s) found:\n")

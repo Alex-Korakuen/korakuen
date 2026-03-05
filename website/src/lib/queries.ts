@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from './supabase/server'
+import { SGA_ONLY_CATEGORY_KEYS } from './constants'
 import type {
   ApCalendarRow,
   ArBalanceRow,
@@ -37,6 +38,20 @@ import type {
   ProjectEntitySummary,
   RetencionDashboardRow,
 } from './types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+/** Fetch entity names by IDs and return a Map of id -> display name (common_name || legal_name) */
+async function buildEntityNameMap(
+  supabase: SupabaseClient,
+  entityIds: string[]
+): Promise<Map<string, string>> {
+  if (entityIds.length === 0) return new Map()
+  const { data } = await supabase
+    .from('entities')
+    .select('id, legal_name, common_name')
+    .in('id', entityIds)
+  return new Map((data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
+}
 
 export async function getApCalendar(isAlex: boolean): Promise<ApCalendarRow[]> {
   const supabase = await createServerSupabaseClient()
@@ -181,16 +196,13 @@ export async function getDetractionsPending(): Promise<CostDetractionEntry[]> {
   const entityIds = [...new Set(costs.filter(c => c.entity_id).map(c => c.entity_id!))]
   const projectIds = [...new Set(costs.filter(c => c.project_id).map(c => c.project_id!))]
 
-  const [entitiesResult, projectsResult] = await Promise.all([
-    entityIds.length > 0
-      ? supabase.from('entities').select('id, legal_name, common_name').in('id', entityIds)
-      : { data: [] },
+  const [entityMap, projectsResult] = await Promise.all([
+    buildEntityNameMap(supabase, entityIds),
     projectIds.length > 0
       ? supabase.from('projects').select('id, project_code').in('id', projectIds)
       : { data: [] },
   ])
 
-  const entityMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   return costs.map(c => ({
@@ -236,10 +248,8 @@ export async function getArOutstanding(): Promise<ArOutstandingRow[]> {
   const projectIds = [...new Set(invoices.filter(i => i.project_id).map(i => i.project_id!))]
   const partnerIds = [...new Set(invoices.filter(i => i.partner_company_id).map(i => i.partner_company_id!))]
 
-  const [entitiesResult, projectsResult, partnersResult] = await Promise.all([
-    entityIds.length > 0
-      ? supabase.from('entities').select('id, legal_name, common_name').in('id', entityIds)
-      : { data: [] },
+  const [entityMap, projectsResult, partnersResult] = await Promise.all([
+    buildEntityNameMap(supabase, entityIds),
     projectIds.length > 0
       ? supabase.from('projects').select('id, project_code').in('id', projectIds)
       : { data: [] },
@@ -248,7 +258,6 @@ export async function getArOutstanding(): Promise<ArOutstandingRow[]> {
       : { data: [] },
   ])
 
-  const entityMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
   const partnerMap = new Map((partnersResult.data ?? []).map(p => [p.id, p.name]))
 
@@ -330,16 +339,13 @@ export async function getArDetracciones(): Promise<ArDetractionEntry[]> {
   const entityIds = [...new Set(invoices.filter(i => i.entity_id).map(i => i.entity_id!))]
   const projectIds = [...new Set(invoices.filter(i => i.project_id).map(i => i.project_id!))]
 
-  const [entitiesResult, projectsResult] = await Promise.all([
-    entityIds.length > 0
-      ? supabase.from('entities').select('id, legal_name, common_name').in('id', entityIds)
-      : { data: [] },
+  const [entityMap, projectsResult] = await Promise.all([
+    buildEntityNameMap(supabase, entityIds),
     projectIds.length > 0
       ? supabase.from('projects').select('id, project_code').in('id', projectIds)
       : { data: [] },
   ])
 
-  const entityMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   return invoices.map(i => {
@@ -462,13 +468,9 @@ type CategoryTotals = {
   sga: number
 }
 
-const SGA_CATEGORIES = new Set([
-  'software_licenses', 'partner_compensation', 'business_development',
-  'professional_services', 'office_admin',
-])
-
-function mapCategory(category: string | null): keyof CategoryTotals {
-  if (category && SGA_CATEGORIES.has(category)) return 'sga'
+function mapCategory(category: string | null, costType: string | null): keyof CategoryTotals {
+  if (costType === 'sga') return 'sga'
+  if (category && SGA_ONLY_CATEGORY_KEYS.has(category)) return 'sga'
   switch (category) {
     case 'materials': return 'materials'
     case 'labor': return 'labor'
@@ -579,14 +581,17 @@ export async function getCashFlow(
     if (data) costItems.push(...data)
   }
 
-  // Build cost_id -> project_id map for payment filtering
-  // Need to look up which project a payment belongs to via its cost/AR invoice
+  // Build cost_id -> project_id and cost_id -> cost_type maps
   const costProjectMap = new Map<string, string | null>()
+  const costTypeMap = new Map<string, string>()
   for (const cb of costBalances) {
-    if (cb.cost_id) costProjectMap.set(cb.cost_id, cb.project_id)
+    if (cb.cost_id) {
+      costProjectMap.set(cb.cost_id, cb.project_id)
+      if (cb.cost_type) costTypeMap.set(cb.cost_id, cb.cost_type)
+    }
   }
 
-  // Also fetch cost project_ids for payments that reference costs not in costBalances (already paid)
+  // Also fetch cost project_ids/cost_types for payments that reference costs not in costBalances (already paid)
   const paymentCostIds = payments
     .filter(p => p.related_to === 'cost')
     .map(p => p.related_id)
@@ -594,10 +599,11 @@ export async function getCashFlow(
   if (paymentCostIds.length > 0) {
     const { data: extraCosts } = await supabase
       .from('costs')
-      .select('id, project_id')
+      .select('id, project_id, cost_type')
       .in('id', paymentCostIds)
     for (const c of extraCosts ?? []) {
       costProjectMap.set(c.id, c.project_id)
+      if (c.cost_type) costTypeMap.set(c.id, c.cost_type)
     }
   }
 
@@ -690,9 +696,10 @@ export async function getCashFlow(
     } else {
       // Outbound — distribute across categories
       const categories = costCategoryMap.get(p.related_id)
+      const costType = costTypeMap.get(p.related_id) ?? null
       if (categories && categories.length > 0) {
         for (const cat of categories) {
-          const catKey = mapCategory(cat.category)
+          const catKey = mapCategory(cat.category, costType)
           bucket.categories[catKey] += amount * cat.proportion
         }
       } else {
@@ -714,9 +721,10 @@ export async function getCashFlow(
 
     const amount = convertAmount(cost.outstanding ?? 0, cost.currency, forecastRate ?? cost.exchange_rate ?? null, reportingCurrency)
     const categories = cost.cost_id ? costCategoryMap.get(cost.cost_id) : null
+    const costType = cost.cost_id ? (costTypeMap.get(cost.cost_id) ?? cost.cost_type ?? null) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
-        const catKey = mapCategory(cat.category)
+        const catKey = mapCategory(cat.category, costType)
         bucket.categories[catKey] += amount * cat.proportion
       }
     } else {
@@ -1446,16 +1454,13 @@ export async function getBankTransactions(
     ...ars.map(a => a.project_id),
   ].filter((id): id is string => id !== null)
 
-  const [entityResult, projectResult] = await Promise.all([
-    entityIds.length > 0
-      ? supabase.from('entities').select('id, common_name, legal_name').in('id', [...new Set(entityIds)])
-      : { data: [] },
+  const [entityMap, projectResult] = await Promise.all([
+    buildEntityNameMap(supabase, [...new Set(entityIds)]),
     projectIds.length > 0
       ? supabase.from('projects').select('id, project_code').in('id', [...new Set(projectIds)])
       : { data: [] },
   ])
 
-  const entityMap = new Map((entityResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectMap = new Map((projectResult.data ?? []).map(p => [p.id, p.project_code]))
   const costMap = new Map(costs.map(c => [c.cost_id, c]))
   const arMap = new Map(ars.map(a => [a.id, a]))
@@ -1531,16 +1536,13 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   const entityIds = [...new Set(peData.map(pe => pe.entity_id).filter(Boolean))]
   const tagIds = [...new Set(peData.map(pe => pe.tag_id).filter(Boolean))]
 
-  const [entitiesResult, tagsResult] = await Promise.all([
-    entityIds.length > 0
-      ? supabase.from('entities').select('id, legal_name, common_name').in('id', entityIds)
-      : { data: [] },
+  const [entityMap, tagsResult] = await Promise.all([
+    buildEntityNameMap(supabase, entityIds),
     tagIds.length > 0
       ? supabase.from('tags').select('id, name').in('id', tagIds)
       : { data: [] },
   ])
 
-  const entityMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const tagMap = new Map((tagsResult.data ?? []).map(t => [t.id, t.name]))
 
   // 3. Spending by entity: query v_cost_totals for this project, group by (entity_id, currency)
@@ -1569,12 +1571,9 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null && !entityMap.has(id))
   )]
   if (spendingEntityIds.length > 0) {
-    const { data: extraEntities } = await supabase
-      .from('entities')
-      .select('id, legal_name, common_name')
-      .in('id', spendingEntityIds)
-    for (const e of extraEntities ?? []) {
-      entityMap.set(e.id, e.common_name || e.legal_name)
+    const extraMap = await buildEntityNameMap(supabase, spendingEntityIds)
+    for (const [id, name] of extraMap) {
+      entityMap.set(id, name)
     }
   }
 
@@ -1823,10 +1822,8 @@ export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
   }
 
   // Fetch entity names, project codes, and entity tags in parallel
-  const [entitiesResult, projectsResult, entityTagsResult] = await Promise.all([
-    allEntityIds.size > 0
-      ? supabase.from('entities').select('id, legal_name, common_name').in('id', [...allEntityIds])
-      : { data: [] },
+  const [entityNameMap, projectsResult, entityTagsResult] = await Promise.all([
+    buildEntityNameMap(supabase, [...allEntityIds]),
     allProjectIds.size > 0
       ? supabase.from('projects').select('id, project_code').in('id', [...allProjectIds])
       : { data: [] },
@@ -1834,8 +1831,6 @@ export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
       ? supabase.from('entity_tags').select('entity_id, tags(name)').in('entity_id', [...allEntityIds])
       : { data: [] },
   ])
-
-  const entityNameMap = new Map((entitiesResult.data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
   const projectCodeMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   // Build entity -> tags map

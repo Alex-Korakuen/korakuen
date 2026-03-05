@@ -11,14 +11,15 @@ from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
-    get_enum_input, get_currency, get_exchange_rate, select_project,
-    select_bank_account, get_nonneg_float,
+    get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
+    select_project, select_bank_account, get_nonneg_float,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_number, validate_nonneg_number,
     validate_exchange_rate,
+    validate_bank_account, validate_valuation,
     process_import_errors,
     load_project_map, load_entity_map, load_bank_account_map,
     load_valuation_map, load_quote_map,
@@ -51,6 +52,9 @@ def menu():
             import_cost_items()
         elif choice == "4":
             return
+        else:
+            print("\nInvalid option.")
+            input("\nPress Enter to continue...")
 
 
 # ============================================================
@@ -130,25 +134,21 @@ def add_cost():
     title = get_input("  Title: ")
 
     # --- Comprobante (before IGV — determines whether IGV credit applies) ---
-    comprobante_type = None
-    comprobante_number = None
     valid_comprobante_types = ("factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none")
     NO_IGV_CREDIT_TYPES = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
-    comp = get_optional_input("  Comprobante type (factura/boleta/recibo_por_honorarios/liquidacion_de_compra/planilla_jornales/none, optional — press Enter to skip): ")
-    if comp:
-        comp = comp.lower()
-        if comp in valid_comprobante_types:
-            comprobante_type = comp
-            comprobante_number = get_optional_input("  Comprobante number (optional — press Enter to skip): ")
+    comprobante_type = get_optional_enum_input(
+        "  Comprobante type (factura/boleta/recibo_por_honorarios/liquidacion_de_compra/planilla_jornales/none, optional — press Enter to skip): ",
+        valid_comprobante_types)
+    comprobante_number = None
+    if comprobante_type:
+        comprobante_number = get_optional_input("  Comprobante number (optional — press Enter to skip): ")
 
     # --- Tax rates ---
     if comprobante_type in NO_IGV_CREDIT_TYPES:
         igv_rate = 0.0
         print(f"  IGV rate: 0% (no IGV credit for {comprobante_type})")
     else:
-        igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", required=False)
-        if igv_rate is None:
-            igv_rate = 18.0
+        igv_rate = get_nonneg_float("  IGV rate % (default: 18, press Enter for default): ", default=18.0)
 
     detraccion_rate = get_nonneg_float("  Detraccion rate % (optional — press Enter to skip): ", required=False)
 
@@ -158,12 +158,9 @@ def add_cost():
     exchange_rate = get_exchange_rate(transaction_date=date_str)
 
     # --- Payment method (optional) ---
-    payment_method = None
-    pm = get_optional_input("  Payment method (bank_transfer/cash/check, optional — press Enter to skip): ")
-    if pm:
-        pm = pm.lower()
-        if pm in ("bank_transfer", "cash", "check"):
-            payment_method = pm
+    payment_method = get_optional_enum_input(
+        "  Payment method (bank_transfer/cash/check, optional — press Enter to skip): ",
+        ("bank_transfer", "cash", "check"))
 
     document_ref = get_optional_input("  Document ref (e.g. PRY001-AP-001, optional — press Enter to skip): ")
     due_date = get_optional_date_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
@@ -339,8 +336,15 @@ def add_cost():
 def _load_cost_lookups():
     """Pre-load all FK lookup tables for cost import."""
     # Load existing document_refs for duplicate detection
-    existing_costs = supabase.table("costs").select("document_ref").execute()
+    existing_costs = supabase.table("costs").select("document_ref, entity_id, comprobante_number").execute()
     existing_refs = {r["document_ref"] for r in existing_costs.data if r.get("document_ref")}
+
+    # Load existing (entity_id, comprobante_number) pairs for duplicate detection
+    existing_entity_comprobantes = {
+        (r["entity_id"], r["comprobante_number"])
+        for r in existing_costs.data
+        if r.get("entity_id") and r.get("comprobante_number")
+    }
 
     return {
         "projects": load_project_map(),
@@ -349,6 +353,7 @@ def _load_cost_lookups():
         "valuations": load_valuation_map(),
         "quotes": load_quote_map(),
         "existing_document_refs": existing_refs,
+        "existing_entity_comprobantes": existing_entity_comprobantes,
     }
 
 
@@ -372,26 +377,8 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
 
-    # Composite bank account lookup
-    bank_name = row.get("bank_name")
-    last4 = row.get("bank_account_last4")
-    if bank_name and last4 and not pd.isna(bank_name) and not pd.isna(last4):
-        key = f"{str(bank_name).strip()}-{str(last4).strip()}"
-        if key not in lookups["bank_accounts"]:
-            errors.append((row_num, "bank_name", f"Bank account {key} not found in database"))
-
-    # Composite valuation lookup
-    proj_code = row.get("project_code")
-    val_num = row.get("valuation_number")
-    if proj_code and val_num and not pd.isna(proj_code) and not pd.isna(val_num):
-        project_id = lookups["projects"].get(str(proj_code).strip())
-        if project_id:
-            try:
-                vn = int(float(val_num))
-                if (project_id, vn) not in lookups["valuations"]:
-                    errors.append((row_num, "valuation_number", f"Valuation #{vn} not found for {proj_code}"))
-            except (ValueError, TypeError):
-                errors.append((row_num, "valuation_number", "Must be a number"))
+    validate_bank_account(row_num, row, lookups, errors)
+    validate_valuation(row_num, row, lookups, errors)
 
     # Quote lookup
     validate_lookup(row_num, row, "quote_document_ref", lookups["quotes"], errors)
@@ -408,6 +395,16 @@ def _validate_cost_row(row_num, row, errors, lookups):
     if doc_ref and not pd.isna(doc_ref) and str(doc_ref).strip():
         if str(doc_ref).strip() in lookups["existing_document_refs"]:
             errors.append((row_num, "document_ref", f"Document ref '{str(doc_ref).strip()}' already exists in database"))
+
+    # Duplicate detection: (entity_id, comprobante_number) must be unique
+    entity_doc = row.get("entity_document_number")
+    comp_num = row.get("comprobante_number")
+    if entity_doc and comp_num and not pd.isna(entity_doc) and not pd.isna(comp_num) and str(comp_num).strip():
+        entity_id = lookups["entities"].get(str(entity_doc).strip())
+        if entity_id:
+            key = (entity_id, str(comp_num).strip())
+            if key in lookups["existing_entity_comprobantes"]:
+                errors.append((row_num, "comprobante_number", f"Comprobante '{str(comp_num).strip()}' already exists for this entity"))
 
     # Cross-field: IGV must be 0 for non-IGV comprobante types
     no_igv_types = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
@@ -493,6 +490,19 @@ def import_costs():
     for idx, row in df.iterrows():
         excel_row = idx + DATA_START_ROW
         _validate_cost_row(excel_row, row, errors, lookups)
+
+    # Within-file duplicate detection: (entity_document_number, comprobante_number)
+    seen_keys = {}
+    for idx, row in df.iterrows():
+        excel_row = idx + DATA_START_ROW
+        entity_doc = row.get("entity_document_number")
+        comp_num = row.get("comprobante_number")
+        if entity_doc and comp_num and not pd.isna(entity_doc) and not pd.isna(comp_num) and str(comp_num).strip():
+            key = (str(entity_doc).strip(), str(comp_num).strip())
+            if key in seen_keys:
+                errors.append((excel_row, "comprobante_number", f"Duplicate in file (same as row {seen_keys[key]})"))
+            else:
+                seen_keys[key] = excel_row
 
     if process_import_errors(file_path, errors):
         return
