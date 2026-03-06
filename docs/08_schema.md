@@ -104,6 +104,24 @@ Every external party Korakuen does business with — companies and individuals. 
 
 ---
 
+### `exchange_rates`
+Daily SUNAT USD/PEN exchange rates. Lookup/reference table — not FK'd to any financial table. Financial tables store their own `exchange_rate` at transaction time; this table provides suggested rates during data entry and enables reporting conversions.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| rate_date | DATE | NO | unique — one row per day |
+| buy_rate | NUMERIC(10,4) | NO | SUNAT buy rate (banco compra) |
+| sell_rate | NUMERIC(10,4) | NO | SUNAT sell rate (banco venta) |
+| mid_rate | NUMERIC(10,4) | NO | (buy + sell) / 2 |
+| source | VARCHAR(50) | NO | default 'SUNAT' |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**No `is_active`** — exchange rates are historical facts, never deactivated.
+
+---
+
 ## Layer 2 — Depends on Layer 1
 
 ### `tags`
@@ -543,6 +561,7 @@ Budget targets per project per category. Compared against actual costs from `v_c
 | category | VARCHAR | NO | must match cost_items categories exactly |
 | budgeted_amount | NUMERIC(15,2) | NO | |
 | currency | VARCHAR(3) | NO | USD or PEN |
+| is_active | BOOLEAN | NO | default true, soft delete |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |

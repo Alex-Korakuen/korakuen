@@ -2,7 +2,7 @@
 
 **Document version:** 3.0
 **Date:** March 2, 2026
-**Status:** Active — Phase 4 complete. Next: Phase 5 (when business revenue justifies).
+**Status:** Active — Phase 5 in progress. Core PEN functional currency complete.
 
 ---
 
@@ -16,7 +16,7 @@ This is the execution roadmap for Claude Code. Each task is specific, ordered by
 
 ## Phase 1: Schema & Documentation (Complete)
 
-All design decisions locked. 18 tables defined (14 original + 4 added in Phase 3.5). Documentation complete.
+All design decisions locked. 19 tables defined (14 original + 4 added in Phase 3.5 + 1 in Phase 5). Documentation complete.
 
 - [x] Business context document
 - [x] System architecture document
@@ -586,7 +586,27 @@ Issues confirmed not bugs:
 
 ---
 
-## Phase 5: Excel In/Out + Full Web Application (V1)
+## Phase 5: PEN Functional Currency (In Progress)
+
+**Goal:** Establish PEN as the functional reporting currency. Add daily exchange rate tracking and convert all dashboards to report in PEN.
+
+**Status:** Core infrastructure complete. Remaining tasks deferred until business needs arise.
+
+- [x] Task 5.1 — `exchange_rates` table (migration `20260304000008`) — daily SUNAT buy/sell/mid rates
+- [x] Task 5.2 — Exchange rates CLI module (`cli/modules/exchange_rates.py`) — menu item 8
+- [x] Task 5.3 — CLI suggested exchange rate — `get_exchange_rate()` in helpers.py looks up current rate during data entry
+- [x] Task 5.4 — `v_partner_ledger` rewrite — one row per partner per project, all amounts in PEN using transaction-date exchange rates
+- [x] Task 5.5 — P&L and Cash Flow converted to PEN functional currency (PEN-only reporting)
+- [x] Task 5.6 — AP Calendar and AR Outstanding PEN aggregate summary cards
+- [x] Task 5.7 — Partner Balances uses transaction-date PEN conversion
+- [x] Task 5.8 — Remove valuations table (dormant infrastructure, never displayed)
+- [x] Task 5.9 — Remove `is_internal_settlement` column (partners never invoice each other)
+- [x] Task 5.10 — Explicit `profit_share_pct` per project on `project_partners` + fix settlement exchange rates
+- [x] Task 5.11 — Combined cost import template + bank account labels
+
+---
+
+## Phase 6: Excel In/Out + Full Web Application (V1)
 
 **Start only when business revenue justifies development investment or non-technical users need data entry.**
 

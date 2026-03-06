@@ -1069,7 +1069,8 @@ export async function getCompanyPL(
   quarter: number,
   month: number,
   reportingCurrency: 'PEN' | 'USD',
-  isAlex: boolean
+  isAlex: boolean,
+  partnerCompanyId: string | null = null
 ): Promise<PLData> {
   const supabase = await createServerSupabaseClient()
   const { start, end, monthKeys } = getPeriodRange(periodMode, year, quarter, month)
@@ -1088,8 +1089,7 @@ export async function getCompanyPL(
       .lte('date', end),
     supabase
       .from('projects')
-      .select('id, project_code, name')
-      .eq('is_active', true),
+      .select('id, project_code, name'),
     isAlex
       ? supabase.from('v_partner_ledger').select('*')
       : { data: [] },
@@ -1269,42 +1269,34 @@ export async function getCompanyPL(
   // Alex personal position — per-project weighted profit share
   let alexProfitShare: number | null = null
   let loanObligations: number | null = null
-  if (isAlex) {
-    const { data: alexPartner } = await supabase
-      .from('partner_companies')
-      .select('id')
-      .eq('ruc', '20000000001')
-      .single()
-
-    if (alexPartner) {
-      // Build Alex's profit_share_pct lookup by project from v_partner_ledger
-      const alexPctByProject = new Map<string, number>()
-      for (const r of partnerLedger) {
-        if (r.partner_company_id === alexPartner.id && r.project_id) {
-          alexPctByProject.set(r.project_id, (r.profit_share_pct ?? 0) / 100)
-        }
+  if (isAlex && partnerCompanyId) {
+    // Build Alex's profit_share_pct lookup by project from v_partner_ledger
+    const alexPctByProject = new Map<string, number>()
+    for (const r of partnerLedger) {
+      if (r.partner_company_id === partnerCompanyId && r.project_id) {
+        alexPctByProject.set(r.project_id, (r.profit_share_pct ?? 0) / 100)
       }
-
-      // Compute Alex's share of per-project profit (income - costs) weighted by profit share %
-      let alexProjectShare = 0
-      const allProjectIds = new Set([...periodIncomeByProject.keys(), ...periodCostsByProject.keys()])
-      for (const pid of allProjectIds) {
-        const income = periodIncomeByProject.get(pid) ?? 0
-        const costs = periodCostsByProject.get(pid) ?? 0
-        const alexPct = alexPctByProject.get(pid) ?? 0
-        alexProjectShare += (income - costs) * alexPct
-      }
-
-      // SGA split: weight by each project's costs in the period
-      const totalPeriodCosts = [...periodCostsByProject.values()].reduce((s, v) => s + v, 0)
-      let alexSgaPct = 0
-      if (totalPeriodCosts > 0) {
-        for (const [pid, costs] of periodCostsByProject) {
-          alexSgaPct += (costs / totalPeriodCosts) * (alexPctByProject.get(pid) ?? 0)
-        }
-      }
-      alexProfitShare = alexProjectShare - total.sga * alexSgaPct
     }
+
+    // Compute Alex's share of per-project profit (income - costs) weighted by profit share %
+    let alexProjectShare = 0
+    const allProjectIds = new Set([...periodIncomeByProject.keys(), ...periodCostsByProject.keys()])
+    for (const pid of allProjectIds) {
+      const income = periodIncomeByProject.get(pid) ?? 0
+      const costs = periodCostsByProject.get(pid) ?? 0
+      const alexPct = alexPctByProject.get(pid) ?? 0
+      alexProjectShare += (income - costs) * alexPct
+    }
+
+    // SGA split: weight by each project's costs in the period
+    const totalPeriodCosts = [...periodCostsByProject.values()].reduce((s, v) => s + v, 0)
+    let alexSgaPct = 0
+    if (totalPeriodCosts > 0) {
+      for (const [pid, costs] of periodCostsByProject) {
+        alexSgaPct += (costs / totalPeriodCosts) * (alexPctByProject.get(pid) ?? 0)
+      }
+    }
+    alexProfitShare = alexProjectShare - total.sga * alexSgaPct
 
     // Convert all loan balances to reporting currency
     loanObligations = loanBalances.reduce((sum, l) =>

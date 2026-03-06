@@ -53,6 +53,12 @@ def add_rate():
     # --- Sell rate ---
     sell_rate = _get_rate("  Sell rate (SUNAT Venta): ")
 
+    # --- Validate buy < sell (SUNAT convention: compra < venta) ---
+    if buy_rate >= sell_rate:
+        print("\n  ✗ Buy rate must be less than sell rate (SUNAT: Compra < Venta).")
+        input("\nPress Enter to continue...")
+        return
+
     # --- Mid rate (auto-computed) ---
     mid_rate = round((buy_rate + sell_rate) / 2, 4)
 

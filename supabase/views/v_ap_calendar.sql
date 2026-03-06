@@ -66,7 +66,6 @@ SELECT
   COALESCE(lp.amount, 0) AS amount_paid,
   ls.scheduled_amount - COALESCE(lp.amount, 0) AS outstanding,
   CASE
-    WHEN ls.paid THEN 'paid'
     WHEN lp.amount IS NOT NULL AND lp.amount < ls.scheduled_amount THEN 'partial'
     ELSE 'pending'
   END                    AS payment_status

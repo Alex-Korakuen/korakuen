@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ar_invoices: {
@@ -62,7 +37,6 @@ export type Database = {
           retencion_verified: boolean
           subtotal: number
           updated_at: string
-          valuation_id: string
         }
         Insert: {
           bank_account_id: string
@@ -86,7 +60,6 @@ export type Database = {
           retencion_verified?: boolean
           subtotal: number
           updated_at?: string
-          valuation_id: string
         }
         Update: {
           bank_account_id?: string
@@ -110,7 +83,6 @@ export type Database = {
           retencion_verified?: boolean
           subtotal?: number
           updated_at?: string
-          valuation_id?: string
         }
         Relationships: [
           {
@@ -148,20 +120,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_ar_invoices_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_valuations"
-            columns: ["valuation_id"]
-            isOneToOne: false
-            referencedRelation: "valuations"
-            referencedColumns: ["id"]
-          },
         ]
       }
       bank_accounts: {
@@ -174,6 +132,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_detraccion_account: boolean
+          label: string
           partner_company_id: string
           updated_at: string
         }
@@ -186,6 +145,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_detraccion_account?: boolean
+          label: string
           partner_company_id: string
           updated_at?: string
         }
@@ -198,6 +158,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_detraccion_account?: boolean
+          label?: string
           partner_company_id?: string
           updated_at?: string
         }
@@ -298,7 +259,6 @@ export type Database = {
           quote_id: string | null
           title: string
           updated_at: string
-          valuation_id: string | null
         }
         Insert: {
           bank_account_id: string
@@ -322,7 +282,6 @@ export type Database = {
           quote_id?: string | null
           title: string
           updated_at?: string
-          valuation_id?: string | null
         }
         Update: {
           bank_account_id?: string
@@ -346,7 +305,6 @@ export type Database = {
           quote_id?: string | null
           title?: string
           updated_at?: string
-          valuation_id?: string | null
         }
         Relationships: [
           {
@@ -378,24 +336,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-          {
             foreignKeyName: "fk_costs_quotes"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_valuations"
-            columns: ["valuation_id"]
-            isOneToOne: false
-            referencedRelation: "valuations"
             referencedColumns: ["id"]
           },
         ]
@@ -745,13 +689,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_loans_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
       }
       partner_companies: {
@@ -914,62 +851,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_project_budgets_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-        ]
-      }
-      project_partners: {
-        Row: {
-          created_at: string
-          id: string
-          partner_company_id: string
-          profit_share_pct: number
-          project_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          partner_company_id: string
-          profit_share_pct: number
-          project_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          partner_company_id?: string
-          profit_share_pct?: number
-          project_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_project_partners_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_project_partners_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_project_partners_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
       }
       project_entities: {
@@ -1022,17 +903,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_project_entities_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-          {
             foreignKeyName: "fk_project_entities_tags"
             columns: ["tag_id"]
             isOneToOne: false
             referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_partners: {
+        Row: {
+          created_at: string
+          id: string
+          partner_company_id: string
+          profit_share_pct: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          partner_company_id: string
+          profit_share_pct: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          partner_company_id?: string
+          profit_share_pct?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_project_partners_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_project_partners_projects"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1181,13 +1097,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_quotes_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
       }
       tags: {
@@ -1216,66 +1125,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      valuations: {
-        Row: {
-          billed_currency: string | null
-          billed_value: number | null
-          created_at: string
-          date_closed: string | null
-          id: string
-          notes: string | null
-          period_month: number
-          period_year: number
-          project_id: string
-          status: string
-          updated_at: string
-          valuation_number: number
-        }
-        Insert: {
-          billed_currency?: string | null
-          billed_value?: number | null
-          created_at?: string
-          date_closed?: string | null
-          id?: string
-          notes?: string | null
-          period_month: number
-          period_year: number
-          project_id: string
-          status: string
-          updated_at?: string
-          valuation_number: number
-        }
-        Update: {
-          billed_currency?: string | null
-          billed_value?: number | null
-          created_at?: string
-          date_closed?: string | null
-          id?: string
-          notes?: string | null
-          period_month?: number
-          period_year?: number
-          project_id?: string
-          status?: string
-          updated_at?: string
-          valuation_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_valuations_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_valuations_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-        ]
       }
     }
     Views: {
@@ -1335,7 +1184,6 @@ export type Database = {
           retencion_rate: number | null
           retencion_verified: boolean | null
           subtotal: number | null
-          valuation_id: string | null
         }
         Relationships: [
           {
@@ -1371,20 +1219,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_valuations"
-            columns: ["valuation_id"]
-            isOneToOne: false
-            referencedRelation: "valuations"
             referencedColumns: ["id"]
           },
         ]
@@ -1433,26 +1267,7 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_project_budgets_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
-      }
-      v_company_pl: {
-        Row: {
-          currency: string | null
-          gross_profit: number | null
-          net_margin_pct: number | null
-          net_profit: number | null
-          total_income: number | null
-          total_project_costs: number | null
-          total_sga: number | null
-        }
-        Relationships: []
       }
       v_cost_balances: {
         Row: {
@@ -1504,13 +1319,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
       }
       v_cost_totals: {
@@ -1538,7 +1346,6 @@ export type Database = {
           subtotal: number | null
           title: string | null
           total: number | null
-          valuation_id: string | null
         }
         Relationships: [
           {
@@ -1570,24 +1377,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
-          {
             foreignKeyName: "fk_costs_quotes"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_valuations"
-            columns: ["valuation_id"]
-            isOneToOne: false
-            referencedRelation: "valuations"
             referencedColumns: ["id"]
           },
         ]
@@ -1647,13 +1440,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_loans_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
       }
       v_partner_ledger: {
@@ -1684,28 +1470,7 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_project_partners_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_pl"
-            referencedColumns: ["project_id"]
-          },
         ]
-      }
-      v_project_pl: {
-        Row: {
-          currency: string | null
-          gross_margin_pct: number | null
-          gross_profit: number | null
-          project_code: string | null
-          project_id: string | null
-          project_name: string | null
-          project_status: string | null
-          total_costs: number | null
-          total_income: number | null
-        }
-        Relationships: []
       }
       v_retencion_dashboard: {
         Row: {
@@ -1725,7 +1490,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      fn_create_cost_with_items: {
+        Args: { header_data: Json; items_data: Json }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1854,9 +1622,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
