@@ -146,10 +146,10 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Includes days_remaining calculated from due_date
 
 ### v_partner_ledger
-- Source: `costs` JOIN `bank_accounts` (to derive partner), `ar_invoices`, `payments`
-- Groups expenses by partner_company (derived from bank_account on costs)
-- Calculates each partner's contribution percentage
-- Shows income distribution proportional to contribution
+- Source: `project_partners` JOIN `costs` + `bank_accounts` (contributions), `ar_invoices` (income)
+- Uses `profit_share_pct` from `project_partners` for income distribution
+- Groups cost contributions by partner_company (derived from bank_account on costs)
+- Shows both contribution % (actual spend ratio) and profit share % (agreed split)
 
 ### v_entity_transactions
 - Source: `costs` UNION ALL `ar_invoices`, filtered by entity_id

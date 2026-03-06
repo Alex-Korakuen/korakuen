@@ -10,12 +10,12 @@
 
 PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 18 tables total across 7 layers.
+**Table count:** 19 tables total across 7 layers.
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_entities, quotes
+Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
 Layer 6 (private): loans, loan_schedule, loan_payments
@@ -200,6 +200,22 @@ Bridge table linking entities to projects with a specific role. Answers "who par
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
+
+---
+
+### `project_partners`
+Stores the agreed profit share percentage per partner company per project. Each partner's share is set explicitly and must total 100% per project (enforced at application level). Used by `v_partner_ledger` to calculate income distribution independently of cost contribution ratios.
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| id | UUID | NO | primary key |
+| project_id | UUID | NO | references projects |
+| partner_company_id | UUID | NO | references partner_companies |
+| profit_share_pct | NUMERIC(5,2) | NO | e.g. 40.00 = 40%, must be > 0 and <= 100 |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+UNIQUE constraint on (project_id, partner_company_id).
 
 ---
 
@@ -536,7 +552,7 @@ Budget targets per project per category. Compared against actual costs from `v_c
 
 ## Complete Table List — Final
 
-**18 tables total:**
+**19 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -551,8 +567,9 @@ Layer 2 (depends on Layer 1):
   entity_contacts
   projects
 
-Layer 3 (depends on Layer 2):
+Layer 3 (depends on Layer 1 + 2):
   project_entities
+  project_partners
   quotes
 
 Layer 4 (depends on Layer 3):

@@ -1,9 +1,50 @@
--- View: v_partner_ledger
--- Purpose: Shows each partner's financial position per project in PEN.
---          Uses explicit profit_share_pct from project_partners for income distribution.
---          Contribution amounts use transaction-date exchange rates for USD conversion.
--- Source tables: project_partners, costs, bank_accounts, partner_companies, projects, v_cost_totals, ar_invoices
--- Used by: Partner ledger page, partner dashboard, P&L personal position
+-- ============================================================
+-- Migration: project_partners table + updated v_partner_ledger
+-- Date: 2026-03-05
+-- Purpose: Add explicit per-project profit share percentages
+--          for partner companies, and update v_partner_ledger
+--          to use profit_share_pct instead of contribution-based %.
+-- ============================================================
+
+-- === TABLE: project_partners ===
+-- Stores agreed profit share percentage per partner per project.
+-- Shares must total 100% per project (enforced at application level).
+
+CREATE TABLE project_partners (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  project_id UUID NOT NULL,
+  partner_company_id UUID NOT NULL,
+  profit_share_pct NUMERIC(5,2) NOT NULL,             -- e.g. 40.00 = 40%
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT fk_project_partners_projects
+    FOREIGN KEY (project_id)
+    REFERENCES projects(id)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT fk_project_partners_partner_companies
+    FOREIGN KEY (partner_company_id)
+    REFERENCES partner_companies(id)
+    ON DELETE RESTRICT,
+
+  CONSTRAINT uq_project_partners_project_partner
+    UNIQUE (project_id, partner_company_id),
+
+  CONSTRAINT chk_project_partners_pct_range
+    CHECK (profit_share_pct > 0 AND profit_share_pct <= 100)
+);
+
+CREATE TRIGGER trg_project_partners_updated_at
+  BEFORE UPDATE ON project_partners
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+
+-- === VIEW: v_partner_ledger (updated) ===
+-- Now uses profit_share_pct from project_partners for income distribution
+-- instead of deriving it from cost contribution ratios.
+
+DROP VIEW IF EXISTS v_partner_ledger;
 
 CREATE OR REPLACE VIEW v_partner_ledger
 WITH (security_invoker = on)

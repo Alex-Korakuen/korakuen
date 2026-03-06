@@ -260,6 +260,7 @@ export type PartnerContribution = {
   partner_name: string
   contribution_amount_pen: number
   contribution_pct: number
+  profit_share_pct: number
   project_income_pen: number
   income_share_pen: number
 }

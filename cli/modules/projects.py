@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Module: projects.py
-Purpose: All project operations — add single, import from Excel, set budget
-Tables: projects, project_budgets
+Purpose: All project operations — add single, import from Excel, set budget, set partner shares
+Tables: projects, project_budgets, project_partners
 """
 
 import pandas as pd
@@ -31,7 +31,8 @@ def menu():
         print("1. Add project")
         print("2. Import projects from Excel")
         print("3. Set project budget")
-        print("4. Back")
+        print("4. Set partner shares")
+        print("5. Back")
 
         choice = get_input("\nSelect option: ")
 
@@ -42,6 +43,8 @@ def menu():
         elif choice == "3":
             set_project_budget()
         elif choice == "4":
+            set_partner_shares()
+        elif choice == "5":
             return
         else:
             print("\nInvalid option.")
@@ -416,6 +419,128 @@ def set_project_budget():
     try:
         response = supabase.table("project_budgets").insert(records).execute()
         print(f"\n✓ Budget set for {project_code}: {len(response.data)} categories ({currency} {total_budget:,.2f} total)")
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+
+    input("\nPress Enter to continue...")
+
+
+# ============================================================
+# Set Partner Shares
+# ============================================================
+
+def set_partner_shares():
+    """Set profit share percentages per partner for a project."""
+    clear_screen()
+    print("\n=== Set Partner Shares ===\n")
+
+    # --- Select project ---
+    projects = (
+        supabase.table("projects")
+        .select("id, project_code, name")
+        .eq("is_active", True)
+        .order("project_code")
+        .execute()
+    )
+    list_choices("Active projects", projects.data, display=["project_code", "name"])
+
+    if not projects.data:
+        input("\nPress Enter to continue...")
+        return
+
+    project_code_input = get_input("Enter project code (e.g. PRY001): ").upper()
+    project = next(
+        (p for p in projects.data if p["project_code"] == project_code_input), None
+    )
+    if not project:
+        print(f"\n✗ Project '{project_code_input}' not found.")
+        input("\nPress Enter to continue...")
+        return
+
+    project_id = project["id"]
+    project_code = project["project_code"]
+    project_name = project["name"]
+
+    # --- Show existing shares if any ---
+    existing = (
+        supabase.table("project_partners")
+        .select("partner_company_id, profit_share_pct")
+        .eq("project_id", project_id)
+        .execute()
+    )
+
+    if existing.data:
+        # Resolve partner names
+        partner_ids = [r["partner_company_id"] for r in existing.data]
+        partners_result = supabase.table("partner_companies").select("id, name").in_("id", partner_ids).execute()
+        name_map = {p["id"]: p["name"] for p in partners_result.data}
+
+        print(f"\n  Current shares for {project_code} — {project_name}:")
+        for entry in existing.data:
+            pname = name_map.get(entry["partner_company_id"], "Unknown")
+            print(f"    {pname:30s} {entry['profit_share_pct']:>6.2f}%")
+        print()
+        if not confirm("  Overwrite existing shares?"):
+            print("  Cancelled.")
+            input("\nPress Enter to continue...")
+            return
+
+    # --- Get all active partner companies ---
+    partners = (
+        supabase.table("partner_companies")
+        .select("id, name")
+        .eq("is_active", True)
+        .order("name")
+        .execute()
+    )
+
+    if not partners.data:
+        print("\n✗ No active partner companies found.")
+        input("\nPress Enter to continue...")
+        return
+
+    print(f"\n  Enter profit share % for each partner ({project_code} — {project_name}):\n")
+    shares = []
+    for partner in partners.data:
+        pct = get_nonneg_float(f"    {partner['name']}: ")
+        shares.append({"partner": partner, "pct": pct})
+
+    # --- Validate sum = 100% ---
+    total_pct = sum(s["pct"] for s in shares)
+    if abs(total_pct - 100.0) > 0.01:
+        print(f"\n✗ Shares must total 100%. Current total: {total_pct:.2f}%")
+        input("\nPress Enter to continue...")
+        return
+
+    # Filter out zero shares
+    shares = [s for s in shares if s["pct"] > 0]
+
+    # --- Summary ---
+    print("\n--- Summary ---")
+    print(f"  Project: {project_code} — {project_name}\n")
+    for s in shares:
+        print(f"    {s['partner']['name']:30s} {s['pct']:>6.2f}%")
+    print(f"    {'':30s} {'─' * 10}")
+    print(f"    {'Total':30s} {total_pct:>6.2f}%")
+
+    if not confirm("\nSet these partner shares?"):
+        cancel_and_wait()
+        return
+
+    # --- Delete existing and insert new ---
+    try:
+        # Delete existing shares for this project
+        supabase.table("project_partners").delete().eq("project_id", project_id).execute()
+
+        records = []
+        for s in shares:
+            records.append({
+                "project_id": project_id,
+                "partner_company_id": s["partner"]["id"],
+                "profit_share_pct": s["pct"],
+            })
+        response = supabase.table("project_partners").insert(records).execute()
+        print(f"\n✓ Partner shares set for {project_code}: {len(response.data)} partners")
     except Exception as e:
         print(f"\n✗ Error: {e}")
 

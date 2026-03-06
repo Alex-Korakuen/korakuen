@@ -923,6 +923,55 @@ export type Database = {
           },
         ]
       }
+      project_partners: {
+        Row: {
+          created_at: string
+          id: string
+          partner_company_id: string
+          profit_share_pct: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          partner_company_id: string
+          profit_share_pct: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          partner_company_id?: string
+          profit_share_pct?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_project_partners_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_project_partners_projects"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_project_partners_projects"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_pl"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
       project_entities: {
         Row: {
           created_at: string
@@ -1614,6 +1663,7 @@ export type Database = {
           income_share_pen: number | null
           partner_company_id: string | null
           partner_name: string | null
+          profit_share_pct: number | null
           project_code: string | null
           project_id: string | null
           project_income_pen: number | null
@@ -1621,21 +1671,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_bank_accounts_partner_companies"
+            foreignKeyName: "fk_project_partners_partner_companies"
             columns: ["partner_company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_costs_projects"
+            foreignKeyName: "fk_project_partners_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_costs_projects"
+            foreignKeyName: "fk_project_partners_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_project_pl"

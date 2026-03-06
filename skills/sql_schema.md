@@ -37,15 +37,16 @@ Generate tables in this exact order so foreign keys never reference a table that
 6. `entity_contacts`
 7. `projects`
 8. `project_entities`
-9. `quotes`
-10. `costs`
-11. `cost_items`
-12. `ar_invoices`
-13. `payments`
-14. `loans`
-15. `loan_schedule`
-16. `loan_payments`
-17. `project_budgets`
+9. `project_partners`
+10. `quotes`
+11. `costs`
+12. `cost_items`
+13. `ar_invoices`
+14. `payments`
+15. `loans`
+16. `loan_schedule`
+17. `loan_payments`
+18. `project_budgets`
 
 ---
 
@@ -98,7 +99,7 @@ Reference/master data tables only (partner_companies, bank_accounts, entities, e
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule, loan_payments) and historical reference tables (quotes, project_entities, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule, loan_payments) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -193,7 +194,7 @@ After generating the SQL file:
 
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
-3. All 17 tables have the `updated_at` trigger (except `entity_tags`)
+3. All 18 tables have the `updated_at` trigger (except `entity_tags`)
 4. Only the 6 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects)
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

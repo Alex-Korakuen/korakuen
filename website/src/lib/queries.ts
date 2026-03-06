@@ -832,7 +832,7 @@ export async function getCashFlow(
 
 export async function getPartnerLedger(
   projectId: string,
-  currentRate: number // today's mid_rate for converting USD AR payments to PEN
+  currentRate: number // fallback rate for any payments missing exchange_rate
 ): Promise<PartnerBalanceData> {
   const supabase = await createServerSupabaseClient()
 
@@ -867,6 +867,7 @@ export async function getPartnerLedger(
     partner_name: row.partner_name ?? '—',
     contribution_amount_pen: row.contribution_amount_pen ?? 0,
     contribution_pct: row.contribution_pct ?? 0,
+    profit_share_pct: row.profit_share_pct ?? 0,
     project_income_pen: row.project_income_pen ?? 0,
     income_share_pen: row.income_share_pen ?? 0,
   }))
@@ -884,7 +885,7 @@ export async function getPartnerLedger(
   if (arIds.length > 0) {
     const { data: payments } = await supabase
       .from('payments')
-      .select('related_id, amount, currency')
+      .select('related_id, amount, currency, exchange_rate')
       .in('related_id', arIds)
       .eq('related_to', 'ar_invoice')
 
@@ -902,8 +903,9 @@ export async function getPartnerLedger(
       const partnerKey = arInfo.partner_company_id
       const paymentCurrency = p.currency ?? arInfo.currency
       const amount = p.amount ?? 0
-      // Convert USD payments to PEN at current rate
-      const amountPen = paymentCurrency === 'USD' ? amount * currentRate : amount
+      // Convert USD payments to PEN at transaction-date rate (stored on each payment)
+      const rate = p.exchange_rate ?? currentRate
+      const amountPen = paymentCurrency === 'USD' ? amount * rate : amount
       receivedByPartner.set(partnerKey, (receivedByPartner.get(partnerKey) ?? 0) + amountPen)
     }
   }
@@ -1275,15 +1277,15 @@ export async function getCompanyPL(
       .single()
 
     if (alexPartner) {
-      // Build Alex's contribution_pct lookup by project from v_partner_ledger
+      // Build Alex's profit_share_pct lookup by project from v_partner_ledger
       const alexPctByProject = new Map<string, number>()
       for (const r of partnerLedger) {
         if (r.partner_company_id === alexPartner.id && r.project_id) {
-          alexPctByProject.set(r.project_id, r.contribution_pct ?? 0)
+          alexPctByProject.set(r.project_id, (r.profit_share_pct ?? 0) / 100)
         }
       }
 
-      // Compute Alex's share of per-project profit (income - costs) weighted by contribution %
+      // Compute Alex's share of per-project profit (income - costs) weighted by profit share %
       let alexProjectShare = 0
       const allProjectIds = new Set([...periodIncomeByProject.keys(), ...periodCostsByProject.keys()])
       for (const pid of allProjectIds) {

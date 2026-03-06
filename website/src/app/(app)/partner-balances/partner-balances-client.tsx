@@ -130,7 +130,7 @@ export function PartnerBalancesClient({
                           {formatCurrency(c.contribution_amount_pen, 'PEN')}
                         </p>
                         <p className="text-xs text-zinc-500">
-                          {c.contribution_pct}%
+                          Contributed {c.contribution_pct}% · Profit share {c.profit_share_pct}%
                         </p>
                       </div>
                     </div>
@@ -159,11 +159,9 @@ export function PartnerBalancesClient({
               <div className="rounded-lg border border-zinc-200">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
                   <h3 className="text-sm font-medium text-zinc-700">Settlement Position (in PEN)</h3>
-                  {exchangeRate && (
-                    <p className="text-xs text-zinc-500">
-                      USD payments converted at current rate: {exchangeRate.mid_rate} ({exchangeRate.rate_date})
-                    </p>
-                  )}
+                  <p className="text-xs text-zinc-500">
+                    All amounts converted at transaction-date exchange rates
+                  </p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

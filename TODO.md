@@ -4,43 +4,11 @@ Updated March 5, 2026.
 
 ---
 
-## To Investigate
-
-### Partner Balances — Review Calculation Logic
-
-The Partner Balances page calculates who owes whom based on contribution % vs actual payments received. Needs validation:
-
-- [ ] Confirm balance formula: `income_share - actually_received` — does this match how partners actually agree to settle?
-- [ ] AR payments include all `payment_type` values (regular, detraccion, retencion). Detraccion goes to Banco de la Nacion (restricted use) and retencion is withheld by the client — should these count as "actually received", or only regular bank payments?
-- [ ] Balance section converts USD at current rate while contributions use transaction-date rates. This is a deliberate choice but creates a conceptual mismatch — verify this reflects how the partners think about it
-
----
-
 ## Known Issues
-
-### ~~SG&A "Other" Misrouted in Cash Flow~~ [FIXED]
-
-Fixed: `mapCategory()` now receives `cost_type` and routes SG&A "other" correctly.
 
 ### Cost Import — Headers Without Items Warning [LOW]
 
 The cost import is a two-step workflow (import headers, then import items). No validation ensures imported headers get corresponding items. Orphaned headers show zero totals — not corrupt, but confusing. Fix: add a post-import warning that checks for costs with no items.
-
-### ~~P&L Profit Share Used Blended All-Time Ratios~~ [FIXED]
-
-Fixed: Alex's profit share now weights each project's profit by Alex's per-project `contribution_pct` from `v_partner_ledger`, then splits SGA proportionally by period cost share. Previously used a single blended ratio across all projects and time periods.
-
-### ~~is_internal_settlement Removed~~ [DONE]
-
-Removed: `is_internal_settlement` column from `ar_invoices`, `v_settlement_dashboard` view, CLI prompts, 5 query filters, import template field, and all documentation. Partners never invoice each other — the flag was always false.
-
-### ~~Unique Invoice Number Constraints~~ [FIXED]
-
-Fixed: Migration `20260305000001` adds:
-- `UNIQUE (partner_company_id, invoice_number)` on `ar_invoices`
-- Partial unique index `UNIQUE (entity_id, comprobante_number)` on `costs` (where both non-null)
-
-Import validation added for both AR invoices and costs (against DB + within-file duplicates).
 
 ---
 
@@ -63,3 +31,5 @@ These were discussed and decided on March 4, 2026:
 
 1. **Partner balance currency** — PEN. All contributions converted to PEN at transaction-date rates. Balances calculated in PEN.
 2. **Buy vs sell rate per transaction type** — Mid-rate for everything in the management system. The `buy_rate` and `sell_rate` columns exist in the table for the external accountant to reference if needed for SUNAT-compliant filings, but the CLI and website default to `mid_rate`.
+3. **Partner profit shares** — Explicit per-project % stored in `project_partners` table (must total 100%). Income distribution uses agreed share, not cost contribution ratio.
+4. **Settlement exchange rates** — All payment amounts converted at transaction-date rates (stored on each payment record). No current-rate conversion.

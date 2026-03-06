@@ -81,12 +81,12 @@ korakuen/
 
 ---
 
-## Database — 18 Tables
+## Database — 19 Tables
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_entities, quotes
+Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
 Layer 6 (private): loans, loan_schedule, loan_payments
