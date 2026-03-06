@@ -308,41 +308,12 @@ QUOTES = [
 ]
 
 COSTS = [
+    # === HEADER SECTION — required fields first ===
     {
-        "name": "project_code",
-        "example": "PRY001",
-        "description": "Optional. Project code. Null if SG&A. Must exist in projects table.",
-        "allowed_values": "Lookup → projects.project_code",
-    },
-    {
-        "name": "bank_name",
-        "example": "BCP",
-        "description": "Required. Bank name. Used with bank_account_last4 to resolve bank account.",
-        "allowed_values": "Lookup → bank_accounts.bank_name",
-    },
-    {
-        "name": "bank_account_last4",
-        "example": "4567",
-        "description": "Required. Last 4 digits of bank account. Used with bank_name to resolve bank account.",
-        "allowed_values": "Lookup → bank_accounts.account_number_last4",
-    },
-    {
-        "name": "entity_document_number",
-        "example": "20612345678",
-        "description": "Optional. Supplier/vendor document number. Null if informal/unassigned.",
-        "allowed_values": "Lookup → entities.document_number",
-    },
-    {
-        "name": "quote_document_ref",
-        "example": "PRY001-QT-001",
-        "description": "Optional. Document ref of a prior accepted quote. Null if no prior quote.",
-        "allowed_values": "Lookup → quotes.document_ref",
-    },
-    {
-        "name": "cost_type",
-        "example": "project_cost",
-        "description": "Required. Type of cost.",
-        "allowed_values": "project_cost | sga",
+        "name": "document_ref",
+        "example": "PRY001-AP-001",
+        "description": "Required. Grouping key — rows with same value form one cost with multiple items.",
+        "allowed_values": "",
     },
     {
         "name": "date",
@@ -357,16 +328,10 @@ COSTS = [
         "allowed_values": "",
     },
     {
-        "name": "igv_rate",
-        "example": "18",
-        "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
-        "allowed_values": "Usually 18",
-    },
-    {
-        "name": "detraccion_rate",
-        "example": "4",
-        "description": "Optional. Detracción percentage. NUMERIC(5,2). Null if not applicable.",
-        "allowed_values": "Varies by service type",
+        "name": "bank_account",
+        "example": "BCP-4567",
+        "description": "Required. Bank account label. Must exist in bank_accounts table.",
+        "allowed_values": "Lookup → bank_accounts.label",
     },
     {
         "name": "currency",
@@ -375,9 +340,28 @@ COSTS = [
         "allowed_values": "USD | PEN",
     },
     {
+        "name": "igv_rate",
+        "example": "18",
+        "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
+        "allowed_values": "Usually 18",
+    },
+    # === HEADER SECTION — optional fields ===
+    {
+        "name": "project_code",
+        "example": "PRY001",
+        "description": "Optional. Project code. Blank = SG&A. Derives cost_type automatically.",
+        "allowed_values": "Lookup → projects.project_code",
+    },
+    {
+        "name": "entity_document_number",
+        "example": "20612345678",
+        "description": "Optional. Supplier/vendor document number. Null if informal/unassigned.",
+        "allowed_values": "Lookup → entities.document_number",
+    },
+    {
         "name": "exchange_rate",
         "example": "3.72",
-        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
+        "description": "Optional. PEN per USD rate. Auto-looked up from exchange_rates table by date if blank.",
         "allowed_values": "",
     },
     {
@@ -393,16 +377,22 @@ COSTS = [
         "allowed_values": "",
     },
     {
+        "name": "detraccion_rate",
+        "example": "4",
+        "description": "Optional. Detracción percentage. NUMERIC(5,2). Null if not applicable.",
+        "allowed_values": "Varies by service type",
+    },
+    {
         "name": "payment_method",
         "example": "bank_transfer",
         "description": "Optional. How the payment was made.",
         "allowed_values": "bank_transfer | cash | check",
     },
     {
-        "name": "document_ref",
-        "example": "PRY001-AP-001",
-        "description": "Optional. Document reference linking to SharePoint PDF.",
-        "allowed_values": "",
+        "name": "quote_document_ref",
+        "example": "PRY001-QT-001",
+        "description": "Optional. Document ref of a prior accepted quote. Null if no prior quote.",
+        "allowed_values": "Lookup → quotes.document_ref",
     },
     {
         "name": "due_date",
@@ -416,17 +406,9 @@ COSTS = [
         "description": "Optional. Free-form context about the cost.",
         "allowed_values": "",
     },
-]
-
-COST_ITEMS = [
+    # === DETAIL SECTION — required fields first ===
     {
-        "name": "cost_document_ref",
-        "example": "PRY001-AP-001",
-        "description": "Required. Document ref of the parent cost record. Must exist in costs table.",
-        "allowed_values": "Lookup → costs.document_ref",
-    },
-    {
-        "name": "title",
+        "name": "item_title",
         "example": "Portland cement Type I x 42.5kg",
         "description": "Required. Line item title.",
         "allowed_values": "",
@@ -437,6 +419,13 @@ COST_ITEMS = [
         "description": "Required. Cost category. Different allowed values for project costs vs SG&A.",
         "allowed_values": "materials | labor | subcontractor | equipment_rental | permits_regulatory | software_licenses | partner_compensation | business_development | professional_services | office_admin | other",
     },
+    {
+        "name": "subtotal",
+        "example": "14250.00",
+        "description": "Required. NUMERIC(15,2). Line item total amount.",
+        "allowed_values": "",
+    },
+    # === DETAIL SECTION — optional fields ===
     {
         "name": "quantity",
         "example": "500",
@@ -455,18 +444,6 @@ COST_ITEMS = [
         "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
         "allowed_values": "",
     },
-    {
-        "name": "subtotal",
-        "example": "14250.00",
-        "description": "Required. NUMERIC(15,2). quantity x unit_price or entered directly for lump sums.",
-        "allowed_values": "",
-    },
-    {
-        "name": "notes",
-        "example": "Delivered to site on 2026-03-16",
-        "description": "Optional. Free text notes.",
-        "allowed_values": "",
-    },
 ]
 
 AR_INVOICES = [
@@ -477,16 +454,10 @@ AR_INVOICES = [
         "allowed_values": "Lookup → projects.project_code",
     },
     {
-        "name": "bank_name",
-        "example": "Interbank",
-        "description": "Required. Bank name of the receipt account. Used with bank_account_last4.",
-        "allowed_values": "Lookup → bank_accounts.bank_name",
-    },
-    {
-        "name": "bank_account_last4",
-        "example": "7890",
-        "description": "Required. Last 4 digits of receipt bank account.",
-        "allowed_values": "Lookup → bank_accounts.account_number_last4",
+        "name": "bank_account",
+        "example": "Interbank-7890",
+        "description": "Required. Bank account label. Must exist in bank_accounts table.",
+        "allowed_values": "Lookup → bank_accounts.label",
     },
     {
         "name": "entity_document_number",
@@ -595,7 +566,6 @@ def main():
         ("projects.xlsx", PROJECTS),
         ("quotes.xlsx", QUOTES),
         ("costs.xlsx", COSTS),
-        ("cost_items.xlsx", COST_ITEMS),
         ("ar_invoices.xlsx", AR_INVOICES),
     ]
 

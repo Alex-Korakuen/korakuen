@@ -184,13 +184,11 @@ def validate_boolean(row_num, row, field, errors):
 
 
 def validate_bank_account(row_num, row, lookups, errors):
-    """Check that bank_name + bank_account_last4 match a known bank account. Skip if empty."""
-    bank_name = row.get("bank_name")
-    last4 = row.get("bank_account_last4")
-    if bank_name and last4 and not pd.isna(bank_name) and not pd.isna(last4):
-        key = f"{str(bank_name).strip()}-{str(last4).strip()}"
-        if key not in lookups["bank_accounts"]:
-            errors.append((row_num, "bank_name", f"Bank account {key} not found"))
+    """Check that bank_account label matches a known bank account. Skip if empty."""
+    val = row.get("bank_account")
+    if val is not None and not pd.isna(val) and str(val).strip():
+        if str(val).strip() not in lookups["bank_accounts"]:
+            errors.append((row_num, "bank_account", f"Bank account '{str(val).strip()}' not found"))
 
 
 def print_errors(errors, file_path):
@@ -248,14 +246,10 @@ def load_entity_map():
 
 
 def load_bank_account_map():
-    """Return {"BankName-Last4": id} for all active bank accounts."""
+    """Return {label: id} for all active bank accounts."""
     from lib.db import supabase
-    result = supabase.table("bank_accounts").select("id, bank_name, account_number_last4").eq("is_active", True).execute()
-    bank_map = {}
-    for r in result.data:
-        key = f"{r['bank_name']}-{r['account_number_last4']}"
-        bank_map[key] = r["id"]
-    return bank_map
+    result = supabase.table("bank_accounts").select("id, label").eq("is_active", True).execute()
+    return {r["label"]: r["id"] for r in result.data}
 
 
 def load_partner_map():

@@ -70,6 +70,7 @@ All bank accounts used for project transactions. Belongs to a partner company. I
 | partner_company_id | UUID | NO | references partner_companies |
 | bank_name | VARCHAR | NO | BCP, Interbank, BBVA, Scotiabank, Banco de la Nación, etc. |
 | account_number_last4 | VARCHAR(4) | NO | last 4 digits only for reference |
+| label | VARCHAR | NO | unique human-readable label for import lookups (e.g., "BCP-1234") |
 | account_type | VARCHAR | NO | checking, savings, detraccion |
 | currency | VARCHAR(3) | NO | USD or PEN |
 | is_detraccion_account | BOOLEAN | NO | true for Banco de la Nación detracción accounts |

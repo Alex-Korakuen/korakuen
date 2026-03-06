@@ -17,7 +17,7 @@ from lib.helpers import (
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum, validate_lookup,
-    validate_date, validate_number, validate_nonneg_number,
+    validate_date, validate_nonneg_number,
     validate_exchange_rate,
     validate_bank_account,
     process_import_errors,
@@ -39,8 +39,7 @@ def menu():
         print("\n=== Costs ===\n")
         print("1. Add cost")
         print("2. Import costs from Excel")
-        print("3. Import cost items from Excel")
-        print("4. Back")
+        print("3. Back")
 
         choice = get_input("\nSelect option: ")
 
@@ -49,8 +48,6 @@ def menu():
         elif choice == "2":
             import_costs()
         elif choice == "3":
-            import_cost_items()
-        elif choice == "4":
             return
         else:
             print("\nInvalid option.")
@@ -308,21 +305,46 @@ def add_cost():
 
 
 # ============================================================
-# Import Costs
+# Import Costs — Combined (header + items in one template)
 # ============================================================
+
+# Header fields that must be consistent across rows in the same document_ref group
+HEADER_FIELDS = [
+    "document_ref", "date", "title", "bank_account", "currency", "igv_rate",
+    "project_code", "entity_document_number", "exchange_rate",
+    "comprobante_type", "comprobante_number", "detraccion_rate",
+    "payment_method", "quote_document_ref", "due_date", "notes",
+]
+
+
+def _is_empty(val):
+    """Check if a cell value is empty/NaN."""
+    return val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == ""
+
+
+def _cell_str(val):
+    """Normalize a cell value to a stripped string, or empty string if empty."""
+    if _is_empty(val):
+        return ""
+    return str(val).strip()
+
 
 def _load_cost_lookups():
     """Pre-load all FK lookup tables for cost import."""
-    # Load existing document_refs for duplicate detection
     existing_costs = supabase.table("costs").select("document_ref, entity_id, comprobante_number").execute()
     existing_refs = {r["document_ref"] for r in existing_costs.data if r.get("document_ref")}
 
-    # Load existing (entity_id, comprobante_number) pairs for duplicate detection
     existing_entity_comprobantes = {
         (r["entity_id"], r["comprobante_number"])
         for r in existing_costs.data
         if r.get("entity_id") and r.get("comprobante_number")
     }
+
+    # Load exchange rates for auto-lookup
+    exchange_rates_resp = supabase.table("exchange_rates").select("rate_date, buy_rate").execute()
+    exchange_rate_by_date = {}
+    for r in exchange_rates_resp.data:
+        exchange_rate_by_date[r["rate_date"]] = float(r["buy_rate"])
 
     return {
         "projects": load_project_map(),
@@ -331,121 +353,205 @@ def _load_cost_lookups():
         "quotes": load_quote_map(),
         "existing_document_refs": existing_refs,
         "existing_entity_comprobantes": existing_entity_comprobantes,
+        "exchange_rates": exchange_rate_by_date,
     }
 
 
 def _validate_cost_row(row_num, row, errors, lookups):
-    """Validate a single cost row."""
-    validate_required(row_num, row, "bank_name", errors)
-    validate_required(row_num, row, "bank_account_last4", errors)
-    validate_required(row_num, row, "cost_type", errors)
+    """Validate a single combined cost row (header + item fields)."""
+    # Header required fields
+    validate_required(row_num, row, "document_ref", errors)
     validate_required(row_num, row, "date", errors)
     validate_required(row_num, row, "title", errors)
-    validate_required(row_num, row, "igv_rate", errors)
+    validate_required(row_num, row, "bank_account", errors)
     validate_required(row_num, row, "currency", errors)
-    validate_required(row_num, row, "exchange_rate", errors)
+    validate_required(row_num, row, "igv_rate", errors)
 
-    validate_enum(row_num, row, "cost_type", ["project_cost", "sga"], errors)
+    # Item required fields
+    validate_required(row_num, row, "item_title", errors)
+    validate_required(row_num, row, "category", errors)
+    validate_required(row_num, row, "subtotal", errors)
+
+    # Enums
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
     validate_enum(row_num, row, "comprobante_type",
                   ["factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none"], errors)
     validate_enum(row_num, row, "payment_method", ["bank_transfer", "cash", "check"], errors)
+    validate_enum(row_num, row, "category", ALL_CATEGORIES, errors)
 
+    # Lookups
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
-
     validate_bank_account(row_num, row, lookups, errors)
-
-    # Quote lookup
     validate_lookup(row_num, row, "quote_document_ref", lookups["quotes"], errors)
 
+    # Dates and numbers
     validate_date(row_num, row, "date", errors)
     validate_date(row_num, row, "due_date", errors)
     validate_nonneg_number(row_num, row, "igv_rate", errors)
     validate_nonneg_number(row_num, row, "detraccion_rate", errors)
-    validate_nonneg_number(row_num, row, "exchange_rate", errors)
-    validate_exchange_rate(row_num, row, "exchange_rate", errors)
+    validate_nonneg_number(row_num, row, "subtotal", errors)
+    validate_nonneg_number(row_num, row, "quantity", errors)
+    validate_nonneg_number(row_num, row, "unit_price", errors)
 
-    # Duplicate detection via document_ref
-    doc_ref = row.get("document_ref")
-    if doc_ref and not pd.isna(doc_ref) and str(doc_ref).strip():
-        if str(doc_ref).strip() in lookups["existing_document_refs"]:
-            errors.append((row_num, "document_ref", f"Document ref '{str(doc_ref).strip()}' already exists in database"))
-
-    # Duplicate detection: (entity_id, comprobante_number) must be unique
-    entity_doc = row.get("entity_document_number")
-    comp_num = row.get("comprobante_number")
-    if entity_doc and comp_num and not pd.isna(entity_doc) and not pd.isna(comp_num) and str(comp_num).strip():
-        entity_id = lookups["entities"].get(str(entity_doc).strip())
-        if entity_id:
-            key = (entity_id, str(comp_num).strip())
-            if key in lookups["existing_entity_comprobantes"]:
-                errors.append((row_num, "comprobante_number", f"Comprobante '{str(comp_num).strip()}' already exists for this entity"))
+    # Exchange rate: validate if provided, auto-lookup if blank
+    exchange_rate_val = row.get("exchange_rate")
+    if not _is_empty(exchange_rate_val):
+        validate_nonneg_number(row_num, row, "exchange_rate", errors)
+        validate_exchange_rate(row_num, row, "exchange_rate", errors)
+    else:
+        # Auto-lookup by date
+        date_val = row.get("date")
+        if not _is_empty(date_val):
+            try:
+                date_str = pd.Timestamp(date_val).strftime("%Y-%m-%d")
+                if date_str not in lookups["exchange_rates"]:
+                    errors.append((row_num, "exchange_rate", f"No exchange rate in database for {date_str} — enter manually"))
+            except (ValueError, TypeError):
+                pass  # date validation already catches bad dates
 
     # Cross-field: IGV must be 0 for non-IGV comprobante types
     no_igv_types = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
     comp_val = row.get("comprobante_type")
     igv_val = row.get("igv_rate")
-    if comp_val and not pd.isna(comp_val) and str(comp_val).strip().lower() in no_igv_types:
-        if igv_val is not None and not pd.isna(igv_val):
+    if not _is_empty(comp_val) and _cell_str(comp_val).lower() in no_igv_types:
+        if not _is_empty(igv_val):
             try:
                 if float(igv_val) > 0:
-                    errors.append((row_num, "igv_rate", f"IGV must be 0 for comprobante_type '{str(comp_val).strip()}' (no IGV credit)"))
+                    errors.append((row_num, "igv_rate", f"IGV must be 0 for comprobante_type '{_cell_str(comp_val)}' (no IGV credit)"))
             except (ValueError, TypeError):
                 pass
 
 
-def _build_cost_record(row, lookups):
-    """Convert a spreadsheet row to a database record."""
-    # Required: bank account (composite)
-    bank_key = f"{str(row['bank_name']).strip()}-{str(row['bank_account_last4']).strip()}"
+def _validate_groups(df, errors, lookups):
+    """Validate cross-row consistency and duplicate detection for grouped costs."""
+    groups = {}
+    for idx, row in df.iterrows():
+        excel_row = idx + DATA_START_ROW
+        doc_ref = _cell_str(row.get("document_ref"))
+        if doc_ref:
+            groups.setdefault(doc_ref, []).append((excel_row, row))
+
+    # Check header field consistency within each group
+    for doc_ref, rows in groups.items():
+        if len(rows) < 2:
+            continue
+        first_row_num, first_row = rows[0]
+        for subsequent_row_num, subsequent_row in rows[1:]:
+            for field in HEADER_FIELDS:
+                first_val = _cell_str(first_row.get(field))
+                subsequent_val = _cell_str(subsequent_row.get(field))
+                if first_val != subsequent_val:
+                    errors.append((subsequent_row_num, field,
+                        f"Mismatch with row {first_row_num} in group '{doc_ref}' "
+                        f"('{subsequent_val}' vs '{first_val}')"))
+
+    # Duplicate detection: document_ref must not exist in database
+    for doc_ref in groups:
+        if doc_ref in lookups["existing_document_refs"]:
+            first_row_num = groups[doc_ref][0][0]
+            errors.append((first_row_num, "document_ref",
+                f"Document ref '{doc_ref}' already exists in database"))
+
+    # Duplicate detection: (entity_id, comprobante_number) must be unique per group
+    seen_entity_comprobantes = {}
+    for doc_ref, rows in groups.items():
+        first_row = rows[0][1]
+        first_row_num = rows[0][0]
+        entity_doc = _cell_str(first_row.get("entity_document_number"))
+        comp_num = _cell_str(first_row.get("comprobante_number"))
+        if entity_doc and comp_num:
+            entity_id = lookups["entities"].get(entity_doc)
+            if entity_id:
+                key = (entity_id, comp_num)
+                if key in lookups["existing_entity_comprobantes"]:
+                    errors.append((first_row_num, "comprobante_number",
+                        f"Comprobante '{comp_num}' already exists for this entity"))
+                elif key in seen_entity_comprobantes:
+                    errors.append((first_row_num, "comprobante_number",
+                        f"Duplicate in file (same entity+comprobante as group '{seen_entity_comprobantes[key]}')"))
+                else:
+                    seen_entity_comprobantes[key] = doc_ref
+
+
+def _build_header_data(first_row, lookups):
+    """Build the header_data dict for fn_create_cost_with_items from the first row of a group."""
+    # Derive cost_type from project_code
+    proj_code = _cell_str(first_row.get("project_code"))
+    cost_type = "project_cost" if proj_code else "sga"
+
+    # Resolve exchange_rate (auto-lookup if blank)
+    exchange_rate_val = first_row.get("exchange_rate")
+    if _is_empty(exchange_rate_val):
+        date_str = pd.Timestamp(first_row["date"]).strftime("%Y-%m-%d")
+        exchange_rate = lookups["exchange_rates"][date_str]
+    else:
+        exchange_rate = float(exchange_rate_val)
 
     data = {
-        "bank_account_id": lookups["bank_accounts"][bank_key],
-        "cost_type": str(row["cost_type"]).strip(),
-        "date": pd.Timestamp(row["date"]).strftime("%Y-%m-%d"),
-        "title": str(row["title"]).strip(),
-        "igv_rate": float(row["igv_rate"]),
-        "currency": str(row["currency"]).strip(),
-        "exchange_rate": float(row["exchange_rate"]),
+        "cost_type": cost_type,
+        "bank_account_id": lookups["bank_accounts"][_cell_str(first_row["bank_account"])],
+        "date": pd.Timestamp(first_row["date"]).strftime("%Y-%m-%d"),
+        "title": _cell_str(first_row["title"]),
+        "igv_rate": float(first_row["igv_rate"]),
+        "currency": _cell_str(first_row["currency"]),
+        "exchange_rate": exchange_rate,
+        "document_ref": _cell_str(first_row["document_ref"]),
     }
 
     # FK lookups (optional)
-    proj_code = row.get("project_code")
-    if proj_code and not pd.isna(proj_code) and str(proj_code).strip():
-        data["project_id"] = lookups["projects"][str(proj_code).strip()]
+    if proj_code:
+        data["project_id"] = lookups["projects"][proj_code]
 
-    entity_doc = row.get("entity_document_number")
-    if entity_doc and not pd.isna(entity_doc) and str(entity_doc).strip():
-        data["entity_id"] = lookups["entities"][str(entity_doc).strip()]
+    entity_doc = _cell_str(first_row.get("entity_document_number"))
+    if entity_doc:
+        data["entity_id"] = lookups["entities"][entity_doc]
 
-    quote_ref = row.get("quote_document_ref")
-    if quote_ref and not pd.isna(quote_ref) and str(quote_ref).strip():
-        data["quote_id"] = lookups["quotes"][str(quote_ref).strip()]
+    quote_ref = _cell_str(first_row.get("quote_document_ref"))
+    if quote_ref:
+        data["quote_id"] = lookups["quotes"][quote_ref]
 
-    # Optional numeric fields
-    for field in ("detraccion_rate",):
+    # Optional numeric
+    detraccion = first_row.get("detraccion_rate")
+    if not _is_empty(detraccion):
+        data["detraccion_rate"] = float(detraccion)
+
+    # Optional strings
+    for field in ("comprobante_type", "comprobante_number", "payment_method", "notes"):
+        val = _cell_str(first_row.get(field))
+        if val:
+            data[field] = val
+
+    # Optional dates
+    due_date = first_row.get("due_date")
+    if not _is_empty(due_date):
+        data["due_date"] = pd.Timestamp(due_date).strftime("%Y-%m-%d")
+
+    return data
+
+
+def _build_item_data(row):
+    """Build a single item dict for fn_create_cost_with_items."""
+    data = {
+        "title": _cell_str(row["item_title"]),
+        "category": _cell_str(row["category"]),
+        "subtotal": float(row["subtotal"]),
+    }
+
+    for field in ("quantity", "unit_price"):
         val = row.get(field)
-        if val is not None and not pd.isna(val):
+        if not _is_empty(val):
             data[field] = float(val)
 
-    # Optional string fields
-    for field in ("comprobante_type", "comprobante_number", "payment_method", "document_ref", "notes"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
-
-    # Optional date fields
-    for field in ("due_date",):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = pd.Timestamp(val).strftime("%Y-%m-%d")
+    uom = _cell_str(row.get("unit_of_measure"))
+    if uom:
+        data["unit_of_measure"] = uom
 
     return data
 
 
 def import_costs():
-    """Import costs from an Excel spreadsheet."""
+    """Import costs with line items from a combined Excel template."""
     result = load_excel_file("Import Costs")
     if not result:
         return
@@ -453,121 +559,55 @@ def import_costs():
 
     lookups = _load_cost_lookups()
 
+    # Per-row validation
     errors = []
     for idx, row in df.iterrows():
         excel_row = idx + DATA_START_ROW
         _validate_cost_row(excel_row, row, errors, lookups)
 
-    # Within-file duplicate detection: (entity_document_number, comprobante_number)
-    seen_keys = {}
-    for idx, row in df.iterrows():
-        excel_row = idx + DATA_START_ROW
-        entity_doc = row.get("entity_document_number")
-        comp_num = row.get("comprobante_number")
-        if entity_doc and comp_num and not pd.isna(entity_doc) and not pd.isna(comp_num) and str(comp_num).strip():
-            key = (str(entity_doc).strip(), str(comp_num).strip())
-            if key in seen_keys:
-                errors.append((excel_row, "comprobante_number", f"Duplicate in file (same as row {seen_keys[key]})"))
-            else:
-                seen_keys[key] = excel_row
+    # Group-level validation (consistency, duplicates)
+    _validate_groups(df, errors, lookups)
 
     if process_import_errors(file_path, errors):
         return
 
-    print_import_summary(file_path, df,
-        lambda i, row: f"{i}. {row.get('project_code', 'SGA')} — {row.get('title', '')}")
+    # Group rows by document_ref for summary and insert
+    groups = {}
+    for _, row in df.iterrows():
+        doc_ref = _cell_str(row.get("document_ref"))
+        groups.setdefault(doc_ref, []).append(row)
 
-    if not confirm(f"\nImport {len(df)} costs?"):
+    # Summary
+    print(f"\n--- Summary ---")
+    print(f"  File:    {file_path}")
+    print(f"  Costs:   {len(groups)}")
+    print(f"  Items:   {len(df)}")
+    print(f"\n  Preview:")
+    for i, (doc_ref, rows) in enumerate(list(groups.items())[:5]):
+        proj = _cell_str(rows[0].get("project_code")) or "SGA"
+        print(f"    {i + 1}. [{doc_ref}] {proj} — {_cell_str(rows[0].get('title'))} ({len(rows)} items)")
+
+    if not confirm(f"\nImport {len(groups)} costs with {len(df)} total items?"):
         cancel_and_wait()
         return
 
-    try:
-        records = [_build_cost_record(row, lookups) for _, row in df.iterrows()]
-        response = supabase.table("costs").insert(records).execute()
-        print(f"\n✓ {len(response.data)} costs imported successfully.")
-    except Exception as e:
-        print(f"\n✗ Error during import: {e}")
+    # Insert via RPC — one call per cost group
+    success_count = 0
+    for doc_ref, rows in groups.items():
+        header_data = _build_header_data(rows[0], lookups)
+        items_data = [_build_item_data(row) for row in rows]
+        try:
+            supabase.rpc("fn_create_cost_with_items", {
+                "header_data": header_data,
+                "items_data": items_data,
+            }).execute()
+            success_count += 1
+        except Exception as e:
+            print(f"\n✗ Error inserting '{doc_ref}': {e}")
+            if success_count > 0:
+                print(f"  ({success_count} costs were already inserted before this error)")
+            input("\nPress Enter to continue...")
+            return
 
-    input("\nPress Enter to continue...")
-
-
-# ============================================================
-# Import Cost Items
-# ============================================================
-
-def _load_cost_item_lookups():
-    """Pre-load lookup tables for cost item import."""
-    costs = supabase.table("costs").select("id, document_ref").execute()
-    return {
-        "costs": {r["document_ref"]: r["id"] for r in costs.data if r.get("document_ref")},
-    }
-
-
-def _validate_cost_item_row(row_num, row, errors, lookups):
-    """Validate a single cost item row."""
-    validate_required(row_num, row, "cost_document_ref", errors)
-    validate_required(row_num, row, "title", errors)
-    validate_required(row_num, row, "category", errors)
-    validate_required(row_num, row, "subtotal", errors)
-
-    validate_enum(row_num, row, "category", ALL_CATEGORIES, errors)
-    validate_lookup(row_num, row, "cost_document_ref", lookups["costs"], errors)
-    validate_nonneg_number(row_num, row, "quantity", errors)
-    validate_nonneg_number(row_num, row, "unit_price", errors)
-    validate_nonneg_number(row_num, row, "subtotal", errors)
-
-
-def _build_cost_item_record(row, lookups):
-    """Convert a spreadsheet row to a database record."""
-    data = {
-        "cost_id": lookups["costs"][str(row["cost_document_ref"]).strip()],
-        "title": str(row["title"]).strip(),
-        "category": str(row["category"]).strip(),
-        "subtotal": float(row["subtotal"]),
-    }
-
-    for field in ("quantity", "unit_price"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = float(val)
-
-    for field in ("unit_of_measure", "notes"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
-
-    return data
-
-
-def import_cost_items():
-    """Import cost items from an Excel spreadsheet."""
-    result = load_excel_file("Import Cost Items")
-    if not result:
-        return
-    df, file_path = result
-
-    lookups = _load_cost_item_lookups()
-
-    errors = []
-    for idx, row in df.iterrows():
-        excel_row = idx + DATA_START_ROW
-        _validate_cost_item_row(excel_row, row, errors, lookups)
-
-    if process_import_errors(file_path, errors):
-        return
-
-    print_import_summary(file_path, df,
-        lambda i, row: f"{i}. [{row.get('cost_document_ref', '')}] {row.get('title', '')} — {row.get('subtotal', '')}")
-
-    if not confirm(f"\nImport {len(df)} cost items?"):
-        cancel_and_wait()
-        return
-
-    try:
-        records = [_build_cost_item_record(row, lookups) for _, row in df.iterrows()]
-        response = supabase.table("cost_items").insert(records).execute()
-        print(f"\n✓ {len(response.data)} cost items imported successfully.")
-    except Exception as e:
-        print(f"\n✗ Error during import: {e}")
-
+    print(f"\n✓ {success_count} costs ({len(df)} items) imported successfully.")
     input("\nPress Enter to continue...")

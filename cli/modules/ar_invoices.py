@@ -246,8 +246,7 @@ def _load_ar_lookups():
 def _validate_ar_row(row_num, row, errors, lookups):
     """Validate a single AR invoice row."""
     validate_required(row_num, row, "project_code", errors)
-    validate_required(row_num, row, "bank_name", errors)
-    validate_required(row_num, row, "bank_account_last4", errors)
+    validate_required(row_num, row, "bank_account", errors)
     validate_required(row_num, row, "entity_document_number", errors)
     validate_required(row_num, row, "partner_company_name", errors)
     validate_required(row_num, row, "invoice_number", errors)
@@ -315,11 +314,9 @@ def _build_ar_record(row, lookups):
     proj_code = str(row["project_code"]).strip()
     project_id = lookups["projects"][proj_code]
 
-    bank_key = f"{str(row['bank_name']).strip()}-{str(row['bank_account_last4']).strip()}"
-
     data = {
         "project_id": project_id,
-        "bank_account_id": lookups["bank_accounts"][bank_key],
+        "bank_account_id": lookups["bank_accounts"][str(row["bank_account"]).strip()],
         "entity_id": lookups["entities"][str(row["entity_document_number"]).strip()],
         "partner_company_id": lookups["partners"][str(row["partner_company_name"]).strip()],
         "invoice_number": str(row["invoice_number"]).strip(),
