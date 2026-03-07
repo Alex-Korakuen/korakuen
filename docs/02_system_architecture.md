@@ -160,7 +160,7 @@ The system serves two audiences with different needs. Every applicable page has 
 
 **Project View (all partners + Alex):** One project at a time, all partners combined, no private data. Answers "How is this project doing?"
 
-Same pages, same underlying data — the difference is a filter parameter. P&L is computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion) rather than via SQL views. The SQL views `v_project_pl` and `v_company_pl` exist for simple queries but the website computes P&L directly for full flexibility. UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
+Same pages, same underlying data — the difference is a filter parameter. P&L is computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion) rather than via SQL views. UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
 
 ---
 
@@ -178,7 +178,7 @@ Privacy: CLI-only in V0 (automatic — only Alex runs the CLI). Admin-only in V1
 ### 4.14 P&L vs Cash Flow — Two Financial Statements
 The system provides two distinct financial views:
 
-**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. Computed in `queries.ts` with period filtering and currency conversion (SQL views `v_company_pl`/`v_project_pl` exist for simple queries). Shows business profitability.
+**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. Computed in `queries.ts` with period filtering and currency conversion. Shows business profitability.
 
 **Cash Flow (cash basis):** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule. Shows cash position.
 

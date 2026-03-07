@@ -12,6 +12,11 @@ from lib.db import supabase
 EXCHANGE_RATE_MIN = 2.5
 EXCHANGE_RATE_MAX = 6.0
 
+# Comprobante (payment document) types — canonical definitions
+COMPROBANTE_TYPES_ALL = ("factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none")
+COMPROBANTE_TYPES_AR = ("factura", "boleta", "recibo_por_honorarios")
+NO_IGV_CREDIT_TYPES = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
+
 
 def get_input(prompt):
     """Prompt for required input. Loops until non-empty."""
@@ -159,17 +164,18 @@ def get_currency(default=None, label="Currency"):
     return currency
 
 
-def get_exchange_rate(transaction_date=None):
+def get_exchange_rate(transaction_date=None, prompt=None):
     """Prompt for required exchange rate (PEN per USD). Loops until valid number entered.
     Warns if rate is outside the typical 2.5–6.0 range and asks for confirmation.
 
     If transaction_date is provided (YYYY-MM-DD string), queries the exchange_rates
     table for the most recent rate on or before that date and offers it as a default.
+    If prompt is provided, uses it instead of the default prompt text (no suggestion lookup).
     """
     # Look up suggested rate from exchange_rates table
     suggested_rate = None
     suggested_date = None
-    if transaction_date:
+    if transaction_date and not prompt:
         try:
             result = (
                 supabase.table("exchange_rates")
@@ -186,12 +192,14 @@ def get_exchange_rate(transaction_date=None):
             pass  # Fall through to manual entry
 
     while True:
-        if suggested_rate:
-            prompt = f"  Exchange rate (PEN per USD) [{suggested_rate:.4f} from {suggested_date}]: "
+        if prompt:
+            display_prompt = prompt
+        elif suggested_rate:
+            display_prompt = f"  Exchange rate (PEN per USD) [{suggested_rate:.4f} from {suggested_date}]: "
         else:
-            prompt = "  Exchange rate (PEN per USD): "
+            display_prompt = "  Exchange rate (PEN per USD): "
 
-        value = input(prompt).strip()
+        value = input(display_prompt).strip()
 
         # Accept suggestion on empty input
         if not value:

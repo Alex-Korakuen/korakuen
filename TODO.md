@@ -1,6 +1,6 @@
 # TODO — Korakuen Improvements
 
-Updated March 5, 2026.
+Updated March 6, 2026.
 
 ---
 
@@ -9,6 +9,26 @@ Updated March 5, 2026.
 ### Cost Import — Headers Without Items Warning [LOW]
 
 The cost import is a two-step workflow (import headers, then import items). No validation ensures imported headers get corresponding items. Orphaned headers show zero totals — not corrupt, but confusing. Fix: add a post-import warning that checks for costs with no items.
+
+---
+
+## Code Quality Fixes — March 6, 2026
+
+### MEDIUM — Fixed
+
+| # | Issue | Resolution |
+|---|---|---|
+| 5 | `_get_rate` duplicates `get_exchange_rate` validation | Added `prompt` parameter to `get_exchange_rate()` in helpers.py. Deleted `_get_rate` from exchange_rates.py. |
+| 6 | Comprobante type enums hardcoded in 4+ places | Canonical constants (`COMPROBANTE_TYPES_ALL`, `COMPROBANTE_TYPES_AR`, `NO_IGV_CREDIT_TYPES`) in helpers.py. costs.py, ar_invoices.py, generate_templates.py import from there. |
+| 7 | `convertAmount` private in 1960-line queries.ts | Moved to formatters.ts as exported function. queries.ts imports it. |
+| 10 | IGV calculation formula repeated in 5 SQL views | Created `fn_igv_amount`, `fn_detraccion_amount`, `fn_retencion_amount` PostgreSQL functions (migration 20260306000002). Updated 5 views. |
+
+### MEDIUM — Skipped (over-engineering)
+
+| # | Issue | Reason |
+|---|---|---|
+| 8 | Duplicated filter state pattern (3 pages) | Each page has different filter shapes. `useState` with an object is trivially readable. A generic hook saves ~3 lines per component at the cost of indirection. |
+| 9 | Duplicated modal loading/error state (3 pages) | Each page has different detail types, fetch functions, and cleanup. AP Calendar has branching cost-vs-loan fetch. 10 lines of straightforward async state per page is acceptable. |
 
 ---
 

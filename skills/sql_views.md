@@ -21,8 +21,6 @@
 | `v_partner_ledger.sql` | `v_partner_ledger` | Contributions, stakes, income distribution per project |
 | `v_entity_transactions.sql` | `v_entity_transactions` | All transactions per entity per project (costs + AR) |
 | `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
-| `v_project_pl.sql` | `v_project_pl` | Income, costs, gross profit per project |
-| `v_company_pl.sql` | `v_company_pl` | Consolidated P&L including SG&A |
 | `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
 
 ---
@@ -109,7 +107,7 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records and do not have `is_active` — never filter them.
 
-**Exception — financial/historical views:** Views that report on financial history (e.g., `v_partner_ledger`, `v_project_pl`, `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
+**Exception — financial/historical views:** Views that report on financial history (e.g., `v_partner_ledger`, `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 
 ### Currency Awareness
 
@@ -159,15 +157,6 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Source: `payments` grouped by bank_account_id
 - Inbound payments add to balance, outbound payments subtract
 - Running balance per account
-
-### v_project_pl
-- Source: `ar_invoices` (income) and `costs` (expenses) per project
-- Income minus expenses equals gross profit
-- Only project_cost type expenses (not SG&A)
-
-### v_company_pl
-- Source: all `ar_invoices` (income), all `costs` (project + SG&A)
-- Shows total income, project costs, SG&A, and net profit
 
 ### v_retencion_dashboard
 - Source: `ar_invoices` WHERE `retencion_applicable = true`, JOIN `projects`, JOIN `entities`

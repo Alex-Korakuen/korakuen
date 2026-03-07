@@ -20,7 +20,7 @@ WITH ar_base AS (
     ar.retencion_rate,
     ar.currency,
     ar.retencion_verified,
-    ROUND(ar.subtotal * (ar.igv_rate / 100), 2) AS igv_amount
+    fn_igv_amount(ar.subtotal, ar.igv_rate) AS igv_amount
   FROM ar_invoices ar
   WHERE ar.retencion_applicable = true
 ),
@@ -28,9 +28,7 @@ ar_with_totals AS (
   SELECT
     ab.*,
     ab.subtotal + ab.igv_amount AS gross_total,
-    ROUND(
-      (ab.subtotal + ab.igv_amount) * COALESCE(ab.retencion_rate, 0) / 100, 2
-    ) AS retencion_amount
+    fn_retencion_amount(ab.subtotal, ab.igv_amount, ab.retencion_rate) AS retencion_amount
   FROM ar_base ab
 )
 SELECT

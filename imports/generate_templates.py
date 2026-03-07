@@ -7,6 +7,11 @@ Run once to create templates in imports/templates/.
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import os
+import sys
+
+# Allow imports from cli/lib
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'cli'))
+from lib.helpers import COMPROBANTE_TYPES_ALL, COMPROBANTE_TYPES_AR
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
@@ -368,7 +373,7 @@ COSTS = [
         "name": "comprobante_type",
         "example": "factura",
         "description": "Optional. Type of payment document.",
-        "allowed_values": "factura | boleta | recibo_por_honorarios | liquidacion_de_compra | planilla_jornales | none",
+        "allowed_values": " | ".join(COMPROBANTE_TYPES_ALL),
     },
     {
         "name": "comprobante_number",
@@ -481,7 +486,7 @@ AR_INVOICES = [
         "name": "comprobante_type",
         "example": "factura",
         "description": "Required. Type of payment document. Always factura for construction AR.",
-        "allowed_values": "factura | boleta | recibo_por_honorarios",
+        "allowed_values": " | ".join(COMPROBANTE_TYPES_AR),
     },
     {
         "name": "invoice_date",

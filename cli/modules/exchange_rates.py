@@ -9,7 +9,7 @@ from lib.db import supabase
 from lib.helpers import (
     get_input, get_date_input, get_optional_input,
     confirm, clear_screen, cancel_and_wait, get_nonneg_float,
-    EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX,
+    get_exchange_rate,
 )
 
 
@@ -48,10 +48,10 @@ def add_rate():
     rate_date = get_date_input("  Rate date (YYYY-MM-DD): ")
 
     # --- Buy rate ---
-    buy_rate = _get_rate("  Buy rate (SUNAT Compra): ")
+    buy_rate = get_exchange_rate(prompt="  Buy rate (SUNAT Compra): ")
 
     # --- Sell rate ---
-    sell_rate = _get_rate("  Sell rate (SUNAT Venta): ")
+    sell_rate = get_exchange_rate(prompt="  Sell rate (SUNAT Venta): ")
 
     # --- Validate buy < sell (SUNAT convention: compra < venta) ---
     if buy_rate >= sell_rate:
@@ -155,26 +155,3 @@ def list_rates():
     input("\nPress Enter to continue...")
 
 
-# ============================================================
-# Internal helpers
-# ============================================================
-
-def _get_rate(prompt):
-    """Prompt for an exchange rate value with range validation."""
-    while True:
-        value = input(prompt).strip()
-        if not value:
-            print("  This field is required.")
-            continue
-        try:
-            rate = float(value)
-            if rate <= 0:
-                print("  Must be a positive number.")
-                continue
-            if not (EXCHANGE_RATE_MIN <= rate <= EXCHANGE_RATE_MAX):
-                print(f"  Warning: {rate} is outside the typical range ({EXCHANGE_RATE_MIN}–{EXCHANGE_RATE_MAX}).")
-                if not confirm("  Use this rate anyway?"):
-                    continue
-            return rate
-        except ValueError:
-            print("  Must be a valid number (e.g. 3.72).")

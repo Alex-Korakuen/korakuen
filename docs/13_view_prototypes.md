@@ -477,7 +477,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 
 ### 7. Company P&L
 
-**Data sources:** Computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion). SQL views `v_company_pl`/`v_project_pl` exist for simple queries but the website computes P&L directly
+**Data sources:** Computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion)
 
 #### Year View (columns = months)
 

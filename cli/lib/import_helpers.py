@@ -17,6 +17,18 @@ NO_FILL = PatternFill(fill_type=None)
 DATA_START_ROW = 5
 
 
+def is_empty(val):
+    """Check if a cell value is empty/NaN."""
+    return val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == ""
+
+
+def cell_str(val):
+    """Normalize a cell value to a stripped string, or empty string if empty."""
+    if is_empty(val):
+        return ""
+    return str(val).strip()
+
+
 def load_excel_file(title):
     """Prompt for Excel file path, read it, and return (df, file_path).
 
@@ -90,14 +102,14 @@ def apply_error_highlighting(ws, errors, headers):
 def validate_required(row_num, row, field, errors):
     """Check that a required field is not empty or NaN."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         errors.append((row_num, field, "Required field is empty"))
 
 
 def validate_enum(row_num, row, field, allowed_values, errors):
     """Check that a field value is in the allowed list. Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     if str(val).strip() not in allowed_values:
         errors.append((row_num, field, f"Must be one of: {', '.join(allowed_values)}"))
@@ -106,7 +118,7 @@ def validate_enum(row_num, row, field, allowed_values, errors):
 def validate_lookup(row_num, row, field, lookup_dict, errors):
     """Check that a field value exists in the lookup dictionary. Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     if str(val).strip() not in lookup_dict:
         errors.append((row_num, field, "Not found in database"))
@@ -115,7 +127,7 @@ def validate_lookup(row_num, row, field, lookup_dict, errors):
 def validate_date(row_num, row, field, errors):
     """Check that a field value is a valid date. Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     try:
         pd.Timestamp(val)
@@ -126,7 +138,7 @@ def validate_date(row_num, row, field, errors):
 def validate_number(row_num, row, field, errors):
     """Check that a field value is numeric. Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     try:
         float(val)
@@ -137,7 +149,7 @@ def validate_number(row_num, row, field, errors):
 def validate_nonneg_number(row_num, row, field, errors):
     """Check that a field value is a non-negative number. Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     try:
         num = float(val)
@@ -151,7 +163,7 @@ def validate_exchange_rate(row_num, row, field, errors):
     """Check that exchange rate is within a reasonable range. Skip if empty."""
     from lib.helpers import EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     try:
         rate = float(val)
@@ -174,7 +186,7 @@ def parse_bool(val):
 def validate_boolean(row_num, row, field, errors):
     """Check that a field value is a boolean (true/false). Skip if empty."""
     val = row.get(field)
-    if val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == "":
+    if is_empty(val):
         return
     # Pandas may read Excel booleans as Python bool
     if isinstance(val, bool):
@@ -186,9 +198,10 @@ def validate_boolean(row_num, row, field, errors):
 def validate_bank_account(row_num, row, lookups, errors):
     """Check that bank_account label matches a known bank account. Skip if empty."""
     val = row.get("bank_account")
-    if val is not None and not pd.isna(val) and str(val).strip():
-        if str(val).strip() not in lookups["bank_accounts"]:
-            errors.append((row_num, "bank_account", f"Bank account '{str(val).strip()}' not found"))
+    if not is_empty(val):
+        label = cell_str(val)
+        if label not in lookups["bank_accounts"]:
+            errors.append((row_num, "bank_account", f"Bank account '{label}' not found"))
 
 
 def print_errors(errors, file_path):

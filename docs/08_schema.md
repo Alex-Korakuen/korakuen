@@ -624,8 +624,6 @@ Layer 7 (project extensions):
 | `v_partner_ledger` | costs + ar_invoices + payments | contributions, stakes, income distribution per project |
 | `v_entity_transactions` | costs + ar_invoices filtered by entity | all transactions per entity per project |
 | `v_bank_balances` | payments grouped by bank_account | running balance per account |
-| `v_project_pl` | ar_invoices + costs per project | income, costs, gross profit per project (accrual basis) |
-| `v_company_pl` | all projects + SG&A costs | consolidated P&L including SG&A (accrual basis) |
 | `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |
 | `v_loan_balances` | loans + loan_payments + loan_schedule | borrowed, total owed, paid, outstanding per loan |
 | `v_budget_vs_actual` | project_budgets + cost_items | budgeted vs actual per project per category |
@@ -636,8 +634,9 @@ Layer 7 (project extensions):
 | View | Reason |
 |---|---|
 | `v_cash_flow` | Multi-table aggregation with category breakdown and currency conversion too complex for a single SQL view. Computed in `queries.ts`. |
+| `v_project_pl` / `v_company_pl` | P&L requires period filtering, multi-table aggregation, and currency conversion. Computed in `queries.ts`. Views existed early on but were never used by the website and have been dropped. |
 
-**Note on P&L vs Cash Flow:** `v_company_pl` and `v_project_pl` are accrual-basis (when invoiced/recorded). Cash Flow is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
+**Note on P&L vs Cash Flow:** P&L is accrual-basis (when invoiced/recorded). Cash Flow is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
 
 ---
 

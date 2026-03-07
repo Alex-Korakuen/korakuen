@@ -28,16 +28,14 @@ WITH ar_base AS (
     ar.exchange_rate,
     ar.document_ref,
     ar.notes,
-    ROUND(ar.subtotal * (ar.igv_rate / 100), 2) AS igv_amount
+    fn_igv_amount(ar.subtotal, ar.igv_rate) AS igv_amount
   FROM ar_invoices ar
 ),
 ar_computed AS (
   SELECT
     ab.*,
     ab.subtotal + ab.igv_amount AS gross_total,
-    ROUND(
-      (ab.subtotal + ab.igv_amount) * COALESCE(ab.detraccion_rate, 0) / 100, 2
-    )                           AS detraccion_amount,
+    fn_detraccion_amount(ab.subtotal, ab.igv_amount, ab.detraccion_rate) AS detraccion_amount,
     ROUND(
       CASE
         WHEN ab.retencion_applicable

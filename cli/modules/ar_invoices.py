@@ -13,6 +13,7 @@ from lib.helpers import (
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     select_bank_account, get_nonneg_float,
+    COMPROBANTE_TYPES_AR,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -122,8 +123,8 @@ def add_ar_invoice():
     # --- Invoice details ---
     invoice_number = get_input("\n  Invoice number: ")
 
-    print("\n  Comprobante types: factura, boleta, recibo_por_honorarios")
-    comprobante_type = get_enum_input("  Comprobante type: ", ("factura", "boleta", "recibo_por_honorarios"))
+    print(f"\n  Comprobante types: {', '.join(COMPROBANTE_TYPES_AR)}")
+    comprobante_type = get_enum_input("  Comprobante type: ", COMPROBANTE_TYPES_AR)
 
     invoice_date = get_date_input("  Invoice date (YYYY-MM-DD): ")
     due_date = get_optional_date_input("  Due date (YYYY-MM-DD, optional — press Enter to skip): ")
@@ -259,7 +260,7 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "retencion_applicable", errors)
     validate_required(row_num, row, "retencion_verified", errors)
 
-    validate_enum(row_num, row, "comprobante_type", ["factura", "boleta", "recibo_por_honorarios"], errors)
+    validate_enum(row_num, row, "comprobante_type", list(COMPROBANTE_TYPES_AR), errors)
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
 
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)

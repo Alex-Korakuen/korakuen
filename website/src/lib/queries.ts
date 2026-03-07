@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from './supabase/server'
 import { SGA_ONLY_CATEGORY_KEYS } from './constants'
+import { convertAmount } from './formatters'
 import type {
   ApCalendarRow,
   ArBalanceRow,
@@ -51,6 +52,18 @@ async function buildEntityNameMap(
     .select('id, legal_name, common_name')
     .in('id', entityIds)
   return new Map((data ?? []).map(e => [e.id, e.common_name || e.legal_name]))
+}
+
+async function buildProjectCodeMap(
+  supabase: SupabaseClient,
+  projectIds: string[]
+): Promise<Map<string, string>> {
+  if (projectIds.length === 0) return new Map()
+  const { data } = await supabase
+    .from('projects')
+    .select('id, project_code')
+    .in('id', projectIds)
+  return new Map((data ?? []).map(p => [p.id, p.project_code]))
 }
 
 export async function getApCalendar(isAlex: boolean): Promise<ApCalendarRow[]> {
@@ -196,14 +209,10 @@ export async function getDetractionsPending(): Promise<CostDetractionEntry[]> {
   const entityIds = [...new Set(costs.filter(c => c.entity_id).map(c => c.entity_id!))]
   const projectIds = [...new Set(costs.filter(c => c.project_id).map(c => c.project_id!))]
 
-  const [entityMap, projectsResult] = await Promise.all([
+  const [entityMap, projectMap] = await Promise.all([
     buildEntityNameMap(supabase, entityIds),
-    projectIds.length > 0
-      ? supabase.from('projects').select('id, project_code').in('id', projectIds)
-      : { data: [] },
+    buildProjectCodeMap(supabase, projectIds),
   ])
-
-  const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   return costs.map(c => ({
     cost_id: c.cost_id,
@@ -247,17 +256,14 @@ export async function getArOutstanding(): Promise<ArOutstandingRow[]> {
   const projectIds = [...new Set(invoices.filter(i => i.project_id).map(i => i.project_id!))]
   const partnerIds = [...new Set(invoices.filter(i => i.partner_company_id).map(i => i.partner_company_id!))]
 
-  const [entityMap, projectsResult, partnersResult] = await Promise.all([
+  const [entityMap, projectMap, partnersResult] = await Promise.all([
     buildEntityNameMap(supabase, entityIds),
-    projectIds.length > 0
-      ? supabase.from('projects').select('id, project_code').in('id', projectIds)
-      : { data: [] },
+    buildProjectCodeMap(supabase, projectIds),
     partnerIds.length > 0
       ? supabase.from('partner_companies').select('id, name').in('id', partnerIds)
       : { data: [] },
   ])
 
-  const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
   const partnerMap = new Map((partnersResult.data ?? []).map(p => [p.id, p.name]))
 
   const today = new Date()
@@ -337,14 +343,10 @@ export async function getArDetracciones(): Promise<ArDetractionEntry[]> {
   const entityIds = [...new Set(invoices.filter(i => i.entity_id).map(i => i.entity_id!))]
   const projectIds = [...new Set(invoices.filter(i => i.project_id).map(i => i.project_id!))]
 
-  const [entityMap, projectsResult] = await Promise.all([
+  const [entityMap, projectMap] = await Promise.all([
     buildEntityNameMap(supabase, entityIds),
-    projectIds.length > 0
-      ? supabase.from('projects').select('id, project_code').in('id', projectIds)
-      : { data: [] },
+    buildProjectCodeMap(supabase, projectIds),
   ])
-
-  const projectMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   return invoices.map(i => {
     const received = paidMap.get(i.ar_invoice_id!) ?? 0
@@ -1049,19 +1051,6 @@ function getPeriodRange(
   }
 }
 
-// Convert amount to target reporting currency using stored exchange rate (PEN per USD)
-function convertAmount(
-  amount: number,
-  currency: string | null,
-  exchangeRate: number | null,
-  reportingCurrency: 'PEN' | 'USD'
-): number {
-  if (!currency || currency === reportingCurrency) return amount
-  if (!exchangeRate || exchangeRate === 0) return amount
-  if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
-  if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
-  return amount
-}
 
 export async function getCompanyPL(
   periodMode: PLPeriodMode,
@@ -1462,14 +1451,11 @@ export async function getBankTransactions(
     ...ars.map(a => a.project_id),
   ].filter((id): id is string => id !== null)
 
-  const [entityMap, projectResult] = await Promise.all([
+  const [entityMap, projectMap] = await Promise.all([
     buildEntityNameMap(supabase, [...new Set(entityIds)]),
-    projectIds.length > 0
-      ? supabase.from('projects').select('id, project_code').in('id', [...new Set(projectIds)])
-      : { data: [] },
+    buildProjectCodeMap(supabase, [...new Set(projectIds)]),
   ])
 
-  const projectMap = new Map((projectResult.data ?? []).map(p => [p.id, p.project_code]))
   const costMap = new Map(costs.map(c => [c.cost_id, c]))
   const arMap = new Map(ars.map(a => [a.id, a]))
 
@@ -1830,16 +1816,13 @@ export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
   }
 
   // Fetch entity names, project codes, and entity tags in parallel
-  const [entityNameMap, projectsResult, entityTagsResult] = await Promise.all([
+  const [entityNameMap, projectCodeMap, entityTagsResult] = await Promise.all([
     buildEntityNameMap(supabase, [...allEntityIds]),
-    allProjectIds.size > 0
-      ? supabase.from('projects').select('id, project_code').in('id', [...allProjectIds])
-      : { data: [] },
+    buildProjectCodeMap(supabase, [...allProjectIds]),
     allEntityIds.size > 0
       ? supabase.from('entity_tags').select('entity_id, tags(name)').in('entity_id', [...allEntityIds])
       : { data: [] },
   ])
-  const projectCodeMap = new Map((projectsResult.data ?? []).map(p => [p.id, p.project_code]))
 
   // Build entity -> tags map
   const entityTagsMap = new Map<string, string[]>()

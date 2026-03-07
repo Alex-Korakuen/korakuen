@@ -13,9 +13,11 @@ from lib.helpers import (
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
     select_project, select_bank_account, get_nonneg_float,
+    COMPROBANTE_TYPES_ALL, NO_IGV_CREDIT_TYPES,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
+    is_empty, cell_str,
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number,
     validate_exchange_rate,
@@ -111,11 +113,9 @@ def add_cost():
     title = get_input("  Title: ")
 
     # --- Comprobante (before IGV — determines whether IGV credit applies) ---
-    valid_comprobante_types = ("factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none")
-    NO_IGV_CREDIT_TYPES = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
     comprobante_type = get_optional_enum_input(
         "  Comprobante type (factura/boleta/recibo_por_honorarios/liquidacion_de_compra/planilla_jornales/none, optional — press Enter to skip): ",
-        valid_comprobante_types)
+        COMPROBANTE_TYPES_ALL)
     comprobante_number = None
     if comprobante_type:
         comprobante_number = get_optional_input("  Comprobante number (optional — press Enter to skip): ")
@@ -317,17 +317,6 @@ HEADER_FIELDS = [
 ]
 
 
-def _is_empty(val):
-    """Check if a cell value is empty/NaN."""
-    return val is None or (isinstance(val, float) and pd.isna(val)) or str(val).strip() == ""
-
-
-def _cell_str(val):
-    """Normalize a cell value to a stripped string, or empty string if empty."""
-    if _is_empty(val):
-        return ""
-    return str(val).strip()
-
 
 def _load_cost_lookups():
     """Pre-load all FK lookup tables for cost import."""
@@ -374,8 +363,7 @@ def _validate_cost_row(row_num, row, errors, lookups):
 
     # Enums
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
-    validate_enum(row_num, row, "comprobante_type",
-                  ["factura", "boleta", "recibo_por_honorarios", "liquidacion_de_compra", "planilla_jornales", "none"], errors)
+    validate_enum(row_num, row, "comprobante_type", list(COMPROBANTE_TYPES_ALL), errors)
     validate_enum(row_num, row, "payment_method", ["bank_transfer", "cash", "check"], errors)
     validate_enum(row_num, row, "category", ALL_CATEGORIES, errors)
 
@@ -396,13 +384,13 @@ def _validate_cost_row(row_num, row, errors, lookups):
 
     # Exchange rate: validate if provided, auto-lookup if blank
     exchange_rate_val = row.get("exchange_rate")
-    if not _is_empty(exchange_rate_val):
+    if not is_empty(exchange_rate_val):
         validate_nonneg_number(row_num, row, "exchange_rate", errors)
         validate_exchange_rate(row_num, row, "exchange_rate", errors)
     else:
         # Auto-lookup by date
         date_val = row.get("date")
-        if not _is_empty(date_val):
+        if not is_empty(date_val):
             try:
                 date_str = pd.Timestamp(date_val).strftime("%Y-%m-%d")
                 if date_str not in lookups["exchange_rates"]:
@@ -411,14 +399,13 @@ def _validate_cost_row(row_num, row, errors, lookups):
                 pass  # date validation already catches bad dates
 
     # Cross-field: IGV must be 0 for non-IGV comprobante types
-    no_igv_types = ("boleta", "recibo_por_honorarios", "planilla_jornales", "none")
     comp_val = row.get("comprobante_type")
     igv_val = row.get("igv_rate")
-    if not _is_empty(comp_val) and _cell_str(comp_val).lower() in no_igv_types:
-        if not _is_empty(igv_val):
+    if not is_empty(comp_val) and cell_str(comp_val).lower() in NO_IGV_CREDIT_TYPES:
+        if not is_empty(igv_val):
             try:
                 if float(igv_val) > 0:
-                    errors.append((row_num, "igv_rate", f"IGV must be 0 for comprobante_type '{_cell_str(comp_val)}' (no IGV credit)"))
+                    errors.append((row_num, "igv_rate", f"IGV must be 0 for comprobante_type '{cell_str(comp_val)}' (no IGV credit)"))
             except (ValueError, TypeError):
                 pass
 
@@ -428,7 +415,7 @@ def _validate_groups(df, errors, lookups):
     groups = {}
     for idx, row in df.iterrows():
         excel_row = idx + DATA_START_ROW
-        doc_ref = _cell_str(row.get("document_ref"))
+        doc_ref = cell_str(row.get("document_ref"))
         if doc_ref:
             groups.setdefault(doc_ref, []).append((excel_row, row))
 
@@ -439,8 +426,8 @@ def _validate_groups(df, errors, lookups):
         first_row_num, first_row = rows[0]
         for subsequent_row_num, subsequent_row in rows[1:]:
             for field in HEADER_FIELDS:
-                first_val = _cell_str(first_row.get(field))
-                subsequent_val = _cell_str(subsequent_row.get(field))
+                first_val = cell_str(first_row.get(field))
+                subsequent_val = cell_str(subsequent_row.get(field))
                 if first_val != subsequent_val:
                     errors.append((subsequent_row_num, field,
                         f"Mismatch with row {first_row_num} in group '{doc_ref}' "
@@ -458,8 +445,8 @@ def _validate_groups(df, errors, lookups):
     for doc_ref, rows in groups.items():
         first_row = rows[0][1]
         first_row_num = rows[0][0]
-        entity_doc = _cell_str(first_row.get("entity_document_number"))
-        comp_num = _cell_str(first_row.get("comprobante_number"))
+        entity_doc = cell_str(first_row.get("entity_document_number"))
+        comp_num = cell_str(first_row.get("comprobante_number"))
         if entity_doc and comp_num:
             entity_id = lookups["entities"].get(entity_doc)
             if entity_id:
@@ -477,12 +464,12 @@ def _validate_groups(df, errors, lookups):
 def _build_header_data(first_row, lookups):
     """Build the header_data dict for fn_create_cost_with_items from the first row of a group."""
     # Derive cost_type from project_code
-    proj_code = _cell_str(first_row.get("project_code"))
+    proj_code = cell_str(first_row.get("project_code"))
     cost_type = "project_cost" if proj_code else "sga"
 
     # Resolve exchange_rate (auto-lookup if blank)
     exchange_rate_val = first_row.get("exchange_rate")
-    if _is_empty(exchange_rate_val):
+    if is_empty(exchange_rate_val):
         date_str = pd.Timestamp(first_row["date"]).strftime("%Y-%m-%d")
         exchange_rate = lookups["exchange_rates"][date_str]
     else:
@@ -490,41 +477,41 @@ def _build_header_data(first_row, lookups):
 
     data = {
         "cost_type": cost_type,
-        "bank_account_id": lookups["bank_accounts"][_cell_str(first_row["bank_account"])],
+        "bank_account_id": lookups["bank_accounts"][cell_str(first_row["bank_account"])],
         "date": pd.Timestamp(first_row["date"]).strftime("%Y-%m-%d"),
-        "title": _cell_str(first_row["title"]),
+        "title": cell_str(first_row["title"]),
         "igv_rate": float(first_row["igv_rate"]),
-        "currency": _cell_str(first_row["currency"]),
+        "currency": cell_str(first_row["currency"]),
         "exchange_rate": exchange_rate,
-        "document_ref": _cell_str(first_row["document_ref"]),
+        "document_ref": cell_str(first_row["document_ref"]),
     }
 
     # FK lookups (optional)
     if proj_code:
         data["project_id"] = lookups["projects"][proj_code]
 
-    entity_doc = _cell_str(first_row.get("entity_document_number"))
+    entity_doc = cell_str(first_row.get("entity_document_number"))
     if entity_doc:
         data["entity_id"] = lookups["entities"][entity_doc]
 
-    quote_ref = _cell_str(first_row.get("quote_document_ref"))
+    quote_ref = cell_str(first_row.get("quote_document_ref"))
     if quote_ref:
         data["quote_id"] = lookups["quotes"][quote_ref]
 
     # Optional numeric
     detraccion = first_row.get("detraccion_rate")
-    if not _is_empty(detraccion):
+    if not is_empty(detraccion):
         data["detraccion_rate"] = float(detraccion)
 
     # Optional strings
     for field in ("comprobante_type", "comprobante_number", "payment_method", "notes"):
-        val = _cell_str(first_row.get(field))
+        val = cell_str(first_row.get(field))
         if val:
             data[field] = val
 
     # Optional dates
     due_date = first_row.get("due_date")
-    if not _is_empty(due_date):
+    if not is_empty(due_date):
         data["due_date"] = pd.Timestamp(due_date).strftime("%Y-%m-%d")
 
     return data
@@ -533,17 +520,17 @@ def _build_header_data(first_row, lookups):
 def _build_item_data(row):
     """Build a single item dict for fn_create_cost_with_items."""
     data = {
-        "title": _cell_str(row["item_title"]),
-        "category": _cell_str(row["category"]),
+        "title": cell_str(row["item_title"]),
+        "category": cell_str(row["category"]),
         "subtotal": float(row["subtotal"]),
     }
 
     for field in ("quantity", "unit_price"):
         val = row.get(field)
-        if not _is_empty(val):
+        if not is_empty(val):
             data[field] = float(val)
 
-    uom = _cell_str(row.get("unit_of_measure"))
+    uom = cell_str(row.get("unit_of_measure"))
     if uom:
         data["unit_of_measure"] = uom
 
@@ -574,7 +561,7 @@ def import_costs():
     # Group rows by document_ref for summary and insert
     groups = {}
     for _, row in df.iterrows():
-        doc_ref = _cell_str(row.get("document_ref"))
+        doc_ref = cell_str(row.get("document_ref"))
         groups.setdefault(doc_ref, []).append(row)
 
     # Summary
@@ -584,8 +571,8 @@ def import_costs():
     print(f"  Items:   {len(df)}")
     print(f"\n  Preview:")
     for i, (doc_ref, rows) in enumerate(list(groups.items())[:5]):
-        proj = _cell_str(rows[0].get("project_code")) or "SGA"
-        print(f"    {i + 1}. [{doc_ref}] {proj} — {_cell_str(rows[0].get('title'))} ({len(rows)} items)")
+        proj = cell_str(rows[0].get("project_code")) or "SGA"
+        print(f"    {i + 1}. [{doc_ref}] {proj} — {cell_str(rows[0].get('title'))} ({len(rows)} items)")
 
     if not confirm(f"\nImport {len(groups)} costs with {len(df)} total items?"):
         cancel_and_wait()

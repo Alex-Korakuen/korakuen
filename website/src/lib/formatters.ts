@@ -73,6 +73,20 @@ export function sumByCurrency(
   return { pen: penNative + usdConverted, usd: usdNative }
 }
 
+// Convert amount to target reporting currency using stored exchange rate (PEN per USD)
+export function convertAmount(
+  amount: number,
+  currency: string | null,
+  exchangeRate: number | null,
+  reportingCurrency: 'PEN' | 'USD'
+): number {
+  if (!currency || currency === reportingCurrency) return amount
+  if (!exchangeRate || exchangeRate === 0) return amount
+  if (reportingCurrency === 'PEN' && currency === 'USD') return amount * exchangeRate
+  if (reportingCurrency === 'USD' && currency === 'PEN') return amount / exchangeRate
+  return amount
+}
+
 export function formatComprobanteType(type: string | null): string {
   if (!type) return '--'
   const map: Record<string, string> = {

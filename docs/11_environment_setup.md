@@ -82,12 +82,10 @@ korakuen/
 │   │   ├── v_ap_calendar.sql
 │   │   ├── v_ar_balances.sql
 │   │   ├── v_bank_balances.sql
-│   │   ├── v_company_pl.sql
 │   │   ├── v_cost_balances.sql
 │   │   ├── v_cost_totals.sql
 │   │   ├── v_entity_transactions.sql
 │   │   ├── v_partner_ledger.sql
-│   │   ├── v_project_pl.sql
 │   │   ├── v_retencion_dashboard.sql
 │   │   ├── v_loan_balances.sql
 │   │   ├── v_budget_vs_actual.sql

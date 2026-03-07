@@ -237,7 +237,7 @@ Two sections:
 
 **Personal position section (Alex-only):** Below Net Profit, separated by a visual divider. Shows Alex's profit share (based on contribution proportion from `v_partner_ledger`), then lists loan obligations from `v_loan_balances`, ending with net-after-obligations. This section is never visible to partners — it combines business profit share with personal debt obligations.
 
-**Data source:** AR invoices, Costs (project), Costs (SG&A — null project) — computed in `queries.ts` with period filtering and currency conversion (SQL views `v_project_pl`/`v_company_pl` exist for simple queries but the website computes P&L directly). Personal position from v_partner_ledger + v_loan_balances (Alex-only).
+**Data source:** AR invoices, Costs (project), Costs (SG&A — null project) — computed in `queries.ts` with period filtering and currency conversion. Personal position from v_partner_ledger + v_loan_balances (Alex-only).
 
 ---
 

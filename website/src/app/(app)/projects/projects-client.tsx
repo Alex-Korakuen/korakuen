@@ -56,7 +56,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
       <div className="mt-0 flex flex-col gap-6 md:flex-row">
         {/* Left panel — project list */}
         <div
-          className={`w-full shrink-0 md:w-[320px] ${
+          className={`w-full shrink-0 md:w-[400px] ${
             selectedId ? 'hidden md:block' : ''
           }`}
         >

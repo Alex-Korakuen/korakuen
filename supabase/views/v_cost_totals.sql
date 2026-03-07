@@ -1,7 +1,7 @@
 -- View: v_cost_totals
 -- Purpose: Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items
 -- Source tables: costs, cost_items
--- Used by: v_cost_balances, v_ap_calendar, v_project_pl, v_company_pl, v_entity_transactions, v_partner_ledger
+-- Used by: v_cost_balances, v_ap_calendar, v_entity_transactions, v_partner_ledger
 
 CREATE OR REPLACE VIEW v_cost_totals
 WITH (security_invoker = on)
@@ -54,7 +54,7 @@ WITH item_sums AS (
 with_igv AS (
   SELECT
     *,
-    ROUND(subtotal * (igv_rate / 100), 2) AS igv_amount
+    fn_igv_amount(subtotal, igv_rate) AS igv_amount
   FROM item_sums
 )
 SELECT
@@ -79,6 +79,6 @@ SELECT
   notes,
   subtotal,
   igv_amount,
-  subtotal + igv_amount                                                    AS total,
-  ROUND((subtotal + igv_amount) * COALESCE(detraccion_rate, 0) / 100, 2)  AS detraccion_amount
+  subtotal + igv_amount                                     AS total,
+  fn_detraccion_amount(subtotal, igv_amount, detraccion_rate) AS detraccion_amount
 FROM with_igv;

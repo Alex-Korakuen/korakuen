@@ -10,7 +10,7 @@ AS
 WITH igv_collected AS (
   SELECT
     ar.currency,
-    COALESCE(SUM(ROUND(ar.subtotal * (ar.igv_rate / 100), 2)), 0) AS igv_collected
+    COALESCE(SUM(fn_igv_amount(ar.subtotal, ar.igv_rate)), 0) AS igv_collected
   FROM ar_invoices ar
   GROUP BY ar.currency
 ),

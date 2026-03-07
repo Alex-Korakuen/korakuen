@@ -46,7 +46,7 @@ SELECT
   ar.invoice_number,
   ar.currency,
   ar.subtotal           AS amount,
-  ROUND(ar.subtotal + ar.subtotal * (ar.igv_rate / 100), 2) AS total_with_igv,
+  ar.subtotal + fn_igv_amount(ar.subtotal, ar.igv_rate) AS total_with_igv,
   ar.document_ref,
   ar.id                 AS transaction_id
 FROM ar_invoices ar
