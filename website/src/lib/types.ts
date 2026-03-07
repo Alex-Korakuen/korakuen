@@ -170,7 +170,7 @@ export type ApCalendarFilters = {
   titleSearch: string
 }
 
-export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'title' | 'total' | 'outstanding' | 'document_ref'
+export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'total' | 'outstanding' | 'document_ref'
 
 // --- Category values (cost_items.category) ---
 export type CostCategory =

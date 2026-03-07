@@ -52,12 +52,6 @@ export function ApCalendarTable({
                 Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th
-                className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                onClick={() => onSort('title')}
-              >
-                Title <SortIndicator column="title" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
                 className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
                 onClick={() => onSort('total')}
               >
@@ -81,7 +75,7 @@ export function ApCalendarTable({
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                   No payment obligations found
                 </td>
               </tr>
@@ -120,9 +114,6 @@ export function ApCalendarTable({
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
                     {row.project_code ?? '--'}
-                  </td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700">
-                    {row.title ?? '--'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                     {row.total !== null && row.currency

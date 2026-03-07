@@ -296,12 +296,6 @@ export function ArOutstandingClient({
                         Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
                       </th>
                       <th
-                        className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                        onClick={() => handleSort('invoice_number')}
-                      >
-                        Title <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
-                      </th>
-                      <th
                         className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
                         onClick={() => handleSort('gross_total')}
                       >
@@ -325,7 +319,7 @@ export function ArOutstandingClient({
                   <tbody className="divide-y divide-zinc-100">
                     {filteredData.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                        <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                           No outstanding AR invoices found
                         </td>
                       </tr>
@@ -347,9 +341,6 @@ export function ArOutstandingClient({
                             <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
                               {row.project_code}
                             </td>
-                            <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700">
-                              {row.invoice_number ?? '--'}
-                            </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                               {formatCurrency(row.gross_total, row.currency as 'PEN' | 'USD')}
                             </td>
@@ -367,7 +358,7 @@ export function ArOutstandingClient({
                         {/* Total rows (one per currency with data) */}
                         {totals.pen.outstanding !== 0 && (
                           <tr className="bg-zinc-50 font-medium">
-                            <td colSpan={5} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                            <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
                               Total PEN ({filteredData.filter(r => r.currency === 'PEN').length} invoices)
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
@@ -381,7 +372,7 @@ export function ArOutstandingClient({
                         )}
                         {totals.usd.outstanding !== 0 && (
                           <tr className="bg-zinc-50 font-medium">
-                            <td colSpan={5} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
+                            <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
                               Total USD ({filteredData.filter(r => r.currency === 'USD').length} invoices)
                             </td>
                             <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
