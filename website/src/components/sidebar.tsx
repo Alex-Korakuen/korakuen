@@ -21,7 +21,6 @@ const dashboardItems: NavItem[] = [
   { label: 'AR Outstanding', href: '/ar-outstanding', shortLabel: 'AR' },
   { label: 'Cash Flow', href: '/cash-flow', shortLabel: 'CF' },
   { label: 'Partner Balances', href: '/partner-balances', shortLabel: 'PB' },
-  { label: 'P&L', href: '/pl', shortLabel: 'PL' },
   { label: 'Financial Pos.', href: '/financial-position', shortLabel: 'FP' },
 ]
 

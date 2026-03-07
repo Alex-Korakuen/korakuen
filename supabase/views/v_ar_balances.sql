@@ -72,6 +72,8 @@ SELECT
   ac.gross_total - ac.detraccion_amount - ac.retencion_amount AS net_receivable,
   COALESCE(SUM(p.amount), 0) AS amount_paid,
   ac.gross_total - COALESCE(SUM(p.amount), 0) AS outstanding,
+  GREATEST(0, ac.gross_total - COALESCE(SUM(p.amount), 0) - COALESCE(ac.detraccion_amount, 0)) AS receivable,
+  LEAST(ac.gross_total - COALESCE(SUM(p.amount), 0), COALESCE(ac.detraccion_amount, 0)) AS bdn_outstanding,
   CASE
     WHEN COALESCE(SUM(p.amount), 0) = 0 THEN 'pending'
     WHEN COALESCE(SUM(p.amount), 0) >= ac.gross_total THEN 'paid'

@@ -5,16 +5,13 @@ import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
-import { Tabs } from '@/components/ui/tabs'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
 import { getDaysUntilEndOfWeek, formatType } from './helpers'
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
-import { ApCalendarTaxes } from './ap-calendar-taxes'
 import type { ApCalendarRow } from '@/lib/types'
 import type {
-  CostDetractionEntry,
   CostDetailData,
   LoanDetailData,
   ApCalendarBucketId as BucketId,
@@ -24,7 +21,6 @@ import type {
 
 type Props = {
   data: ApCalendarRow[]
-  detractions: CostDetractionEntry[]
   projects: { id: string; project_code: string; name: string }[]
   exchangeRate: { mid_rate: number; rate_date: string } | null
   isAlex: boolean
@@ -32,8 +28,7 @@ type Props = {
 
 // --- Component ---
 
-export function ApCalendarClient({ data, detractions, projects, exchangeRate, isAlex }: Props) {
-  const [activeTab, setActiveTab] = useState<'main' | 'taxes'>('main')
+export function ApCalendarClient({ data, projects, exchangeRate, isAlex }: Props) {
   const [activeBucket, setActiveBucket] = useState<BucketId>('all')
   const [filters, setFilters] = useState<Filters>({
     projectId: '',
@@ -47,12 +42,6 @@ export function ApCalendarClient({ data, detractions, projects, exchangeRate, is
   const [loanDetail, setLoanDetail] = useState<LoanDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState(false)
-
-  // --- Tabs config ---
-  const tabItems = [
-    { id: 'main', label: 'Payment Calendar' },
-    { id: 'taxes', label: 'Detracciones' },
-  ]
 
   // --- Bucket calculations ---
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
@@ -190,77 +179,63 @@ export function ApCalendarClient({ data, detractions, projects, exchangeRate, is
   return (
     <div>
       <div className="mt-0">
-        <Tabs
-          tabs={tabItems}
-          activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as 'main' | 'taxes')}
-        >
-          {activeTab === 'main' && (
-            <div>
-              {/* Summary Cards */}
-              <div className="flex flex-wrap gap-4">
-                <SummaryCard
-                  title="Overdue"
-                  count={buckets.overdue.count}
-                  totalPEN={buckets.overdue.pen}
-                  totalUSD={buckets.overdue.usd}
-                  variant="overdue"
-                  isActive={activeBucket === 'overdue'}
-                  onClick={() => handleBucketClick('overdue')}
-                />
-                <SummaryCard
-                  title="Due Today"
-                  count={buckets.today.count}
-                  totalPEN={buckets.today.pen}
-                  totalUSD={buckets.today.usd}
-                  variant="today"
-                  isActive={activeBucket === 'today'}
-                  onClick={() => handleBucketClick('today')}
-                />
-                <SummaryCard
-                  title="This Week"
-                  count={buckets['this-week'].count}
-                  totalPEN={buckets['this-week'].pen}
-                  totalUSD={buckets['this-week'].usd}
-                  variant="this-week"
-                  isActive={activeBucket === 'this-week'}
-                  onClick={() => handleBucketClick('this-week')}
-                />
-                <SummaryCard
-                  title="Next 30 Days"
-                  count={buckets['next-30'].count}
-                  totalPEN={buckets['next-30'].pen}
-                  totalUSD={buckets['next-30'].usd}
-                  variant="future"
-                  isActive={activeBucket === 'next-30'}
-                  onClick={() => handleBucketClick('next-30')}
-                />
-              </div>
+        {/* Summary Cards */}
+        <div className="flex flex-wrap gap-4">
+          <SummaryCard
+            title="Overdue"
+            count={buckets.overdue.count}
+            totalPEN={buckets.overdue.pen}
+            totalUSD={buckets.overdue.usd}
+            variant="overdue"
+            isActive={activeBucket === 'overdue'}
+            onClick={() => handleBucketClick('overdue')}
+          />
+          <SummaryCard
+            title="Due Today"
+            count={buckets.today.count}
+            totalPEN={buckets.today.pen}
+            totalUSD={buckets.today.usd}
+            variant="today"
+            isActive={activeBucket === 'today'}
+            onClick={() => handleBucketClick('today')}
+          />
+          <SummaryCard
+            title="This Week"
+            count={buckets['this-week'].count}
+            totalPEN={buckets['this-week'].pen}
+            totalUSD={buckets['this-week'].usd}
+            variant="this-week"
+            isActive={activeBucket === 'this-week'}
+            onClick={() => handleBucketClick('this-week')}
+          />
+          <SummaryCard
+            title="Next 30 Days"
+            count={buckets['next-30'].count}
+            totalPEN={buckets['next-30'].pen}
+            totalUSD={buckets['next-30'].usd}
+            variant="future"
+            isActive={activeBucket === 'next-30'}
+            onClick={() => handleBucketClick('next-30')}
+          />
+        </div>
 
-              <ApCalendarFilters
-                filters={filters}
-                setFilters={setFilters}
-                projects={projects}
-                uniqueSuppliers={uniqueSuppliers}
-                hasActiveFilters={hasActiveFilters}
-                onClearFilters={clearFilters}
-              />
+        <ApCalendarFilters
+          filters={filters}
+          setFilters={setFilters}
+          projects={projects}
+          uniqueSuppliers={uniqueSuppliers}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+        />
 
-              <ApCalendarTable
-                data={filteredData}
-                totalCount={data.length}
-                sortColumn={sortColumn}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                onRowClick={handleRowClick}
-              />
-            </div>
-          )}
-
-          {activeTab === 'taxes' && (
-            <ApCalendarTaxes detractions={detractions} />
-          )}
-        </Tabs>
+        <ApCalendarTable
+          data={filteredData}
+          totalCount={data.length}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          onRowClick={handleRowClick}
+        />
       </div>
 
       {/* Detail Modal */}

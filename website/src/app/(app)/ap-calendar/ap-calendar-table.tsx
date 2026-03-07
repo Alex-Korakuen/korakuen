@@ -55,13 +55,19 @@ export function ApCalendarTable({
                 className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
                 onClick={() => onSort('total')}
               >
-                Gross <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
+                Total <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th
                 className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                onClick={() => onSort('outstanding')}
+                onClick={() => onSort('payable')}
               >
-                Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+                Payable <SortIndicator column="payable" sortColumn={sortColumn} sortDirection={sortDirection} />
+              </th>
+              <th
+                className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
+                onClick={() => onSort('bdn_outstanding')}
+              >
+                BdN <SortIndicator column="bdn_outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th className="px-4 py-3">Cur.</th>
               <th
@@ -75,7 +81,7 @@ export function ApCalendarTable({
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-zinc-400">
                   No payment obligations found
                 </td>
               </tr>
@@ -121,8 +127,13 @@ export function ApCalendarTable({
                       : '--'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                    {row.outstanding !== null && row.currency
-                      ? formatCurrency(row.outstanding, row.currency as 'PEN' | 'USD')
+                    {row.payable !== null && row.currency
+                      ? formatCurrency(row.payable, row.currency as 'PEN' | 'USD')
+                      : '--'}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
+                    {row.bdn_outstanding !== null && row.bdn_outstanding > 0 && row.currency
+                      ? formatCurrency(row.bdn_outstanding, row.currency as 'PEN' | 'USD')
                       : '--'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-zinc-500">

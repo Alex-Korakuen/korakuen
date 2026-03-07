@@ -32,6 +32,8 @@ SELECT
   cb.detraccion_amount,
   cb.amount_paid,
   cb.outstanding,
+  GREATEST(0, cb.outstanding - COALESCE(cb.detraccion_amount, 0)) AS payable,
+  LEAST(cb.outstanding, COALESCE(cb.detraccion_amount, 0)) AS bdn_outstanding,
   cb.payment_status
 -- No is_active filter on projects/entities: outstanding obligations must remain visible
 FROM v_cost_balances cb
@@ -65,6 +67,8 @@ SELECT
   NULL::NUMERIC(15,2)    AS detraccion_amount,
   COALESCE(lp.amount, 0) AS amount_paid,
   ls.scheduled_amount - COALESCE(lp.amount, 0) AS outstanding,
+  ls.scheduled_amount - COALESCE(lp.amount, 0) AS payable,
+  0::NUMERIC(15,2) AS bdn_outstanding,
   CASE
     WHEN lp.amount IS NOT NULL AND lp.amount < ls.scheduled_amount THEN 'partial'
     ELSE 'pending'

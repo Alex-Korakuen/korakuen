@@ -1131,6 +1131,7 @@ export type Database = {
       v_ap_calendar: {
         Row: {
           amount_paid: number | null
+          bdn_outstanding: number | null
           cost_id: string | null
           cost_type: string | null
           currency: string | null
@@ -1144,6 +1145,7 @@ export type Database = {
           exchange_rate: number | null
           igv_amount: number | null
           outstanding: number | null
+          payable: number | null
           payment_status: string | null
           project_code: string | null
           project_id: string | null
@@ -1160,6 +1162,7 @@ export type Database = {
           amount_paid: number | null
           ar_invoice_id: string | null
           bank_account_id: string | null
+          bdn_outstanding: number | null
           comprobante_type: string | null
           currency: string | null
           detraccion_amount: number | null
@@ -1179,6 +1182,7 @@ export type Database = {
           partner_company_id: string | null
           payment_status: string | null
           project_id: string | null
+          receivable: number | null
           retencion_amount: number | null
           retencion_applicable: boolean | null
           retencion_rate: number | null
@@ -1493,6 +1497,18 @@ export type Database = {
       fn_create_cost_with_items: {
         Args: { header_data: Json; items_data: Json }
         Returns: Json
+      }
+      fn_detraccion_amount: {
+        Args: { detraccion_rate: number; igv_amount: number; subtotal: number }
+        Returns: number
+      }
+      fn_igv_amount: {
+        Args: { igv_rate: number; subtotal: number }
+        Returns: number
+      }
+      fn_retencion_amount: {
+        Args: { igv_amount: number; retencion_rate: number; subtotal: number }
+        Returns: number
       }
     }
     Enums: {

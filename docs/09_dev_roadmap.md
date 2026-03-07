@@ -61,7 +61,7 @@ All six skill files built. `docs/12_skills.md` deleted.
 - [x] Task 2.7 — Fix function search_path → `supabase/migrations/20260301000008_fix_function_search_path.sql`
 - [x] Task 2.8 — Add notes to v_cost_totals → `supabase/migrations/20260301000009_v_cost_totals_add_notes.sql`
 
-**8 Phase 2 migrations applied (22 total across all phases).** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
+**8 Phase 2 migrations applied.** Supabase project linked (project ID in `.env` as `SUPABASE_PROJECT_ID`). Two environments provisioned: testing + production.
 
 ---
 
@@ -352,7 +352,7 @@ See Tasks 4.5, 4.6, 4.8 for the website implementations that replace these.
 
 **Goal:** Read-only Next.js website on Vercel with invite-only authentication. 9 pages total: 3 browse pages for core data plus 6 dashboard/analytics views. Each page includes filters where applicable.
 
-**Status:** Phase 4 complete. All 31 migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Status:** Phase 4 complete. All migrations applied to remote. Production live at `https://korakuen.vercel.app`.
 
 - [x] Tasks 4.1–4.3 — Project setup, authentication, layout & navigation
 - [x] Task 4.4 — Verify Vercel deployment

@@ -613,7 +613,7 @@ Layer 7 (project extensions):
 
 ## Database Views — Complete List
 
-**Existing views (14 — built and deployed):**
+**Existing views (11 — built and deployed):**
 
 | View | Source Tables | Purpose |
 |---|---|---|

@@ -6,31 +6,18 @@
 import type { Database } from './database.types'
 
 // --- Table row types ---
-export type PartnerCompany = Database['public']['Tables']['partner_companies']['Row']
-export type BankAccount = Database['public']['Tables']['bank_accounts']['Row']
 export type Entity = Database['public']['Tables']['entities']['Row']
 export type EntityContact = Database['public']['Tables']['entity_contacts']['Row']
-export type Tag = Database['public']['Tables']['tags']['Row']
-export type EntityTag = Database['public']['Tables']['entity_tags']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
-export type ProjectEntity = Database['public']['Tables']['project_entities']['Row']
-export type Quote = Database['public']['Tables']['quotes']['Row']
 export type Cost = Database['public']['Tables']['costs']['Row']
 export type CostItem = Database['public']['Tables']['cost_items']['Row']
 export type ArInvoice = Database['public']['Tables']['ar_invoices']['Row']
 export type Payment = Database['public']['Tables']['payments']['Row']
-export type Loan = Database['public']['Tables']['loans']['Row']
-export type LoanSchedule = Database['public']['Tables']['loan_schedule']['Row']
-export type LoanPayment = Database['public']['Tables']['loan_payments']['Row']
-export type ProjectBudget = Database['public']['Tables']['project_budgets']['Row']
-export type ExchangeRate = Database['public']['Tables']['exchange_rates']['Row']
 
 // --- View row types ---
 export type ApCalendarRow = Database['public']['Views']['v_ap_calendar']['Row']
 export type CostBalanceRow = Database['public']['Views']['v_cost_balances']['Row']
 export type ArBalanceRow = Database['public']['Views']['v_ar_balances']['Row']
-export type LoanBalanceRow = Database['public']['Views']['v_loan_balances']['Row']
-export type RetencionDashboardRow = Database['public']['Views']['v_retencion_dashboard']['Row']
 export type BankBalanceRow = Database['public']['Views']['v_bank_balances']['Row']
 export type PartnerLedgerRow = Database['public']['Views']['v_partner_ledger']['Row']
 export type EntityTransactionRow = Database['public']['Views']['v_entity_transactions']['Row']
@@ -41,50 +28,9 @@ export type IgvPositionRow = Database['public']['Views']['v_igv_position']['Row'
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
 
-export type EntityType = 'company' | 'individual'
-
-export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
-
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
 
-export type ProjectType = 'subcontractor' | 'oxi'
-
-export type CostType = 'project_cost' | 'sga'
-
-export type ComprobanteType =
-  | 'factura'
-  | 'boleta'
-  | 'recibo_por_honorarios'
-  | 'liquidacion_de_compra'
-  | 'planilla_jornales'
-  | 'none'
-
-export type PaymentMethod = 'bank_transfer' | 'cash' | 'check'
-
-export type PaymentStatus = 'pending' | 'partial' | 'paid'
-
-export type PaymentType = 'regular' | 'detraccion' | 'retencion'
-
-export type PaymentDirection = 'inbound' | 'outbound'
-
-export type LoanStatus = 'active' | 'partially_paid' | 'settled'
-
-export type ReturnType = 'percentage' | 'fixed'
-
-export type ApCalendarEntryType = 'supplier_invoice' | 'loan_payment'
-
 // --- AP Calendar component types ---
-
-export type CostDetractionEntry = {
-  cost_id: string | null
-  entity_name: string
-  project_code: string
-  title: string | null
-  detraccion_amount: number
-  currency: string
-  deposited: number
-  status: string
-}
 
 export type CostDetailData = {
   cost: {
@@ -170,25 +116,7 @@ export type ApCalendarFilters = {
   titleSearch: string
 }
 
-export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'total' | 'outstanding' | 'document_ref'
-
-// --- Category values (cost_items.category) ---
-export type CostCategory =
-  | 'materials'
-  | 'labor'
-  | 'subcontractor'
-  | 'equipment_rental'
-  | 'permits_regulatory'
-  | 'other'
-
-// --- SG&A categories ---
-export type SgaCategory =
-  | 'software_licenses'
-  | 'partner_compensation'
-  | 'business_development'
-  | 'professional_services'
-  | 'office_admin'
-  | 'other'
+export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'total' | 'payable' | 'bdn_outstanding' | 'document_ref'
 
 // --- AR Outstanding component types ---
 
@@ -212,6 +140,8 @@ export type ArOutstandingRow = {
   net_receivable: number
   amount_paid: number
   outstanding: number
+  receivable: number
+  bdn_outstanding: number
   currency: string
   payment_status: string
 }
@@ -222,17 +152,6 @@ export type ArInvoiceDetailData = {
   client_name: string
   project_code: string
   partner_name: string
-}
-
-export type ArDetractionEntry = {
-  ar_invoice_id: string
-  project_code: string
-  client_name: string
-  invoice_number: string | null
-  detraccion_amount: number
-  currency: string
-  received: number
-  pending: number
 }
 
 export type ArOutstandingBucketId = 'all' | 'current' | '31-60' | '61-90' | '90+'
@@ -249,7 +168,8 @@ export type ArOutstandingSortColumn =
   | 'project_code'
   | 'invoice_number'
   | 'gross_total'
-  | 'outstanding'
+  | 'receivable'
+  | 'bdn_outstanding'
 
 // --- Partner Balances component types ---
 
@@ -313,39 +233,6 @@ export type CashFlowMonth = {
 
 export type CashFlowData = {
   months: CashFlowMonth[]
-}
-
-// --- P&L component types ---
-
-export type PLPeriodMode = 'year' | 'quarter' | 'month'
-
-export type PLMonthColumn = {
-  key: string // YYYY-MM
-  label: string // "Jan", "Feb", etc.
-}
-
-export type PLLineItem = {
-  income: number
-  projectCosts: number
-  grossProfit: number
-  grossMarginPct: number
-  sga: number
-  netProfit: number
-  netMarginPct: number
-  // Category breakdowns
-  projectCostsByCategory: Record<string, number>
-  sgaByCategory: Record<string, number>
-  // Project breakdown for income
-  incomeByProject: { projectCode: string; projectName: string; amount: number }[]
-}
-
-export type PLData = {
-  columns: PLMonthColumn[]
-  byMonth: Record<string, PLLineItem> // key = YYYY-MM
-  total: PLLineItem
-  // Alex-only personal position
-  alexProfitShare: number | null
-  loanObligations: number | null
 }
 
 // --- Financial Position component types ---
