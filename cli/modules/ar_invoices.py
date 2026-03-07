@@ -25,6 +25,7 @@ from lib.import_helpers import (
     load_project_map, load_entity_map, load_bank_account_map,
     load_partner_map,
     load_excel_file, print_import_summary,
+    opt_str, opt_float, opt_date,
 )
 
 
@@ -70,9 +71,9 @@ def add_ar_invoice():
         return
 
     # --- Select client entity ---
-    from modules.entities import _search_and_select_entity
+    from lib.helpers import search_and_select_entity
     print("\n  Client entity:")
-    entity = _search_and_select_entity()
+    entity = search_and_select_entity()
     if not entity:
         return
 
@@ -327,20 +328,20 @@ def _build_ar_record(row, lookups):
 
     # Optional numeric
     for field in ("detraccion_rate", "retencion_rate"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = float(val)
+        val = opt_float(row, field)
+        if val is not None:
+            data[field] = val
 
     # Optional string
     for field in ("document_ref", "notes"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
+        val = opt_str(row, field)
+        if val:
+            data[field] = val
 
     # Optional date
-    due = row.get("due_date")
-    if due is not None and not pd.isna(due):
-        data["due_date"] = pd.Timestamp(due).strftime("%Y-%m-%d")
+    due = opt_date(row, "due_date")
+    if due:
+        data["due_date"] = due
 
     return data
 

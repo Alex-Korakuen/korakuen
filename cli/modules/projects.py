@@ -20,6 +20,7 @@ from lib.import_helpers import (
     validate_date, validate_nonneg_number,
     process_import_errors, load_entity_map,
     load_excel_file, print_import_summary,
+    is_empty, opt_str, opt_float, opt_date,
 )
 
 
@@ -94,8 +95,8 @@ def add_project():
     client_entity_id = None
     client_name = None
     if confirm("\n  Assign a client entity?"):
-        from modules.entities import _search_and_select_entity
-        entity = _search_and_select_entity()
+        from lib.helpers import search_and_select_entity
+        entity = search_and_select_entity()
         if entity:
             client_entity_id = entity["id"]
             client_name = entity["legal_name"]
@@ -202,7 +203,7 @@ def _build_project_record(row, lookups, auto_code_num):
                    or None if the row provides its own code.
     """
     code = row.get("project_code")
-    if code and not pd.isna(code):
+    if not is_empty(code):
         project_code = str(code).strip()
     else:
         project_code = f"PRY{auto_code_num:03d}"
@@ -215,30 +216,25 @@ def _build_project_record(row, lookups, auto_code_num):
     }
 
     # FK lookups
-    client_doc = row.get("client_entity_document_number")
-    if client_doc and not pd.isna(client_doc) and str(client_doc).strip():
-        data["client_entity_id"] = lookups["entities"][str(client_doc).strip()]
+    client_doc = opt_str(row, "client_entity_document_number")
+    if client_doc:
+        data["client_entity_id"] = lookups["entities"][client_doc]
 
     # Optional fields
     for field in ("contract_value",):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = float(val)
+        val = opt_float(row, field)
+        if val is not None:
+            data[field] = val
 
-    for field in ("contract_currency",):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
+    for field in ("contract_currency", "location", "notes"):
+        val = opt_str(row, field)
+        if val:
+            data[field] = val
 
     for field in ("start_date", "expected_end_date", "actual_end_date"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = pd.Timestamp(val).strftime("%Y-%m-%d")
-
-    for field in ("location", "notes"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
+        val = opt_date(row, field)
+        if val:
+            data[field] = val
 
     return data
 

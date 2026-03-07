@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { usePartnerFilter } from '@/lib/partner-filter-context'
@@ -89,74 +89,161 @@ function NavSection({
 
 function PartnerFilter({ collapsed }: { collapsed: boolean }) {
   const { partners, selectedPartnerIds, togglePartner, clearFilter, applyFilter, isFiltered, isDirty } = usePartnerFilter()
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  const selectedCount = selectedPartnerIds.length
+  const label = selectedCount === 0
+    ? 'All Partners'
+    : selectedCount === partners.length
+      ? 'All Partners'
+      : partners
+          .filter((p) => selectedPartnerIds.includes(p.id))
+          .map((p) => p.name)
+          .join(', ')
 
   if (collapsed) {
     return (
-      <div className="mb-6">
-        <div className="flex flex-col gap-1 px-2">
+      <div className="mb-6 px-2" ref={dropdownRef}>
+        <button
+          onClick={() => setOpen(!open)}
+          className={`flex h-8 w-full items-center justify-center rounded-md border text-xs font-medium transition-colors ${
+            isFiltered
+              ? 'border-zinc-300 bg-zinc-100 text-zinc-900'
+              : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+          }`}
+          title={label}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="1 1 15 1 9 8 9 13 7 15 7 8" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute left-full top-0 z-50 ml-1 w-48 rounded-md border border-zinc-200 bg-white py-1 shadow-lg">
+            {partners.map((p) => {
+              const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => togglePartner(p.id)}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                >
+                  <span className={`flex h-4 w-4 items-center justify-center rounded border ${
+                    selected ? 'border-zinc-800 bg-zinc-800 text-white' : 'border-zinc-300'
+                  }`}>
+                    {selected && (
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="2 6 5 9 10 3" />
+                      </svg>
+                    )}
+                  </span>
+                  {p.name}
+                </button>
+              )
+            })}
+            {isFiltered && (
+              <button
+                onClick={() => { clearFilter(); setOpen(false) }}
+                className="w-full border-t border-zinc-100 px-3 py-1.5 text-left text-xs text-zinc-400 hover:text-zinc-600"
+              >
+                Clear filter
+              </button>
+            )}
+            {isDirty && (
+              <button
+                onClick={() => { applyFilter(); setOpen(false) }}
+                className="w-full border-t border-zinc-100 px-3 py-1.5 text-left text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              >
+                Apply
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative mb-6 px-2" ref={dropdownRef}>
+      <h3 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-zinc-400">
+        Partners
+      </h3>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+          isFiltered
+            ? 'border-zinc-300 bg-zinc-50 font-medium text-zinc-900'
+            : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+        }`}
+      >
+        <span className="truncate">{label}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`ml-2 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="3 4.5 6 7.5 9 4.5" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute left-2 right-2 z-50 mt-1 rounded-md border border-zinc-200 bg-white py-1 shadow-lg">
           {partners.map((p) => {
             const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
             return (
               <button
                 key={p.id}
                 onClick={() => togglePartner(p.id)}
-                className={`flex h-6 w-full items-center justify-center rounded text-xs font-medium transition-colors ${
-                  selected
-                    ? 'bg-zinc-800 text-white'
-                    : 'bg-zinc-100 text-zinc-400'
-                }`}
-                title={p.name}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
               >
-                {p.name.charAt(0)}
+                <span className={`flex h-4 w-4 items-center justify-center rounded border ${
+                  selected ? 'border-zinc-800 bg-zinc-800 text-white' : 'border-zinc-300'
+                }`}>
+                  {selected && (
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="2 6 5 9 10 3" />
+                    </svg>
+                  )}
+                </span>
+                {p.name}
               </button>
             )
           })}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mb-6">
-      <div className="mb-2 flex items-center justify-between px-3">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-          Partners
-        </h3>
-        {isFiltered && (
-          <button
-            onClick={clearFilter}
-            className="text-xs text-zinc-400 hover:text-zinc-600"
-          >
-            All
-          </button>
-        )}
-      </div>
-      <div className="flex flex-col gap-1 px-2">
-        {partners.map((p) => {
-          const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
-          return (
+          {isFiltered && (
             <button
-              key={p.id}
-              onClick={() => togglePartner(p.id)}
-              className={`rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
-                selected
-                  ? 'bg-zinc-100 font-medium text-zinc-900'
-                  : 'text-zinc-400 hover:text-zinc-600'
-              }`}
+              onClick={() => { clearFilter(); setOpen(false) }}
+              className="w-full border-t border-zinc-100 px-3 py-1.5 text-left text-xs text-zinc-400 hover:text-zinc-600"
             >
-              {p.name}
+              Clear filter
             </button>
-          )
-        })}
-        {isDirty && (
-          <button
-            onClick={applyFilter}
-            className="mt-1 rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
-          >
-            Apply
-          </button>
-        )}
-      </div>
+          )}
+          {isDirty && (
+            <button
+              onClick={() => { applyFilter(); setOpen(false) }}
+              className="w-full border-t border-zinc-100 px-3 py-1.5 text-left text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+            >
+              Apply
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

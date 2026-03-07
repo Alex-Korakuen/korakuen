@@ -164,7 +164,7 @@ Known enum values per field:
 | `costs.currency` | USD, PEN |
 | `costs.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
 | `costs.payment_method` | bank_transfer, cash, check |
-| `cost_items.category` | materials, labor, subcontractor, equipment_rental, permits_regulatory, software_licenses, partner_compensation, business_development, professional_services, office_admin, other |
+| `cost_items.category` | materials, labor, subcontractor, equipment_rental, permits_regulatory, software_licenses, partner_compensation, professional_services, other |
 | `ar_invoices.comprobante_type` | factura, boleta, recibo_por_honorarios |
 | `ar_invoices.currency` | USD, PEN |
 | `payments.related_to` | cost, ar_invoice |

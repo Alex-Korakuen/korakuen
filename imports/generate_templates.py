@@ -422,7 +422,7 @@ COSTS = [
         "name": "category",
         "example": "materials",
         "description": "Required. Cost category. Different allowed values for project costs vs SG&A.",
-        "allowed_values": "materials | labor | subcontractor | equipment_rental | permits_regulatory | software_licenses | partner_compensation | business_development | professional_services | office_admin | other",
+        "allowed_values": "materials | labor | subcontractor | equipment_rental | permits_regulatory | software_licenses | partner_compensation | professional_services | other",
     },
     {
         "name": "subtotal",

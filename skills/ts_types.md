@@ -104,9 +104,7 @@ export type ProjectCostCategory =
 export type SgaCostCategory =
   | 'software_licenses'
   | 'partner_compensation'
-  | 'business_development'
   | 'professional_services'
-  | 'office_admin'
   | 'other'
 
 export type CostCategory = ProjectCostCategory | SgaCostCategory

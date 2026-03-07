@@ -21,6 +21,7 @@ from lib.import_helpers import (
     validate_exchange_rate,
     process_import_errors, load_project_map, load_entity_map,
     load_excel_file, print_import_summary,
+    opt_str, opt_float,
 )
 
 
@@ -61,9 +62,9 @@ def add_quote():
         return
 
     # --- Select entity ---
-    from modules.entities import _search_and_select_entity
+    from lib.helpers import search_and_select_entity
     print()
-    entity = _search_and_select_entity()
+    entity = search_and_select_entity()
     if not entity:
         return
 
@@ -241,14 +242,14 @@ def _build_quote_record(row, lookups):
     }
 
     for field in ("quantity", "unit_price", "igv_amount"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val):
-            data[field] = float(val)
+        val = opt_float(row, field)
+        if val is not None:
+            data[field] = val
 
     for field in ("unit_of_measure", "document_ref", "notes"):
-        val = row.get(field)
-        if val is not None and not pd.isna(val) and str(val).strip():
-            data[field] = str(val).strip()
+        val = opt_str(row, field)
+        if val:
+            data[field] = val
 
     return data
 

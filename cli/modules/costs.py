@@ -26,11 +26,12 @@ from lib.import_helpers import (
     load_project_map, load_entity_map, load_bank_account_map,
     load_quote_map,
     load_excel_file, print_import_summary,
+    opt_float, opt_date,
 )
 
 # Cost item categories by cost type
 PROJECT_CATEGORIES = ["materials", "labor", "subcontractor", "equipment_rental", "permits_regulatory", "other"]
-SGA_CATEGORIES = ["software_licenses", "partner_compensation", "business_development", "professional_services", "office_admin", "other"]
+SGA_CATEGORIES = ["software_licenses", "partner_compensation", "professional_services", "other"]
 ALL_CATEGORIES = list(set(PROJECT_CATEGORIES + SGA_CATEGORIES))
 
 
@@ -86,8 +87,8 @@ def add_cost():
     # --- Entity (optional) ---
     entity = None
     if confirm("\n  Assign an entity (supplier)?"):
-        from modules.entities import _search_and_select_entity
-        entity = _search_and_select_entity()
+        from lib.helpers import search_and_select_entity
+        entity = search_and_select_entity()
 
     # --- Quote (optional) ---
     quote = None
@@ -499,9 +500,9 @@ def _build_header_data(first_row, lookups):
         data["quote_id"] = lookups["quotes"][quote_ref]
 
     # Optional numeric
-    detraccion = first_row.get("detraccion_rate")
-    if not is_empty(detraccion):
-        data["detraccion_rate"] = float(detraccion)
+    detraccion = opt_float(first_row, "detraccion_rate")
+    if detraccion is not None:
+        data["detraccion_rate"] = detraccion
 
     # Optional strings
     for field in ("comprobante_type", "comprobante_number", "payment_method", "notes"):
@@ -510,9 +511,9 @@ def _build_header_data(first_row, lookups):
             data[field] = val
 
     # Optional dates
-    due_date = first_row.get("due_date")
-    if not is_empty(due_date):
-        data["due_date"] = pd.Timestamp(due_date).strftime("%Y-%m-%d")
+    due = opt_date(first_row, "due_date")
+    if due:
+        data["due_date"] = due
 
     return data
 

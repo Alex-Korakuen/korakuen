@@ -29,6 +29,30 @@ def cell_str(val):
     return str(val).strip()
 
 
+def opt_str(row, field):
+    """Extract optional string field from Excel row. Returns str or None."""
+    val = row.get(field)
+    if is_empty(val):
+        return None
+    return str(val).strip() or None
+
+
+def opt_float(row, field):
+    """Extract optional numeric field from Excel row. Returns float or None."""
+    val = row.get(field)
+    if is_empty(val):
+        return None
+    return float(val)
+
+
+def opt_date(row, field):
+    """Extract optional date field from Excel row. Returns YYYY-MM-DD str or None."""
+    val = row.get(field)
+    if is_empty(val):
+        return None
+    return pd.Timestamp(val).strftime("%Y-%m-%d")
+
+
 def load_excel_file(title):
     """Prompt for Excel file path, read it, and return (df, file_path).
 

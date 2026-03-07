@@ -376,9 +376,7 @@ One or many rows per cost. Holds the detail of what was purchased. Category live
 **Categories — SG&A:**
 - software_licenses
 - partner_compensation
-- business_development
 - professional_services
-- office_admin
 - other
 
 **Query pattern:**

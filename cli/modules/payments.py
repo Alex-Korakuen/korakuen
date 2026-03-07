@@ -187,94 +187,75 @@ def register_payment():
     execute_insert("payments", data, "Payment registered")
 
 
-def _select_cost():
-    """Show costs with outstanding balances and let user select one."""
-    # Query costs joined with balance view
-    costs = (
-        supabase.table("v_cost_balances")
+def _select_outstanding_record(view_name, id_field, label_fn, record_type):
+    """Show records with outstanding balances from a view and let user select one.
+
+    Args:
+        view_name: Balance view to query (e.g. "v_cost_balances").
+        id_field: Field name for the record ID (e.g. "cost_id").
+        label_fn: Callable(record) -> str for display label.
+        record_type: Human-readable type for prompts (e.g. "cost").
+    """
+    records = (
+        supabase.table(view_name)
         .select("*")
         .neq("payment_status", "paid")
         .execute()
     )
 
-    if not costs.data:
-        print("\n  No costs with outstanding balances found.")
+    if not records.data:
+        print(f"\n  No {record_type}s with outstanding balances found.")
         input("\nPress Enter to continue...")
         return None
 
     # Build project_id -> project_code map
-    project_ids = list({c["project_id"] for c in costs.data if c.get("project_id")})
+    project_ids = list({r["project_id"] for r in records.data if r.get("project_id")})
     project_map = {}
     if project_ids:
         projects = supabase.table("projects").select("id, project_code").in_("id", project_ids).execute()
         project_map = {p["id"]: p["project_code"] for p in (projects.data or [])}
 
-    print("\n  Costs with outstanding balances:")
-    for i, c in enumerate(costs.data, start=1):
-        label = c.get("document_ref") or c.get("title", "")[:30]
-        proj = project_map.get(c.get("project_id", ""), "")
+    print(f"\n  {record_type.capitalize()}s with outstanding balances:")
+    for i, r in enumerate(records.data, start=1):
+        label = label_fn(r)
+        proj = project_map.get(r.get("project_id", ""), "")
         proj_prefix = f"[{proj}] " if proj else ""
-        print(f"    {i}. {proj_prefix}{label} — Outstanding: {c.get('currency', 'PEN')} {c.get('outstanding', 0):,.2f} ({c.get('payment_status', '')})")
+        print(f"    {i}. {proj_prefix}{label} — Outstanding: {r.get('currency', 'PEN')} {r.get('outstanding', 0):,.2f} ({r.get('payment_status', '')})")
     print()
 
-    selection = get_input("  Select cost number: ")
+    selection = get_input(f"  Select {record_type} number: ")
     try:
-        cost = costs.data[int(selection) - 1]
+        record = records.data[int(selection) - 1]
     except (ValueError, IndexError):
         print("\n  ✗ Invalid selection.")
         input("\nPress Enter to continue...")
         return None
 
-    # Attach display metadata
-    cost["_id"] = cost["cost_id"]
-    cost["_outstanding"] = cost.get("outstanding", 0)
-    cost["_currency"] = cost.get("currency", "PEN")
-    cost["_label"] = cost.get("document_ref") or cost.get("title", "")[:30]
-    return cost
+    record["_id"] = record[id_field]
+    record["_outstanding"] = record.get("outstanding", 0)
+    record["_currency"] = record.get("currency", "PEN")
+    record["_label"] = label_fn(record)
+    return record
+
+
+def _select_cost():
+    """Show costs with outstanding balances and let user select one."""
+    return _select_outstanding_record(
+        view_name="v_cost_balances",
+        id_field="cost_id",
+        label_fn=lambda r: r.get("document_ref") or r.get("title", "")[:30],
+        record_type="cost",
+    )
 
 
 def _select_ar_invoice():
     """Show AR invoices with outstanding balances and let user select one."""
-    invoices = (
-        supabase.table("v_ar_balances")
-        .select("*")
-        .neq("payment_status", "paid")
-        .execute()
+    return _select_outstanding_record(
+        view_name="v_ar_balances",
+        id_field="ar_invoice_id",
+        label_fn=lambda r: r.get("invoice_number") or r.get("document_ref") or "",
+        record_type="AR invoice",
     )
-
-    if not invoices.data:
-        print("\n  No AR invoices with outstanding balances found.")
-        input("\nPress Enter to continue...")
-        return None
-
-    # Build project_id -> project_code map
-    project_ids = list({inv["project_id"] for inv in invoices.data if inv.get("project_id")})
-    project_map = {}
-    if project_ids:
-        projects = supabase.table("projects").select("id, project_code").in_("id", project_ids).execute()
-        project_map = {p["id"]: p["project_code"] for p in (projects.data or [])}
-
-    print("\n  AR invoices with outstanding balances:")
-    for i, inv in enumerate(invoices.data, start=1):
-        label = inv.get("invoice_number") or inv.get("document_ref") or ""
-        proj = project_map.get(inv.get("project_id", ""), "")
-        proj_prefix = f"[{proj}] " if proj else ""
-        print(f"    {i}. {proj_prefix}{label} — Outstanding: {inv.get('currency', 'PEN')} {inv.get('outstanding', 0):,.2f} ({inv.get('payment_status', '')})")
-    print()
-
-    selection = get_input("  Select AR invoice number: ")
-    try:
-        invoice = invoices.data[int(selection) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
-        return None
-
-    invoice["_id"] = invoice["ar_invoice_id"]
-    invoice["_outstanding"] = invoice.get("outstanding", 0)
-    invoice["_currency"] = invoice.get("currency", "PEN")
-    invoice["_label"] = invoice.get("invoice_number") or invoice.get("document_ref") or ""
-    return invoice
 
 
 # ============================================================

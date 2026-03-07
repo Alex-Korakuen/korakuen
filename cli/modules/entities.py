@@ -12,12 +12,14 @@ from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, select_project, execute_insert,
+    search_and_select_entity,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
     validate_required, validate_enum,
     process_import_errors,
     load_excel_file, print_import_summary,
+    opt_str,
 )
 
 
@@ -170,7 +172,7 @@ def add_contact():
     clear_screen()
     print("\n=== Add Contact to Entity ===\n")
 
-    entity = _search_and_select_entity()
+    entity = search_and_select_entity()
     if not entity:
         return
 
@@ -275,7 +277,7 @@ def assign_tag():
     clear_screen()
     print("\n=== Assign Tag to Entity ===\n")
 
-    entity = _search_and_select_entity()
+    entity = search_and_select_entity()
     if not entity:
         return
 
@@ -345,7 +347,7 @@ def assign_entity_to_project():
     print("\n=== Assign Entity to Project ===\n")
 
     # Select entity
-    entity = _search_and_select_entity()
+    entity = search_and_select_entity()
     if not entity:
         return
 
@@ -441,14 +443,10 @@ def _build_entity_record(row):
         "document_number": str(row["document_number"]).strip(),
         "legal_name": str(row["legal_name"]).strip(),
     }
-    if not pd.isna(row.get("common_name", None)) and str(row.get("common_name", "")).strip():
-        data["common_name"] = str(row["common_name"]).strip()
-    if not pd.isna(row.get("city", None)) and str(row.get("city", "")).strip():
-        data["city"] = str(row["city"]).strip()
-    if not pd.isna(row.get("region", None)) and str(row.get("region", "")).strip():
-        data["region"] = str(row["region"]).strip()
-    if not pd.isna(row.get("notes", None)) and str(row.get("notes", "")).strip():
-        data["notes"] = str(row["notes"]).strip()
+    for field in ("common_name", "city", "region", "notes"):
+        val = opt_str(row, field)
+        if val:
+            data[field] = val
     return data
 
 
@@ -501,49 +499,3 @@ def import_entities():
     input("\nPress Enter to continue...")
 
 
-# ============================================================
-# Shared Helpers
-# ============================================================
-
-def _search_and_select_entity():
-    """Search for an entity by document number or name. Returns selected entity dict or None."""
-    search = get_input("  Search entity (document number or name): ")
-
-    # Try exact match on document_number first
-    result = (
-        supabase.table("entities")
-        .select("id, entity_type, document_type, document_number, legal_name, common_name")
-        .eq("is_active", True)
-        .eq("document_number", search)
-        .execute()
-    )
-
-    # If no exact match, search by name
-    if not result.data:
-        result = (
-            supabase.table("entities")
-            .select("id, entity_type, document_type, document_number, legal_name, common_name")
-            .eq("is_active", True)
-            .ilike("legal_name", f"%{search}%")
-            .execute()
-        )
-
-    if not result.data:
-        print("\n  No entities found.")
-        input("\nPress Enter to continue...")
-        return None
-
-    if len(result.data) == 1:
-        entity = result.data[0]
-        print(f"\n  Found: {entity['document_type']} {entity['document_number']} — {entity['legal_name']}")
-        return entity
-
-    # Multiple results — let user pick
-    list_choices("Matching entities", result.data, display=["document_number", "legal_name"])
-    selection = get_input("  Select entity number: ")
-    try:
-        return result.data[int(selection) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
-        return None

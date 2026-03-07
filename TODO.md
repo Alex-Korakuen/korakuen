@@ -40,6 +40,22 @@ The `v_partner_ledger` view currently calculates `income_share_pen = total_incom
 
 ---
 
+## Categories Table
+
+Cost item categories are currently hardcoded as string lists in 6 places (CLI, website, import templates, docs, skills). Move categories to a database table so they're managed from one place and cascade automatically.
+
+### Tasks
+
+- [ ] Create `categories` table with `name`, `cost_type` (project_cost / sga), `label`, `is_active`, timestamps
+- [ ] Write seed migration with current 10 categories
+- [ ] Add FK from `cost_items.category` and `project_budgets.category` to `categories.name`
+- [ ] Update CLI `costs.py` to read categories from database instead of hardcoded lists
+- [ ] Update website `constants.ts` to query categories from database
+- [ ] Update import template generation to read from database
+- [ ] Remove hardcoded category lists from skills and docs (reference "whatever's in the table")
+
+---
+
 ## Known Issues
 
 ### Cost Import — Headers Without Items Warning [LOW]

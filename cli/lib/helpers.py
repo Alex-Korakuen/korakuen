@@ -311,6 +311,50 @@ def select_project(optional=False):
         return None
 
 
+def search_and_select_entity():
+    """Search for an entity by document number or name. Returns selected entity dict or None."""
+    search = get_input("  Search entity (document number or name): ")
+
+    # Try exact match on document_number first
+    result = (
+        supabase.table("entities")
+        .select("id, entity_type, document_type, document_number, legal_name, common_name")
+        .eq("is_active", True)
+        .eq("document_number", search)
+        .execute()
+    )
+
+    # If no exact match, search by name
+    if not result.data:
+        result = (
+            supabase.table("entities")
+            .select("id, entity_type, document_type, document_number, legal_name, common_name")
+            .eq("is_active", True)
+            .ilike("legal_name", f"%{search}%")
+            .execute()
+        )
+
+    if not result.data:
+        print("\n  No entities found.")
+        input("\nPress Enter to continue...")
+        return None
+
+    if len(result.data) == 1:
+        entity = result.data[0]
+        print(f"\n  Found: {entity['document_type']} {entity['document_number']} — {entity['legal_name']}")
+        return entity
+
+    # Multiple results — let user pick
+    list_choices("Matching entities", result.data, display=["document_number", "legal_name"])
+    selection = get_input("  Select entity number: ")
+    try:
+        return result.data[int(selection) - 1]
+    except (ValueError, IndexError):
+        print("\n  ✗ Invalid selection.")
+        input("\nPress Enter to continue...")
+        return None
+
+
 def select_bank_account(detraccion_filter=None, label="bank account", currency=None):
     """Query active bank accounts and let user select one.
 

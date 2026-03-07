@@ -10,9 +10,7 @@ const PROJECT_COST_CATEGORIES = [
 const SGA_CATEGORIES = [
   { key: 'software_licenses', label: 'Software Licenses' },
   { key: 'partner_compensation', label: 'Partner Compensation' },
-  { key: 'business_development', label: 'Business Development' },
   { key: 'professional_services', label: 'Professional Services' },
-  { key: 'office_admin', label: 'Office & Admin' },
   { key: 'other', label: 'Other' },
 ] as const
 
