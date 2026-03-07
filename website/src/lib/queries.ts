@@ -1067,6 +1067,7 @@ export async function getPartnerLedger(
   const projectName = ledger[0].project_name ?? '—'
 
   // View now returns one row per partner per project, all in PEN
+  // Profit-based: should_receive = costs_paid + profit × their %
   const contributions = ledger.map(row => ({
     partner_company_id: row.partner_company_id!,
     partner_name: row.partner_name ?? '—',
@@ -1074,7 +1075,10 @@ export async function getPartnerLedger(
     contribution_pct: row.contribution_pct ?? 0,
     profit_share_pct: row.profit_share_pct ?? 0,
     project_income_pen: row.project_income_pen ?? 0,
-    income_share_pen: row.income_share_pen ?? 0,
+    project_costs_pen: row.project_costs_pen ?? 0,
+    project_profit_pen: row.project_profit_pen ?? 0,
+    profit_share_pen: row.profit_share_pen ?? 0,
+    should_receive_pen: row.should_receive_pen ?? 0,
   }))
 
   // Fetch actual AR payments received per partner for this project
@@ -1116,14 +1120,15 @@ export async function getPartnerLedger(
   }
 
   // Build settlements — all in PEN
+  // should_receive = costs_paid + profit × their %
   const settlements = contributions.map(c => {
     const actuallyReceivedPen = receivedByPartner.get(c.partner_company_id) ?? 0
     return {
       partner_company_id: c.partner_company_id,
       partner_name: c.partner_name,
-      income_share_pen: c.income_share_pen,
+      should_receive_pen: c.should_receive_pen,
       actually_received_pen: Math.round(actuallyReceivedPen * 100) / 100,
-      settlement_balance_pen: Math.round((c.income_share_pen - actuallyReceivedPen) * 100) / 100,
+      settlement_balance_pen: Math.round((c.should_receive_pen - actuallyReceivedPen) * 100) / 100,
     }
   })
 

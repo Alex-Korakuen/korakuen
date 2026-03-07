@@ -135,18 +135,32 @@ export function PartnerBalancesClient({
                 </div>
               </div>
 
-              {/* Income — in PEN at transaction-date rates */}
+              {/* Project financials — in PEN at transaction-date rates */}
               <div className="rounded-lg border border-zinc-200">
                 <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
                   <h3 className="text-sm font-medium text-zinc-700">
-                    Project Income (in PEN at transaction-date rates)
+                    Project Financials (in PEN at transaction-date rates)
                   </h3>
                 </div>
-                <div className="px-4 py-3">
-                  <div className="flex justify-between py-1">
-                    <span className="text-sm text-zinc-600">Total AR Invoiced</span>
+                <div className="divide-y divide-zinc-100 px-4">
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-sm text-zinc-600">Income (AR Invoiced)</span>
                     <span className="font-mono text-sm font-medium text-zinc-800">
                       {formatCurrency(totalIncome, 'PEN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-sm text-zinc-600">Project Costs</span>
+                    <span className="font-mono text-sm font-medium text-zinc-800">
+                      {formatCurrency(contributions[0]?.project_costs_pen ?? 0, 'PEN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-sm font-medium text-zinc-700">Profit</span>
+                    <span className={`font-mono text-sm font-semibold ${
+                      (contributions[0]?.project_profit_pen ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(contributions[0]?.project_profit_pen ?? 0, 'PEN')}
                     </span>
                   </div>
                 </div>
@@ -177,7 +191,7 @@ export function PartnerBalancesClient({
                             {s.partner_name}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-zinc-700">
-                            {formatCurrency(s.income_share_pen, 'PEN')}
+                            {formatCurrency(s.should_receive_pen, 'PEN')}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-zinc-700">
                             {formatCurrency(s.actually_received_pen, 'PEN')}

@@ -179,13 +179,16 @@ export type PartnerContribution = {
   contribution_pct: number
   profit_share_pct: number
   project_income_pen: number
-  income_share_pen: number
+  project_costs_pen: number
+  project_profit_pen: number
+  profit_share_pen: number
+  should_receive_pen: number
 }
 
 export type PartnerSettlement = {
   partner_company_id: string
   partner_name: string
-  income_share_pen: number
+  should_receive_pen: number
   actually_received_pen: number
   settlement_balance_pen: number
 }

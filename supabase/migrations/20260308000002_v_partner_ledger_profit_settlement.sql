@@ -1,3 +1,14 @@
+-- ============================================================
+-- Korakuen Management System — v_partner_ledger Profit-Based Settlement
+-- Migration: 20260308000002
+-- Date: 2026-03-08
+-- Purpose: Fix settlement logic to distribute PROFIT (income - project costs)
+--          by profit_share_pct, not total income. SG&A costs excluded.
+--          Each partner should receive: costs_paid + profit × their %.
+-- ============================================================
+
+DROP VIEW IF EXISTS v_partner_ledger;
+
 -- View: v_partner_ledger
 -- Purpose: Shows each partner's financial position per project in PEN.
 --          Distributes PROFIT (income - project costs) by profit_share_pct, not income.

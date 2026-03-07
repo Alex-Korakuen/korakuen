@@ -1486,14 +1486,17 @@ export type Database = {
         Row: {
           contribution_amount_pen: number | null
           contribution_pct: number | null
-          income_share_pen: number | null
           partner_company_id: string | null
           partner_name: string | null
           profit_share_pct: number | null
           project_code: string | null
+          project_costs_pen: number | null
           project_id: string | null
           project_income_pen: number | null
           project_name: string | null
+          project_profit_pen: number | null
+          profit_share_pen: number | null
+          should_receive_pen: number | null
         }
         Relationships: [
           {

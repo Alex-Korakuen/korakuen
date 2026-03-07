@@ -32,29 +32,12 @@ The `v_partner_ledger` view currently calculates `income_share_pen = total_incom
 
 ### Tasks
 
-- [ ] Rewrite `v_partner_ledger` SQL view to use profit-based distribution
-- [ ] Filter costs to `cost_type = 'project_cost'` only (exclude SG&A)
-- [ ] Add `profit_share_pen` and `settlement_pen` columns to the view
-- [ ] Update Partner Balances page (`queries.ts` + component) to use new columns
+- [x] Rewrite `v_partner_ledger` SQL view to use profit-based distribution
+- [x] Filter costs to `cost_type = 'project_cost'` only (exclude SG&A)
+- [x] Add `profit_share_pen` and `should_receive_pen` columns to the view
+- [x] Update Partner Balances page (`queries.ts` + component) to use new columns
 - [ ] Test with real data to verify settlements net to zero across partners
 
----
-
-## Categories Table
-
-Cost item categories are currently hardcoded as string lists in 6 places (CLI, website, import templates, docs, skills). Move categories to a database table so they're managed from one place and cascade automatically.
-
-### Tasks
-
-- [x] Create `categories` table with `name`, `cost_type` (project_cost / sga), `label`, `is_active`, timestamps
-- [x] Write seed migration with current 10 categories
-- [x] Add FK from `cost_items.category` and `project_budgets.category` to `categories.name`
-- [x] Update CLI `costs.py` to read categories from database instead of hardcoded lists
-- [x] Update website `constants.ts` to query categories from database
-- [x] Update import template generation to read from database
-- [x] Remove hardcoded category lists from skills and docs (reference "whatever's in the table")
-
----
 
 ## Known Issues
 
