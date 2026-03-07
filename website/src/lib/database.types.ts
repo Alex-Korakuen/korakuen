@@ -637,6 +637,7 @@ export type Database = {
           lender_contact: string | null
           lender_name: string
           notes: string | null
+          partner_company_id: string
           project_id: string | null
           purpose: string
           return_type: string
@@ -656,6 +657,7 @@ export type Database = {
           lender_contact?: string | null
           lender_name: string
           notes?: string | null
+          partner_company_id: string
           project_id?: string | null
           purpose: string
           return_type: string
@@ -675,6 +677,7 @@ export type Database = {
           lender_contact?: string | null
           lender_name?: string
           notes?: string | null
+          partner_company_id?: string
           project_id?: string | null
           purpose?: string
           return_type?: string
@@ -1131,6 +1134,7 @@ export type Database = {
       v_ap_calendar: {
         Row: {
           amount_paid: number | null
+          bank_account_id: string | null
           bdn_outstanding: number | null
           cost_id: string | null
           cost_type: string | null
@@ -1144,6 +1148,7 @@ export type Database = {
           entity_name: string | null
           exchange_rate: number | null
           igv_amount: number | null
+          loan_id: string | null
           outstanding: number | null
           payable: number | null
           payment_status: string | null
@@ -1428,6 +1433,7 @@ export type Database = {
           loan_id: string | null
           outstanding: number | null
           paid_schedule_count: number | null
+          partner_company_id: string | null
           principal: number | null
           project_id: string | null
           purpose: string | null

@@ -21,7 +21,6 @@ export type ArBalanceRow = Database['public']['Views']['v_ar_balances']['Row']
 export type BankBalanceRow = Database['public']['Views']['v_bank_balances']['Row']
 export type PartnerLedgerRow = Database['public']['Views']['v_partner_ledger']['Row']
 export type EntityTransactionRow = Database['public']['Views']['v_entity_transactions']['Row']
-export type CostTotalRow = Database['public']['Views']['v_cost_totals']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
 export type IgvPositionRow = Database['public']['Views']['v_igv_position']['Row']
 
@@ -216,23 +215,30 @@ export type CashFlowMonth = {
   label: string // "Jan 2026"
   isActual: boolean // true for past months, false for forecast
   isCurrentMonth: boolean // true for the current month only
-  cashIn: number // projectCashIn + loansCashIn
-  projectCashIn: number // AR invoice payments received
-  loansCashIn: number // loan disbursements received (Alex-only, 0 for partners)
+  cashIn: number // sum of all project cash in + loans
+  cashInByProject: Record<string, number> // project_id -> amount
+  loansCashIn: number // loan disbursements received
   materials: number
   labor: number
   subcontractor: number
   equipment: number
   other: number
   projectCosts: number // sum of material/labor/subcontractor/equipment/other
-  sga: number // SG&A overhead costs (All Projects scope only)
-  loanRepayment: number // Alex-only, 0 for partners
+  sga: number // SG&A overhead costs
+  loanRepayment: number
   cashOut: number // projectCosts + sga + loanRepayment
   net: number // cashIn - cashOut
 }
 
+export type CashFlowProject = {
+  id: string
+  code: string
+  name: string
+}
+
 export type CashFlowData = {
   months: CashFlowMonth[]
+  projects: CashFlowProject[] // projects that have cash in during the period
 }
 
 // --- Financial Position component types ---

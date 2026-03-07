@@ -1,11 +1,11 @@
-import { isCompanyView } from '@/lib/auth'
 import { getApCalendar, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
+import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { ApCalendarClient } from './ap-calendar-client'
 
 export default async function ApCalendarPage() {
-  const isAlex = await isCompanyView()
+  const partnerIds = await getPartnerFilter()
   const [data, projects, exchangeRate] = await Promise.all([
-    getApCalendar(isAlex),
+    getApCalendar(partnerIds),
     getProjectsForFilter(),
     getLatestExchangeRate(),
   ])
@@ -14,7 +14,6 @@ export default async function ApCalendarPage() {
     <ApCalendarClient
       data={data}
       projects={projects}
-      isAlex={isAlex}
       exchangeRate={exchangeRate}
     />
   )

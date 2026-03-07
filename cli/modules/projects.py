@@ -12,7 +12,7 @@ from modules.costs import PROJECT_CATEGORIES
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
-    get_enum_input, get_currency, get_nonneg_float,
+    get_enum_input, get_currency, get_nonneg_float, execute_insert,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -152,13 +152,7 @@ def add_project():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("projects").insert(data).execute()
-        print(f"\n✓ Project registered: {project_code} (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("projects", data, f"Project registered: {project_code}")
 
 
 # ============================================================
@@ -416,13 +410,7 @@ def set_project_budget():
             data["notes"] = notes
         records.append(data)
 
-    try:
-        response = supabase.table("project_budgets").insert(records).execute()
-        print(f"\n✓ Budget set for {project_code}: {len(response.data)} categories ({currency} {total_budget:,.2f} total)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("project_budgets", records, f"Budget set for {project_code}: {len(records)} categories ({currency} {total_budget:,.2f} total)")
 
 
 # ============================================================

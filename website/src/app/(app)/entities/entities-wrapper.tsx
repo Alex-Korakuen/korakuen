@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
+import { useSelectRouter } from '@/lib/use-select-router'
 import { EntitiesClient } from './entities-client'
 import type { EntityListItem, EntityDetailData, EntitiesFilterOptions } from '@/lib/types'
 
@@ -13,18 +12,7 @@ type Props = {
 }
 
 export function EntitiesWrapper({ entities, filterOptions, detail, selectedId }: Props) {
-  const router = useRouter()
-
-  const handleSelect = useCallback(
-    (id: string | null) => {
-      if (id) {
-        router.push(`/entities?selected=${id}`)
-      } else {
-        router.push('/entities')
-      }
-    },
-    [router]
-  )
+  const handleSelect = useSelectRouter('/entities')
 
   return (
     <EntitiesClient

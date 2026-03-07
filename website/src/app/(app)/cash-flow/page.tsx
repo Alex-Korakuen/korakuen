@@ -1,5 +1,5 @@
-import { isCompanyView } from '@/lib/auth'
 import { getCashFlow, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
+import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { CashFlowWrapper } from './cash-flow-wrapper'
 
 type Props = {
@@ -8,13 +8,13 @@ type Props = {
 
 export default async function CashFlowPage({ searchParams }: Props) {
   const params = await searchParams
-  const isAlex = await isCompanyView()
+  const partnerIds = await getPartnerFilter()
 
   const year = params.year ? Number(params.year) : new Date().getFullYear()
   const projectId = params.project || null
 
   const [data, projects, exchangeRate] = await Promise.all([
-    getCashFlow(year, projectId, isAlex),
+    getCashFlow(year, projectId, partnerIds),
     getProjectsForFilter(),
     getLatestExchangeRate(),
   ])
@@ -23,7 +23,6 @@ export default async function CashFlowPage({ searchParams }: Props) {
     <CashFlowWrapper
       initialData={data}
       projects={projects}
-      isAlex={isAlex}
       year={year}
       projectId={projectId}
       exchangeRate={exchangeRate}

@@ -1,7 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
+import { useSelectRouter } from '@/lib/use-select-router'
 import { ProjectsClient } from './projects-client'
 import type { ProjectListItem, ProjectDetailData } from '@/lib/types'
 
@@ -12,18 +11,7 @@ type Props = {
 }
 
 export function ProjectsWrapper({ projects, detail, selectedId }: Props) {
-  const router = useRouter()
-
-  const handleSelect = useCallback(
-    (id: string | null) => {
-      if (id) {
-        router.push(`/projects?selected=${id}`)
-      } else {
-        router.push('/projects')
-      }
-    },
-    [router]
-  )
+  const handleSelect = useSelectRouter('/projects')
 
   return (
     <ProjectsClient

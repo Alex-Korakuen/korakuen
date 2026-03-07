@@ -3,19 +3,19 @@
 import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
+import { SectionCard } from '@/components/ui/section-card'
 import { fetchBankTransactions } from '@/lib/actions'
 import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/types'
 
 type Props = {
   data: FinancialPositionData
-  isAlex: boolean
 }
 
 function fmt(amount: number, currency: string) {
   return formatCurrency(amount, currency as Currency)
 }
 
-export function FPClient({ data, isAlex }: Props) {
+export function FPClient({ data }: Props) {
   const [selectedAccount, setSelectedAccount] = useState<{
     bankAccountId: string
     bankName: string | null
@@ -45,10 +45,7 @@ export function FPClient({ data, isAlex }: Props) {
     <div className="space-y-6">
 
       {/* CASH */}
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">Cash</h2>
-        </div>
+      <SectionCard title="Cash">
         <div className="divide-y divide-zinc-100">
           {data.bankAccounts.map((ba) => (
             <div
@@ -80,15 +77,10 @@ export function FPClient({ data, isAlex }: Props) {
             <p className="px-6 py-4 text-sm text-zinc-400">No bank accounts</p>
           )}
         </div>
-      </section>
+      </SectionCard>
 
       {/* ACCOUNTS RECEIVABLE */}
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-            Accounts Receivable
-          </h2>
-        </div>
+      <SectionCard title="Accounts Receivable">
         <div className="px-6 py-4">
           {data.arOutstanding.length === 0 ? (
             <p className="text-sm text-zinc-400">No outstanding invoices</p>
@@ -105,15 +97,10 @@ export function FPClient({ data, isAlex }: Props) {
             </div>
           )}
         </div>
-      </section>
+      </SectionCard>
 
       {/* ACCOUNTS PAYABLE */}
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-            Accounts Payable
-          </h2>
-        </div>
+      <SectionCard title="Accounts Payable">
         <div className="px-6 py-4">
           {data.apOutstanding.length === 0 ? (
             <p className="text-sm text-zinc-400">No outstanding costs</p>
@@ -130,16 +117,11 @@ export function FPClient({ data, isAlex }: Props) {
             </div>
           )}
         </div>
-      </section>
+      </SectionCard>
 
-      {/* LOANS — Alex only */}
-      {isAlex && data.loans.length > 0 && (
-        <section className="rounded-lg border border-zinc-200 bg-white">
-          <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-              Loans
-            </h2>
-          </div>
+      {/* LOANS */}
+      {data.loans.length > 0 && (
+        <SectionCard title="Loans">
           <div className="divide-y divide-zinc-100">
             {data.loans.map((loan) => (
               <div key={loan.loanId} className="flex items-center justify-between px-6 py-3">
@@ -150,7 +132,7 @@ export function FPClient({ data, isAlex }: Props) {
               </div>
             ))}
           </div>
-        </section>
+        </SectionCard>
       )}
 
       {/* SEPARATOR — Tax position is derived from the same invoices/costs above */}
@@ -164,12 +146,7 @@ export function FPClient({ data, isAlex }: Props) {
 
           {/* IGV */}
           {data.igv.length > 0 && (
-            <section className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-                  IGV
-                </h2>
-              </div>
+            <SectionCard title="IGV">
               <div className="px-6 py-4">
                 <div className="space-y-3">
                   {data.igv.map((row) => (
@@ -200,17 +177,12 @@ export function FPClient({ data, isAlex }: Props) {
                   ))}
                 </div>
               </div>
-            </section>
+            </SectionCard>
           )}
 
           {/* Retenciones */}
           {data.retencionesUnverified.length > 0 && (
-            <section className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">
-                  Retenciones
-                </h2>
-              </div>
+            <SectionCard title="Retenciones">
               <div className="px-6 py-4">
                 <p className="mb-2 text-xs text-zinc-400">Withheld by clients, pending SUNAT verification</p>
                 <div className="space-y-1">
@@ -224,7 +196,7 @@ export function FPClient({ data, isAlex }: Props) {
                   ))}
                 </div>
               </div>
-            </section>
+            </SectionCard>
           )}
         </>
       )}

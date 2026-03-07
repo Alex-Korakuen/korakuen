@@ -382,16 +382,17 @@ Partner 3                  S/   30,377   43.40%
 
 ---
 
-## Module 8: Loans (Private — Alex Only)
+## Module 8: Loans
 
-**Purpose:** Tracks private loans Alex takes from friends, family, or informal lenders to fund project operations. These are personal financial obligations — never visible to partners.
+**Purpose:** Tracks loans taken by any partner to fund project operations. Each loan belongs to a partner company via `partner_company_id`. Visible to everyone via the universal partner filter.
 
 **Business rules:**
-- Every loan records the lender, amount, and terms (percentage or fixed return)
+- Every loan records the lender, amount, terms (percentage or fixed return), and which partner borrowed (`partner_company_id`)
+- Business rule: 10% return on loans — borrower keeps the spread between agreed return and what they pay the lender
 - A loan can optionally be linked to a project it funded
 - Return can be percentage-based (e.g. 8%) or a fixed agreed amount
 - Repayments are tracked separately from business payments — uses `loan_payments` table, not `payments`
-- Loan schedule entries feed `v_ap_calendar` as a UNION source (type = 'loan_payment') — only visible to Alex
+- Loan schedule entries feed `v_ap_calendar` as a UNION source (type = 'loan_payment')
 - Loans are permanent financial records — no soft delete via `is_active`
 
 **Loan status:**
@@ -401,6 +402,7 @@ Partner 3                  S/   30,377   43.40%
 
 **Key attributes — `loans` (header):**
 - Loan ID (system generated)
+- Partner company (references Partner Companies — which partner borrowed)
 - Lender name
 - Lender contact (nullable — phone or email)
 - Amount (principal borrowed)

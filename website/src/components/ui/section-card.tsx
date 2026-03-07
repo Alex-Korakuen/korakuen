@@ -6,11 +6,11 @@ type Props = {
 
 export function SectionCard({ title, children, className }: Props) {
   return (
-    <div className={`rounded-lg border border-zinc-200 ${className ?? ''}`}>
-      <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-3">
-        <h3 className="text-sm font-medium text-zinc-700">{title}</h3>
+    <section className={`rounded-lg border border-zinc-200 bg-white ${className ?? ''}`}>
+      <div className="border-b border-zinc-200 bg-zinc-50 px-6 py-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-600">{title}</h2>
       </div>
       {children}
-    </div>
+    </section>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { formatCurrency } from '@/lib/formatters'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { getNetColorClass } from './helpers'
@@ -10,7 +10,6 @@ import type { CashFlowData, Currency } from '@/lib/types'
 type Props = {
   initialData: CashFlowData
   projects: { id: string; project_code: string; name: string }[]
-  isAlex: boolean
   year: number
   projectId: string | null
   exchangeRate: { mid_rate: number; rate_date: string } | null
@@ -20,7 +19,6 @@ type Props = {
 export function CashFlowClient({
   initialData,
   projects,
-  isAlex,
   year,
   projectId,
   exchangeRate,
@@ -28,35 +26,45 @@ export function CashFlowClient({
 }: Props) {
   const data = initialData
   const cur: Currency = 'PEN'
-  const [costsExpanded, setCostsExpanded] = useState(false)
 
   // Find first forecast month index for separator
   const firstForecastIdx = data.months.findIndex((m) => !m.isActual)
 
   // Totals
   const totals = useMemo(() => {
-    return data.months.reduce(
-      (acc, m) => ({
-        cashIn: acc.cashIn + m.cashIn,
-        projectCashIn: acc.projectCashIn + m.projectCashIn,
-        loansCashIn: acc.loansCashIn + m.loansCashIn,
-        materials: acc.materials + m.materials,
-        labor: acc.labor + m.labor,
-        subcontractor: acc.subcontractor + m.subcontractor,
-        equipment: acc.equipment + m.equipment,
-        other: acc.other + m.other,
-        projectCosts: acc.projectCosts + m.projectCosts,
-        sga: acc.sga + m.sga,
-        loanRepayment: acc.loanRepayment + m.loanRepayment,
-        cashOut: acc.cashOut + m.cashOut,
-        net: acc.net + m.net,
-      }),
-      {
-        cashIn: 0, projectCashIn: 0, loansCashIn: 0,
-        materials: 0, labor: 0, subcontractor: 0, equipment: 0, other: 0,
-        projectCosts: 0, sga: 0, loanRepayment: 0, cashOut: 0, net: 0,
+    const t = {
+      cashIn: 0,
+      loansCashIn: 0,
+      cashInByProject: {} as Record<string, number>,
+      materials: 0,
+      labor: 0,
+      subcontractor: 0,
+      equipment: 0,
+      other: 0,
+      projectCosts: 0,
+      sga: 0,
+      loanRepayment: 0,
+      cashOut: 0,
+      net: 0,
+    }
+    for (const m of data.months) {
+      t.cashIn += m.cashIn
+      t.loansCashIn += m.loansCashIn
+      t.materials += m.materials
+      t.labor += m.labor
+      t.subcontractor += m.subcontractor
+      t.equipment += m.equipment
+      t.other += m.other
+      t.projectCosts += m.projectCosts
+      t.sga += m.sga
+      t.loanRepayment += m.loanRepayment
+      t.cashOut += m.cashOut
+      t.net += m.net
+      for (const [pid, amt] of Object.entries(m.cashInByProject)) {
+        t.cashInByProject[pid] = (t.cashInByProject[pid] ?? 0) + amt
       }
-    )
+    }
+    return t
   }, [data.months])
 
   function formatAmount(amount: number): string {
@@ -64,18 +72,26 @@ export function CashFlowClient({
     return formatCurrency(amount, cur)
   }
 
-  // Helper: forecast border class for a month cell
   function forecastBorder(idx: number): string {
     return idx === firstForecastIdx && firstForecastIdx > 0
       ? ' border-l-2 border-dashed border-zinc-300'
       : ''
   }
 
-  // Helper: background class for a month cell (actual / current / forecast)
   function forecastBg(isActual: boolean, isCurrentMonth?: boolean): string {
     if (isCurrentMonth) return ' bg-amber-50/60'
     return !isActual ? ' bg-zinc-50/50' : ''
   }
+
+  // Cash Out category rows
+  const cashOutRows = [
+    { key: 'materials' as const, label: 'Materials' },
+    { key: 'labor' as const, label: 'Labor' },
+    { key: 'subcontractor' as const, label: 'Subcontractor' },
+    { key: 'equipment' as const, label: 'Equipment' },
+    { key: 'other' as const, label: 'Other' },
+    { key: 'sga' as const, label: 'SG&A' },
+  ].filter((row) => totals[row.key] !== 0)
 
   return (
     <div>
@@ -99,7 +115,7 @@ export function CashFlowClient({
 
       <RateIndicator data={exchangeRate ? { rate: exchangeRate.mid_rate, date: exchangeRate.rate_date } : null} />
 
-      {/* Monthly table — months as columns, categories as rows */}
+      {/* Monthly table */}
       <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -121,7 +137,7 @@ export function CashFlowClient({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {/* === CASH IN section === */}
+            {/* === CASH IN header === */}
             <tr>
               <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-semibold text-green-700">
                 Cash In
@@ -139,29 +155,31 @@ export function CashFlowClient({
               </td>
             </tr>
 
-            {/* Projects cash in */}
-            <tr>
-              <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
-                Projects
-              </td>
-              {data.months.map((m, idx) => (
-                <td
-                  key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
-                >
-                  {formatAmount(m.projectCashIn)}
+            {/* One row per project */}
+            {data.projects.map((proj) => (
+              <tr key={proj.id}>
+                <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
+                  {proj.code}
                 </td>
-              ))}
-              <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
-                {formatAmount(totals.projectCashIn)}
-              </td>
-            </tr>
+                {data.months.map((m, idx) => (
+                  <td
+                    key={m.month}
+                    className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
+                  >
+                    {formatAmount(m.cashInByProject[proj.id] ?? 0)}
+                  </td>
+                ))}
+                <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
+                  {formatAmount(totals.cashInByProject[proj.id] ?? 0)}
+                </td>
+              </tr>
+            ))}
 
-            {/* Loans received — Alex only */}
-            {isAlex && (
+            {/* Loans received */}
+            {totals.loansCashIn !== 0 && (
               <tr>
                 <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
-                  Loans Received
+                  Loans
                 </td>
                 {data.months.map((m, idx) => (
                   <td
@@ -177,7 +195,7 @@ export function CashFlowClient({
               </tr>
             )}
 
-            {/* === CASH OUT section === */}
+            {/* === CASH OUT header === */}
             <tr className="border-t border-zinc-200">
               <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 font-semibold text-zinc-700">
                 Cash Out
@@ -195,79 +213,31 @@ export function CashFlowClient({
               </td>
             </tr>
 
-            {/* Project Costs — expandable */}
-            <tr>
-              <td
-                className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600 cursor-pointer select-none"
-                onClick={() => setCostsExpanded(!costsExpanded)}
-              >
-                <span className="mr-1.5 inline-block w-3 text-zinc-400">{costsExpanded ? '▼' : '▶'}</span>
-                Project Costs
-              </td>
-              {data.months.map((m, idx) => (
-                <td
-                  key={m.month}
-                  className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
-                >
-                  {formatAmount(m.projectCosts)}
-                </td>
-              ))}
-              <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
-                {formatAmount(totals.projectCosts)}
-              </td>
-            </tr>
-
-            {/* Category detail rows — visible when expanded */}
-            {costsExpanded && ([
-              { key: 'materials', label: 'Materials' },
-              { key: 'labor', label: 'Labor' },
-              { key: 'subcontractor', label: 'Subcontractor' },
-              { key: 'equipment', label: 'Equipment' },
-              { key: 'other', label: 'Other' },
-            ] as const).map((cat) => (
-              <tr key={cat.key}>
-                <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-2 pl-14 text-xs text-zinc-500">
-                  {cat.label}
-                </td>
-                {data.months.map((m, idx) => (
-                  <td
-                    key={m.month}
-                    className={`whitespace-nowrap px-4 py-2 text-right font-mono text-xs text-zinc-500${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
-                  >
-                    {formatAmount(m[cat.key])}
-                  </td>
-                ))}
-                <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-2 text-right font-mono text-xs font-medium text-zinc-600">
-                  {formatAmount(totals[cat.key])}
-                </td>
-              </tr>
-            ))}
-
-            {/* SG&A row — only shows when there's SG&A data */}
-            {totals.sga !== 0 && (
-              <tr>
+            {/* One row per cost type */}
+            {cashOutRows.map((row) => (
+              <tr key={row.key}>
                 <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
-                  SG&amp;A
+                  {row.label}
                 </td>
                 {data.months.map((m, idx) => (
                   <td
                     key={m.month}
                     className={`whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600${forecastBg(m.isActual, m.isCurrentMonth)}${forecastBorder(idx)}`}
                   >
-                    {formatAmount(m.sga)}
+                    {formatAmount(m[row.key])}
                   </td>
                 ))}
                 <td className="whitespace-nowrap border-l border-zinc-200 bg-zinc-100 px-4 py-3 text-right font-mono font-medium text-zinc-700">
-                  {formatAmount(totals.sga)}
+                  {formatAmount(totals[row.key])}
                 </td>
               </tr>
-            )}
+            ))}
 
-            {/* Loan Repayment — Alex only */}
-            {isAlex && (
+            {/* Loan repayment */}
+            {totals.loanRepayment !== 0 && (
               <tr>
                 <td className="sticky left-0 bg-white whitespace-nowrap px-4 py-3 pl-8 text-zinc-600">
-                  Loan Repayment
+                  Loans
                 </td>
                 {data.months.map((m, idx) => (
                   <td
@@ -306,7 +276,7 @@ export function CashFlowClient({
 
       <p className="mt-3 text-xs text-zinc-400">
         Actual months reflect payments made. Forecast months use due dates from outstanding costs and AR invoices.
-        {isAlex && ' Loan disbursements and repayment obligations included.'}
+        Loan disbursements and repayment obligations included.
         {' '}Actual months: USD converted at transaction-date rate. Forecast months: USD converted at latest exchange rate.
       </p>
     </div>

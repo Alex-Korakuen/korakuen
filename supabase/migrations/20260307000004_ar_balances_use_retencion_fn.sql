@@ -1,10 +1,8 @@
--- View: v_ar_balances
--- Purpose: Derives igv_amount, gross_total, detraccion, retencion, net_receivable,
---          amount_paid, outstanding, and payment_status per AR invoice
--- Source tables: ar_invoices, payments
--- Used by: AR detail pages, project P&L, company P&L
+-- Migration: Replace inline retencion calculation with fn_retencion_amount()
+-- Consistency fix: all other views use tax helper functions
 
-CREATE OR REPLACE VIEW v_ar_balances
+DROP VIEW IF EXISTS v_ar_balances;
+CREATE VIEW v_ar_balances
 WITH (security_invoker = on)
 AS
 WITH ar_base AS (

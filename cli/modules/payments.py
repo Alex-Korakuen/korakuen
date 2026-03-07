@@ -10,7 +10,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_bank_account,
-    get_nonneg_float,
+    get_nonneg_float, execute_insert,
 )
 
 
@@ -184,13 +184,7 @@ def register_payment():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("payments").insert(data).execute()
-        print(f"\n✓ Payment registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("payments", data, "Payment registered")
 
 
 def _select_cost():

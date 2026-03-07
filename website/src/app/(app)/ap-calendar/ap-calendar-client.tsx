@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
+import { useDetailModal } from '@/lib/use-detail-modal'
 import { getDaysUntilEndOfWeek, formatType } from './helpers'
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
 import { ApCalendarFilters } from './ap-calendar-filters'
@@ -23,12 +24,11 @@ type Props = {
   data: ApCalendarRow[]
   projects: { id: string; project_code: string; name: string }[]
   exchangeRate: { mid_rate: number; rate_date: string } | null
-  isAlex: boolean
 }
 
 // --- Component ---
 
-export function ApCalendarClient({ data, projects, exchangeRate, isAlex }: Props) {
+export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
   const [activeBucket, setActiveBucket] = useState<BucketId>('all')
   const [filters, setFilters] = useState<Filters>({
     projectId: '',
@@ -37,11 +37,7 @@ export function ApCalendarClient({ data, projects, exchangeRate, isAlex }: Props
     titleSearch: '',
   })
   const { sortColumn, sortDirection, handleSort } = useSort<SortColumn>('due_date')
-  const [selectedRow, setSelectedRow] = useState<ApCalendarRow | null>(null)
-  const [costDetail, setCostDetail] = useState<CostDetailData | null>(null)
-  const [loanDetail, setLoanDetail] = useState<LoanDetailData | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState(false)
+  const modal = useDetailModal<ApCalendarRow, CostDetailData | LoanDetailData>()
 
   // --- Bucket calculations ---
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
@@ -142,36 +138,19 @@ export function ApCalendarClient({ data, projects, exchangeRate, isAlex }: Props
     setFilters({ projectId: '', supplier: '', currency: '', titleSearch: '' })
   }
 
-  const handleRowClick = useCallback(async (row: ApCalendarRow) => {
-    setSelectedRow(row)
-    setDetailLoading(true)
-    setDetailError(false)
-    setCostDetail(null)
-    setLoanDetail(null)
-
-    try {
+  const handleRowClick = (row: ApCalendarRow) => {
+    modal.open(row, async () => {
       if (row.type === 'supplier_invoice' && row.cost_id) {
-        const detail = await fetchCostDetail(row.cost_id)
-        setCostDetail(detail as CostDetailData)
+        return await fetchCostDetail(row.cost_id) as CostDetailData | null
       } else if (row.type === 'loan_payment' && row.due_date && row.outstanding !== null) {
-        const detail = await fetchLoanDetailFromSchedule(
+        return await fetchLoanDetailFromSchedule(
           row.entity_name ?? '',
           row.due_date,
           row.outstanding
-        )
-        setLoanDetail(detail as LoanDetailData | null)
+        ) as LoanDetailData | null
       }
-    } catch {
-      setDetailError(true)
-    } finally {
-      setDetailLoading(false)
-    }
-  }, [])
-
-  function closeModal() {
-    setSelectedRow(null)
-    setCostDetail(null)
-    setLoanDetail(null)
+      return null
+    })
   }
 
   // --- Render ---
@@ -240,59 +219,59 @@ export function ApCalendarClient({ data, projects, exchangeRate, isAlex }: Props
 
       {/* Detail Modal */}
       <Modal
-        isOpen={selectedRow !== null}
-        onClose={closeModal}
+        isOpen={modal.selectedRow !== null}
+        onClose={modal.close}
         title={
-          selectedRow?.type === 'loan_payment'
+          modal.selectedRow?.type === 'loan_payment'
             ? 'Loan Payment Detail'
             : 'Cost Detail'
         }
       >
-        {detailLoading && (
+        {modal.loading && (
           <div className="flex items-center justify-center py-8">
             <div className="text-sm text-zinc-400">Loading detail...</div>
           </div>
         )}
 
         {/* Cost detail */}
-        {!detailLoading && selectedRow?.type === 'supplier_invoice' && costDetail && (
+        {!modal.loading && modal.selectedRow?.type === 'supplier_invoice' && modal.detail && (
           <CostDetailContent
-            row={selectedRow}
-            detail={costDetail}
+            row={modal.selectedRow}
+            detail={modal.detail as CostDetailData}
           />
         )}
 
-        {/* Loan detail (Alex only) */}
-        {!detailLoading && selectedRow?.type === 'loan_payment' && loanDetail && (
+        {/* Loan detail */}
+        {!modal.loading && modal.selectedRow?.type === 'loan_payment' && modal.detail && (
           <LoanDetailContent
-            row={selectedRow}
-            detail={loanDetail}
+            row={modal.selectedRow}
+            detail={modal.detail as LoanDetailData}
           />
         )}
 
         {/* Error message if detail fetch failed */}
-        {!detailLoading && detailError && (
+        {!modal.loading && modal.error && (
           <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Could not load full detail. Showing summary only.
           </div>
         )}
 
         {/* Fallback if detail couldn't load */}
-        {!detailLoading && selectedRow && !costDetail && !loanDetail && (
+        {!modal.loading && modal.selectedRow && !modal.detail && (
           <div className="space-y-3">
-            <DetailField label="Type" value={formatType(selectedRow.type)} />
-            <DetailField label="Supplier" value={selectedRow.entity_name ?? '--'} />
-            <DetailField label="Project" value={selectedRow.project_code ?? '--'} />
-            <DetailField label="Title" value={selectedRow.title ?? '--'} />
+            <DetailField label="Type" value={formatType(modal.selectedRow.type)} />
+            <DetailField label="Supplier" value={modal.selectedRow.entity_name ?? '--'} />
+            <DetailField label="Project" value={modal.selectedRow.project_code ?? '--'} />
+            <DetailField label="Title" value={modal.selectedRow.title ?? '--'} />
             <DetailField
               label="Due Date"
-              value={selectedRow.due_date ? formatDate(selectedRow.due_date) : '--'}
+              value={modal.selectedRow.due_date ? formatDate(modal.selectedRow.due_date) : '--'}
             />
             <DetailField
               label="Outstanding"
               value={
-                selectedRow.outstanding !== null && selectedRow.currency
-                  ? formatCurrency(selectedRow.outstanding, selectedRow.currency as 'PEN' | 'USD')
+                modal.selectedRow.outstanding !== null && modal.selectedRow.currency
+                  ? formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency as 'PEN' | 'USD')
                   : '--'
               }
             />

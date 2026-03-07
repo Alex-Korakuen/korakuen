@@ -11,7 +11,7 @@ from lib.db import supabase
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
-    get_enum_input, select_project,
+    get_enum_input, select_project, execute_insert,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -144,14 +144,11 @@ def add_entity():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("entities").insert(data).execute()
-        entity_id = response.data[0]["id"]
-        print(f"\n✓ Entity registered (ID: {entity_id[:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
+    response = execute_insert("entities", data, "Entity registered", wait=False)
+    if not response:
         input("\nPress Enter to continue...")
         return
+    entity_id = response.data[0]["id"]
 
     # --- Prompt to add primary contact ---
     if confirm("\nAdd a primary contact for this entity?"):
@@ -266,13 +263,7 @@ def add_tag():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("tags").insert(data).execute()
-        print(f"\n✓ Tag registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("tags", data, "Tag registered")
 
 
 # ============================================================
@@ -409,13 +400,7 @@ def assign_entity_to_project():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("project_entities").insert(data).execute()
-        print(f"\n✓ Entity assigned to project (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("project_entities", data, "Entity assigned to project")
 
 
 # ============================================================

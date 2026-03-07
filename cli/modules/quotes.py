@@ -12,7 +12,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
-    get_nonneg_float,
+    get_nonneg_float, execute_insert,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -172,13 +172,7 @@ def add_quote():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("quotes").insert(data).execute()
-        print(f"\n✓ Quote registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("quotes", data, "Quote registered")
 
 
 # ============================================================

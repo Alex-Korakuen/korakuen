@@ -11,7 +11,6 @@ import type { PartnerBalanceData, PartnerContribution, PartnerCostDetail, Curren
 type Props = {
   data: PartnerBalanceData | null
   projects: { id: string; project_code: string; name: string }[]
-  isAlex: boolean
   projectId: string | null
   exchangeRate: { mid_rate: number; rate_date: string } | null
   onProjectChange: (projectId: string | null) => void
@@ -20,7 +19,6 @@ type Props = {
 export function PartnerBalancesClient({
   data,
   projects,
-  isAlex,
   projectId,
   exchangeRate,
   onProjectChange,

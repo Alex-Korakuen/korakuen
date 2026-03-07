@@ -1,4 +1,4 @@
-export const PROJECT_COST_CATEGORIES = [
+const PROJECT_COST_CATEGORIES = [
   { key: 'materials', label: 'Materials' },
   { key: 'labor', label: 'Labor' },
   { key: 'subcontractor', label: 'Subcontractor' },
@@ -7,7 +7,7 @@ export const PROJECT_COST_CATEGORIES = [
   { key: 'other', label: 'Other' },
 ] as const
 
-export const SGA_CATEGORIES = [
+const SGA_CATEGORIES = [
   { key: 'software_licenses', label: 'Software Licenses' },
   { key: 'partner_compensation', label: 'Partner Compensation' },
   { key: 'business_development', label: 'Business Development' },

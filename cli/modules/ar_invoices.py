@@ -12,7 +12,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
-    select_bank_account, get_nonneg_float,
+    select_bank_account, get_nonneg_float, execute_insert,
     COMPROBANTE_TYPES_AR,
 )
 from lib.import_helpers import (
@@ -207,13 +207,7 @@ def add_ar_invoice():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("ar_invoices").insert(data).execute()
-        print(f"\n✓ AR invoice registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("ar_invoices", data, "AR invoice registered")
 
 
 # ============================================================

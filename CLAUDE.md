@@ -58,7 +58,7 @@ korakuen/
 │   │   ├── quotes.py
 │   │   ├── ar_invoices.py
 │   │   ├── payments.py
-│   │   ├── loans.py          → private loans module (Phase 3.5)
+│   │   ├── loans.py          → loans module (Phase 3.5)
 │   │   └── exchange_rates.py → SUNAT daily exchange rates (Phase 5)
 │   ├── lib/
 │   │   ├── db.py           → shared Supabase client
@@ -89,7 +89,7 @@ Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
-Layer 6 (private): loans, loan_schedule, loan_payments
+Layer 6: loans, loan_schedule, loan_payments
 Layer 7: project_budgets
 ```
 
@@ -111,7 +111,7 @@ Key facts:
 
 - **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on AR only — Korakuen is NOT a retencion agent)
 - **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on costs — cash purchases and informal suppliers are valid
-- **Partner asymmetry:** Alex's bank accounts are fully tracked. Partner bank accounts are reference only — partner identity is derived from bank_account on costs, explicit on ar_invoices and payments
+- **Partner asymmetry:** Alex's bank accounts are fully tracked. Partner bank accounts are reference only — partner identity is derived from bank_account on costs, explicit on ar_invoices, payments, and loans
 - **Costs have line items:** `costs` is the header, `cost_items` holds detail. Category lives on cost_items, not the header
 - **PO module hook:** `costs` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null in V0
 - **No stored totals:** subtotal, igv_amount, total on costs are derived from cost_items via `v_cost_totals`. Payment status derived from payments via `v_cost_balances` and `v_ar_balances`
@@ -150,7 +150,7 @@ Read these documents for context on specific tasks:
 | Understanding module behavior | `docs/03_module_specifications.md` |
 | Building website views | `docs/04_visualization.md` + `docs/13_view_prototypes.md` |
 | Understanding file/document references | `docs/07_file_storage.md` |
-| Knowing what to build next | `docs/09_dev_roadmap.md` |
+| Knowing what to build next | `TODO.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
 | Writing import functions | `skills/import_script.md` + `docs/10_coding_standards.md` |
 | Understanding what skills to build and how | `skills/` directory (12_skills.md deleted — skills are the reference) |
@@ -165,7 +165,7 @@ Read these documents for context on specific tasks:
 - Follow naming conventions in `docs/10_coding_standards.md` exactly
 - Show a summary and ask for confirmation before any database insert
 - Write comments on non-obvious code
-- Update `docs/09_dev_roadmap.md` task status when tasks complete
+- Update `TODO.md` task status when tasks complete
 
 ### Never do without explicit approval:
 - Modify the database schema
@@ -208,15 +208,13 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Phase 3 complete — CLI Application.** All data entry modules built and tested (entities, projects, quotes, costs, ar_invoices, payments). CLI connects via service role key. Views module retired — read-only dashboards moved exclusively to the website.
+**Development complete.** CLI application (8 modules), database (19 tables, 11 views), and visualization website (8 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`.
 
-**Phase 3.5 complete — Schema & CLI Extensions.** Four new tables (loans, loan_schedule, loan_payments, project_budgets) in 4 migrations. Two new fields on existing tables (city/region on entities, payment_method on costs). Expanded comprobante_type to 6 values. New loans CLI module (menu item 7). Budget entry added to projects module. Two new views (`v_loan_balances`, `v_budget_vs_actual`), two updated views (`v_cost_totals` with payment_method, `v_ap_calendar` with loan UNION). All Excel templates regenerated. `v_cash_flow` skipped as SQL view — computed in `queries.ts` instead.
+**Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 8 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 
-**Phase 4 complete — Visualization Website.** All 13 tasks complete (4.1–4.13): project setup, auth, layout, Vercel deployment, AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position, Projects browse, Entities browse, Prices browse. 11 views deployed (`v_igv_position` added; `v_settlement_dashboard`, `v_project_pl`, `v_company_pl` removed — P&L computed in `queries.ts`). All migrations applied to remote. Production live at `https://korakuen.vercel.app`.
+**Loans are partner-owned.** Every loan has a `partner_company_id`. Business rule: 10% return on loans, borrower keeps the spread between agreed return and what they pay the lender.
 
-**Phase 5 in progress — PEN Functional Currency.** New `exchange_rates` table with daily SUNAT USD/PEN rates. New exchange_rates CLI module (menu item 8). CLI suggests current exchange rate during data entry. Dashboards converted to PEN functional currency: P&L and Cash Flow report in PEN only, AP Calendar and AR Outstanding show PEN aggregate summary cards, Partner Balances uses transaction-date PEN conversion. `v_partner_ledger` view rewritten (one row per partner per project, all in PEN). Valuations table removed (dormant infrastructure, never displayed on website).
-
-See `docs/09_dev_roadmap.md` for full task list and completion status.
+See `TODO.md` for remaining work.
 
 ---
 

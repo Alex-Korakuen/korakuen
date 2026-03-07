@@ -18,7 +18,7 @@ Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
-Layer 6 (private): loans, loan_schedule, loan_payments
+Layer 6: loans, loan_schedule, loan_payments
 Layer 7: project_budgets
 ```
 
@@ -478,15 +478,16 @@ row 3: inbound | ar_invoice_id | regular    | S/ 109,740 | Interbank account
 
 ---
 
-## Layer 6 — Private (Alex only)
+## Layer 6 — Loans
 
 ### `loans`
-Personal financing arrangements — money borrowed from friends, family, or informal lenders. Tracks what Alex owes and to whom. Completely isolated from business accounting. All capital contributed to a project counts as own capital regardless of source — the partnership never sees this data.
+Financing arrangements — money borrowed from friends, family, or informal lenders to fund project contributions. Each loan belongs to a partner company. Business rule: 10% return on loans, borrower keeps the spread.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
-| lender_name | VARCHAR | NO | who Alex borrowed from |
+| partner_company_id | UUID | NO | references partner_companies — which partner borrowed |
+| lender_name | VARCHAR | NO | who borrowed from |
 | lender_contact | VARCHAR | YES | phone or email |
 | amount | NUMERIC(15,2) | NO | principal borrowed |
 | currency | VARCHAR(3) | NO | USD or PEN |
@@ -502,8 +503,6 @@ Personal financing arrangements — money borrowed from friends, family, or info
 | notes | TEXT | YES | freeform |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
-
-**Privacy:** Never visible to partners. CLI-only in V0, admin-only in V1.
 
 **No `is_active`** — loans are permanent financial records, same as costs, payments, and AR invoices.
 
@@ -524,7 +523,7 @@ Agreed repayment schedule for a loan. Optional — not all loans have a structur
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-**Feeds `v_ap_calendar`** as a second UNION source (type = 'loan_payment'). Only visible to Alex.
+**Feeds `v_ap_calendar`** as a second UNION source (type = 'loan_payment').
 
 ---
 
@@ -600,7 +599,7 @@ Layer 4 (depends on Layer 3):
 Layer 5 (child records):
   payments
 
-Layer 6 (private — Alex only):
+Layer 6 (loans):
   loans
   loan_schedule
   loan_payments
@@ -634,9 +633,7 @@ Layer 7 (project extensions):
 | View | Reason |
 |---|---|
 | `v_cash_flow` | Multi-table aggregation with category breakdown and currency conversion too complex for a single SQL view. Computed in `queries.ts`. |
-| `v_project_pl` / `v_company_pl` | P&L requires period filtering, multi-table aggregation, and currency conversion. Computed in `queries.ts`. Views existed early on but were never used by the website and have been dropped. |
-
-**Note on P&L vs Cash Flow:** P&L is accrual-basis (when invoiced/recorded). Cash Flow is cash-basis (when money actually moved through bank accounts). These are two different financial statements answering different questions.
+| `v_project_pl` / `v_company_pl` | P&L views existed early on but were dropped. The system operates on a cash basis — no accrual-based P&L page. |
 
 ---
 

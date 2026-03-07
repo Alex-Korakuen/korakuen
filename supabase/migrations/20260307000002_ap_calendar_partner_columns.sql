@@ -1,11 +1,12 @@
--- View: v_ap_calendar
--- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
---          Combines supplier invoices (from costs) and loan repayment schedule (from loan_schedule).
---          Feeds the Accounts Payable payment calendar on the website.
--- Source tables: v_cost_balances, projects, entities, loan_schedule, loans
--- Used by: AP calendar page, payment planning dashboard
+-- ============================================================
+-- Migration: 20260307000002
+-- Date: 2026-03-07
+-- Purpose: Add bank_account_id and loan_id to v_ap_calendar
+-- These columns enable partner filtering on the AP Calendar page.
+-- ============================================================
 
-CREATE OR REPLACE VIEW v_ap_calendar
+DROP VIEW IF EXISTS v_ap_calendar;
+CREATE VIEW v_ap_calendar
 WITH (security_invoker = on)
 AS
 

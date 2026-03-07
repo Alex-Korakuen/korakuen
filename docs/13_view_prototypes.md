@@ -10,9 +10,9 @@
 
 This document provides ASCII visual prototypes for every website view defined in `docs/04_visualization.md`. Each prototype shows the page layout, UI elements, column headers with sample data, interactive behavior, and the database views that feed data. Use this alongside `docs/04_visualization.md` (full specs) when building each page.
 
-**9 pages total:**
+**8 pages total:**
 - Browse: Projects, Entities & Contacts, Prices
-- Dashboards: AP Calendar, AR Outstanding, Cash Flow, Partner Balances, P&L, Financial Position
+- Dashboards: AP Calendar, AR Outstanding, Cash Flow, Partner Balances, Financial Position
 
 ---
 
@@ -35,7 +35,6 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 |  AR Out. |                                                           |
 |  Cash Fl.|                                                           |
 |  Partners|                                                           |
-|  P&L     |                                                           |
 |  Fin.Pos.|                                                           |
 |          |                                                           |
 +----------+-----------------------------------------------------------+
@@ -277,7 +276,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 - `~` Yellow — due this week (tomorrow through end of week)
 - ` ` Neutral — future (after this week)
 
-**(a) Loan rows (Alex-only):** Rows with Type = "Loan" come from `loan_schedule` via UNION in `v_ap_calendar`. Partners never see these rows.
+**(a) Loan rows:** Rows with Type = "Loan" come from `loan_schedule` via UNION in `v_ap_calendar`. Filterable by partner via the global partner filter.
 
 #### Taxes Tab
 
@@ -475,88 +474,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 
 ---
 
-### 7. Company P&L
-
-**Data sources:** Computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion)
-
-#### Year View (columns = months)
-
-```
-+-------------------------------------------------------------------------------------------+
-|  Company P&L                                                                              |
-+-------------------------------------------------------------------------------------------+
-|                                                                                           |
-|  Period: [ 2026 v ]   Reporting currency: [ PEN v ]                                       |
-|                                                                                           |
-+-------------------------------------------------------------------------------------------+
-|                              JAN            FEB            MAR         ...    TOTAL        |
-|                                                                                           |
-|  INCOME                                                                                   |
-|  > AR Invoiced              S/ 106,200     S/ 141,600     S/  95,000  ...   S/ 342,800    |
-|                                                                                           |
-|  PROJECT COSTS                                                                            |
-|  > Total Project Costs     (S/  62,800)   (S/ 142,400)   (S/  85,000) ... (S/ 290,200)   |
-|  -----------------------------------------------------------------------------------      |
-|  GROSS PROFIT               S/  43,400    -S/     800     S/  10,000  ...   S/  52,600    |
-|  Gross Margin                    40.9%         -0.6%          10.5%              15.3%     |
-|                                                                                           |
-|  SGA                                                                                      |
-|    Software Licenses       (S/   1,200)   (S/   1,200)   (S/   1,200) ...  (S/   3,600)  |
-|    Partner Compensation    (S/   5,000)   (S/   5,000)   (S/   5,000) ... (S/  15,000)   |
-|    Business Development    (S/   1,500)   (S/   2,000)   (S/   1,200) ...  (S/   4,700)  |
-|    Professional Services   (S/     800)   (S/   2,000)   (S/   1,000) ...  (S/   3,800)  |
-|    Office & Admin          (S/     350)   (S/     300)   (S/     300) ...  (S/     950)   |
-|  Total SGA                 (S/   8,850)   (S/  10,500)   (S/   8,700) ... (S/  28,050)   |
-|  -----------------------------------------------------------------------------------      |
-|  NET PROFIT                 S/  34,550    -S/  11,300     S/   1,300  ...   S/  24,550    |
-|  Net Margin                      32.5%         -8.0%           1.4%               7.2%    |
-|                                                                                           |
-|  ==================================================================================       |
-|  -- Personal Position (Alex only) --                                                      |
-|                                                                                           |
-|  Alex's profit share (61.1%):                                         S/  15,012.05       |
-|                                                                                           |
-|  Loan obligations:                                                                        |
-|    Friend Juan (8% on S/ 500k):                                      (S/  40,000.00)     |
-|    Friend Pedro (fixed return):                                      (S/  15,000.00)     |
-|  -----------------------------------------------                                         |
-|  Net after obligations:                                              -S/  39,987.95       |
-|                                                                                           |
-|  i This section is only visible to Alex.                                                  |
-|                                                                                           |
-+-------------------------------------------------------------------------------------------+
-```
-
-#### Quarter View
-
-```
-|  Period: [ Q1 2026 v ]   Reporting currency: [ PEN v ]                                    |
-|                              JAN            FEB            MAR          TOTAL              |
-|  (same structure, 3 months + total)                                                       |
-```
-
-#### Single Month View
-
-```
-|  Period: [ February 2026 v ]   Reporting currency: [ PEN v ]                              |
-|                              FEB 2026                                                     |
-|  (same structure, one column)                                                             |
-```
-
-**Display conventions:**
-- Costs shown in parentheses — standard financial presentation
-- Reporting currency selector converts all amounts using stored exchange rates
-- Converted amounts marked with * to indicate conversion
-- Margin percentages shown below profit lines
-
-**Interactions:**
-- Period selector: year (12 columns), quarter (3 columns), single month (1 column)
-- Click AR Invoiced to expand per-project breakdown
-- Click Total Project Costs to expand category breakdown
-
----
-
-### 8. Cash Flow
+### 7. Cash Flow
 
 **Data source:** Computed in `queries.ts` (no SQL view — too complex for a single view)
 
@@ -604,13 +522,13 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 - Scope selector: All Projects (default) or single project
 - Year picker to select period
 - Reporting currency selector (PEN default, USD option)
-- Company view (Alex-only) includes loan outflows in Cash Out
+- Loan outflows included in Cash Out for all users
 - Cash shortfall warning when cumulative goes negative in future months
 - Cash Out broken down by cost category (materials, labor, subcontractor, equipment, other)
 
 ---
 
-### 9. Financial Position
+### 8. Financial Position
 
 **Data sources:** `v_bank_balances`, `v_ar_balances`, `v_cost_balances`, `v_igv_position`, `v_retencion_dashboard`, `v_loan_balances`
 
@@ -662,7 +580,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 |  Tax Liabilities                                                                |
 |    IGV Collected (debito fiscal)                     S/   62,100.00             |
 |                                                                                 |
-|  Loans (Alex only) (a)                                                          |
+|  Loans                                                                          |
 |    Friend Juan (S/500k @ 8%)                         S/  460,000.00             |
 |    Friend Pedro (fixed return)                       S/   15,000.00             |
 |                                                                                 |
@@ -673,7 +591,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 |  NET POSITION (Assets - Liabilities)                -S/  193,329.13             |
 |                                                                                 |
 |  * Converted at stored exchange rate                                            |
-|  (a) Loans section visible to Alex only                                         |
+|                                                                                 |
 |  i Balances are system-calculated, not bank-reconciled.                         |
 |                                                                                 |
 +---------------------------------------------------------------------------------+

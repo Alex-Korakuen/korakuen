@@ -5,11 +5,13 @@ import {
   getPartnerCompaniesForFilter,
   getLatestExchangeRate,
 } from '@/lib/queries'
+import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { ArOutstandingClient } from './ar-outstanding-client'
 
 export default async function ArOutstandingPage() {
+  const partnerIds = await getPartnerFilter()
   const [data, projects, clients, partners, exchangeRate] = await Promise.all([
-    getArOutstanding(),
+    getArOutstanding(partnerIds),
     getProjectsForFilter(),
     getClientsForFilter(),
     getPartnerCompaniesForFilter(),

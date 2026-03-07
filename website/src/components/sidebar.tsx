@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { usePartnerFilter } from '@/lib/partner-filter-context'
 
 interface NavItem {
   label: string
@@ -86,6 +87,80 @@ function NavSection({
   )
 }
 
+function PartnerFilter({ collapsed }: { collapsed: boolean }) {
+  const { partners, selectedPartnerIds, togglePartner, clearFilter, applyFilter, isFiltered, isDirty } = usePartnerFilter()
+
+  if (collapsed) {
+    return (
+      <div className="mb-6">
+        <div className="flex flex-col gap-1 px-2">
+          {partners.map((p) => {
+            const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
+            return (
+              <button
+                key={p.id}
+                onClick={() => togglePartner(p.id)}
+                className={`flex h-6 w-full items-center justify-center rounded text-xs font-medium transition-colors ${
+                  selected
+                    ? 'bg-zinc-800 text-white'
+                    : 'bg-zinc-100 text-zinc-400'
+                }`}
+                title={p.name}
+              >
+                {p.name.charAt(0)}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="mb-2 flex items-center justify-between px-3">
+        <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+          Partners
+        </h3>
+        {isFiltered && (
+          <button
+            onClick={clearFilter}
+            className="text-xs text-zinc-400 hover:text-zinc-600"
+          >
+            All
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-1 px-2">
+        {partners.map((p) => {
+          const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
+          return (
+            <button
+              key={p.id}
+              onClick={() => togglePartner(p.id)}
+              className={`rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+                selected
+                  ? 'bg-zinc-100 font-medium text-zinc-900'
+                  : 'text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              {p.name}
+            </button>
+          )
+        })}
+        {isDirty && (
+          <button
+            onClick={applyFilter}
+            className="mt-1 rounded-md bg-zinc-800 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
+          >
+            Apply
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
@@ -157,6 +232,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-2 py-4">
+          <PartnerFilter collapsed={collapsed} />
           <NavSection
             title="Browse"
             items={browseItems}

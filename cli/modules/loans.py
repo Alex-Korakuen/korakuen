@@ -10,7 +10,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
-    select_project, get_nonneg_float,
+    select_project, get_nonneg_float, execute_insert,
 )
 
 
@@ -140,13 +140,7 @@ def add_loan():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("loans").insert(data).execute()
-        print(f"\n✓ Loan registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("loans", data, "Loan registered")
 
 
 # ============================================================
@@ -278,13 +272,7 @@ def add_schedule():
         return
 
     # --- Batch insert ---
-    try:
-        response = supabase.table("loan_schedule").insert(entries).execute()
-        print(f"\n✓ {len(response.data)} schedule entries added.")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")
+    execute_insert("loan_schedule", entries, f"{len(entries)} schedule entries added")
 
 
 # ============================================================
@@ -410,11 +398,7 @@ def register_repayment():
     if notes:
         data["notes"] = notes
 
-    try:
-        response = supabase.table("loan_payments").insert(data).execute()
-        print(f"\n✓ Repayment registered (ID: {response.data[0]['id'][:8]}...)")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
+    if not execute_insert("loan_payments", data, "Repayment registered", wait=False):
         input("\nPress Enter to continue...")
         return
 

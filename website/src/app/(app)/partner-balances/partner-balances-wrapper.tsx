@@ -8,7 +8,6 @@ import type { PartnerBalanceData } from '@/lib/types'
 type Props = {
   initialData: PartnerBalanceData | null
   projects: { id: string; project_code: string; name: string }[]
-  isAlex: boolean
   projectId: string | null
   exchangeRate: { mid_rate: number; rate_date: string } | null
 }
@@ -16,7 +15,6 @@ type Props = {
 export function PartnerBalancesWrapper({
   initialData,
   projects,
-  isAlex,
   projectId,
   exchangeRate,
 }: Props) {
@@ -37,7 +35,6 @@ export function PartnerBalancesWrapper({
     <PartnerBalancesClient
       data={initialData}
       projects={projects}
-      isAlex={isAlex}
       projectId={projectId}
       exchangeRate={exchangeRate}
       onProjectChange={handleProjectChange}

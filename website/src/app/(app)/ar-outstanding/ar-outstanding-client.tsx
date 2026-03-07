@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
 import { useSort, sortRows } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
@@ -8,6 +8,7 @@ import { SummaryCard } from '@/components/ui/summary-card'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { Modal } from '@/components/ui/modal'
 import { fetchArInvoiceDetail } from '@/lib/actions'
+import { useDetailModal } from '@/lib/use-detail-modal'
 import {
   getAgingBucket,
   getAgingColorClass,
@@ -45,10 +46,7 @@ export function ArOutstandingClient({
     currency: '',
   })
   const { sortColumn, sortDirection, handleSort } = useSort<SortColumn>('due_date')
-  const [selectedRow, setSelectedRow] = useState<ArOutstandingRow | null>(null)
-  const [invoiceDetail, setInvoiceDetail] = useState<ArInvoiceDetailData | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState(false)
+  const modal = useDetailModal<ArOutstandingRow, ArInvoiceDetailData>()
 
   // --- Bucket calculations ---
   const buckets = useMemo(() => {
@@ -125,25 +123,8 @@ export function ArOutstandingClient({
     setFilters({ projectId: '', client: '', partnerCompanyId: '', currency: '' })
   }
 
-  const handleRowClick = useCallback(async (row: ArOutstandingRow) => {
-    setSelectedRow(row)
-    setDetailLoading(true)
-    setDetailError(false)
-    setInvoiceDetail(null)
-
-    try {
-      const detail = await fetchArInvoiceDetail(row.ar_invoice_id)
-      setInvoiceDetail(detail as ArInvoiceDetailData)
-    } catch {
-      setDetailError(true)
-    } finally {
-      setDetailLoading(false)
-    }
-  }, [])
-
-  function closeModal() {
-    setSelectedRow(null)
-    setInvoiceDetail(null)
+  const handleRowClick = (row: ArOutstandingRow) => {
+    modal.open(row, () => fetchArInvoiceDetail(row.ar_invoice_id) as Promise<ArInvoiceDetailData | null>)
   }
 
   // --- Unique clients for filter ---
@@ -393,29 +374,29 @@ export function ArOutstandingClient({
       </div>
 
       {/* Invoice detail modal */}
-      <Modal isOpen={selectedRow !== null} onClose={closeModal} title="Invoice Detail">
-        {detailLoading && (
+      <Modal isOpen={modal.selectedRow !== null} onClose={modal.close} title="Invoice Detail">
+        {modal.loading && (
           <div className="flex items-center justify-center py-8">
             <div className="text-sm text-zinc-400">Loading detail...</div>
           </div>
         )}
 
-        {!detailLoading && selectedRow && invoiceDetail && (
-          <InvoiceDetailContent row={selectedRow} detail={invoiceDetail} />
+        {!modal.loading && modal.selectedRow && modal.detail && (
+          <InvoiceDetailContent row={modal.selectedRow} detail={modal.detail} />
         )}
 
-        {!detailLoading && detailError && (
+        {!modal.loading && modal.error && (
           <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Could not load full detail. Showing summary only.
           </div>
         )}
 
-        {!detailLoading && selectedRow && !invoiceDetail && (
+        {!modal.loading && modal.selectedRow && !modal.detail && (
           <div className="space-y-3">
-            <DetailField label="Invoice#" value={selectedRow.invoice_number ?? '--'} />
-            <DetailField label="Client" value={selectedRow.client_name} />
-            <DetailField label="Project" value={selectedRow.project_code} />
-            <DetailField label="Outstanding" value={formatCurrency(selectedRow.outstanding, selectedRow.currency as 'PEN' | 'USD')} />
+            <DetailField label="Invoice#" value={modal.selectedRow.invoice_number ?? '--'} />
+            <DetailField label="Client" value={modal.selectedRow.client_name} />
+            <DetailField label="Project" value={modal.selectedRow.project_code} />
+            <DetailField label="Outstanding" value={formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency as 'PEN' | 'USD')} />
           </div>
         )}
       </Modal>

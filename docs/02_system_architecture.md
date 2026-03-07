@@ -153,36 +153,32 @@ The `costs` table includes a nullable `purchase_order_id` field reserved for a f
 
 ---
 
-### 4.12 Dual-View Architecture
-The system serves two audiences with different needs. Every applicable page has two modes:
+### 4.12 Universal Partner Filter
+All data is visible to all users — no role-based visibility restrictions. A global partner filter in the sidebar lets users toggle which partner companies' data to display. The filter persists across all 8 pages via a cookie (`partner_filter`).
 
-**Company View (Alex only):** Cross-project aggregation, Korakuen's portion only, includes private data (loans, financing costs). Answers "How is my business doing?"
+**How it works:** Partner toggle buttons in the sidebar. Toggling partners marks the filter as dirty; clicking Apply sets the cookie and refreshes the page. Server components read the cookie to scope queries. When no filter is applied, all data is shown.
 
-**Project View (all partners + Alex):** One project at a time, all partners combined, no private data. Answers "How is this project doing?"
-
-Same pages, same underlying data — the difference is a filter parameter. P&L is computed in `queries.ts` (period-filtered, multi-table aggregation with currency conversion) rather than via SQL views. UX mechanism (toggle, selector, etc.) to be designed during Phase 4 website implementation. In V1, role-based auth ensures partners only see project-scoped views.
+**Why universal:** Transparency is appropriate for this partnership structure. Every partner can see loans, financial position, and all transactions. The filter is for focus, not for access control.
 
 ---
 
-### 4.13 Loans Module (Private)
-A private module to track Alex's personal debt obligations — money borrowed from friends, family, or informal lenders to fund project contributions.
+### 4.13 Loans Module
+Tracks loans taken by any partner to fund project contributions. Every loan has a `partner_company_id` identifying which partner borrowed the money.
 
-**Key principle:** All capital contributed to a project counts as own capital regardless of source. The partnership never sees loan data. Profit split is proportional to capital contributed. What each partner does with their profit share is their own business.
+**Business rule:** 10% return on loans. The borrower keeps the spread between the agreed return rate and what they actually pay the lender.
 
-3 tables (`loans`, `loan_schedule`, `loan_payments`) isolated from business `payments`. Loan obligations appear in `v_ap_calendar` as a second UNION source (Alex-only). Personal position (profit share minus loan obligations) shown below the P&L on the website — never part of the P&L itself.
-
-Privacy: CLI-only in V0 (automatic — only Alex runs the CLI). Admin-only in V1 (role-based auth).
+3 tables (`loans`, `loan_schedule`, `loan_payments`) isolated from business `payments`. Loan obligations appear in `v_ap_calendar` as a second UNION source. Loan balances appear in Financial Position. All loan data is visible to everyone via the universal partner filter.
 
 ---
 
-### 4.14 P&L vs Cash Flow — Two Financial Statements
-The system provides two distinct financial views:
+### 4.14 Cash-Basis Financial Reporting
+The system operates on a cash basis. There is no accrual-based P&L.
 
-**P&L (accrual basis):** Revenue and costs when invoiced/recorded, regardless of whether cash has moved. Computed in `queries.ts` with period filtering and currency conversion. Shows business profitability.
+**Cash Flow:** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule.
 
-**Cash Flow (cash basis):** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule. Shows cash position.
+**Financial Position:** Point-in-time balance sheet showing assets (cash, AR, tax credits) vs liabilities (AP, tax liabilities, loans).
 
-Loan obligations are NOT on the P&L — they are personal, not business expenses. They appear in the personal position section below the P&L (Alex-only) and in the cash flow forecast (as outflows, Alex-only).
+Loan obligations appear in the cash flow (as outflows) and in Financial Position (as liabilities).
 
 ---
 
@@ -209,16 +205,15 @@ No open registration. Alex invites users via the Supabase Dashboard (Authenticat
 Middleware (`src/middleware.ts`) protects all routes: unauthenticated users are redirected to `/login`. Authenticated users accessing `/login` are redirected to `/ap-calendar`. The auth callback and set-password pages are excluded from protection.
 
 ### 5.3 User Metadata
-Role and identity are stored in Supabase user metadata (set via SQL after invite):
+Identity is stored in Supabase user metadata (set via SQL after invite):
 
 | Field | Type | Purpose |
 |---|---|---|
-| `is_company_view` | boolean | `true` = Alex (sees everything including loans). `false`/absent = partner view |
-| `partner_company_id` | UUID | Links user to their partner_company record for data scoping |
+| `partner_company_id` | UUID | Links user to their partner_company record |
 | `display_name` | string | Name shown in header |
 | `password_set` | boolean | Set to `true` when user completes set-password flow |
 
-`auth.ts` exposes helpers: `getCurrentUser()`, `isCompanyView()`, `getPartnerName()`, `getPartnerCompanyId()`.
+`auth.ts` exposes helpers: `getCurrentUser()`, `getPartnerName()`. Data visibility is controlled by the global partner filter (cookie-based), not by user role.
 
 ### 5.4 Supabase Clients
 Two client factories, both typed against auto-generated `database.types.ts`:

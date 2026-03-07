@@ -88,7 +88,6 @@ The V0 website is already built in Next.js on Vercel connected to Supabase. Addi
 
 ### New capabilities vs V0
 - Web-based data entry — forms for costs, invoices, quotes, entities, projects
-- Proper authentication per partner company via Supabase Auth
 - Mobile browser access — usable on site from a phone
 - Real-time data — multiple partners entering data simultaneously
 - Inline validation and error handling

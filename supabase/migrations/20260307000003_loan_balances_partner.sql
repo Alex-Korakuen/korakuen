@@ -1,10 +1,11 @@
--- View: v_loan_balances
--- Purpose: Shows borrowed amount, total owed (principal + return), total paid,
---          and outstanding balance per loan.
--- Source tables: loans, loan_payments, loan_schedule
--- Used by: Loan tracking dashboard, financial position
+-- ============================================================
+-- Migration: 20260307000003
+-- Date: 2026-03-07
+-- Purpose: Add partner_company_id to v_loan_balances view
+-- ============================================================
 
-CREATE OR REPLACE VIEW v_loan_balances
+DROP VIEW IF EXISTS v_loan_balances;
+CREATE VIEW v_loan_balances
 WITH (security_invoker = on)
 AS
 WITH loan_totals AS (

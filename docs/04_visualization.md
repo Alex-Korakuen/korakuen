@@ -10,13 +10,13 @@
 
 The visualization layer is a **read-only Next.js website hosted on Vercel**, connected directly to the Supabase PostgreSQL database. It displays browse pages for core data and dashboard views derived from data entered via CLI scripts.
 
-**V0 scope: read-only with basic authentication.** No forms, no data entry. Supabase Auth with email/password — one login per partner company (3 accounts). All pages require authentication since the site is on the public internet and exposes real financial data. In V1 the same website gains data entry forms and per-user role-based access.
+**V0 scope: read-only with basic authentication.** No forms, no data entry. Supabase Auth with email/password — one login per partner company (3 accounts). All pages require authentication since the site is on the public internet and exposes real financial data.
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Dual-view architecture:** Alex's login sees company-level data (cross-project aggregation, private loan obligations) on applicable pages. Partner logins see project-scoped views only — no cross-project data, no private information. Same pages, not separate routes. The UX mechanism (toggle, selector, role-based rendering) will be designed during Phase 4 implementation. SQL views already support both modes via filter parameters.
+**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 8 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
 
-**Reporting currency:** All consolidated views (P&L, Financial Position, Cash Flow) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
+**Reporting currency:** Consolidated views (Financial Position, Cash Flow) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
 ---
 
@@ -41,11 +41,10 @@ Dashboards
   AR Outstanding
   Cash Flow
   Partner Balances
-  P&L
   Financial Position
 ```
 
-**9 pages total.** Each answers one distinct business question. No redundancy.
+**8 pages total.** Each answers one distinct business question. No redundancy.
 
 ---
 
@@ -128,13 +127,13 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Row click:** Opens modal showing full cost details — cost items, payment history, document_ref, bank account, comprobante info.
 
-**Loan obligations (Alex-only):** `v_ap_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. Alex sees both supplier invoices and loan payment obligations. Partners see supplier invoices only. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history.
+**Loan obligations:** `v_ap_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. Filterable by partner via the global partner filter.
 
 **Taxes tab:**
 
 Detraccion deposits pending — outbound detracciones that need to be deposited to suppliers' Banco de la Nacion accounts. Table columns: supplier, invoice title, project, detraccion amount, deposit status (paid/pending). Answers: "which detraccion deposits am I behind on?"
 
-**Data source:** Costs table filtered to unpaid/partial status, sorted by due date (via v_ap_calendar, v_cost_balances views). Loan obligations from loan_schedule (Alex-only). Detracciones from payments where direction = outbound, payment_type = detraccion.
+**Data source:** Costs table filtered to unpaid/partial status, sorted by due date (via v_ap_calendar, v_cost_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
 
 ---
 
@@ -176,13 +175,13 @@ Two sections:
 
 **Priority:** High
 
-**Scope selector:** All Projects (default) or single project. Company view (Alex-only) includes loan outflows in forecast.
+**Scope selector:** All Projects (default) or single project. Loan outflows included in forecast for all users.
 
 **Period selector:** Year picker. Default: current year. Shows all 12 months.
 
 **Reporting currency selector:** PEN (default) or USD. Transactions in the other currency converted at stored exchange rate.
 
-**Main table:** Monthly time series. Columns: Month, Cash In, Cash Out (broken down by cost category — materials, labor, subcontractor, equipment, other), Net, Cumulative. Past months show actual cash movements (from payments table). Future months show forecast based on due_date fields on unpaid costs, AR invoices, and loan_schedule (Alex-only).
+**Main table:** Monthly time series. Cash In section: one row per project + one row for loans. Cash Out section: one row per cost type + one row for loan repayments. Net row. Past months show actual cash movements (from payments table). Future months show forecast based on due_date fields on unpaid costs, AR invoices, and loan_schedule.
 
 **Visual separator** between actual (past) and forecast (future) months — lighter styling or dashed divider for forecast rows.
 
@@ -190,7 +189,7 @@ Two sections:
 
 **Color coding:** Red for negative net months, yellow for months below a threshold, green for positive.
 
-**Data source:** Payments (actual), costs + ar_invoices + loan_schedule due dates (forecast) — computed in `queries.ts` (no SQL view)
+**Data source:** Payments (actual), costs + ar_invoices + loan_schedule due dates (forecast) — computed in `queries.ts` (no SQL view). Filterable by partner via global partner filter.
 
 ---
 
@@ -209,35 +208,6 @@ Two sections:
 **Settlement section:** Calculates what each partner should receive (contribution % x total collected income) vs what they actually received (inbound payments to their bank accounts). Shows who owes whom and how much.
 
 **Data source:** Costs table grouped by bank_account -> partner_company per project, AR invoices + Payments (via v_partner_ledger view)
-
----
-
-### Company P&L
-
-**Business question:** Are we making money?
-
-**Priority:** Medium
-
-**Period selector:** Year, quarter, or single month. Default: current year.
-- Year selected (e.g. 2026): columns are JAN, FEB, MAR, ..., DEC + TOTAL
-- Quarter selected (e.g. Q1 2026): columns are JAN, FEB, MAR + TOTAL
-- Single month selected: single column (current behavior)
-
-**Reporting currency selector:** PEN (default) or USD. Transactions in the other currency converted at stored exchange rate. Converted amounts visually marked.
-
-**Income:** Shows "AR Invoiced" as a row. Clickable to expand per-project breakdown showing each project's invoiced amount.
-
-**Project Costs:** Total across all projects. Clickable to expand into category breakdown (materials, labor, subcontractor, equipment, permits, other). Uses parentheses for costs (standard financial presentation).
-
-**Gross Profit:** Income minus project costs, with margin percentage.
-
-**SG&A:** Flat list of SG&A categories (software_licenses, partner_compensation, business_development, professional_services, office_admin, other) with amounts.
-
-**Net Profit:** Gross profit minus total SG&A, with net margin percentage.
-
-**Personal position section (Alex-only):** Below Net Profit, separated by a visual divider. Shows Alex's profit share (based on contribution proportion from `v_partner_ledger`), then lists loan obligations from `v_loan_balances`, ending with net-after-obligations. This section is never visible to partners — it combines business profit share with personal debt obligations.
-
-**Data source:** AR invoices, Costs (project), Costs (SG&A — null project) — computed in `queries.ts` with period filtering and currency conversion. Personal position from v_partner_ledger + v_loan_balances (Alex-only).
 
 ---
 
@@ -262,14 +232,14 @@ Two sections:
 
 - Accounts Payable: total outstanding costs.
 - Tax Liabilities: IGV Collected (debito fiscal from AR invoices with igv_rate > 0).
-- Loans (Alex-only): each loan with outstanding balance from `v_loan_balances`.
+- Loans: each loan with outstanding balance from `v_loan_balances`.
 - Total Liabilities.
 
 **Net Position:** Total Assets minus Total Liabilities.
 
 **Disclaimer:** System-calculated balances, not bank-reconciled.
 
-**Data source:** v_bank_balances (cash), v_ar_balances (AR outstanding), v_cost_balances (AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans, Alex-only)
+**Data source:** v_bank_balances (cash), v_ar_balances (AR outstanding), v_cost_balances (AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). Filterable by partner via global partner filter.
 
 ---
 
@@ -305,8 +275,8 @@ Dropped — for this business, quotes equal actuals. The comparison view added n
 
 - Next.js app hosted on Vercel free tier
 - Reads from Supabase PostgreSQL via Supabase JavaScript client
-- Basic authentication in V0 — Supabase Auth with email/password, one login per partner company (3 accounts)
-- Per-user role-based access added in V1 when data entry forms are introduced
+- Authentication — Supabase Auth with email/password, invite-only (3 accounts)
+- Universal partner filter (cookie-based) controls data scope across all pages — no role-based visibility
 - Reporting currency: consolidated views include a currency selector (PEN default). Transactions in the other currency converted at display time using stored exchange_rate. Converted amounts visually marked. Missing exchange rates flagged as warnings
 - All views are filterable and sortable
 - Consistent interaction patterns: split-panel for browse pages, summary cards + table for dashboards, tabs for sub-sections, modals for row detail

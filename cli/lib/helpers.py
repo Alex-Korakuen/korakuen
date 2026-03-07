@@ -89,6 +89,29 @@ def list_choices(title, data, display):
     return True
 
 
+def execute_insert(table, data, label, wait=True):
+    """Insert record(s) into table, print success/error, optionally wait.
+
+    Returns the response on success, None on error.
+    """
+    try:
+        response = supabase.table(table).insert(data).execute()
+        rec = response.data[0] if response.data else {}
+        id_str = rec.get("id", "")[:8] if rec.get("id") else ""
+        if id_str:
+            print(f"\n✓ {label} (ID: {id_str}...)")
+        else:
+            print(f"\n✓ {label}")
+        if wait:
+            input("\nPress Enter to continue...")
+        return response
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
+        if wait:
+            input("\nPress Enter to continue...")
+        return None
+
+
 def cancel_and_wait():
     """Print cancellation message and wait for Enter."""
     print("Cancelled.")

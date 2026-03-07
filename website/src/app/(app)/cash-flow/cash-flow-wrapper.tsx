@@ -8,7 +8,6 @@ import type { CashFlowData } from '@/lib/types'
 type Props = {
   initialData: CashFlowData
   projects: { id: string; project_code: string; name: string }[]
-  isAlex: boolean
   year: number
   projectId: string | null
   exchangeRate: { mid_rate: number; rate_date: string } | null
@@ -17,7 +16,6 @@ type Props = {
 export function CashFlowWrapper({
   initialData,
   projects,
-  isAlex,
   year,
   projectId,
   exchangeRate,
@@ -39,7 +37,6 @@ export function CashFlowWrapper({
     <CashFlowClient
       initialData={initialData}
       projects={projects}
-      isAlex={isAlex}
       year={year}
       projectId={projectId}
       exchangeRate={exchangeRate}
