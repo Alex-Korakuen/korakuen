@@ -10,10 +10,10 @@
 
 PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 19 tables total across 7 layers.
+**Table count:** 20 tables total across 7 layers.
 
 ```
-Layer 1: partner_companies, bank_accounts, entities, exchange_rates
+Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
@@ -119,6 +119,21 @@ Daily SUNAT USD/PEN exchange rates. Lookup/reference table — not FK'd to any f
 | updated_at | TIMESTAMP | NO | auto |
 
 **No `is_active`** — exchange rates are historical facts, never deactivated.
+
+### `categories`
+Cost item categories. Referenced by `cost_items.category` and `project_budgets.category` via FK. Each category belongs to exactly one `cost_type`. The `name` field is the natural primary key (not UUID).
+
+| Field | Type | Nullable | Notes |
+|---|---|---|---|
+| name | VARCHAR(50) | NO | primary key — e.g. 'materials', 'other_sga' |
+| cost_type | VARCHAR(20) | NO | 'project_cost' or 'sga' |
+| label | VARCHAR(100) | NO | display name — e.g. 'Materials', 'Other' |
+| sort_order | INTEGER | NO | controls menu/display ordering |
+| is_active | BOOLEAN | NO | default true, soft delete |
+| created_at | TIMESTAMP | NO | auto |
+| updated_at | TIMESTAMP | NO | auto |
+
+**Note:** SGA's "other" uses `name = 'other_sga'` to keep primary keys unique. Its `label` is "Other".
 
 ---
 
@@ -356,7 +371,7 @@ One or many rows per cost. Holds the detail of what was purchased. Category live
 | id | UUID | NO | primary key |
 | cost_id | UUID | NO | references costs |
 | title | TEXT | NO | line item name |
-| category | VARCHAR | NO | see categories below |
+| category | VARCHAR | NO | FK to categories.name |
 | quantity | NUMERIC(15,4) | YES | null for lump sum lines |
 | unit_of_measure | VARCHAR | YES | meters, units, hours, kg, days, etc. |
 | unit_price | NUMERIC(15,4) | YES | null for lump sum lines |
@@ -365,19 +380,7 @@ One or many rows per cost. Holds the detail of what was purchased. Category live
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-**Categories — Project Cost:**
-- materials
-- labor
-- subcontractor
-- equipment_rental
-- permits_regulatory
-- other
-
-**Categories — SG&A:**
-- software_licenses
-- partner_compensation
-- professional_services
-- other
+**Categories** are managed in the `categories` table (Layer 1). See that table for the full list.
 
 **Query pattern:**
 - Header info (who, when, account, document) → query `costs`
@@ -555,7 +558,7 @@ Budget targets per project per category. Compared against actual costs from `v_c
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | NO | references projects |
-| category | VARCHAR | NO | must match cost_items categories exactly |
+| category | VARCHAR | NO | FK to categories.name (project_cost categories only) |
 | budgeted_amount | NUMERIC(15,2) | NO | |
 | currency | VARCHAR(3) | NO | USD or PEN |
 | is_active | BOOLEAN | NO | default true, soft delete |
@@ -563,13 +566,13 @@ Budget targets per project per category. Compared against actual costs from `v_c
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-**Category values** must use the same strings as `cost_items.category`: materials, labor, subcontractor, equipment_rental, permits_regulatory, other (for project costs).
+**Category values** reference `categories.name` via FK — only project_cost categories are used for budgets.
 
 ---
 
 ## Complete Table List — Final
 
-**19 tables total:**
+**20 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -577,6 +580,7 @@ Layer 1 (no dependencies):
   bank_accounts
   entities
   exchange_rates
+  categories
 
 Layer 2 (depends on Layer 1):
   tags

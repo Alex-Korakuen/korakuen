@@ -164,7 +164,7 @@ Known enum values per field:
 | `costs.currency` | USD, PEN |
 | `costs.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
 | `costs.payment_method` | bank_transfer, cash, check |
-| `cost_items.category` | materials, labor, subcontractor, equipment_rental, permits_regulatory, software_licenses, partner_compensation, professional_services, other |
+| `cost_items.category` | FK to `categories.name` — see categories table for valid values |
 | `ar_invoices.comprobante_type` | factura, boleta, recibo_por_honorarios |
 | `ar_invoices.currency` | USD, PEN |
 | `payments.related_to` | cost, ar_invoice |
@@ -194,7 +194,7 @@ After generating the SQL file:
 
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
-3. All 18 tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 6 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects)
+3. All tables have the `updated_at` trigger (except `entity_tags`)
+4. Only the 7 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories)
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

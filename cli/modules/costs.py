@@ -29,10 +29,16 @@ from lib.import_helpers import (
     opt_float, opt_date,
 )
 
-# Cost item categories by cost type
-PROJECT_CATEGORIES = ["materials", "labor", "subcontractor", "equipment_rental", "permits_regulatory", "other"]
-SGA_CATEGORIES = ["software_licenses", "partner_compensation", "professional_services", "other"]
-ALL_CATEGORIES = list(set(PROJECT_CATEGORIES + SGA_CATEGORIES))
+def load_categories(cost_type=None):
+    """Load categories from database, optionally filtered by cost_type.
+    Returns list of dicts with 'name', 'cost_type', 'label' keys."""
+    query = (supabase.table("categories")
+             .select("name, cost_type, label")
+             .eq("is_active", True)
+             .order("sort_order"))
+    if cost_type:
+        query = query.eq("cost_type", cost_type)
+    return query.execute().data
 
 
 def menu():
@@ -148,7 +154,9 @@ def add_cost():
     print("\n--- Add Line Items ---")
     print("(Add at least one item)\n")
 
-    categories = PROJECT_CATEGORIES if cost_type == "project_cost" else SGA_CATEGORIES
+    cat_rows = load_categories(cost_type)
+    cat_names = [c["name"] for c in cat_rows]
+    cat_labels = {c["name"]: c["label"] for c in cat_rows}
     items = []
     running_total = 0.0
     item_num = 1
@@ -158,8 +166,8 @@ def add_cost():
 
         item_title = get_input("    Title: ")
 
-        print(f"    Categories: {', '.join(categories)}")
-        category = get_enum_input("    Category: ", categories)
+        print(f"    Categories: {', '.join(cat_labels[n] + ' (' + n + ')' for n in cat_names)}")
+        category = get_enum_input("    Category: ", cat_names)
 
         qty = get_nonneg_float("    Quantity (optional — press Enter for lump sum): ", required=False)
         uom = None
@@ -344,6 +352,7 @@ def _load_cost_lookups():
         "existing_document_refs": existing_refs,
         "existing_entity_comprobantes": existing_entity_comprobantes,
         "exchange_rates": exchange_rate_by_date,
+        "category_names": [c["name"] for c in load_categories()],
     }
 
 
@@ -366,7 +375,7 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_enum(row_num, row, "currency", ["USD", "PEN"], errors)
     validate_enum(row_num, row, "comprobante_type", list(COMPROBANTE_TYPES_ALL), errors)
     validate_enum(row_num, row, "payment_method", ["bank_transfer", "cash", "check"], errors)
-    validate_enum(row_num, row, "category", ALL_CATEGORIES, errors)
+    validate_enum(row_num, row, "category", lookups["category_names"], errors)
 
     # Lookups
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)

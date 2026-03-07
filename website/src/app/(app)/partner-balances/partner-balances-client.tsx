@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency, formatDate } from '@/lib/formatters'
-import { categoryLabels } from '@/lib/constants'
+import { formatCurrency, formatDate, formatCategory } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { fetchPartnerCosts } from '@/lib/actions'
 import { RateIndicator } from '@/components/ui/rate-indicator'
@@ -260,7 +259,7 @@ export function PartnerBalancesClient({
                         {d.title ?? '—'}
                       </td>
                       <td className="py-2 whitespace-nowrap text-zinc-600">
-                        {categoryLabels[d.category] ?? d.category}
+                        {formatCategory(d.category)}
                       </td>
                       <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
                         {formatCurrency(d.subtotal, (d.currency ?? 'PEN') as Currency)}

@@ -312,144 +312,149 @@ QUOTES = [
     },
 ]
 
-COSTS = [
-    # === HEADER SECTION — required fields first ===
-    {
-        "name": "document_ref",
-        "example": "PRY001-AP-001",
-        "description": "Required. Grouping key — rows with same value form one cost with multiple items.",
-        "allowed_values": "",
-    },
-    {
-        "name": "date",
-        "example": "2026-03-15",
-        "description": "Required. Date the expense occurred. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "title",
-        "example": "Cement purchase for foundation work",
-        "description": "Required. Overall invoice or expense title.",
-        "allowed_values": "",
-    },
-    {
-        "name": "bank_account",
-        "example": "BCP-4567",
-        "description": "Required. Bank account label. Must exist in bank_accounts table.",
-        "allowed_values": "Lookup → bank_accounts.label",
-    },
-    {
-        "name": "currency",
-        "example": "PEN",
-        "description": "Required. Currency of the cost.",
-        "allowed_values": "USD | PEN",
-    },
-    {
-        "name": "igv_rate",
-        "example": "18",
-        "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
-        "allowed_values": "Usually 18",
-    },
-    # === HEADER SECTION — optional fields ===
-    {
-        "name": "project_code",
-        "example": "PRY001",
-        "description": "Optional. Project code. Blank = SG&A. Derives cost_type automatically.",
-        "allowed_values": "Lookup → projects.project_code",
-    },
-    {
-        "name": "entity_document_number",
-        "example": "20612345678",
-        "description": "Optional. Supplier/vendor document number. Null if informal/unassigned.",
-        "allowed_values": "Lookup → entities.document_number",
-    },
-    {
-        "name": "exchange_rate",
-        "example": "3.72",
-        "description": "Optional. PEN per USD rate. Auto-looked up from exchange_rates table by date if blank.",
-        "allowed_values": "",
-    },
-    {
-        "name": "comprobante_type",
-        "example": "factura",
-        "description": "Optional. Type of payment document.",
-        "allowed_values": " | ".join(COMPROBANTE_TYPES_ALL),
-    },
-    {
-        "name": "comprobante_number",
-        "example": "F001-00234",
-        "description": "Optional. Payment document number.",
-        "allowed_values": "",
-    },
-    {
-        "name": "detraccion_rate",
-        "example": "4",
-        "description": "Optional. Detracción percentage. NUMERIC(5,2). Null if not applicable.",
-        "allowed_values": "Varies by service type",
-    },
-    {
-        "name": "payment_method",
-        "example": "bank_transfer",
-        "description": "Optional. How the payment was made.",
-        "allowed_values": "bank_transfer | cash | check",
-    },
-    {
-        "name": "quote_document_ref",
-        "example": "PRY001-QT-001",
-        "description": "Optional. Document ref of a prior accepted quote. Null if no prior quote.",
-        "allowed_values": "Lookup → quotes.document_ref",
-    },
-    {
-        "name": "due_date",
-        "example": "2026-04-15",
-        "description": "Optional. Payment due date. Feeds AP payment calendar. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "notes",
-        "example": "Urgent delivery requested",
-        "description": "Optional. Free-form context about the cost.",
-        "allowed_values": "",
-    },
-    # === DETAIL SECTION — required fields first ===
-    {
-        "name": "item_title",
-        "example": "Portland cement Type I x 42.5kg",
-        "description": "Required. Line item title.",
-        "allowed_values": "",
-    },
-    {
-        "name": "category",
-        "example": "materials",
-        "description": "Required. Cost category. Different allowed values for project costs vs SG&A.",
-        "allowed_values": "materials | labor | subcontractor | equipment_rental | permits_regulatory | software_licenses | partner_compensation | professional_services | other",
-    },
-    {
-        "name": "subtotal",
-        "example": "14250.00",
-        "description": "Required. NUMERIC(15,2). Line item total amount.",
-        "allowed_values": "",
-    },
-    # === DETAIL SECTION — optional fields ===
-    {
-        "name": "quantity",
-        "example": "500",
-        "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
-        "allowed_values": "",
-    },
-    {
-        "name": "unit_of_measure",
-        "example": "bags",
-        "description": "Optional. meters, units, hours, kg, days, bags, etc.",
-        "allowed_values": "",
-    },
-    {
-        "name": "unit_price",
-        "example": "28.50",
-        "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
-        "allowed_values": "",
-    },
-]
+def build_cost_fields():
+    """Build cost template fields, loading category values from database."""
+    from modules.costs import load_categories
+    category_values = " | ".join(c["name"] for c in load_categories())
+
+    return [
+        # === HEADER SECTION — required fields first ===
+        {
+            "name": "document_ref",
+            "example": "PRY001-AP-001",
+            "description": "Required. Grouping key — rows with same value form one cost with multiple items.",
+            "allowed_values": "",
+        },
+        {
+            "name": "date",
+            "example": "2026-03-15",
+            "description": "Required. Date the expense occurred. Format: YYYY-MM-DD.",
+            "allowed_values": "",
+        },
+        {
+            "name": "title",
+            "example": "Cement purchase for foundation work",
+            "description": "Required. Overall invoice or expense title.",
+            "allowed_values": "",
+        },
+        {
+            "name": "bank_account",
+            "example": "BCP-4567",
+            "description": "Required. Bank account label. Must exist in bank_accounts table.",
+            "allowed_values": "Lookup → bank_accounts.label",
+        },
+        {
+            "name": "currency",
+            "example": "PEN",
+            "description": "Required. Currency of the cost.",
+            "allowed_values": "USD | PEN",
+        },
+        {
+            "name": "igv_rate",
+            "example": "18",
+            "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
+            "allowed_values": "Usually 18",
+        },
+        # === HEADER SECTION — optional fields ===
+        {
+            "name": "project_code",
+            "example": "PRY001",
+            "description": "Optional. Project code. Blank = SG&A. Derives cost_type automatically.",
+            "allowed_values": "Lookup → projects.project_code",
+        },
+        {
+            "name": "entity_document_number",
+            "example": "20612345678",
+            "description": "Optional. Supplier/vendor document number. Null if informal/unassigned.",
+            "allowed_values": "Lookup → entities.document_number",
+        },
+        {
+            "name": "exchange_rate",
+            "example": "3.72",
+            "description": "Optional. PEN per USD rate. Auto-looked up from exchange_rates table by date if blank.",
+            "allowed_values": "",
+        },
+        {
+            "name": "comprobante_type",
+            "example": "factura",
+            "description": "Optional. Type of payment document.",
+            "allowed_values": " | ".join(COMPROBANTE_TYPES_ALL),
+        },
+        {
+            "name": "comprobante_number",
+            "example": "F001-00234",
+            "description": "Optional. Payment document number.",
+            "allowed_values": "",
+        },
+        {
+            "name": "detraccion_rate",
+            "example": "4",
+            "description": "Optional. Detracción percentage. NUMERIC(5,2). Null if not applicable.",
+            "allowed_values": "Varies by service type",
+        },
+        {
+            "name": "payment_method",
+            "example": "bank_transfer",
+            "description": "Optional. How the payment was made.",
+            "allowed_values": "bank_transfer | cash | check",
+        },
+        {
+            "name": "quote_document_ref",
+            "example": "PRY001-QT-001",
+            "description": "Optional. Document ref of a prior accepted quote. Null if no prior quote.",
+            "allowed_values": "Lookup → quotes.document_ref",
+        },
+        {
+            "name": "due_date",
+            "example": "2026-04-15",
+            "description": "Optional. Payment due date. Feeds AP payment calendar. Format: YYYY-MM-DD.",
+            "allowed_values": "",
+        },
+        {
+            "name": "notes",
+            "example": "Urgent delivery requested",
+            "description": "Optional. Free-form context about the cost.",
+            "allowed_values": "",
+        },
+        # === DETAIL SECTION — required fields first ===
+        {
+            "name": "item_title",
+            "example": "Portland cement Type I x 42.5kg",
+            "description": "Required. Line item title.",
+            "allowed_values": "",
+        },
+        {
+            "name": "category",
+            "example": "materials",
+            "description": "Required. Cost category. Different allowed values for project costs vs SG&A.",
+            "allowed_values": category_values,
+        },
+        {
+            "name": "subtotal",
+            "example": "14250.00",
+            "description": "Required. NUMERIC(15,2). Line item total amount.",
+            "allowed_values": "",
+        },
+        # === DETAIL SECTION — optional fields ===
+        {
+            "name": "quantity",
+            "example": "500",
+            "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
+            "allowed_values": "",
+        },
+        {
+            "name": "unit_of_measure",
+            "example": "bags",
+            "description": "Optional. meters, units, hours, kg, days, bags, etc.",
+            "allowed_values": "",
+        },
+        {
+            "name": "unit_price",
+            "example": "28.50",
+            "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
+            "allowed_values": "",
+        },
+    ]
 
 AR_INVOICES = [
     {
@@ -570,7 +575,7 @@ def main():
         ("entities.xlsx", ENTITIES),
         ("projects.xlsx", PROJECTS),
         ("quotes.xlsx", QUOTES),
-        ("costs.xlsx", COSTS),
+        ("costs.xlsx", build_cost_fields()),
         ("ar_invoices.xlsx", AR_INVOICES),
     ]
 

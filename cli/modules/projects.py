@@ -8,7 +8,7 @@ Tables: projects, project_budgets, project_partners
 import pandas as pd
 
 from lib.db import supabase
-from modules.costs import PROJECT_CATEGORIES
+from modules.costs import load_categories
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
@@ -296,10 +296,6 @@ def import_projects():
 # Set Project Budget
 # ============================================================
 
-# Reuse the canonical list from costs.py
-PROJECT_BUDGET_CATEGORIES = PROJECT_CATEGORIES
-
-
 def set_project_budget():
     """Set budget targets per category for a project."""
     clear_screen()
@@ -365,11 +361,11 @@ def set_project_budget():
 
     # --- Collect amounts per category ---
     print(f"\n  Enter budgeted amount for each category ({currency}):\n")
+    cat_rows = load_categories("project_cost")
     budget_entries = []
-    for category in PROJECT_BUDGET_CATEGORIES:
-        display_name = category.replace("_", " ").title()
-        amount = get_nonneg_float(f"    {display_name}: ")
-        budget_entries.append({"category": category, "amount": amount})
+    for cat in cat_rows:
+        amount = get_nonneg_float(f"    {cat['label']}: ")
+        budget_entries.append({"category": cat["name"], "label": cat["label"], "amount": amount})
 
     # --- Notes ---
     notes = get_optional_input("\n  Notes (optional — press Enter to skip): ")
@@ -381,8 +377,7 @@ def set_project_budget():
     print()
     total_budget = 0
     for entry in budget_entries:
-        display_name = entry["category"].replace("_", " ").title()
-        print(f"    {display_name:25s} {currency} {entry['amount']:>12,.2f}")
+        print(f"    {entry['label']:25s} {currency} {entry['amount']:>12,.2f}")
         total_budget += entry["amount"]
     print(f"    {'':25s} {'─' * 20}")
     print(f"    {'Total':25s} {currency} {total_budget:>12,.2f}")

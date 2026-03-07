@@ -53,6 +53,7 @@ export function formatEntityType(type: string | null): string {
 
 export function formatCategory(category: string | null): string {
   if (!category) return '--'
+  if (category === 'other_sga') return 'Other (SG&A)'
   return category
     .split('_')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))

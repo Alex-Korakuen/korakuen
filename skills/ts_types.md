@@ -91,23 +91,10 @@ export type LoanReturnType = 'percentage' | 'fixed'
 export type LoanStatus = 'active' | 'partially_paid' | 'settled'
 export type LoanPaymentSource = 'project_settlement' | 'personal_funds' | 'other'
 
-// Cost item categories — project costs
-export type ProjectCostCategory =
-  | 'materials'
-  | 'labor'
-  | 'subcontractor'
-  | 'equipment_rental'
-  | 'permits_regulatory'
-  | 'other'
-
-// Cost item categories — SG&A
-export type SgaCostCategory =
-  | 'software_licenses'
-  | 'partner_compensation'
-  | 'professional_services'
-  | 'other'
-
-export type CostCategory = ProjectCostCategory | SgaCostCategory
+// Cost item categories — values come from the `categories` table
+// project_cost: materials, labor, subcontractor, equipment_rental, permits_regulatory, other
+// sga: software_licenses, partner_compensation, professional_services, other_sga
+export type CostCategory = string  // dynamic — managed in categories table
 ```
 
 ### Step 4 — Define Composite Types for Joined Queries

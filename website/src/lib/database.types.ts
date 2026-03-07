@@ -172,6 +172,36 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          cost_type: string
+          created_at: string
+          is_active: boolean
+          label: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          cost_type: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_type?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cost_items: {
         Row: {
           category: string

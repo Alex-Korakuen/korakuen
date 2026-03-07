@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from './supabase/server'
-import { SGA_ONLY_CATEGORY_KEYS } from './constants'
 import { convertAmount, sumByCurrency } from './formatters'
 import { paginateArray, PAGE_SIZE } from './pagination'
 import type { PaginatedResult } from './pagination'
@@ -592,9 +591,9 @@ type CategoryTotals = {
   sga: number
 }
 
-function mapCategory(category: string | null, costType: string | null): keyof CategoryTotals {
+function mapCategory(category: string | null, costType: string | null, sgaKeys: Set<string>): keyof CategoryTotals {
   if (costType === 'sga') return 'sga'
-  if (category && SGA_ONLY_CATEGORY_KEYS.has(category)) return 'sga'
+  if (category && sgaKeys.has(category)) return 'sga'
   switch (category) {
     case 'materials': return 'materials'
     case 'labor': return 'labor'
@@ -827,6 +826,7 @@ function processMonthBuckets(
   projectId: string | null,
   partnerIds: string[],
   reportingCurrency: 'PEN',
+  sgaKeys: Set<string>,
 ): Map<string, MonthBucket> {
   const hasPartnerFilter = partnerIds.length > 0
   const monthBuckets = new Map<string, MonthBucket>()
@@ -859,7 +859,7 @@ function processMonthBuckets(
       const costType = maps.costTypeMap.get(p.related_id) ?? null
       if (categories && categories.length > 0) {
         for (const cat of categories) {
-          const catKey = mapCategory(cat.category, costType)
+          const catKey = mapCategory(cat.category, costType, sgaKeys)
           bucket.categories[catKey] += amount * cat.proportion
         }
       } else {
@@ -887,7 +887,7 @@ function processMonthBuckets(
     const costType = cost.cost_id ? (maps.costTypeMap.get(cost.cost_id) ?? cost.cost_type ?? null) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
-        const catKey = mapCategory(cat.category, costType)
+        const catKey = mapCategory(cat.category, costType, sgaKeys)
         bucket.categories[catKey] += amount * cat.proportion
       }
     } else {
@@ -1023,9 +1023,13 @@ export async function getCashFlow(
   partnerIds: string[],
 ): Promise<CashFlowData> {
   const supabase = await createServerSupabaseClient()
-  const raw = await fetchCashFlowData(supabase, year)
+  const [raw, { data: cats }] = await Promise.all([
+    fetchCashFlowData(supabase, year),
+    supabase.from('categories').select('name, cost_type').eq('is_active', true),
+  ])
+  const sgaKeys = new Set((cats ?? []).filter(c => c.cost_type === 'sga').map(c => c.name))
   const maps = await buildCashFlowMaps(supabase, raw, partnerIds.length > 0)
-  const monthBuckets = processMonthBuckets(raw, maps, year, projectId, partnerIds, 'PEN')
+  const monthBuckets = processMonthBuckets(raw, maps, year, projectId, partnerIds, 'PEN', sgaKeys)
   return buildCashFlowResult(monthBuckets, raw.allProjects, year)
 }
 
