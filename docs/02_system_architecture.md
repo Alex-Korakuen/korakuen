@@ -64,7 +64,7 @@ Data entry happens exclusively through Python terminal scripts. Visualization ha
 
 **Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read queries straightforward.
 
-**What the website does:** Displays dashboards and views — AP calendar, project cost summaries, partner balances, contact transaction history. Read only. No forms, no data entry.
+**What the website does:** Displays 8 pages — AP calendar, AR outstanding, cash flow, partner balances & settlement, financial position, projects, entities & contacts, and prices. Read only. No forms, no data entry.
 
 **Future path:** The same Next.js website naturally evolves into a full application with data entry forms in V1, without rebuilding anything. The read-only website is the foundation of the future full app.
 
@@ -73,7 +73,7 @@ Data entry happens exclusively through Python terminal scripts. Visualization ha
 ### 4.3 Separate Tables for Income and Expenses
 AR invoices (income) and Costs (expenses) live in separate tables despite both being financial transactions.
 
-**Why:** They have fundamentally different fields, lifecycles, and purposes. Costs are granular daily transactions with quantity, unit price, category, and bank account. AR invoices are high-level billing documents tied to projects with collection records. Mixing them makes the P&L calculation messy and error-prone. Separate tables keeps the data clean and the P&L unambiguous.
+**Why:** They have fundamentally different fields, lifecycles, and purposes. Costs are granular daily transactions with quantity, unit price, category, and bank account. AR invoices are high-level billing documents tied to projects with collection records. Separate tables keeps the data clean, enables straightforward cash flow reporting, and makes partner settlement calculations (profit = income - project costs) unambiguous.
 
 ---
 
@@ -117,10 +117,10 @@ Every transaction captures the full Peruvian tax reality from day one:
 
 ---
 
-### 4.8 Asymmetric Bank Account Tracking
-Alex's bank accounts are tracked fully — every transaction in and out, reconcilable against bank statements. Partner bank accounts are tracked only as net positions — the system knows what each partner has paid out on behalf of projects, but does not track their internal account movements.
+### 4.8 Bank Account Tracking
+All three partners' bank accounts are tracked in the system. Every cost and payment references a bank account, so all project-related transactions are visible for all partners.
 
-**Why:** Partners use personal accounts for mixed personal and business expenses. Full tracking would require invasive visibility into personal finances. Net position tracking gives sufficient data for partner settlements while respecting privacy.
+**Key distinction:** Partner account balances reflect only project transactions recorded in the system — not full personal banking activity. Partners use personal accounts for mixed personal and business expenses. The `bank_tracking_full` flag on `partner_companies` (true for Alex, false for others) indicates whether full reconciliation against bank statements is expected. Alex's accounts can be fully reconciled; partner accounts show project-level activity only.
 
 ---
 

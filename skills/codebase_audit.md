@@ -56,7 +56,7 @@
 
 ### Category 5 — Documentation Drift
 
-- [ ] `09_dev_roadmap.md` task statuses reflect actual completion state
+- [ ] `TODO.md` task statuses reflect actual completion state
 - [ ] Any new architectural decision made during development is recorded in `02_system_architecture.md`
 - [ ] Any new CLI script is listed in `10_coding_standards.md` file naming section
 - [ ] `CLAUDE.md` current status section reflects actual phase

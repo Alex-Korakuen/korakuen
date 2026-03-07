@@ -20,6 +20,26 @@ Add Excel import features directly to the website. Currently, bulk data import i
 
 ---
 
+## Fix Partner Ledger Settlement Logic
+
+The `v_partner_ledger` view currently calculates `income_share_pen = total_income × profit_share_pct`, which distributes the **entire income** by %. The correct formula is to distribute **profit** (income - project costs) by %. SG&A costs are excluded — they belong to the individual partner.
+
+### Correct settlement formula
+- Project profit = project income - project costs (where `cost_type = 'project_cost'`)
+- Each partner's profit share = profit × `profit_share_pct`
+- Settlement = profit_share - costs_they_actually_paid
+- Each partner receives from income pool: costs_paid + profit × their %
+
+### Tasks
+
+- [ ] Rewrite `v_partner_ledger` SQL view to use profit-based distribution
+- [ ] Filter costs to `cost_type = 'project_cost'` only (exclude SG&A)
+- [ ] Add `profit_share_pen` and `settlement_pen` columns to the view
+- [ ] Update Partner Balances page (`queries.ts` + component) to use new columns
+- [ ] Test with real data to verify settlements net to zero across partners
+
+---
+
 ## Known Issues
 
 ### Cost Import — Headers Without Items Warning [LOW]

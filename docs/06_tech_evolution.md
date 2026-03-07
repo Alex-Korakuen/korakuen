@@ -24,7 +24,7 @@ website             with data entry
 
 ## V0 — Foundation (Current)
 
-**Status:** In development
+**Status:** Complete
 **Goal:** Get clean, structured data flowing from day one. Prove the data model works in practice. Build the visualization foundation.
 
 ### Stack
@@ -43,11 +43,13 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 
 ### Visualization website — V0 scope (read-only)
 - AP payment calendar — day-by-day upcoming payment obligations
-- Project cost summary — total spend by category per project
 - AR outstanding — invoices sent and collection status
-- Partner contribution view — who has paid what per project
-- Contact transaction history — all transactions per entity per project
-- Company P&L — income vs expenses vs SG&A
+- Cash flow — monthly actual and forecast cash movements
+- Partner contribution & settlement — who paid what, who owes whom
+- Financial position — assets vs liabilities snapshot
+- Projects — project detail with budget, costs, and AR
+- Entities & contacts — supplier/client directory with transaction history
+- Prices — historical unit price reference
 
 ### Strengths
 - Extremely fast to build

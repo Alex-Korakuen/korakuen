@@ -249,8 +249,7 @@ src/
       ap-calendar/      → AP payment calendar (default landing)
       ar-outstanding/   → AR outstanding & collections
       cash-flow/        → cash flow dashboard
-      partner-balances/ → partner contribution view
-      pl/               → company P&L
+      partner-balances/ → partner contribution & settlement view
       financial-position/ → balance sheet
       projects/         → project list and detail
       entities/         → entity/contact directory
@@ -266,7 +265,7 @@ src/
     types.ts            → human-friendly type aliases and enums
     queries.ts          → reusable server-side query functions
     formatters.ts       → currency and date formatting
-    auth.ts             → getCurrentUser, isCompanyView, getPartnerName
+    auth.ts             → getCurrentUser, getPartnerName
   middleware.ts         → redirects unauthenticated users to /login
 ```
 

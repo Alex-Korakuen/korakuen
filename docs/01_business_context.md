@@ -34,8 +34,11 @@ Background in equity research and financial analysis. CFA certified with over 5 
 
 - Each partner operates their own fully independent legal company
 - All projects are executed jointly across the three partners under a verbal agreement
-- Cost splitting is **proportional to financial contribution per project** — not fixed at equal thirds
-- Example: if Partner A contributes 100, Partner B contributes 100, and Partner C contributes 50, Partner C holds a proportionally smaller stake for that project
+- Each project has an agreed **profit share percentage** per partner (stored in `project_partners`), which must total 100%
+- During execution, costs are paid by whichever partner has available cash — **not necessarily proportional** to profit share %
+- **Project profit** = project income - project costs (SG&A excluded — SG&A belongs to the individual partner)
+- **Each partner's profit** = project profit × their profit share %
+- **Settlement** at project close: each partner receives costs_they_paid + their profit share. Who owes whom depends on how costs were actually split vs the agreed profit %
 - Settlements target project close, with weekly balancing attempts during execution
 - Invoicing to clients is done per partner company — whoever provided the service issues the invoice
 
@@ -133,7 +136,7 @@ Given slow government payment cycles and the capital-intensive nature of constru
 - Net cash position per project and consolidated across all active projects
 
 ### 5.6 Partner Settlement
-At project close, all contributions are tallied per partner, ownership stakes are calculated proportionally, and inter-partner balances are settled in cash. During project execution, partners aim to balance expenditure on a weekly basis to avoid large settlements at close.
+At project close, project profit (income minus project costs, excluding SG&A) is calculated and distributed according to each partner's agreed profit share percentage. Each partner should net: costs_they_paid + (profit × their %). Inter-partner transfers settle any difference between what each partner actually received from income and what they should have received. During project execution, partners aim to balance expenditure on a weekly basis to avoid large settlements at close.
 
 ---
 

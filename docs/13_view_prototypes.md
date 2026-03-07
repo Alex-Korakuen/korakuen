@@ -1,8 +1,8 @@
 # View Prototypes — Website
 
-**Document version:** 3.0
-**Date:** March 2, 2026
-**Status:** Active — reference for Phase 4 implementation
+**Document version:** 4.0
+**Date:** March 7, 2026
+**Status:** Active — reference for website implementation
 
 ---
 
@@ -424,31 +424,41 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 |                                                                                 |
 +---------------------------------------------------------------------------------+
 |                                                                                 |
-|  -- Contributions (PEN) -----------------------------------------------        |
+|  -- Contributions (PEN, project costs only — SG&A excluded) ----------------   |
 |                                                                                 |
-|  Partner               Amount          Share                                    |
-|  ---------------------- -------------- ------                                   |
-|  Korakuen (Alex)        S/ 125,400.00  61.1%  ################--------          |
-|  Partner B              S/  52,300.00  25.5%  ########--------------------      |
-|  Partner C              S/  27,500.00  13.4%  ####------------------------      |
+|  Partner               Amount          Contribution %   Profit Share %         |
+|  ---------------------- -------------- ---------------  ---------------         |
+|  Korakuen (Alex)        S/ 125,400.00  61.1%            30.0%                  |
+|  Partner B              S/  52,300.00  25.5%            50.0%                  |
+|  Partner C              S/  27,500.00  13.4%            20.0%                  |
 |  ---------------------- --------------                                          |
 |  Total Project Costs    S/ 205,200.00  100%                                     |
+|                                                                                 |
+|  i Contribution % = actual cost split. Profit Share % = agreed split.          |
 |                                                                                 |
 |  -- Income --------------------------------------------------------            |
 |                                                                                 |
 |  Total Invoiced:     S/ 247,800.00                                              |
-|  Total Collected:    S/ 155,088.00                                              |
-|  Outstanding:        S/  92,712.00                                              |
+|  Total Collected:    S/ 247,800.00                                              |
+|  Outstanding:        S/       0.00                                              |
 |                                                                                 |
-|  -- Settlement ---------------------------------------------------------        |
+|  -- Profit & Settlement -----------------------------------------------        |
 |                                                                                 |
-|  Partner           Should Receive   Already Received*   Owes / (Is Owed)       |
-|  ---------------   ---------------  -----------------   ----------------        |
-|  Korakuen (Alex)   S/  94,819.00    S/ 155,088.00       Owes  S/ 60,269.00     |
-|  Partner B         S/  39,548.00    S/       0.00       Owed  S/ 39,548.00     |
-|  Partner C         S/  20,721.00    S/       0.00       Owed  S/ 20,721.00     |
+|  Project Profit:     S/  42,600.00   (income - project costs)                  |
 |                                                                                 |
-|  * "Already Received" = inbound payments to that partner's bank accounts       |
+|  Partner           Costs Paid    Profit Share   Should Receive   Already Recv*  |
+|  ---------------   -----------   ------------   ---------------  ------------   |
+|  Korakuen (Alex)   S/ 125,400    S/ 12,780      S/ 138,180       S/ 247,800    |
+|  Partner B         S/  52,300    S/ 21,300      S/  73,600       S/       0    |
+|  Partner C         S/  27,500    S/  8,520      S/  36,020       S/       0    |
+|                                                                                 |
+|  Partner           Owes / (Is Owed)                                            |
+|  ---------------   ----------------                                             |
+|  Korakuen (Alex)   Owes  S/ 109,620  (received 247,800 - should get 138,180)  |
+|  Partner B         Owed  S/  73,600  (received 0 - should get 73,600)         |
+|  Partner C         Owed  S/  36,020  (received 0 - should get 36,020)         |
+|                                                                                 |
+|  * "Already Received" = inbound AR payments to that partner's bank accounts   |
 |  i Settlement amounts update as more AR payments are collected.                 |
 |                                                                                 |
 +---------------------------------------------------------------------------------+
@@ -458,7 +468,7 @@ Every page is wrapped in this shell. The sidebar is the primary navigation.
 - Project selector at top is required — no "all projects" aggregate view
 - Click a partner's contribution amount to expand and show the list of individual costs
 - Visual proportion bars show relative contribution at a glance
-- Settlement section shows who owes whom based on collected income vs contribution share
+- Settlement section shows who owes whom based on profit share (agreed %) vs actual income received
 
 **Expanded partner costs (inline):**
 ```

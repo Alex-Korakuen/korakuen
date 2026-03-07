@@ -18,10 +18,13 @@
 | `v_cost_balances.sql` | `v_cost_balances` | amount_paid, outstanding, payment_status per cost |
 | `v_ar_balances.sql` | `v_ar_balances` | amount_paid, outstanding, payment_status per AR invoice |
 | `v_ap_calendar.sql` | `v_ap_calendar` | Unpaid/partial costs sorted by due date with days remaining |
-| `v_partner_ledger.sql` | `v_partner_ledger` | Contributions, stakes, income distribution per project |
+| `v_partner_ledger.sql` | `v_partner_ledger` | Contributions, profit share, and settlement per project |
 | `v_entity_transactions.sql` | `v_entity_transactions` | All transactions per entity per project (costs + AR) |
 | `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
 | `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
+| `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding per loan |
+| `v_budget_vs_actual.sql` | `v_budget_vs_actual` | Budgeted vs actual per project per category |
+| `v_igv_position.sql` | `v_igv_position` | IGV collected vs paid, net position per currency |
 
 ---
 
@@ -145,9 +148,12 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 
 ### v_partner_ledger
 - Source: `project_partners` JOIN `costs` + `bank_accounts` (contributions), `ar_invoices` (income)
-- Uses `profit_share_pct` from `project_partners` for income distribution
+- **Only includes `cost_type = 'project_cost'`** — SG&A costs are excluded (they belong to the individual partner)
+- Uses `profit_share_pct` from `project_partners` for **profit** distribution (not income distribution)
+- Project profit = project income - project costs. Each partner's profit share = profit × their %
+- Settlement = costs_paid + profit_share (what each partner should receive from income pool)
 - Groups cost contributions by partner_company (derived from bank_account on costs)
-- Shows both contribution % (actual spend ratio) and profit share % (agreed split)
+- Shows both contribution % (actual spend ratio) and profit share % (agreed split) — these are independent
 
 ### v_entity_transactions
 - Source: `costs` UNION ALL `ar_invoices`, filtered by entity_id
@@ -163,6 +169,24 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Shows project_code, client name, invoice_number, invoice_date, due_date, gross_total, retencion_amount, retencion_verified, days_since_invoice
 - Ordered by `retencion_verified ASC` (unverified first), then `days_since_invoice DESC` (oldest unverified at top)
 - Apply `is_active = true` filter on projects and entities
+
+### v_loan_balances
+- Source: `loans` LEFT JOIN `loan_payments` LEFT JOIN `loan_schedule`
+- Computes total_owed (principal + return), total_paid, outstanding per loan
+- Return amount calculated from `return_type`: percentage applies `agreed_return_rate` to `amount`, fixed uses `agreed_return_amount`
+- Exposes `partner_company_id` for partner filter
+- Loans are permanent records — no `is_active` filter
+
+### v_budget_vs_actual
+- Source: `project_budgets` LEFT JOIN `cost_items` + `costs` (grouped by category)
+- Compares budgeted_amount vs actual (SUM of cost_items.subtotal) per project per category
+- Category values must match between `project_budgets.category` and `cost_items.category`
+- Includes variance (budgeted - actual)
+
+### v_igv_position
+- Source: `v_cost_totals` (IGV paid on costs) and `ar_invoices` (IGV collected on income)
+- Net position = IGV collected - IGV paid, grouped by currency
+- Positive = net liability to SUNAT, negative = net credit (credito fiscal)
 
 ---
 

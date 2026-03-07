@@ -25,7 +25,7 @@ function setCookie(ids: string[]) {
   document.cookie = `${COOKIE_NAME}=${value};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
 }
 
-export function parsePartnerFilterCookie(cookieValue: string | undefined): string[] {
+function parsePartnerFilterCookie(cookieValue: string | undefined): string[] {
   if (!cookieValue) return []
   return cookieValue.split(',').filter(Boolean)
 }

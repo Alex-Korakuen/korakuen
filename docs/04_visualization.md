@@ -201,11 +201,11 @@ Two sections:
 
 **Always requires a project selection — no "all projects" aggregate view.** Project selector at top.
 
-**Contributions section:** Table showing each partner's contributed amount and share percentage, with visual proportion bars. Total costs at bottom. Clicking a partner's contribution amount expands to show the list of costs that make up that number.
+**Contributions section:** Table showing each partner's contributed amount (costs paid) and contribution share percentage, with visual proportion bars. Total project costs at bottom. Clicking a partner's contribution amount expands to show the list of costs that make up that number. Note: contribution % reflects actual cost split during execution — this is independent of profit share %.
 
-**Income section:** Total invoiced, total collected, outstanding for the selected project.
+**Income section:** Total invoiced, total collected, outstanding for the selected project. Only project costs included (SG&A excluded — SG&A costs belong to the individual partner who incurred them).
 
-**Settlement section:** Calculates what each partner should receive (contribution % x total collected income) vs what they actually received (inbound payments to their bank accounts). Shows who owes whom and how much.
+**Profit & Settlement section:** Project profit = project income - project costs. Each partner's profit share = profit × their `profit_share_pct` from `project_partners`. Settlement = profit_share - costs_they_actually_paid (positive = they're owed, negative = they owe). Equivalently, each partner should receive from the income pool: costs_they_paid + profit × their %. Shows who owes whom and how much.
 
 **Data source:** Costs table grouped by bank_account -> partner_company per project, AR invoices + Payments (via v_partner_ledger view)
 

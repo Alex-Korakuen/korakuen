@@ -26,7 +26,7 @@ COSTS          QUOTES        AR INVOICES
                               PAYMENTS (unified — both AP and AR)
 ```
 
-**Partner Ledger, AP Calendar, and Settlement Dashboard are views, not tables.** They are derived from the Costs, AR Invoices, and Payments tables and displayed on the visualization website.
+**Partner Ledger and AP Calendar are views, not tables.** They are derived from the Costs, AR Invoices, and Payments tables and displayed on the visualization website.
 
 ---
 
@@ -151,6 +151,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 
 **Business rules:**
 - Project field is nullable — null means SG&A (company-level expense, not tied to a project)
+- **SG&A costs belong exclusively to the individual partner who incurred them** — they are not allocated across partners and are excluded from project profit/settlement calculations
 - Every cost records who paid it (which partner company) and from which bank account
 - Quantity and unit price are required for material purchases — enables historical unit price analysis
 - IGV is tracked separately on every cost
@@ -262,7 +263,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 
 ## Module 5: AR — Accounts Receivable
 
-**Purpose:** Invoices sent to clients. Tracks the full lifecycle from invoice issuance to collection, including all Peruvian tax withholdings. Kept as a separate table from Costs because income and expenses have fundamentally different structures and must be separated for a clean P&L.
+**Purpose:** Invoices sent to clients. Tracks the full lifecycle from invoice issuance to collection, including all Peruvian tax withholdings. Kept as a separate table from Costs because income and expenses have fundamentally different structures — separate tables enable clean cash flow reporting and unambiguous partner settlement calculations.
 
 **Business rules:**
 - Every AR invoice is linked to a project
@@ -319,15 +320,16 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 
 ## Module 6: Bank Accounts
 
-**Purpose:** Tracks bank accounts used by the partners for project transactions. Full tracking for Alex's accounts. Reference only for partner accounts.
+**Purpose:** Tracks bank accounts used by all three partners for project transactions. All accounts are fully tracked in the system — every cost and payment references a bank account.
 
 **Business rules:**
 - Every cost payment references a bank account
 - Every AR collection references a bank account
 - Banco de la Nación detraccion account is a special account type
 - Balance is calculated dynamically from transactions — never stored as a static field
-- Alex's accounts: full in/out tracking, reconcilable against bank statements
-- Partner accounts: registered for reference only — balance calculated from net project contributions
+- All partner accounts are tracked for project-related transactions (costs, AR payments, loan payments)
+- Partner account balances reflect only project transactions visible in the system — not full personal banking activity
+- `bank_tracking_full` on `partner_companies` indicates whether full reconciliation against bank statements is expected (true for Alex, false for other partners)
 
 **Account types:**
 - Regular checking (BCP, Interbank, BBVA, Scotiabank, etc.)
@@ -342,9 +344,7 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 - Account type
 - Currency: USD or PEN
 - Is detraccion account: Yes / No
-- Tracking level: Full (Alex) or Reference (partners)
 - Active: Yes / No
-- Notes
 
 **Connects to:** Costs (paid from), Payments (received into)
 
@@ -352,33 +352,43 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 
 ## Module 7: Partner Ledger (View, Not a Table)
 
-**Purpose:** Shows each partner's financial contribution per project, calculates proportional ownership stakes, and displays inter-partner balances.
+**Purpose:** Shows each partner's financial position per project — what they contributed, what profit they're owed, and who owes whom for settlement.
 
 **How it works:**
-This is not a database table — it is a view derived entirely from the Costs table (via bank_account → partner_company) and AR Invoices + Payments tables per project. No data is stored separately. The view is always current because it reads directly from source data.
+This is not a database table — it is a view derived from the Costs table (via bank_account → partner_company, filtered to `cost_type = 'project_cost'` only) and AR Invoices + Payments tables per project. SG&A costs are excluded — they belong to the individual partner who incurred them. No data is stored separately. The view is always current because it reads directly from source data.
 
 **What the view shows:**
 
 ```
 PROJECT PRY001 — Punta Hermosa
-─────────────────────────────────────────────
-Partner 1 (Empresa A)     S/  100,000   18.87%
-Partner 2 (Empresa B)     S/  200,000   37.74%
-Partner 3 (Alex — Korak)  S/  230,000   43.40%
-─────────────────────────────────────────────
-Total Expenses             S/  530,000  100.00%
+─────────────────────────────────────────────────────────────
+Contributions (project costs only, SG&A excluded):
+Partner 1 (Empresa A)     S/  100,000   18.87%  (contribution %)
+Partner 2 (Empresa B)     S/  200,000   37.74%  (contribution %)
+Partner 3 (Alex — Korak)  S/  230,000   43.40%  (contribution %)
+─────────────────────────────────────────────────────────────
+Total Project Costs        S/  530,000  100.00%
 
-Total Income (AR Collected) S/  600,000
-─────────────────────────────────────────────
-Net Profit                  S/   70,000
+Total Income (AR)          S/  600,000
+─────────────────────────────────────────────────────────────
+Project Profit             S/   70,000
 
-Income Distribution:
-Partner 1                  S/   13,208   18.87%
-Partner 2                  S/   26,415   37.74%
-Partner 3                  S/   30,377   43.40%
+Agreed Profit Share:
+Partner 1 (20%)           S/   14,000
+Partner 2 (50%)           S/   35,000
+Partner 3 (30%)           S/   21,000
+
+Settlement (each partner should receive = costs_paid + profit_share):
+Partner 1                 S/  114,000   (100,000 + 14,000)
+Partner 2                 S/  235,000   (200,000 + 35,000)
+Partner 3                 S/  251,000   (230,000 + 21,000)
+                          ─────────────
+                          S/  600,000   (= total income)
 ```
 
-**Connects to:** Costs (source data), AR Invoices + Payments (source data)
+Note: contribution % reflects how costs were actually split during execution. Profit share % is the agreed split from `project_partners.profit_share_pct` — these are independent.
+
+**Connects to:** Costs (source data), AR Invoices + Payments (source data), Project Partners (profit share %)
 
 ---
 
@@ -447,11 +457,35 @@ Partner 3                  S/   30,377   43.40%
 
 ---
 
+## Module 9: Exchange Rates
+
+**Purpose:** Daily SUNAT USD/PEN exchange rates. Lookup/reference table used during data entry to suggest rates and for reporting conversions. Not linked via FK to any financial table — financial tables store their own `exchange_rate` at transaction time.
+
+**Business rules:**
+- One row per day — `rate_date` is unique
+- Stores buy rate (banco compra), sell rate (banco venta), and mid rate ((buy + sell) / 2)
+- Mid rate is used for everything in the management system
+- Source defaults to 'SUNAT'
+- Exchange rates are historical facts — no `is_active`, never deactivated or deleted
+
+**Key attributes:**
+- Rate date (unique — one per day)
+- Buy rate (SUNAT banco compra)
+- Sell rate (SUNAT banco venta)
+- Mid rate (calculated as (buy + sell) / 2 before insert)
+- Source (default 'SUNAT')
+
+**Data management:** Exchange rates are managed directly via the Supabase Dashboard (SQL Editor or table editor), not via Excel import. This is the only module without Excel import capability — rates are simple single-row inserts that don't justify a template workflow.
+
+**Connects to:** All financial tables (indirectly — provides suggested rates during data entry, not via FK)
+
+---
+
 ## Cross-Module Business Rules
 
 - A project must exist before costs, quotes, or AR invoices can be registered
 - An entity must exist before being referenced in any transaction — but transactions can have null entity
-- Costs with null project are SG&A — they appear in the company P&L but not in any project P&L
+- Costs with null project are SG&A — they belong to the individual partner who incurred them and are excluded from project profit/settlement calculations
 - Cost totals (subtotal, IGV, total) are always derived from cost_items via database views — never stored on the costs header. AR invoice calculated fields (igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable) are also derived via views, never stored
 - Currency is always stored in natural currency — amounts are never converted at storage
 - Exchange rate is mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting — no conversion occurs at storage. Payment currency must match the parent document currency

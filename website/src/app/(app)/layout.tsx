@@ -1,24 +1,20 @@
-import { cookies } from 'next/headers'
 import { getPartnerName } from '@/lib/auth'
 import { getPartnerCompaniesForFilter } from '@/lib/queries'
+import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
-import { PartnerFilterProvider, parsePartnerFilterCookie } from '@/lib/partner-filter-context'
+import { PartnerFilterProvider } from '@/lib/partner-filter-context'
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const partnerCookie = cookieStore.get('partner_filter')?.value
-
-  const [partnerName, partners] = await Promise.all([
+  const [partnerName, partners, initialSelection] = await Promise.all([
     getPartnerName(),
     getPartnerCompaniesForFilter(),
+    getPartnerFilter(),
   ])
-
-  const initialSelection = parsePartnerFilterCookie(partnerCookie)
 
   return (
     <PartnerFilterProvider partners={partners} initialSelection={initialSelection}>
