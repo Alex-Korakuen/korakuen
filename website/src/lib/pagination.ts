@@ -1,0 +1,33 @@
+export const PAGE_SIZE = 25
+
+export type PaginatedResult<T> = {
+  data: T[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+/** Paginate an in-memory array. Page is 1-based. */
+export function paginateArray<T>(items: T[], page: number): PaginatedResult<T> {
+  const validPage = Math.max(1, page)
+  const offset = (validPage - 1) * PAGE_SIZE
+  return {
+    data: items.slice(offset, offset + PAGE_SIZE),
+    totalCount: items.length,
+    page: validPage,
+    pageSize: PAGE_SIZE,
+  }
+}
+
+/** Parse pagination + sort params from searchParams with page-specific defaults. */
+export function parsePaginationParams(
+  searchParams: Record<string, string | string[] | undefined>,
+  defaults: { sort: string; dir?: 'asc' | 'desc' }
+): { page: number; sort: string; dir: 'asc' | 'desc' } {
+  const raw = typeof searchParams.page === 'string' ? searchParams.page : '1'
+  const page = Math.max(1, parseInt(raw, 10) || 1)
+  const sort = (typeof searchParams.sort === 'string' ? searchParams.sort : '') || defaults.sort
+  const dirRaw = typeof searchParams.dir === 'string' ? searchParams.dir : ''
+  const dir = dirRaw === 'desc' ? 'desc' : dirRaw === 'asc' ? 'asc' : (defaults.dir ?? 'asc')
+  return { page, sort, dir }
+}

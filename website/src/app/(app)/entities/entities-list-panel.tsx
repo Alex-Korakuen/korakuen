@@ -1,13 +1,23 @@
-import type { EntityListItem, EntitiesFilterOptions, EntityFilters } from '@/lib/types'
+import type { EntityListItem, EntitiesFilterOptions } from '@/lib/types'
 import { FilterSelect } from '@/components/ui/filter-select'
+import { SearchInput } from '@/components/ui/search-input'
+import { Pagination } from '@/components/ui/pagination'
+import { useUrlFilters } from '@/lib/use-url-filters'
 import { tagColor } from './helpers'
 
 type Props = {
   entities: EntityListItem[]
-  filtered: EntityListItem[]
+  totalCount: number
+  page: number
+  pageSize: number
   filterOptions: EntitiesFilterOptions
-  filters: EntityFilters
-  setFilters: React.Dispatch<React.SetStateAction<EntityFilters>>
+  currentFilters: {
+    search: string
+    entityType: string
+    tagId: string
+    city: string
+    region: string
+  }
   selectedId: string | null
   onSelect: (id: string | null) => void
   hidden: boolean
@@ -15,24 +25,24 @@ type Props = {
 
 export function EntitiesListPanel({
   entities,
-  filtered,
+  totalCount,
+  page,
+  pageSize,
   filterOptions,
-  filters,
-  setFilters,
+  currentFilters,
   selectedId,
   onSelect,
   hidden,
 }: Props) {
+  const { setFilter } = useUrlFilters()
+
   return (
     <div className={`w-full shrink-0 md:w-[320px] ${hidden ? 'hidden md:block' : ''}`}>
       {/* Search */}
       <div className="mb-3">
-        <input
-          type="text"
+        <SearchInput
           placeholder="Search entities..."
-          value={filters.search}
-          onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-          className="w-full rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700 placeholder-zinc-400"
+          defaultValue={currentFilters.search}
         />
       </div>
 
@@ -40,8 +50,8 @@ export function EntitiesListPanel({
       <div className="mb-3 grid grid-cols-2 gap-2">
         <FilterSelect
           label="Type"
-          value={filters.entityType}
-          onChange={(v) => setFilters((f) => ({ ...f, entityType: v }))}
+          value={currentFilters.entityType}
+          onChange={(v) => setFilter('entityType', v)}
           options={[
             { value: 'company', label: 'Company' },
             { value: 'individual', label: 'Individual' },
@@ -50,22 +60,22 @@ export function EntitiesListPanel({
         />
         <FilterSelect
           label="Tag"
-          value={filters.tagId}
-          onChange={(v) => setFilters((f) => ({ ...f, tagId: v }))}
+          value={currentFilters.tagId}
+          onChange={(v) => setFilter('tagId', v)}
           options={filterOptions.tags.map((t) => ({ value: t.id, label: t.name }))}
           placeholder="All Tags"
         />
         <FilterSelect
           label="City"
-          value={filters.city}
-          onChange={(v) => setFilters((f) => ({ ...f, city: v }))}
+          value={currentFilters.city}
+          onChange={(v) => setFilter('city', v)}
           options={filterOptions.cities.map((c) => ({ value: c, label: c }))}
           placeholder="All Cities"
         />
         <FilterSelect
           label="Region"
-          value={filters.region}
-          onChange={(v) => setFilters((f) => ({ ...f, region: v }))}
+          value={currentFilters.region}
+          onChange={(v) => setFilter('region', v)}
           options={filterOptions.regions.map((r) => ({ value: r, label: r }))}
           placeholder="All Regions"
         />
@@ -73,13 +83,13 @@ export function EntitiesListPanel({
 
       {/* Entity list */}
       <div className="rounded-lg border border-zinc-200">
-        {filtered.length === 0 ? (
+        {entities.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-zinc-500">
             No entities match filters
           </div>
         ) : (
-          <div className="max-h-[calc(100vh-260px)] divide-y divide-zinc-100 overflow-y-auto">
-            {filtered.map((entity) => (
+          <div className="max-h-[calc(100vh-340px)] divide-y divide-zinc-100 overflow-y-auto">
+            {entities.map((entity) => (
               <button
                 key={entity.id}
                 onClick={() => onSelect(entity.id)}
@@ -120,9 +130,9 @@ export function EntitiesListPanel({
         )}
       </div>
 
-      <p className="mt-2 text-xs text-zinc-400">
-        {filtered.length} of {entities.length} entities
-      </p>
+      <div className="mt-2">
+        <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
+      </div>
     </div>
   )
 }

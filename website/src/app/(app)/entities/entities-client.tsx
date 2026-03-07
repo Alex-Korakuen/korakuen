@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { EntitiesListPanel } from './entities-list-panel'
 import { EntitiesDetailPanel } from './entities-detail-panel'
 import { TransactionModal } from './entities-transaction-modal'
@@ -8,65 +8,40 @@ import type {
   EntityListItem,
   EntityDetailData,
   EntitiesFilterOptions,
-  EntityFilters,
   ProjectTransactionGroup,
 } from '@/lib/types'
 
 type Props = {
   entities: EntityListItem[]
+  totalCount: number
+  page: number
+  pageSize: number
   filterOptions: EntitiesFilterOptions
   detail: EntityDetailData | null
   selectedId: string | null
   onSelect: (id: string | null) => void
+  currentFilters: {
+    search: string
+    entityType: string
+    tagId: string
+    city: string
+    region: string
+  }
 }
 
 export function EntitiesClient({
   entities,
+  totalCount,
+  page,
+  pageSize,
   filterOptions,
   detail,
   selectedId,
   onSelect,
+  currentFilters,
 }: Props) {
-  const [filters, setFilters] = useState<EntityFilters>({
-    search: '',
-    entityType: '',
-    tagId: '',
-    city: '',
-    region: '',
-  })
-
   const [modalGroup, setModalGroup] = useState<ProjectTransactionGroup | null>(null)
 
-  // Build tag id -> name lookup for filtering
-  const tagNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const t of filterOptions.tags) {
-      map.set(t.id, t.name)
-    }
-    return map
-  }, [filterOptions.tags])
-
-  // Client-side filtering
-  const filtered = useMemo(() => {
-    const search = filters.search.toLowerCase()
-    const selectedTagName = filters.tagId ? tagNameById.get(filters.tagId) : null
-
-    return entities.filter((e) => {
-      if (search) {
-        const inLegal = e.legal_name.toLowerCase().includes(search)
-        const inCommon = e.common_name?.toLowerCase().includes(search) ?? false
-        const inDoc = e.document_number?.toLowerCase().includes(search) ?? false
-        if (!inLegal && !inCommon && !inDoc) return false
-      }
-      if (filters.entityType && e.entity_type !== filters.entityType) return false
-      if (selectedTagName && !e.tags.includes(selectedTagName)) return false
-      if (filters.city && e.city !== filters.city) return false
-      if (filters.region && e.region !== filters.region) return false
-      return true
-    })
-  }, [entities, filters, tagNameById])
-
-  // --- Mobile: show detail or list ---
   const showDetailMobile = selectedId && detail
 
   return (
@@ -87,10 +62,11 @@ export function EntitiesClient({
       <div className="flex gap-6">
         <EntitiesListPanel
           entities={entities}
-          filtered={filtered}
+          totalCount={totalCount}
+          page={page}
+          pageSize={pageSize}
           filterOptions={filterOptions}
-          filters={filters}
-          setFilters={setFilters}
+          currentFilters={currentFilters}
           selectedId={selectedId}
           onSelect={onSelect}
           hidden={!!showDetailMobile}

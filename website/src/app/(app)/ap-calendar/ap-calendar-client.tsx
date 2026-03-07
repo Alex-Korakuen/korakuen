@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
-import { useSort, sortRows } from '@/lib/sort-utils'
+import { formatCurrency, formatDate } from '@/lib/formatters'
+import { useUrlSort } from '@/lib/sort-utils'
+import { useUrlFilters } from '@/lib/use-url-filters'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
+import { Pagination } from '@/components/ui/pagination'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
-import { getDaysUntilEndOfWeek, formatType } from './helpers'
+import { formatType } from './helpers'
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
@@ -16,126 +17,66 @@ import type {
   CostDetailData,
   LoanDetailData,
   ApCalendarBucketId as BucketId,
-  ApCalendarFilters as Filters,
-  ApCalendarSortColumn as SortColumn,
 } from '@/lib/types'
+
+type BucketCounts = {
+  overdue: { count: number; pen: number; usd: number }
+  today: { count: number; pen: number; usd: number }
+  'this-week': { count: number; pen: number; usd: number }
+  'next-30': { count: number; pen: number; usd: number }
+}
 
 type Props = {
   data: ApCalendarRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+  bucketCounts: BucketCounts
   projects: { id: string; project_code: string; name: string }[]
-  exchangeRate: { mid_rate: number; rate_date: string } | null
+  uniqueSuppliers: string[]
+  currentFilters: {
+    projectId: string
+    supplier: string
+    currency: string
+    search: string
+    bucket: string
+  }
 }
 
-// --- Component ---
-
-export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
-  const [activeBucket, setActiveBucket] = useState<BucketId>('all')
-  const [filters, setFilters] = useState<Filters>({
-    projectId: '',
-    supplier: '',
-    currency: '',
-    titleSearch: '',
-  })
-  const { sortColumn, sortDirection, handleSort } = useSort<SortColumn>('due_date')
+export function ApCalendarClient({
+  data,
+  totalCount,
+  page,
+  pageSize,
+  bucketCounts,
+  projects,
+  uniqueSuppliers,
+  currentFilters,
+}: Props) {
+  const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
+  const { setFilter } = useUrlFilters()
   const modal = useDetailModal<ApCalendarRow, CostDetailData | LoanDetailData>()
 
-  // --- Bucket calculations ---
-  const daysToEndOfWeek = getDaysUntilEndOfWeek()
-  const midRate = exchangeRate?.mid_rate ?? null
-
-  const buckets = useMemo(() => {
-    const overdue = data.filter((r) => r.days_remaining !== null && r.days_remaining < 0)
-    const today = data.filter((r) => r.days_remaining === 0)
-    const thisWeek = data.filter(
-      (r) =>
-        r.days_remaining !== null &&
-        r.days_remaining > 0 &&
-        r.days_remaining <= daysToEndOfWeek
-    )
-    const next30 = data.filter(
-      (r) =>
-        r.days_remaining !== null &&
-        r.days_remaining > daysToEndOfWeek &&
-        r.days_remaining <= 30
-    )
-
-    return {
-      overdue: { rows: overdue, count: overdue.length, ...sumByCurrency(overdue, midRate) },
-      today: { rows: today, count: today.length, ...sumByCurrency(today, midRate) },
-      'this-week': { rows: thisWeek, count: thisWeek.length, ...sumByCurrency(thisWeek, midRate) },
-      'next-30': { rows: next30, count: next30.length, ...sumByCurrency(next30, midRate) },
-    }
-  }, [data, daysToEndOfWeek, midRate])
-
-  // --- Unique suppliers for filter dropdown ---
-  const uniqueSuppliers = useMemo(() => {
-    const names = new Set<string>()
-    for (const row of data) {
-      if (row.entity_name) names.add(row.entity_name)
-    }
-    return Array.from(names).sort()
-  }, [data])
-
-  // --- Filtering and sorting ---
-  const filteredData = useMemo(() => {
-    let rows = data
-
-    // Bucket filter
-    if (activeBucket !== 'all') {
-      if (activeBucket === 'overdue') {
-        rows = rows.filter((r) => r.days_remaining !== null && r.days_remaining < 0)
-      } else if (activeBucket === 'today') {
-        rows = rows.filter((r) => r.days_remaining === 0)
-      } else if (activeBucket === 'this-week') {
-        rows = rows.filter(
-          (r) =>
-            r.days_remaining !== null &&
-            r.days_remaining > 0 &&
-            r.days_remaining <= daysToEndOfWeek
-        )
-      } else if (activeBucket === 'next-30') {
-        rows = rows.filter(
-          (r) =>
-            r.days_remaining !== null &&
-            r.days_remaining > daysToEndOfWeek &&
-            r.days_remaining <= 30
-        )
-      }
-    }
-
-    // Dropdown/text filters
-    if (filters.projectId) {
-      rows = rows.filter((r) => r.project_id === filters.projectId)
-    }
-    if (filters.supplier) {
-      rows = rows.filter((r) => r.entity_name === filters.supplier)
-    }
-    if (filters.currency) {
-      rows = rows.filter((r) => r.currency === filters.currency)
-    }
-    if (filters.titleSearch) {
-      const search = filters.titleSearch.toLowerCase()
-      rows = rows.filter((r) => (r.title ?? '').toLowerCase().includes(search))
-    }
-
-    // Sort
-    return sortRows(rows, sortColumn, sortDirection)
-  }, [data, activeBucket, filters, sortColumn, sortDirection, daysToEndOfWeek])
-
-  const hasActiveFilters =
-    filters.projectId !== '' ||
-    filters.supplier !== '' ||
-    filters.currency !== '' ||
-    filters.titleSearch !== ''
-
-  // --- Event handlers ---
+  const activeBucket = currentFilters.bucket as BucketId
 
   function handleBucketClick(bucket: BucketId) {
-    setActiveBucket((prev) => (prev === bucket ? 'all' : bucket))
+    setFilter('bucket', activeBucket === bucket ? '' : bucket)
   }
 
+  const hasActiveFilters =
+    currentFilters.projectId !== '' ||
+    currentFilters.supplier !== '' ||
+    currentFilters.currency !== '' ||
+    currentFilters.search !== ''
+
   function clearFilters() {
-    setFilters({ projectId: '', supplier: '', currency: '', titleSearch: '' })
+    const params = new URLSearchParams(window.location.search)
+    params.delete('project')
+    params.delete('supplier')
+    params.delete('currency')
+    params.delete('search')
+    params.delete('page')
+    window.location.search = params.toString()
   }
 
   const handleRowClick = (row: ApCalendarRow) => {
@@ -153,8 +94,6 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
     })
   }
 
-  // --- Render ---
-
   return (
     <div>
       <div className="mt-0">
@@ -162,36 +101,36 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
         <div className="flex flex-wrap gap-4">
           <SummaryCard
             title="Overdue"
-            count={buckets.overdue.count}
-            totalPEN={buckets.overdue.pen}
-            totalUSD={buckets.overdue.usd}
+            count={bucketCounts.overdue.count}
+            totalPEN={bucketCounts.overdue.pen}
+            totalUSD={bucketCounts.overdue.usd}
             variant="overdue"
             isActive={activeBucket === 'overdue'}
             onClick={() => handleBucketClick('overdue')}
           />
           <SummaryCard
             title="Due Today"
-            count={buckets.today.count}
-            totalPEN={buckets.today.pen}
-            totalUSD={buckets.today.usd}
+            count={bucketCounts.today.count}
+            totalPEN={bucketCounts.today.pen}
+            totalUSD={bucketCounts.today.usd}
             variant="today"
             isActive={activeBucket === 'today'}
             onClick={() => handleBucketClick('today')}
           />
           <SummaryCard
             title="This Week"
-            count={buckets['this-week'].count}
-            totalPEN={buckets['this-week'].pen}
-            totalUSD={buckets['this-week'].usd}
+            count={bucketCounts['this-week'].count}
+            totalPEN={bucketCounts['this-week'].pen}
+            totalUSD={bucketCounts['this-week'].usd}
             variant="this-week"
             isActive={activeBucket === 'this-week'}
             onClick={() => handleBucketClick('this-week')}
           />
           <SummaryCard
             title="Next 30 Days"
-            count={buckets['next-30'].count}
-            totalPEN={buckets['next-30'].pen}
-            totalUSD={buckets['next-30'].usd}
+            count={bucketCounts['next-30'].count}
+            totalPEN={bucketCounts['next-30'].pen}
+            totalUSD={bucketCounts['next-30'].usd}
             variant="future"
             isActive={activeBucket === 'next-30'}
             onClick={() => handleBucketClick('next-30')}
@@ -199,8 +138,8 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
         </div>
 
         <ApCalendarFilters
-          filters={filters}
-          setFilters={setFilters}
+          currentFilters={currentFilters}
+          setFilter={setFilter}
           projects={projects}
           uniqueSuppliers={uniqueSuppliers}
           hasActiveFilters={hasActiveFilters}
@@ -208,13 +147,16 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
         />
 
         <ApCalendarTable
-          data={filteredData}
-          totalCount={data.length}
+          data={data}
           sortColumn={sortColumn}
           sortDirection={sortDirection}
           onSort={handleSort}
           onRowClick={handleRowClick}
         />
+
+        <div className="mt-3">
+          <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
+        </div>
       </div>
 
       {/* Detail Modal */}
@@ -233,7 +175,6 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
           </div>
         )}
 
-        {/* Cost detail */}
         {!modal.loading && modal.selectedRow?.type === 'supplier_invoice' && modal.detail && (
           <CostDetailContent
             row={modal.selectedRow}
@@ -241,7 +182,6 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
           />
         )}
 
-        {/* Loan detail */}
         {!modal.loading && modal.selectedRow?.type === 'loan_payment' && modal.detail && (
           <LoanDetailContent
             row={modal.selectedRow}
@@ -249,14 +189,12 @@ export function ApCalendarClient({ data, projects, exchangeRate }: Props) {
           />
         )}
 
-        {/* Error message if detail fetch failed */}
         {!modal.loading && modal.error && (
           <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             Could not load full detail. Showing summary only.
           </div>
         )}
 
-        {/* Fallback if detail couldn't load */}
         {!modal.loading && modal.selectedRow && !modal.detail && (
           <div className="space-y-3">
             <DetailField label="Type" value={formatType(modal.selectedRow.type)} />

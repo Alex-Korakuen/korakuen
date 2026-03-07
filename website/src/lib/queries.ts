@@ -1,6 +1,8 @@
 import { createServerSupabaseClient } from './supabase/server'
 import { SGA_ONLY_CATEGORY_KEYS } from './constants'
-import { convertAmount } from './formatters'
+import { convertAmount, sumByCurrency } from './formatters'
+import { paginateArray, PAGE_SIZE } from './pagination'
+import type { PaginatedResult } from './pagination'
 import type {
   ApCalendarRow,
   ArBalanceRow,
@@ -34,6 +36,20 @@ import type {
   ProjectEntitySummary,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+
+/** Sort an array by a column key with null-last, numeric, and string comparison. */
+function serverSort<T>(rows: T[], column: string, dir: 'asc' | 'desc'): T[] {
+  const m = dir === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = (a as Record<string, unknown>)[column] as string | number | null ?? null
+    const bv = (b as Record<string, unknown>)[column] as string | number | null ?? null
+    if (av === null && bv === null) return 0
+    if (av === null) return 1
+    if (bv === null) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * m
+    return String(av).localeCompare(String(bv)) * m
+  })
+}
 
 /** Fetch entity names by IDs and return a Map of id -> display name (common_name || legal_name) */
 async function buildEntityNameMap(
@@ -73,7 +89,50 @@ async function buildBankPartnerMap(
   return map
 }
 
-export async function getApCalendar(partnerIds: string[]): Promise<ApCalendarRow[]> {
+type ApCalendarFilters = {
+  projectId?: string
+  supplier?: string
+  currency?: string
+  search?: string
+  bucket?: string
+  sort: string
+  dir: 'asc' | 'desc'
+  page: number
+}
+
+type ApCalendarBucketCounts = {
+  overdue: { count: number; pen: number; usd: number }
+  today: { count: number; pen: number; usd: number }
+  'this-week': { count: number; pen: number; usd: number }
+  'next-30': { count: number; pen: number; usd: number }
+}
+
+type ApCalendarResult = {
+  paginated: PaginatedResult<ApCalendarRow>
+  bucketCounts: ApCalendarBucketCounts
+  uniqueSuppliers: string[]
+}
+
+function getDaysUntilEndOfWeek(): number {
+  const dayOfWeek = new Date().getDay()
+  if (dayOfWeek === 0) return 0
+  return 7 - dayOfWeek
+}
+
+function getApBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
+  if (daysRemaining === null) return null
+  if (daysRemaining < 0) return 'overdue'
+  if (daysRemaining === 0) return 'today'
+  if (daysRemaining <= daysToEndOfWeek) return 'this-week'
+  if (daysRemaining <= 30) return 'next-30'
+  return null
+}
+
+export async function getApCalendar(
+  partnerIds: string[],
+  filters: ApCalendarFilters,
+  midRate: number | null = null,
+): Promise<ApCalendarResult> {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
     .from('v_ap_calendar')
@@ -113,7 +172,49 @@ export async function getApCalendar(partnerIds: string[]): Promise<ApCalendarRow
     })
   }
 
-  return rows
+  // Collect unique suppliers for filter dropdown
+  const supplierSet = new Set<string>()
+  for (const r of rows) { if (r.entity_name) supplierSet.add(r.entity_name) }
+  const uniqueSuppliers = Array.from(supplierSet).sort()
+
+  // Compute bucket counts from all rows (before filters)
+  const daysToEndOfWeek = getDaysUntilEndOfWeek()
+  const emptyBucket = { count: 0, pen: 0, usd: 0 }
+  const bucketCounts: ApCalendarBucketCounts = {
+    overdue: { ...emptyBucket },
+    today: { ...emptyBucket },
+    'this-week': { ...emptyBucket },
+    'next-30': { ...emptyBucket },
+  }
+  for (const r of rows) {
+    const b = getApBucket(r.days_remaining, daysToEndOfWeek)
+    if (!b) continue
+    bucketCounts[b].count++
+    const amt = r.outstanding ?? 0
+    if (r.currency === 'PEN') bucketCounts[b].pen += amt
+    else if (r.currency === 'USD') {
+      bucketCounts[b].usd += amt
+      if (midRate) bucketCounts[b].pen += amt * midRate
+    }
+  }
+
+  // Apply filters
+  if (filters.bucket && filters.bucket !== 'all') {
+    rows = rows.filter(r => getApBucket(r.days_remaining, daysToEndOfWeek) === filters.bucket)
+  }
+  if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
+  if (filters.supplier) rows = rows.filter(r => r.entity_name === filters.supplier)
+  if (filters.currency) rows = rows.filter(r => r.currency === filters.currency)
+  if (filters.search) {
+    const search = filters.search.toLowerCase()
+    rows = rows.filter(r => (r.title ?? '').toLowerCase().includes(search))
+  }
+
+  // Sort and paginate
+  rows = serverSort(rows, filters.sort, filters.dir)
+  const paginated = paginateArray(rows, filters.page)
+
+  return { paginated, bucketCounts, uniqueSuppliers }
 }
 
 export async function getCostDetail(costId: string): Promise<CostDetailData> {
@@ -223,7 +324,47 @@ export async function getProjectsForFilter(): Promise<{ id: string; project_code
 
 // --- AR Outstanding queries ---
 
-export async function getArOutstanding(partnerFilter: string[] = []): Promise<ArOutstandingRow[]> {
+type ArOutstandingFilters = {
+  projectId?: string
+  client?: string
+  partnerCompanyId?: string
+  currency?: string
+  bucket?: string
+  sort: string
+  dir: 'asc' | 'desc'
+  page: number
+}
+
+type ArOutstandingBucketCounts = {
+  current: { count: number; pen: number; usd: number }
+  '31-60': { count: number; pen: number; usd: number }
+  '61-90': { count: number; pen: number; usd: number }
+  '90+': { count: number; pen: number; usd: number }
+}
+
+type ArOutstandingTotals = {
+  pen: { gross: number; receivable: number; bdn: number; count: number }
+  usd: { gross: number; receivable: number; bdn: number; count: number }
+}
+
+type ArOutstandingResult = {
+  paginated: PaginatedResult<ArOutstandingRow>
+  bucketCounts: ArOutstandingBucketCounts
+  totals: ArOutstandingTotals
+}
+
+function getAgingBucket(daysOverdue: number): 'current' | '31-60' | '61-90' | '90+' {
+  if (daysOverdue <= 30) return 'current'
+  if (daysOverdue <= 60) return '31-60'
+  if (daysOverdue <= 90) return '61-90'
+  return '90+'
+}
+
+export async function getArOutstanding(
+  partnerFilter: string[],
+  filters: ArOutstandingFilters,
+  midRate: number | null = null,
+): Promise<ArOutstandingResult> {
   const supabase = await createServerSupabaseClient()
 
   let query = supabase
@@ -239,7 +380,15 @@ export async function getArOutstanding(partnerFilter: string[] = []): Promise<Ar
   const { data: invoices, error } = await query
 
   if (error) throw error
-  if (!invoices || invoices.length === 0) return []
+
+  const emptyBucket = { count: 0, pen: 0, usd: 0 }
+  const emptyResult: ArOutstandingResult = {
+    paginated: { data: [], totalCount: 0, page: 1, pageSize: 25 },
+    bucketCounts: { current: { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket } },
+    totals: { pen: { gross: 0, receivable: 0, bdn: 0, count: 0 }, usd: { gross: 0, receivable: 0, bdn: 0, count: 0 } },
+  }
+
+  if (!invoices || invoices.length === 0) return emptyResult
 
   // Collect entity IDs, project IDs, partner company IDs for lookups
   const entityIds = [...new Set(invoices.filter(i => i.entity_id).map(i => i.entity_id!))]
@@ -259,7 +408,8 @@ export async function getArOutstanding(partnerFilter: string[] = []): Promise<Ar
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  return invoices.map(i => {
+  // Enrich all rows
+  let rows: ArOutstandingRow[] = invoices.map(i => {
     const dueDate = i.due_date ? new Date(i.due_date + 'T00:00:00') : null
     const daysOverdue = dueDate
       ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -291,6 +441,51 @@ export async function getArOutstanding(partnerFilter: string[] = []): Promise<Ar
       payment_status: i.payment_status ?? 'pending',
     }
   })
+
+  // Compute bucket counts from all rows (before any filters)
+  const bucketCounts: ArOutstandingBucketCounts = {
+    current: { ...emptyBucket },
+    '31-60': { ...emptyBucket },
+    '61-90': { ...emptyBucket },
+    '90+': { ...emptyBucket },
+  }
+  for (const r of rows) {
+    const b = getAgingBucket(r.days_overdue)
+    bucketCounts[b].count++
+    if (r.currency === 'PEN') bucketCounts[b].pen += r.outstanding
+    else if (r.currency === 'USD') {
+      bucketCounts[b].usd += r.outstanding
+      if (midRate) bucketCounts[b].pen += r.outstanding * midRate
+    }
+  }
+
+  // Apply filters
+  if (filters.bucket && filters.bucket !== 'all') {
+    rows = rows.filter(r => getAgingBucket(r.days_overdue) === filters.bucket)
+  }
+  if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
+  if (filters.client) rows = rows.filter(r => r.client_name === filters.client)
+  if (filters.partnerCompanyId) rows = rows.filter(r => r.partner_company_id === filters.partnerCompanyId)
+  if (filters.currency) rows = rows.filter(r => r.currency === filters.currency)
+
+  // Compute totals from full filtered set (before pagination)
+  const totals: ArOutstandingTotals = {
+    pen: { gross: 0, receivable: 0, bdn: 0, count: 0 },
+    usd: { gross: 0, receivable: 0, bdn: 0, count: 0 },
+  }
+  for (const r of rows) {
+    const t = r.currency === 'USD' ? totals.usd : totals.pen
+    t.gross += r.gross_total
+    t.receivable += r.receivable
+    t.bdn += r.bdn_outstanding
+    t.count++
+  }
+
+  // Sort and paginate
+  rows = serverSort(rows, filters.sort, filters.dir)
+  const paginated = paginateArray(rows, filters.page)
+
+  return { paginated, bucketCounts, totals }
 }
 
 export async function getArInvoiceDetail(arInvoiceId: string): Promise<ArInvoiceDetailData> {
@@ -1369,35 +1564,78 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
 // --- Entities browse queries ---
 
-export async function getEntitiesList(): Promise<EntityListItem[]> {
+type EntitiesListFilters = {
+  search?: string
+  entityType?: string
+  tagId?: string
+  city?: string
+  region?: string
+  page: number
+}
+
+export async function getEntitiesList(
+  filters: EntitiesListFilters = { page: 1 }
+): Promise<PaginatedResult<EntityListItem>> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch entities and all entity_tags in parallel
-  const [entitiesResult, entityTagsResult] = await Promise.all([
-    supabase
-      .from('entities')
-      .select('id, legal_name, common_name, document_type, document_number, entity_type, city, region')
-      .eq('is_active', true)
-      .order('legal_name'),
-    supabase
+  // If tag filter is active, get matching entity IDs first
+  let tagEntityIds: string[] | null = null
+  if (filters.tagId) {
+    const { data: etData } = await supabase
       .from('entity_tags')
-      .select('entity_id, tags(name)')
-  ])
-
-  if (entitiesResult.error) throw entitiesResult.error
-
-  // Build entity -> tag names map
-  const tagsByEntity = new Map<string, string[]>()
-  for (const et of entityTagsResult.data ?? []) {
-    const tagName = (et.tags as unknown as { name: string } | null)?.name
-    if (tagName) {
-      const existing = tagsByEntity.get(et.entity_id) ?? []
-      existing.push(tagName)
-      tagsByEntity.set(et.entity_id, existing)
+      .select('entity_id')
+      .eq('tag_id', filters.tagId)
+    tagEntityIds = (etData ?? []).map(et => et.entity_id)
+    if (tagEntityIds.length === 0) {
+      return { data: [], totalCount: 0, page: filters.page, pageSize: PAGE_SIZE }
     }
   }
 
-  return (entitiesResult.data ?? []).map(e => ({
+  // Build filtered query
+  let query = supabase
+    .from('entities')
+    .select('id, legal_name, common_name, document_type, document_number, entity_type, city, region', { count: 'exact' })
+    .eq('is_active', true)
+    .order('legal_name')
+
+  if (filters.search) {
+    const s = `%${filters.search}%`
+    query = query.or(`legal_name.ilike.${s},common_name.ilike.${s},document_number.ilike.${s}`)
+  }
+  if (filters.entityType) query = query.eq('entity_type', filters.entityType)
+  if (filters.city) query = query.eq('city', filters.city)
+  if (filters.region) query = query.eq('region', filters.region)
+  if (tagEntityIds) query = query.in('id', tagEntityIds)
+
+  // Apply pagination
+  const offset = (filters.page - 1) * PAGE_SIZE
+  query = query.range(offset, offset + PAGE_SIZE - 1)
+
+  const { data: entities, error, count } = await query
+
+  if (error) throw error
+
+  // Fetch tags for the returned entities
+  const entityIds = (entities ?? []).map(e => e.id)
+  const tagsByEntity = new Map<string, string[]>()
+
+  if (entityIds.length > 0) {
+    const { data: entityTagsData } = await supabase
+      .from('entity_tags')
+      .select('entity_id, tags(name)')
+      .in('entity_id', entityIds)
+
+    for (const et of entityTagsData ?? []) {
+      const tagName = (et.tags as unknown as { name: string } | null)?.name
+      if (tagName) {
+        const existing = tagsByEntity.get(et.entity_id) ?? []
+        existing.push(tagName)
+        tagsByEntity.set(et.entity_id, existing)
+      }
+    }
+  }
+
+  const items: EntityListItem[] = (entities ?? []).map(e => ({
     id: e.id,
     legal_name: e.legal_name,
     common_name: e.common_name,
@@ -1408,6 +1646,13 @@ export async function getEntitiesList(): Promise<EntityListItem[]> {
     region: e.region,
     tags: tagsByEntity.get(e.id) ?? [],
   }))
+
+  return {
+    data: items,
+    totalCount: count ?? 0,
+    page: filters.page,
+    pageSize: PAGE_SIZE,
+  }
 }
 
 export async function getEntityDetail(entityId: string): Promise<EntityDetailData> {
@@ -1501,7 +1746,22 @@ export async function getEntitiesFilterOptions(): Promise<EntitiesFilterOptions>
 
 // --- Prices browse queries ---
 
-export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
+type PriceHistoryFilters = {
+  search?: string
+  category?: string
+  entityId?: string
+  projectId?: string
+  tagId?: string
+  dateFrom?: string
+  dateTo?: string
+  sort: string
+  dir: 'asc' | 'desc'
+  page: number
+}
+
+export async function getPriceHistory(
+  filters: PriceHistoryFilters = { sort: 'date', dir: 'desc', page: 1 }
+): Promise<PaginatedResult<PriceHistoryRow>> {
   const supabase = await createServerSupabaseClient()
 
   // Fetch cost_items with their parent cost header info, and quotes in parallel
@@ -1555,7 +1815,7 @@ export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
   }
 
   // Build result: cost_items
-  const rows: PriceHistoryRow[] = []
+  let rows: PriceHistoryRow[] = []
 
   for (const item of costItems) {
     const cost = costMap.get(item.cost_id)
@@ -1599,10 +1859,29 @@ export async function getPriceHistory(): Promise<PriceHistoryRow[]> {
     })
   }
 
-  // Sort by date descending
-  rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  // Apply filters
+  if (filters.search) {
+    const search = filters.search.toLowerCase()
+    rows = rows.filter(r => r.title.toLowerCase().includes(search))
+  }
+  if (filters.category) {
+    rows = rows.filter(r => r.source === 'quote' || r.category === filters.category)
+  }
+  if (filters.entityId) rows = rows.filter(r => r.entityId === filters.entityId)
+  if (filters.projectId) rows = rows.filter(r => r.projectId === filters.projectId)
+  if (filters.tagId) {
+    // Look up tag name, then filter by entityTags
+    const { data: tagData } = await supabase.from('tags').select('name').eq('id', filters.tagId).single()
+    if (tagData) {
+      rows = rows.filter(r => r.entityTags.includes(tagData.name))
+    }
+  }
+  if (filters.dateFrom) rows = rows.filter(r => r.date >= filters.dateFrom!)
+  if (filters.dateTo) rows = rows.filter(r => r.date <= filters.dateTo!)
 
-  return rows
+  // Sort and paginate
+  rows = serverSort(rows, filters.sort, filters.dir)
+  return paginateArray(rows, filters.page)
 }
 
 export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {

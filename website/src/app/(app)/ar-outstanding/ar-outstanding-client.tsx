@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { formatCurrency, formatDate, sumByCurrency } from '@/lib/formatters'
-import { useSort, sortRows } from '@/lib/sort-utils'
+import { formatCurrency, formatDate } from '@/lib/formatters'
+import { useUrlSort } from '@/lib/sort-utils'
+import { useUrlFilters } from '@/lib/use-url-filters'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { FilterSelect } from '@/components/ui/filter-select'
+import { Pagination } from '@/components/ui/pagination'
 import { Modal } from '@/components/ui/modal'
 import { fetchArInvoiceDetail } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
 import {
-  getAgingBucket,
   getAgingColorClass,
   getAgingRowBorderClass,
 } from './helpers'
@@ -19,122 +19,80 @@ import type {
   ArOutstandingRow,
   ArInvoiceDetailData,
   ArOutstandingBucketId as BucketId,
-  ArOutstandingFilters as Filters,
-  ArOutstandingSortColumn as SortColumn,
 } from '@/lib/types'
+
+type BucketCounts = {
+  current: { count: number; pen: number; usd: number }
+  '31-60': { count: number; pen: number; usd: number }
+  '61-90': { count: number; pen: number; usd: number }
+  '90+': { count: number; pen: number; usd: number }
+}
+
+type Totals = {
+  pen: { gross: number; receivable: number; bdn: number; count: number }
+  usd: { gross: number; receivable: number; bdn: number; count: number }
+}
 
 type Props = {
   data: ArOutstandingRow[]
+  totalCount: number
+  page: number
+  pageSize: number
+  bucketCounts: BucketCounts
+  totals: Totals
   projects: { id: string; project_code: string; name: string }[]
   clients: { id: string; name: string }[]
   partners: { id: string; name: string }[]
-  exchangeRate: { mid_rate: number; rate_date: string } | null
+  currentFilters: {
+    projectId: string
+    client: string
+    partnerCompanyId: string
+    currency: string
+    bucket: string
+  }
 }
 
 export function ArOutstandingClient({
   data,
+  totalCount,
+  page,
+  pageSize,
+  bucketCounts,
+  totals,
   projects,
   clients,
   partners,
-  exchangeRate,
+  currentFilters,
 }: Props) {
-  const [activeBucket, setActiveBucket] = useState<BucketId>('all')
-  const [filters, setFilters] = useState<Filters>({
-    projectId: '',
-    client: '',
-    partnerCompanyId: '',
-    currency: '',
-  })
-  const { sortColumn, sortDirection, handleSort } = useSort<SortColumn>('due_date')
+  const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
+  const { setFilter } = useUrlFilters()
   const modal = useDetailModal<ArOutstandingRow, ArInvoiceDetailData>()
 
-  // --- Bucket calculations ---
-  const buckets = useMemo(() => {
-    const current = data.filter((r) => r.days_overdue <= 30)
-    const d31_60 = data.filter((r) => r.days_overdue > 30 && r.days_overdue <= 60)
-    const d61_90 = data.filter((r) => r.days_overdue > 60 && r.days_overdue <= 90)
-    const d90plus = data.filter((r) => r.days_overdue > 90)
+  const activeBucket = currentFilters.bucket as BucketId
 
-    const midRate = exchangeRate?.mid_rate ?? null
-
-    return {
-      current: { count: current.length, ...sumByCurrency(current, midRate) },
-      '31-60': { count: d31_60.length, ...sumByCurrency(d31_60, midRate) },
-      '61-90': { count: d61_90.length, ...sumByCurrency(d61_90, midRate) },
-      '90+': { count: d90plus.length, ...sumByCurrency(d90plus, midRate) },
-    }
-  }, [data, exchangeRate])
-
-  // --- Filtered and sorted data ---
-  const filteredData = useMemo(() => {
-    let rows = data
-
-    // Bucket filter
-    if (activeBucket !== 'all') {
-      rows = rows.filter((r) => getAgingBucket(r.days_overdue) === activeBucket)
-    }
-
-    // Dropdown filters
-    if (filters.projectId) {
-      rows = rows.filter((r) => r.project_id === filters.projectId)
-    }
-    if (filters.client) {
-      rows = rows.filter((r) => r.client_name === filters.client)
-    }
-    if (filters.partnerCompanyId) {
-      rows = rows.filter((r) => r.partner_company_id === filters.partnerCompanyId)
-    }
-    if (filters.currency) {
-      rows = rows.filter((r) => r.currency === filters.currency)
-    }
-
-    // Sort
-    return sortRows(rows, sortColumn, sortDirection)
-  }, [data, activeBucket, filters, sortColumn, sortDirection])
-
-  // --- Totals row (split by currency) ---
-  const totals = useMemo(() => {
-    const sumFor = (cur: string) => {
-      const rows = filteredData.filter((r) => r.currency === cur)
-      return rows.reduce(
-        (acc, r) => ({
-          gross: acc.gross + r.gross_total,
-          receivable: acc.receivable + r.receivable,
-          bdn: acc.bdn + r.bdn_outstanding,
-        }),
-        { gross: 0, receivable: 0, bdn: 0 }
-      )
-    }
-    return { pen: sumFor('PEN'), usd: sumFor('USD') }
-  }, [filteredData])
-
-  const hasActiveFilters =
-    filters.projectId !== '' ||
-    filters.client !== '' ||
-    filters.partnerCompanyId !== '' ||
-    filters.currency !== ''
-
-  // --- Event handlers ---
   function handleBucketClick(bucket: BucketId) {
-    setActiveBucket((prev) => (prev === bucket ? 'all' : bucket))
+    setFilter('bucket', activeBucket === bucket ? '' : bucket)
   }
 
+  const hasActiveFilters =
+    currentFilters.projectId !== '' ||
+    currentFilters.client !== '' ||
+    currentFilters.partnerCompanyId !== '' ||
+    currentFilters.currency !== ''
+
   function clearFilters() {
-    setFilters({ projectId: '', client: '', partnerCompanyId: '', currency: '' })
+    const params = new URLSearchParams(window.location.search)
+    params.delete('project')
+    params.delete('client')
+    params.delete('partner')
+    params.delete('currency')
+    params.delete('page')
+    window.location.search = params.toString()
   }
 
   const handleRowClick = (row: ArOutstandingRow) => {
     modal.open(row, () => fetchArInvoiceDetail(row.ar_invoice_id) as Promise<ArInvoiceDetailData | null>)
   }
-
-  // --- Unique clients for filter ---
-  const uniqueClients = useMemo(() => {
-    const names = new Set<string>()
-    for (const row of data) {
-      if (row.client_name && row.client_name !== '—') names.add(row.client_name)
-    }
-    return Array.from(names).sort()
-  }, [data])
 
   return (
     <div>
@@ -143,36 +101,36 @@ export function ArOutstandingClient({
         <div className="flex flex-wrap gap-4">
           <SummaryCard
             title="Current (0-30)"
-            count={buckets.current.count}
-            totalPEN={buckets.current.pen}
-            totalUSD={buckets.current.usd}
+            count={bucketCounts.current.count}
+            totalPEN={bucketCounts.current.pen}
+            totalUSD={bucketCounts.current.usd}
             variant="future"
             isActive={activeBucket === 'current'}
             onClick={() => handleBucketClick('current')}
           />
           <SummaryCard
             title="31-60 Days"
-            count={buckets['31-60'].count}
-            totalPEN={buckets['31-60'].pen}
-            totalUSD={buckets['31-60'].usd}
+            count={bucketCounts['31-60'].count}
+            totalPEN={bucketCounts['31-60'].pen}
+            totalUSD={bucketCounts['31-60'].usd}
             variant="this-week"
             isActive={activeBucket === '31-60'}
             onClick={() => handleBucketClick('31-60')}
           />
           <SummaryCard
             title="61-90 Days"
-            count={buckets['61-90'].count}
-            totalPEN={buckets['61-90'].pen}
-            totalUSD={buckets['61-90'].usd}
+            count={bucketCounts['61-90'].count}
+            totalPEN={bucketCounts['61-90'].pen}
+            totalUSD={bucketCounts['61-90'].usd}
             variant="today"
             isActive={activeBucket === '61-90'}
             onClick={() => handleBucketClick('61-90')}
           />
           <SummaryCard
             title="90+ Days"
-            count={buckets['90+'].count}
-            totalPEN={buckets['90+'].pen}
-            totalUSD={buckets['90+'].usd}
+            count={bucketCounts['90+'].count}
+            totalPEN={bucketCounts['90+'].pen}
+            totalUSD={bucketCounts['90+'].usd}
             variant="overdue"
             isActive={activeBucket === '90+'}
             onClick={() => handleBucketClick('90+')}
@@ -183,32 +141,32 @@ export function ArOutstandingClient({
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <FilterSelect
             label="Project"
-            value={filters.projectId}
-            onChange={(v) => setFilters((f) => ({ ...f, projectId: v }))}
+            value={currentFilters.projectId}
+            onChange={(v) => setFilter('project', v)}
             options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
             placeholder="All projects"
           />
 
           <FilterSelect
             label="Client"
-            value={filters.client}
-            onChange={(v) => setFilters((f) => ({ ...f, client: v }))}
-            options={uniqueClients.map((name) => ({ value: name, label: name }))}
+            value={currentFilters.client}
+            onChange={(v) => setFilter('client', v)}
+            options={clients.map((c) => ({ value: c.name, label: c.name }))}
             placeholder="All clients"
           />
 
           <FilterSelect
             label="Partner"
-            value={filters.partnerCompanyId}
-            onChange={(v) => setFilters((f) => ({ ...f, partnerCompanyId: v }))}
+            value={currentFilters.partnerCompanyId}
+            onChange={(v) => setFilter('partner', v)}
             options={partners.map((p) => ({ value: p.id, label: p.name }))}
             placeholder="All partners"
           />
 
           <FilterSelect
             label="Currency"
-            value={filters.currency}
-            onChange={(v) => setFilters((f) => ({ ...f, currency: v }))}
+            value={currentFilters.currency}
+            onChange={(v) => setFilter('currency', v)}
             options={[
               { value: 'PEN', label: 'PEN' },
               { value: 'USD', label: 'USD' },
@@ -284,7 +242,7 @@ export function ArOutstandingClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filteredData.length === 0 ? (
+              {data.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                     No outstanding AR invoices found
@@ -292,7 +250,7 @@ export function ArOutstandingClient({
                 </tr>
               ) : (
                 <>
-                  {filteredData.map((row) => (
+                  {data.map((row) => (
                     <tr
                       key={row.ar_invoice_id}
                       className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getAgingRowBorderClass(row.days_overdue)}`}
@@ -331,7 +289,7 @@ export function ArOutstandingClient({
                   {(totals.pen.receivable !== 0 || totals.pen.bdn !== 0) && (
                     <tr className="bg-zinc-50 font-medium">
                       <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
-                        Total PEN ({filteredData.filter(r => r.currency === 'PEN').length} invoices)
+                        Total PEN ({totals.pen.count} invoices)
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                         {formatCurrency(totals.pen.gross, 'PEN')}
@@ -348,7 +306,7 @@ export function ArOutstandingClient({
                   {(totals.usd.receivable !== 0 || totals.usd.bdn !== 0) && (
                     <tr className="bg-zinc-50 font-medium">
                       <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
-                        Total USD ({filteredData.filter(r => r.currency === 'USD').length} invoices)
+                        Total USD ({totals.usd.count} invoices)
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                         {formatCurrency(totals.usd.gross, 'USD')}
@@ -368,8 +326,8 @@ export function ArOutstandingClient({
           </table>
         </div>
 
-        <div className="mt-2 text-xs text-zinc-400">
-          {filteredData.length} of {data.length} invoices
+        <div className="mt-3">
+          <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
         </div>
       </div>
 

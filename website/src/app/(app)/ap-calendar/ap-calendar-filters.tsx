@@ -1,9 +1,14 @@
 import { FilterSelect } from '@/components/ui/filter-select'
-import type { ApCalendarFilters as Filters } from '@/lib/types'
+import { SearchInput } from '@/components/ui/search-input'
 
 type Props = {
-  filters: Filters
-  setFilters: React.Dispatch<React.SetStateAction<Filters>>
+  currentFilters: {
+    projectId: string
+    supplier: string
+    currency: string
+    search: string
+  }
+  setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string; name: string }[]
   uniqueSuppliers: string[]
   hasActiveFilters: boolean
@@ -11,8 +16,8 @@ type Props = {
 }
 
 export function ApCalendarFilters({
-  filters,
-  setFilters,
+  currentFilters,
+  setFilter,
   projects,
   uniqueSuppliers,
   hasActiveFilters,
@@ -22,24 +27,24 @@ export function ApCalendarFilters({
     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
       <FilterSelect
         label="Project"
-        value={filters.projectId}
-        onChange={(v) => setFilters((f) => ({ ...f, projectId: v }))}
+        value={currentFilters.projectId}
+        onChange={(v) => setFilter('project', v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
       />
 
       <FilterSelect
         label="Supplier"
-        value={filters.supplier}
-        onChange={(v) => setFilters((f) => ({ ...f, supplier: v }))}
+        value={currentFilters.supplier}
+        onChange={(v) => setFilter('supplier', v)}
         options={uniqueSuppliers.map((name) => ({ value: name, label: name }))}
         placeholder="All suppliers"
       />
 
       <FilterSelect
         label="Currency"
-        value={filters.currency}
-        onChange={(v) => setFilters((f) => ({ ...f, currency: v }))}
+        value={currentFilters.currency}
+        onChange={(v) => setFilter('currency', v)}
         options={[
           { value: 'PEN', label: 'PEN' },
           { value: 'USD', label: 'USD' },
@@ -47,16 +52,10 @@ export function ApCalendarFilters({
         placeholder="All"
       />
 
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-500">Search title</label>
-        <input
-          type="text"
-          value={filters.titleSearch}
-          onChange={(e) => setFilters((f) => ({ ...f, titleSearch: e.target.value }))}
-          placeholder="Filter by title..."
-          className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-        />
-      </div>
+      <SearchInput
+        placeholder="Search title…"
+        defaultValue={currentFilters.search}
+      />
 
       {hasActiveFilters && (
         <button
