@@ -110,15 +110,6 @@ export type LoanDetailData = {
 
 export type ApCalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
 
-export type ApCalendarFilters = {
-  projectId: string
-  supplier: string
-  currency: string
-  titleSearch: string
-}
-
-export type ApCalendarSortColumn = 'due_date' | 'days_remaining' | 'entity_name' | 'project_code' | 'total' | 'payable' | 'bdn_outstanding' | 'document_ref'
-
 // --- AR Outstanding component types ---
 
 export type ArOutstandingRow = {
@@ -156,21 +147,6 @@ export type ArInvoiceDetailData = {
 }
 
 export type ArOutstandingBucketId = 'all' | 'current' | '31-60' | '61-90' | '90+'
-export type ArOutstandingFilters = {
-  projectId: string
-  client: string
-  partnerCompanyId: string
-  currency: string
-}
-export type ArOutstandingSortColumn =
-  | 'due_date'
-  | 'days_overdue'
-  | 'client_name'
-  | 'project_code'
-  | 'invoice_number'
-  | 'gross_total'
-  | 'receivable'
-  | 'bdn_outstanding'
 
 // --- Partner Balances component types ---
 
@@ -409,8 +385,6 @@ export type PriceHistoryRow = {
   currency: string
   entityTags: string[]
 }
-
-export type PriceSortColumn = 'date' | 'title' | 'entityName' | 'projectCode' | 'unit_price' | 'quantity'
 
 export type PriceFilterOptions = {
   projects: { id: string; project_code: string; name: string }[]

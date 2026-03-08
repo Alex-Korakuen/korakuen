@@ -5,6 +5,7 @@ import { SectionCard } from '@/components/ui/section-card'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { addProjectEntity, removeProjectEntity } from '@/lib/actions'
 import type { ProjectAssignedEntity } from '@/lib/types'
+import { inputCompactClass } from '@/lib/styles'
 
 type Props = {
   projectId: string
@@ -99,7 +100,7 @@ export function ProjectEntitiesForm({ projectId, assignedEntities, tags }: Props
               <select
                 value={tagId}
                 onChange={(e) => setTagId(e.target.value)}
-                className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className={`w-full ${inputCompactClass}`}
               >
                 <option value="">Select role...</option>
                 {tags.map((t) => (

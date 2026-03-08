@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createProject } from '@/lib/actions'
+import { inputClass } from '@/lib/styles'
 
 type Props = {
   isOpen: boolean
@@ -88,7 +89,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Pista Huancayo Tramo 2"
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -99,7 +100,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             <select
               value={projectType}
               onChange={(e) => setProjectType(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               <option value="subcontractor">Subcontractor</option>
               <option value="oxi">OxI</option>
@@ -110,7 +111,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               <option value="prospect">Prospect</option>
               <option value="active">Active</option>
@@ -146,7 +147,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
               placeholder="0.00"
               step="0.01"
               min="0"
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={`${inputClass} font-mono`}
             />
           </div>
           {contractValue && (
@@ -155,7 +156,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
               <select
                 value={contractCurrency}
                 onChange={(e) => setContractCurrency(e.target.value)}
-                className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className={inputClass}
               >
                 <option value="PEN">PEN</option>
                 <option value="USD">USD</option>
@@ -174,7 +175,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             />
           </div>
           <div>
@@ -185,7 +186,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
               type="date"
               value={expectedEndDate}
               onChange={(e) => setExpectedEndDate(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             />
           </div>
         </div>
@@ -200,7 +201,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Region in Peru"
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -213,7 +214,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 

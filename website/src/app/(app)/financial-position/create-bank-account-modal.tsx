@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { createBankAccount } from '@/lib/actions'
 import type { PartnerCompanyOption } from '@/lib/queries'
+import { inputClass } from '@/lib/styles'
 
 type Props = {
   isOpen: boolean
@@ -79,7 +80,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
           <select
             value={partnerCompanyId}
             onChange={(e) => setPartnerCompanyId(e.target.value)}
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           >
             <option value="">Select partner...</option>
             {partnerCompanies.map((p) => (
@@ -96,7 +97,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             value={bankName}
             onChange={(e) => { setBankName(e.target.value); updateLabel(e.target.value, last4) }}
             placeholder="BCP, Interbank, BBVA..."
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -113,7 +114,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             }}
             placeholder="1234"
             maxLength={4}
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={`${inputClass} font-mono`}
           />
         </div>
 
@@ -125,7 +126,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="BCP-1234"
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -136,7 +137,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             <select
               value={accountType}
               onChange={(e) => setAccountType(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
@@ -148,7 +149,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               <option value="PEN">PEN</option>
               <option value="USD">USD</option>

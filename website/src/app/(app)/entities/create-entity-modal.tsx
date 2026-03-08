@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { createEntity } from '@/lib/actions'
+import { inputClass } from '@/lib/styles'
 
 type Props = {
   isOpen: boolean
@@ -88,7 +89,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             <select
               value={entityType}
               onChange={(e) => handleEntityTypeChange(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               <option value="company">Company</option>
               <option value="individual">Individual</option>
@@ -99,7 +100,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             >
               {docTypeOptions.map((dt) => (
                 <option key={dt} value={dt}>{dt}</option>
@@ -116,7 +117,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             value={documentNumber}
             onChange={(e) => setDocumentNumber(e.target.value)}
             placeholder={documentType === 'RUC' ? '20123456789' : '12345678'}
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={`${inputClass} font-mono`}
           />
         </div>
 
@@ -128,7 +129,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             value={legalName}
             onChange={(e) => setLegalName(e.target.value)}
             placeholder="Razon social or full name"
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -142,7 +143,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             value={commonName}
             onChange={(e) => setCommonName(e.target.value)}
             placeholder="Short or trade name"
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 
@@ -156,7 +157,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             />
           </div>
           <div>
@@ -168,7 +169,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="Peruvian department"
-              className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputClass}
             />
           </div>
         </div>
@@ -182,7 +183,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className={inputClass}
           />
         </div>
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { addEntityContact, removeEntityContact } from '@/lib/actions'
 import type { EntityContact } from '@/lib/types'
+import { inputCompactClass } from '@/lib/styles'
 
 type Props = {
   entityId: string
@@ -104,28 +105,28 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
               placeholder="Name *"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded border border-zinc-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputCompactClass}
             />
             <input
               type="text"
               placeholder="Role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="rounded border border-zinc-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputCompactClass}
             />
             <input
               type="text"
               placeholder="Phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="rounded border border-zinc-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputCompactClass}
             />
             <input
               type="text"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded border border-zinc-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className={inputCompactClass}
             />
           </div>
           <div className="mt-2 flex gap-2">

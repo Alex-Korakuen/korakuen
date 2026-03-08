@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from 'react'
 import { searchEntitiesAction } from '@/lib/actions'
+import { inputClass } from '@/lib/styles'
 
 type EntityResult = {
   id: string
@@ -91,7 +92,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded border border-zinc-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        className={inputClass}
       />
       {isPending && (
         <span className="absolute right-3 top-2.5 text-xs text-zinc-400">...</span>

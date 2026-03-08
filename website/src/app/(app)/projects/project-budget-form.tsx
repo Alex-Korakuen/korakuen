@@ -1,33 +1,40 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { formatCurrency, formatCategory } from '@/lib/formatters'
 import { SectionCard } from '@/components/ui/section-card'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow, Currency } from '@/lib/types'
 import type { CategoryOption } from '@/lib/queries'
+import { inputCompactClass } from '@/lib/styles'
 
 type Props = {
   projectId: string
   budgetRows: BudgetVsActualRow[]
-  hasBudget: boolean
   contractValue: number | null
   contractCurrency: Currency
-  totalActual: number
-  totalBudgeted: number | null
   categories: CategoryOption[]
 }
 
 export function ProjectBudgetForm({
   projectId,
   budgetRows,
-  hasBudget,
   contractValue,
   contractCurrency,
-  totalActual,
-  totalBudgeted,
   categories,
 }: Props) {
+  const hasBudget = useMemo(
+    () => budgetRows.some((b) => b.budgeted_amount !== null && b.budgeted_amount > 0),
+    [budgetRows]
+  )
+  const totalActual = useMemo(
+    () => budgetRows.reduce((sum, b) => sum + (b.actual_amount ?? 0), 0),
+    [budgetRows]
+  )
+  const totalBudgeted = useMemo(
+    () => hasBudget ? budgetRows.reduce((sum, b) => sum + (b.budgeted_amount ?? 0), 0) : null,
+    [budgetRows, hasBudget]
+  )
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
@@ -119,16 +126,17 @@ export function ProjectBudgetForm({
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {budgetRows.map((b, i) => {
+                const category = b.category ?? `uncategorized-${i}`
                 const actual = b.actual_amount ?? 0
                 const pctUsed = b.pct_used ?? 0
                 const pctOfContract =
                   contractValue !== null && contractValue > 0
                     ? (actual / contractValue) * 100
                     : null
-                const isEditing = editingCategory === b.category
+                const isEditing = editingCategory === category
 
                 return (
-                  <tr key={`${b.category}-${i}`}>
+                  <tr key={`${category}-${i}`}>
                     <td className="px-4 py-2 font-medium text-zinc-800">
                       {formatCategory(b.category)}
                     </td>
@@ -139,7 +147,7 @@ export function ProjectBudgetForm({
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEditSave(b.category!)
+                            if (e.key === 'Enter') handleEditSave(category)
                             if (e.key === 'Escape') handleEditCancel()
                           }}
                           onBlur={() => {
@@ -147,7 +155,7 @@ export function ProjectBudgetForm({
                             if (newAmount === b.budgeted_amount) {
                               handleEditCancel()
                             } else {
-                              handleEditSave(b.category!)
+                              handleEditSave(category)
                             }
                           }}
                           autoFocus
@@ -157,7 +165,7 @@ export function ProjectBudgetForm({
                         />
                       ) : (
                         <button
-                          onClick={() => handleEditStart(b.category!, b.budgeted_amount)}
+                          onClick={() => handleEditStart(category, b.budgeted_amount)}
                           className="cursor-pointer rounded px-1 py-0.5 hover:bg-blue-50"
                           title="Click to edit budget"
                         >
@@ -190,7 +198,7 @@ export function ProjectBudgetForm({
                     <td className="px-4 py-2 text-right">
                       {b.budgeted_amount !== null && (
                         <button
-                          onClick={() => handleRemove(b.category!)}
+                          onClick={() => handleRemove(category)}
                           disabled={isPending}
                           className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
                         >
@@ -248,7 +256,7 @@ export function ProjectBudgetForm({
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
-                className="rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className={inputCompactClass}
               >
                 <option value="">Select category...</option>
                 {availableCategories.map((c) => (
@@ -262,7 +270,7 @@ export function ProjectBudgetForm({
                 placeholder="Amount"
                 step="0.01"
                 min="0"
-                className="rounded border border-zinc-200 px-2 py-1.5 text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className={`${inputCompactClass} font-mono`}
               />
             </div>
             {error && <p className="text-xs text-red-600">{error}</p>}

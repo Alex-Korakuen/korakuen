@@ -5,6 +5,7 @@ import { SectionCard } from '@/components/ui/section-card'
 import { addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import type { ProjectPartnerRow } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
+import { inputCompactClass } from '@/lib/styles'
 
 type Props = {
   projectId: string
@@ -113,7 +114,7 @@ export function ProjectPartnersForm({ projectId, partners, partnerCompanies }: P
                 <select
                   value={selectedPartner}
                   onChange={(e) => setSelectedPartner(e.target.value)}
-                  className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className={`w-full ${inputCompactClass}`}
                 >
                   <option value="">Select partner...</option>
                   {availablePartners.map((p) => (
@@ -130,7 +131,7 @@ export function ProjectPartnersForm({ projectId, partners, partnerCompanies }: P
                   min="0"
                   max="100"
                   step="0.01"
-                  className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className={`w-full ${inputCompactClass} font-mono`}
                 />
               </div>
             </div>

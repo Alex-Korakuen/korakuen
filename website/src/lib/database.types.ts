@@ -913,6 +913,7 @@ export type Database = {
           end_date: string | null
           entity_id: string
           id: string
+          is_active: boolean
           notes: string | null
           project_id: string
           start_date: string | null
@@ -924,6 +925,7 @@ export type Database = {
           end_date?: string | null
           entity_id: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           project_id: string
           start_date?: string | null
@@ -935,6 +937,7 @@ export type Database = {
           end_date?: string | null
           entity_id?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           project_id?: string
           start_date?: string | null
