@@ -5,6 +5,7 @@ import {
   formatProjectStatus,
   projectStatusBadgeVariant,
 } from '@/lib/formatters'
+import { MobileBackButton } from '@/components/ui/mobile-back-button'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { CreateProjectModal } from './create-project-modal'
 import { ProjectDetail } from './project-detail'
@@ -114,12 +115,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect, partner
         <div className={`min-w-0 flex-1 ${!selectedId ? 'hidden md:block' : ''}`}>
           {/* Mobile back button */}
           {selectedId && (
-            <button
-              onClick={() => onSelect(null)}
-              className="mb-4 text-sm text-blue-600 hover:text-blue-800 md:hidden"
-            >
-              &larr; Back
-            </button>
+            <MobileBackButton onClick={() => onSelect(null)} />
           )}
 
           {!selectedId || !detail ? (

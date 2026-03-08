@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { MobileBackButton } from '@/components/ui/mobile-back-button'
 import { EntitiesListPanel } from './entities-list-panel'
 import { EntitiesDetailPanel } from './entities-detail-panel'
 import { TransactionModal } from './entities-transaction-modal'
@@ -50,15 +51,7 @@ export function EntitiesClient({
     <div>
       {/* Mobile: Back button when viewing detail */}
       {showDetailMobile && (
-        <button
-          onClick={() => onSelect(null)}
-          className="mb-4 flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 md:hidden"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-          Back
-        </button>
+        <MobileBackButton onClick={() => onSelect(null)} />
       )}
 
       <div className="flex gap-6">

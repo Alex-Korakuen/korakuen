@@ -367,6 +367,12 @@ export type EntitiesFilterOptions = {
   regions: string[]
 }
 
+// --- Dropdown option types ---
+
+export type PartnerCompanyOption = { id: string; name: string }
+
+export type CategoryOption = { name: string; cost_type: string }
+
 // --- Prices browse types ---
 
 export type PriceHistoryRow = {

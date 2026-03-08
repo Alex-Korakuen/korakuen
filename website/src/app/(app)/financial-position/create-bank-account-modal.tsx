@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
+import { ModalActions } from '@/components/ui/modal-actions'
 import { createBankAccount } from '@/lib/actions'
-import type { PartnerCompanyOption } from '@/lib/queries'
+import type { PartnerCompanyOption } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 
 type Props = {
@@ -170,23 +171,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded px-4 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit || isPending}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isPending ? 'Creating...' : 'Create'}
-          </button>
-        </div>
+        <ModalActions onCancel={handleClose} onSubmit={handleSubmit} disabled={!canSubmit} isPending={isPending} />
       </div>
     </Modal>
   )

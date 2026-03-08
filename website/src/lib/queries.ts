@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from './supabase/server'
 import { convertAmount } from './formatters'
 import { paginateArray, PAGE_SIZE } from './pagination'
-import { sortRows } from './sort-utils'
+import { sortRows } from './sort-rows'
 import type { PaginatedResult } from './pagination'
 import type {
   ApCalendarRow,
@@ -1980,7 +1980,8 @@ export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_
 
 // --- Partner companies (for dropdowns) ---
 
-export type PartnerCompanyOption = { id: string; name: string }
+import type { PartnerCompanyOption, CategoryOption } from './types'
+export type { PartnerCompanyOption, CategoryOption }
 
 export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
   const supabase = await createServerSupabaseClient()
@@ -2027,8 +2028,6 @@ export async function getNextProjectCode(): Promise<string> {
 }
 
 // --- Categories (for budget form) ---
-
-export type CategoryOption = { name: string; cost_type: string }
 
 export async function getProjectCategories(): Promise<CategoryOption[]> {
   const supabase = await createServerSupabaseClient()
