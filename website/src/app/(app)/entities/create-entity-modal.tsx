@@ -21,7 +21,7 @@ const DOC_TYPES_BY_ENTITY: Record<EntityType, DocumentType[]> = {
 
 export function CreateEntityModal({ isOpen, onClose }: Props) {
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ message: string; field?: string } | null>(null)
 
   const [entityType, setEntityType] = useState<'company' | 'individual'>('company')
   const [documentType, setDocumentType] = useState<'RUC' | 'DNI' | 'CE' | 'Pasaporte'>('RUC')
@@ -62,26 +62,27 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
     setError(null)
 
     startTransition(async () => {
-      try {
-        await createEntity({
-          entity_type: entityType,
-          document_type: documentType,
-          document_number: documentNumber.trim(),
-          legal_name: legalName.trim(),
-          common_name: commonName.trim() || undefined,
-          city: city.trim() || undefined,
-          region: region.trim() || undefined,
-          notes: notes.trim() || undefined,
-        })
+      const result = await createEntity({
+        entity_type: entityType,
+        document_type: documentType,
+        document_number: documentNumber.trim(),
+        legal_name: legalName.trim(),
+        common_name: commonName.trim() || undefined,
+        city: city.trim() || undefined,
+        region: region.trim() || undefined,
+        notes: notes.trim() || undefined,
+      })
+      if (result?.error) {
+        setError({ message: result.error, field: result.field })
+      } else {
         handleClose()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to create entity')
       }
     })
   }
 
   const canSubmit = entityType && documentType && documentNumber.trim() && legalName.trim()
   const docTypeOptions = DOC_TYPES_BY_ENTITY[entityType] ?? []
+  const errorBorder = 'border-red-500 focus:border-red-500 focus:ring-red-500'
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Entity">
@@ -119,10 +120,16 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
           <input
             type="text"
             value={documentNumber}
-            onChange={(e) => setDocumentNumber(e.target.value)}
+            onChange={(e) => {
+              setDocumentNumber(e.target.value)
+              if (error?.field === 'document_number') setError(null)
+            }}
             placeholder={documentType === 'RUC' ? '20123456789' : '12345678'}
-            className={`${inputClass} font-mono`}
+            className={`${inputClass} font-mono ${error?.field === 'document_number' ? errorBorder : ''}`}
           />
+          {error?.field === 'document_number' && (
+            <p className="mt-1 text-sm text-red-600">{error.message}</p>
+          )}
         </div>
 
         {/* Legal Name */}
@@ -191,9 +198,9 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
           />
         </div>
 
-        {/* Error */}
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
+        {/* General error (no specific field) */}
+        {error && !error.field && (
+          <p className="text-sm text-red-600">{error.message}</p>
         )}
 
         {/* Actions */}

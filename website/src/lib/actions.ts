@@ -131,23 +131,23 @@ export async function createEntity(data: {
   city?: string
   region?: string
   notes?: string
-}) {
+}): Promise<{ error: string; field?: string } | undefined> {
   const supabase = await createServerSupabaseClient()
 
   // Validate entity_type / document_type consistency
   if (data.entity_type === 'company' && data.document_type !== 'RUC') {
-    throw new Error('Company entities must use RUC document type')
+    return { error: 'Company entities must use RUC document type' }
   }
   if (data.entity_type === 'individual' && data.document_type === 'RUC') {
-    throw new Error('Individual entities cannot use RUC document type')
+    return { error: 'Individual entities cannot use RUC document type' }
   }
 
   // Validate document_number format
   if (data.document_type === 'RUC' && !/^\d{11}$/.test(data.document_number)) {
-    throw new Error('RUC must be exactly 11 digits')
+    return { error: 'RUC must be exactly 11 digits', field: 'document_number' }
   }
   if (data.document_type === 'DNI' && !/^\d{8}$/.test(data.document_number)) {
-    throw new Error('DNI must be exactly 8 digits')
+    return { error: 'DNI must be exactly 8 digits', field: 'document_number' }
   }
 
   // Check document_number uniqueness
@@ -158,7 +158,7 @@ export async function createEntity(data: {
     .eq('is_active', true)
     .limit(1)
   if (existing && existing.length > 0) {
-    throw new Error(`An entity with document number "${data.document_number}" already exists`)
+    return { error: `An entity with document number "${data.document_number}" already exists`, field: 'document_number' }
   }
 
   const { error } = await supabase.from('entities').insert({
@@ -171,7 +171,7 @@ export async function createEntity(data: {
     region: data.region || null,
     notes: data.notes || null,
   })
-  if (error) throw new Error(error.message)
+  if (error) return { error: error.message }
   revalidatePath('/entities')
 }
 
