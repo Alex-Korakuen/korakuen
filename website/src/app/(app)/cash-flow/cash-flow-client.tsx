@@ -109,7 +109,7 @@ export function CashFlowClient({
           label="Year"
           value={String(year)}
           onChange={(v) => onParamsChange(Number(v), projectId)}
-          options={[2025, 2026, 2027].map((y) => ({ value: String(y), label: String(y) }))}
+          options={[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => ({ value: String(y), label: String(y) }))}
         />
       </div>
 

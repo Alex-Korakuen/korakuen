@@ -359,9 +359,11 @@ export type ProjectTransactionGroup = {
   transactions: EntityTransactionRow[]
 }
 
+export type EntityTagItem = { tagId: string; name: string }
+
 export type EntityDetailData = {
   entity: Entity
-  tags: string[]
+  tags: EntityTagItem[]
   contacts: EntityContact[]
   transactionsByProject: ProjectTransactionGroup[]
 }

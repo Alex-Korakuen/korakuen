@@ -4,18 +4,22 @@ import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
+import { CreateBankAccountModal } from './create-bank-account-modal'
 import { fetchBankTransactions } from '@/lib/actions'
 import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/types'
+import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
   data: FinancialPositionData
+  partnerCompanies: PartnerCompanyOption[]
 }
 
 function fmt(amount: number, currency: string) {
   return formatCurrency(amount, currency as Currency)
 }
 
-export function FPClient({ data }: Props) {
+export function FPClient({ data, partnerCompanies }: Props) {
+  const [showCreateAccount, setShowCreateAccount] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<{
     bankAccountId: string
     bankName: string | null
@@ -76,6 +80,15 @@ export function FPClient({ data }: Props) {
           {data.bankAccounts.length === 0 && (
             <p className="px-6 py-4 text-sm text-zinc-400">No bank accounts</p>
           )}
+          <div className="border-t border-zinc-100 px-6 py-2">
+            <button
+              type="button"
+              onClick={() => setShowCreateAccount(true)}
+              className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+            >
+              + Add account
+            </button>
+          </div>
         </div>
       </SectionCard>
 
@@ -256,6 +269,13 @@ export function FPClient({ data }: Props) {
           </div>
         )}
       </Modal>
+
+      {/* Create Bank Account Modal */}
+      <CreateBankAccountModal
+        isOpen={showCreateAccount}
+        onClose={() => setShowCreateAccount(false)}
+        partnerCompanies={partnerCompanies}
+      />
     </div>
   )
 }

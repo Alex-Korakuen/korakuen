@@ -60,20 +60,6 @@ export function formatCategory(category: string | null): string {
     .join(' ')
 }
 
-/**
- * Aggregate outstanding amounts by currency — PEN total includes USD converted at mid rate.
- * Used by AP Calendar and AR Outstanding for summary card totals.
- */
-export function sumByCurrency(
-  rows: { currency: string | null; outstanding: number | null }[],
-  midRate: number | null
-): { pen: number; usd: number } {
-  const penNative = rows.filter(r => r.currency === 'PEN').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
-  const usdNative = rows.filter(r => r.currency === 'USD').reduce((acc, r) => acc + (r.outstanding ?? 0), 0)
-  const usdConverted = midRate ? usdNative * midRate : 0
-  return { pen: penNative + usdConverted, usd: usdNative }
-}
-
 // Convert amount to target reporting currency using stored exchange rate (PEN per USD)
 export function convertAmount(
   amount: number,

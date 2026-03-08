@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from './supabase/server'
-import { convertAmount, sumByCurrency } from './formatters'
+import { convertAmount } from './formatters'
 import { paginateArray, PAGE_SIZE } from './pagination'
 import { sortRows } from './sort-utils'
 import type { PaginatedResult } from './pagination'
@@ -1657,11 +1657,12 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
 
   const [entityResult, tagsResult, contactsResult, transactionsResult] = await Promise.all([
     supabase.from('entities').select('*').eq('id', entityId).single(),
-    supabase.from('entity_tags').select('tags(name)').eq('entity_id', entityId),
+    supabase.from('entity_tags').select('tag_id, tags(name)').eq('entity_id', entityId),
     supabase
       .from('entity_contacts')
       .select('*')
       .eq('entity_id', entityId)
+      .eq('is_active', true)
       .order('is_primary', { ascending: false }),
     supabase
       .from('v_entity_transactions')
@@ -1673,8 +1674,11 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
   if (entityResult.error) throw entityResult.error
 
   const tags = (tagsResult.data ?? [])
-    .map(t => (t.tags as unknown as { name: string } | null)?.name)
-    .filter((n): n is string => n !== null)
+    .map(t => {
+      const name = (t.tags as unknown as { name: string } | null)?.name
+      return name ? { tagId: t.tag_id, name } : null
+    })
+    .filter((t): t is { tagId: string; name: string } => t !== null)
 
   // Group transactions by (project_id, currency)
   const projectGroups = new Map<string, ProjectTransactionGroup>()
@@ -1938,4 +1942,17 @@ export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_
     .single()
   if (error || !data) return null
   return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
+}
+
+// --- Partner companies (for dropdowns) ---
+
+export type PartnerCompanyOption = { id: string; name: string }
+
+export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('partner_companies')
+    .select('id, name')
+    .order('name')
+  return data ?? []
 }

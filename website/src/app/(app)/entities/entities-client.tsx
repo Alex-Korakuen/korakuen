@@ -82,6 +82,7 @@ export function EntitiesClient({
         ) : (
           <EntitiesDetailPanel
             detail={detail}
+            availableTags={filterOptions.tags}
             onTransactionClick={setModalGroup}
             hidden={!showDetailMobile}
           />

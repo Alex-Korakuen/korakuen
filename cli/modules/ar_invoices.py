@@ -275,12 +275,17 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_boolean(row_num, row, "retencion_applicable", errors)
     validate_boolean(row_num, row, "retencion_verified", errors)
 
-    # Cross-field: if retencion_applicable, retencion_rate must be present
+    # Cross-field: retencion_applicable ↔ retencion_rate consistency
     ret_app = row.get("retencion_applicable")
-    if ret_app and not pd.isna(ret_app) and parse_bool(ret_app):
-        ret_rate = row.get("retencion_rate")
-        if ret_rate is None or pd.isna(ret_rate):
-            errors.append((row_num, "retencion_rate", "Required when retencion_applicable is true"))
+    if ret_app and not pd.isna(ret_app):
+        if parse_bool(ret_app):
+            ret_rate = row.get("retencion_rate")
+            if ret_rate is None or pd.isna(ret_rate):
+                errors.append((row_num, "retencion_rate", "Required when retencion_applicable is true"))
+        else:
+            ret_rate = row.get("retencion_rate")
+            if ret_rate is not None and not pd.isna(ret_rate):
+                errors.append((row_num, "retencion_rate", "Must be empty when retencion_applicable is false"))
 
     # Cross-field: entity should be the project client (Issue 9)
     proj_code = row.get("project_code")
