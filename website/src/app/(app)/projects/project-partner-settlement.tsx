@@ -38,6 +38,8 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
   const availablePartners = partnerCompanies.filter(p => !assignedIds.has(p.id))
 
   const totalProfit = settlements.reduce((sum, s) => sum + s.profit, 0)
+  const totalShouldReceive = settlements.reduce((sum, s) => sum + s.shouldReceive, 0)
+  const totalBalance = settlements.reduce((sum, s) => sum + s.balance, 0)
 
   async function handlePartnerClick(partnerCompanyId: string) {
     setExpandedPartner(partnerCompanyId)
@@ -174,8 +176,14 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 }`}>
                   {formatCurrency(totalProfit, 'PEN')}
                 </td>
-                <td className="px-4 py-2"></td>
-                <td className="px-4 py-2"></td>
+                <td className="px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                  {formatCurrency(totalShouldReceive, 'PEN')}
+                </td>
+                <td className={`px-4 py-2 text-right font-mono font-semibold ${
+                  totalBalance > 0 ? 'text-amber-600' : totalBalance < 0 ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  {totalBalance === 0 ? 'Settled' : formatCurrency(totalBalance, 'PEN')}
+                </td>
                 <td className="px-4 py-2 text-right">
                   {totalShare === 100 ? (
                     <span className="text-xs text-green-600">OK</span>
