@@ -181,8 +181,7 @@ export type PartnerBalanceData = {
 export type PartnerCostDetail = {
   cost_id: string
   date: string | null
-  title: string | null
-  category: string
+  comprobante_number: string | null
   subtotal: number
   currency: string | null
   exchange_rate: number | null

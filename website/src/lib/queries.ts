@@ -1145,7 +1145,7 @@ export async function getPartnerCostDetails(
   // Get all costs for this project from these bank accounts (both PEN and USD)
   const { data: costs, error } = await supabase
     .from('v_cost_totals')
-    .select('cost_id, date, title, currency, subtotal, exchange_rate')
+    .select('cost_id, date, comprobante_number, currency, subtotal, exchange_rate')
     .eq('project_id', projectId)
     .in('bank_account_id', bankIds)
     .order('date', { ascending: false })
@@ -1153,33 +1153,16 @@ export async function getPartnerCostDetails(
   if (error) throw error
   if (!costs || costs.length === 0) return []
 
-  // Get cost items for category
-  const costIds = costs.map(c => c.cost_id).filter((id): id is string => id !== null)
-  const { data: items } = await supabase
-    .from('cost_items')
-    .select('cost_id, category')
-    .in('cost_id', costIds)
-
-  // Build cost_id -> primary category
-  const categoryMap = new Map<string, string>()
-  for (const item of items ?? []) {
-    if (!categoryMap.has(item.cost_id)) {
-      categoryMap.set(item.cost_id, item.category)
-    }
-  }
-
   return costs.map(c => {
     const subtotal = c.subtotal ?? 0
     const rate = c.exchange_rate ? Number(c.exchange_rate) : 1
     return {
       cost_id: c.cost_id!,
       date: c.date,
-      title: c.title,
-      category: categoryMap.get(c.cost_id!) ?? 'other',
+      comprobante_number: c.comprobante_number,
       subtotal,
       currency: c.currency,
       exchange_rate: c.exchange_rate ? Number(c.exchange_rate) : null,
-      // USD costs converted at transaction-date rate; PEN passes through
       subtotal_pen: c.currency === 'USD' ? Math.round(subtotal * rate * 100) / 100 : subtotal,
     }
   })

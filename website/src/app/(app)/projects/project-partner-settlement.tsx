@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { SectionCard } from '@/components/ui/section-card'
 import { Modal } from '@/components/ui/modal'
-import { formatCurrency, formatDate, formatCategory } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
 import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, ProjectArInvoice, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
@@ -345,8 +345,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                   <thead>
                     <tr className="border-b border-zinc-200 text-xs text-zinc-500">
                       <th className="pb-2 text-left font-medium">Date</th>
-                      <th className="pb-2 text-left font-medium">Title</th>
-                      <th className="pb-2 text-left font-medium">Category</th>
+                      <th className="pb-2 text-left font-medium">Invoice</th>
                       <th className="pb-2 text-right font-medium">Original</th>
                       <th className="pb-2 text-right font-medium">PEN</th>
                     </tr>
@@ -357,10 +356,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                         <td className="py-2 whitespace-nowrap text-zinc-600">
                           {d.date ? formatDate(d.date) : '—'}
                         </td>
-                        <td className="py-2 text-zinc-700">{d.title ?? '—'}</td>
-                        <td className="py-2 whitespace-nowrap text-zinc-600">
-                          {formatCategory(d.category)}
-                        </td>
+                        <td className="py-2 text-zinc-700">{d.comprobante_number ?? '—'}</td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
                           {formatCurrency(d.subtotal, (d.currency ?? 'PEN') as Currency)}
                         </td>
@@ -372,7 +368,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-zinc-200">
-                      <td colSpan={4} className="py-2 text-sm font-medium text-zinc-700">Total (PEN)</td>
+                      <td colSpan={3} className="py-2 text-sm font-medium text-zinc-700">Total (PEN)</td>
                       <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-zinc-800">
                         {formatCurrency(costDetails.reduce((sum, d) => sum + d.subtotal_pen, 0), 'PEN')}
                       </td>
