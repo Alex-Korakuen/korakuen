@@ -85,7 +85,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect, partner
               onClick={() => setShowCreateProject(true)}
               className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
-              + Create
+              +
             </button>
           </div>
 
