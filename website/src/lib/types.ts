@@ -11,18 +11,16 @@ export type EntityContact = Database['public']['Tables']['entity_contacts']['Row
 export type Project = Database['public']['Tables']['projects']['Row']
 export type Cost = Database['public']['Tables']['costs']['Row']
 export type CostItem = Database['public']['Tables']['cost_items']['Row']
-export type ArInvoice = Database['public']['Tables']['ar_invoices']['Row']
+
 export type Payment = Database['public']['Tables']['payments']['Row']
 
 // --- View row types ---
 export type ApCalendarRow = Database['public']['Views']['v_ap_calendar']['Row']
 export type CostBalanceRow = Database['public']['Views']['v_cost_balances']['Row']
 export type ArBalanceRow = Database['public']['Views']['v_ar_balances']['Row']
-export type BankBalanceRow = Database['public']['Views']['v_bank_balances']['Row']
-export type PartnerLedgerRow = Database['public']['Views']['v_partner_ledger']['Row']
 export type EntityTransactionRow = Database['public']['Views']['v_entity_transactions']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
-export type IgvPositionRow = Database['public']['Views']['v_igv_position']['Row']
+
 
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
@@ -368,14 +366,6 @@ export type EntityDetailData = {
   transactionsByProject: ProjectTransactionGroup[]
 }
 
-export type EntityFilters = {
-  search: string
-  entityType: string
-  tagId: string
-  city: string
-  region: string
-}
-
 export type EntitiesFilterOptions = {
   tags: { id: string; name: string }[]
   cities: string[]
@@ -399,16 +389,6 @@ export type PriceHistoryRow = {
   unit_price: number | null
   currency: string
   entityTags: string[]
-}
-
-export type PriceFilters = {
-  titleSearch: string
-  category: string
-  entityId: string
-  projectId: string
-  tagId: string
-  dateFrom: string
-  dateTo: string
 }
 
 export type PriceSortColumn = 'date' | 'title' | 'entityName' | 'projectCode' | 'unit_price' | 'quantity'

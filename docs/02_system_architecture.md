@@ -1,7 +1,7 @@
 # System Architecture & Decisions
 
 **Document version:** 3.0
-**Date:** March 2, 2026
+**Date:** March 7, 2026
 **Status:** Active
 
 ---
