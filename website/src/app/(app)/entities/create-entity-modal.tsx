@@ -11,7 +11,10 @@ type Props = {
   onClose: () => void
 }
 
-const DOC_TYPES_BY_ENTITY: Record<string, string[]> = {
+type EntityType = 'company' | 'individual'
+type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
+
+const DOC_TYPES_BY_ENTITY: Record<EntityType, DocumentType[]> = {
   company: ['RUC'],
   individual: ['DNI', 'CE', 'Pasaporte'],
 }
@@ -20,8 +23,8 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const [entityType, setEntityType] = useState('company')
-  const [documentType, setDocumentType] = useState('RUC')
+  const [entityType, setEntityType] = useState<'company' | 'individual'>('company')
+  const [documentType, setDocumentType] = useState<'RUC' | 'DNI' | 'CE' | 'Pasaporte'>('RUC')
   const [documentNumber, setDocumentNumber] = useState('')
   const [legalName, setLegalName] = useState('')
   const [commonName, setCommonName] = useState('')
@@ -46,11 +49,11 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
     onClose()
   }
 
-  function handleEntityTypeChange(type: string) {
+  function handleEntityTypeChange(type: EntityType) {
     setEntityType(type)
-    const validDocs = DOC_TYPES_BY_ENTITY[type] ?? []
+    const validDocs = DOC_TYPES_BY_ENTITY[type]
     if (!validDocs.includes(documentType)) {
-      setDocumentType(validDocs[0] ?? '')
+      setDocumentType(validDocs[0])
     }
   }
 
@@ -89,7 +92,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             <label className="mb-1 block text-sm font-medium text-zinc-700">Entity Type *</label>
             <select
               value={entityType}
-              onChange={(e) => handleEntityTypeChange(e.target.value)}
+              onChange={(e) => handleEntityTypeChange(e.target.value as EntityType)}
               className={inputClass}
             >
               <option value="company">Company</option>
@@ -100,7 +103,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             <label className="mb-1 block text-sm font-medium text-zinc-700">Document Type *</label>
             <select
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value)}
+              onChange={(e) => setDocumentType(e.target.value as DocumentType)}
               className={inputClass}
             >
               {docTypeOptions.map((dt) => (

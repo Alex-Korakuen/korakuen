@@ -36,6 +36,7 @@ import type {
   ProjectEntitySummary,
   ProjectPartnerRow,
   ProjectAssignedEntity,
+  EntitySearchResult,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -1997,7 +1998,7 @@ export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
 
 export async function searchEntities(
   query: string
-): Promise<{ id: string; legal_name: string; common_name: string | null; document_number: string }[]> {
+): Promise<EntitySearchResult[]> {
   if (!query || query.trim().length < 2) return []
   const supabase = await createServerSupabaseClient()
   const pattern = `%${query.trim()}%`

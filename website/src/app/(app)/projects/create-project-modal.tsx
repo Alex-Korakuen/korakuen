@@ -6,6 +6,7 @@ import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createProject } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
+import type { Currency } from '@/lib/types'
 
 type Props = {
   isOpen: boolean
@@ -17,12 +18,12 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
-  const [projectType, setProjectType] = useState('subcontractor')
-  const [status, setStatus] = useState('prospect')
+  const [projectType, setProjectType] = useState<'subcontractor' | 'oxi'>('subcontractor')
+  const [status, setStatus] = useState<'prospect' | 'active' | 'completed' | 'cancelled'>('prospect')
   const [clientEntityId, setClientEntityId] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string | null>(null)
   const [contractValue, setContractValue] = useState('')
-  const [contractCurrency, setContractCurrency] = useState('PEN')
+  const [contractCurrency, setContractCurrency] = useState<Currency>('PEN')
   const [startDate, setStartDate] = useState('')
   const [expectedEndDate, setExpectedEndDate] = useState('')
   const [location, setLocation] = useState('')
@@ -100,7 +101,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             <label className="mb-1 block text-sm font-medium text-zinc-700">Project Type *</label>
             <select
               value={projectType}
-              onChange={(e) => setProjectType(e.target.value)}
+              onChange={(e) => setProjectType(e.target.value as 'subcontractor' | 'oxi')}
               className={inputClass}
             >
               <option value="subcontractor">Subcontractor</option>
@@ -111,7 +112,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             <label className="mb-1 block text-sm font-medium text-zinc-700">Status *</label>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => setStatus(e.target.value as 'prospect' | 'active' | 'completed' | 'cancelled')}
               className={inputClass}
             >
               <option value="prospect">Prospect</option>
@@ -156,7 +157,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
               <label className="mb-1 block text-sm font-medium text-zinc-700">Currency</label>
               <select
                 value={contractCurrency}
-                onChange={(e) => setContractCurrency(e.target.value)}
+                onChange={(e) => setContractCurrency(e.target.value as Currency)}
                 className={inputClass}
               >
                 <option value="PEN">PEN</option>

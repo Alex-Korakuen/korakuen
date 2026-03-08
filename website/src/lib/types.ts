@@ -373,6 +373,13 @@ export type PartnerCompanyOption = { id: string; name: string }
 
 export type CategoryOption = { name: string; cost_type: string }
 
+export type EntitySearchResult = {
+  id: string
+  legal_name: string
+  common_name: string | null
+  document_number: string
+}
+
 // --- Prices browse types ---
 
 export type PriceHistoryRow = {

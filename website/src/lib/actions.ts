@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getBankTransactions, searchEntities, getNextProjectCode } from '@/lib/queries'
-import type { PartnerCostDetail, BankTransaction } from '@/lib/types'
+import type { PartnerCostDetail, BankTransaction, Currency } from '@/lib/types'
 
 export async function fetchCostDetail(costId: string) {
   return getCostDetail(costId)
@@ -102,8 +102,8 @@ export async function createBankAccount(data: {
   bank_name: string
   account_number_last4: string
   label: string
-  account_type: string
-  currency: string
+  account_type: 'checking' | 'savings' | 'detraccion'
+  currency: Currency
   is_detraccion_account: boolean
 }) {
   const supabase = await createServerSupabaseClient()
@@ -133,8 +133,8 @@ export async function searchEntitiesAction(query: string) {
 // --- Create Entity ---
 
 export async function createEntity(data: {
-  entity_type: string
-  document_type: string
+  entity_type: 'company' | 'individual'
+  document_type: 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
   document_number: string
   legal_name: string
   common_name?: string
@@ -150,6 +150,14 @@ export async function createEntity(data: {
   }
   if (data.entity_type === 'individual' && data.document_type === 'RUC') {
     throw new Error('Individual entities cannot use RUC document type')
+  }
+
+  // Validate document_number format
+  if (data.document_type === 'RUC' && !/^\d{11}$/.test(data.document_number)) {
+    throw new Error('RUC must be exactly 11 digits')
+  }
+  if (data.document_type === 'DNI' && !/^\d{8}$/.test(data.document_number)) {
+    throw new Error('DNI must be exactly 8 digits')
   }
 
   // Check document_number uniqueness
@@ -181,11 +189,11 @@ export async function createEntity(data: {
 
 export async function createProject(data: {
   name: string
-  project_type: string
-  status: string
+  project_type: 'subcontractor' | 'oxi'
+  status: 'prospect' | 'active' | 'completed' | 'cancelled'
   client_entity_id?: string
   contract_value?: number
-  contract_currency?: string
+  contract_currency?: Currency
   start_date?: string
   expected_end_date?: string
   location?: string
@@ -314,7 +322,7 @@ export async function upsertProjectBudget(
   projectId: string,
   category: string,
   budgetedAmount: number,
-  currency: string
+  currency: Currency
 ) {
   const supabase = await createServerSupabaseClient()
 

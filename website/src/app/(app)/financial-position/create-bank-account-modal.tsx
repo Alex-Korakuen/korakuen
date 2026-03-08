@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { createBankAccount } from '@/lib/actions'
-import type { PartnerCompanyOption } from '@/lib/types'
+import type { PartnerCompanyOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 
 type Props = {
@@ -21,8 +21,8 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
   const [bankName, setBankName] = useState('')
   const [last4, setLast4] = useState('')
   const [label, setLabel] = useState('')
-  const [accountType, setAccountType] = useState('checking')
-  const [currency, setCurrency] = useState('PEN')
+  const [accountType, setAccountType] = useState<'checking' | 'savings' | 'detraccion'>('checking')
+  const [currency, setCurrency] = useState<Currency>('PEN')
 
   const isDetraccion = accountType === 'detraccion'
 
@@ -137,7 +137,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             <label className="mb-1 block text-sm font-medium text-zinc-700">Account Type *</label>
             <select
               value={accountType}
-              onChange={(e) => setAccountType(e.target.value)}
+              onChange={(e) => setAccountType(e.target.value as 'checking' | 'savings' | 'detraccion')}
               className={inputClass}
             >
               <option value="checking">Checking</option>
@@ -149,7 +149,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             <label className="mb-1 block text-sm font-medium text-zinc-700">Currency *</label>
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
               className={inputClass}
             >
               <option value="PEN">PEN</option>

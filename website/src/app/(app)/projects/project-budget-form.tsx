@@ -147,7 +147,7 @@ export function ProjectBudgetForm({
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEditSave(category)
+                            if (e.key === 'Enter') e.currentTarget.blur()
                             if (e.key === 'Escape') handleEditCancel()
                           }}
                           onBlur={() => {

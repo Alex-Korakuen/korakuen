@@ -3,13 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from 'react'
 import { searchEntitiesAction } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
-
-type EntityResult = {
-  id: string
-  legal_name: string
-  common_name: string | null
-  document_number: string
-}
+import type { EntitySearchResult } from '@/lib/types'
 
 type Props = {
   value: string | null
@@ -20,7 +14,7 @@ type Props = {
 
 export function EntityPicker({ value, displayName, onChange, placeholder = 'Search entities...' }: Props) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<EntityResult[]>([])
+  const [results, setResults] = useState<EntitySearchResult[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -54,7 +48,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
     }, 300)
   }
 
-  function handleSelect(entity: EntityResult) {
+  function handleSelect(entity: EntitySearchResult) {
     const name = entity.common_name || entity.legal_name
     onChange(entity.id, name)
     setQuery('')
