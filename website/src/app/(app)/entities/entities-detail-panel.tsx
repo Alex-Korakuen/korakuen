@@ -18,22 +18,29 @@ export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick,
       <div className="space-y-6">
         {/* Entity Header */}
         <div>
-          <h2 className="text-xl font-semibold text-zinc-800">
-            {detail.entity.legal_name}
-          </h2>
-          {detail.entity.common_name &&
-            detail.entity.common_name !== detail.entity.legal_name && (
-              <p className="mt-0.5 text-sm text-zinc-500">{detail.entity.common_name}</p>
-            )}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold text-zinc-800">
+                {detail.entity.legal_name}
+              </h2>
+              {detail.entity.common_name &&
+                detail.entity.common_name !== detail.entity.legal_name && (
+                  <p className="mt-0.5 text-sm text-zinc-500">{detail.entity.common_name}</p>
+                )}
+            </div>
+          </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {/* Entity type badge */}
+          {/* Type, document, location — single line */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
             <StatusBadge label={formatEntityType(detail.entity.entity_type)} variant="zinc" />
-
-            {/* Document */}
             {detail.entity.document_number && (
-              <span className="text-xs text-zinc-500">
+              <span>
                 {detail.entity.document_type}: {detail.entity.document_number}
+              </span>
+            )}
+            {(detail.entity.city || detail.entity.region) && (
+              <span>
+                {[detail.entity.city, detail.entity.region].filter(Boolean).join(', ')}
               </span>
             )}
           </div>
@@ -44,13 +51,6 @@ export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick,
             currentTags={detail.tags}
             availableTags={availableTags}
           />
-
-          {/* Location */}
-          {(detail.entity.city || detail.entity.region) && (
-            <p className="mt-2 text-xs text-zinc-500">
-              {[detail.entity.city, detail.entity.region].filter(Boolean).join(', ')}
-            </p>
-          )}
         </div>
 
         {/* Contacts */}

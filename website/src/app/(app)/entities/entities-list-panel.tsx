@@ -50,7 +50,7 @@ export function EntitiesListPanel({
         </div>
         <button
           onClick={onCreateEntity}
-          className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className="shrink-0 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
         >
           +
         </button>
