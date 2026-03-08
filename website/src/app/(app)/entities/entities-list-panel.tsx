@@ -20,6 +20,7 @@ type Props = {
   }
   selectedId: string | null
   onSelect: (id: string | null) => void
+  onCreateEntity: () => void
   hidden: boolean
 }
 
@@ -32,18 +33,27 @@ export function EntitiesListPanel({
   currentFilters,
   selectedId,
   onSelect,
+  onCreateEntity,
   hidden,
 }: Props) {
   const { setFilter } = useUrlFilters()
 
   return (
     <div className={`w-full shrink-0 md:w-[320px] ${hidden ? 'hidden md:block' : ''}`}>
-      {/* Search */}
-      <div className="mb-3">
-        <SearchInput
-          placeholder="Search entities..."
-          defaultValue={currentFilters.search}
-        />
+      {/* Search + Create */}
+      <div className="mb-3 flex gap-2">
+        <div className="min-w-0 flex-1">
+          <SearchInput
+            placeholder="Search entities..."
+            defaultValue={currentFilters.search}
+          />
+        </div>
+        <button
+          onClick={onCreateEntity}
+          className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          + Create
+        </button>
       </div>
 
       {/* Filter row */}

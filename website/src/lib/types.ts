@@ -322,12 +322,29 @@ export type ProjectArInvoice = {
   payment_status: string
 }
 
+export type ProjectPartnerRow = {
+  id: string
+  partnerCompanyId: string
+  partnerName: string
+  profitSharePct: number
+}
+
+export type ProjectAssignedEntity = {
+  id: string
+  entityId: string
+  entityName: string
+  tagId: string
+  tagName: string
+}
+
 export type ProjectDetailData = {
   project: Project
   clientName: string | null
   entities: ProjectEntitySummary[]
   budget: BudgetVsActualRow[]
   arInvoices: ProjectArInvoice[]
+  partners: ProjectPartnerRow[]
+  assignedEntities: ProjectAssignedEntity[]
 }
 
 export type ProjectStatusFilter = 'all' | ProjectStatus

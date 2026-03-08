@@ -50,7 +50,6 @@ A project has few fields. No Excel import needed — single-record modal.
 | Client | entity picker | no | Search existing entities |
 | Contract value | number | no | |
 | Currency | select | conditional | Required if contract_value provided. USD or PEN |
-| Exchange rate | number | yes | Auto-suggest from exchange_rates table for today |
 | Start date | date | no | |
 | Expected end date | date | no | |
 | Location | text | no | Region in Peru |

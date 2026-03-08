@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { EntitiesListPanel } from './entities-list-panel'
 import { EntitiesDetailPanel } from './entities-detail-panel'
 import { TransactionModal } from './entities-transaction-modal'
+import { CreateEntityModal } from './create-entity-modal'
 import type {
   EntityListItem,
   EntityDetailData,
@@ -41,6 +42,7 @@ export function EntitiesClient({
   currentFilters,
 }: Props) {
   const [modalGroup, setModalGroup] = useState<ProjectTransactionGroup | null>(null)
+  const [showCreateEntity, setShowCreateEntity] = useState(false)
 
   const showDetailMobile = selectedId && detail
 
@@ -69,6 +71,7 @@ export function EntitiesClient({
           currentFilters={currentFilters}
           selectedId={selectedId}
           onSelect={onSelect}
+          onCreateEntity={() => setShowCreateEntity(true)}
           hidden={!!showDetailMobile}
         />
 
@@ -91,6 +94,9 @@ export function EntitiesClient({
 
       {/* Transaction detail modal */}
       <TransactionModal group={modalGroup} onClose={() => setModalGroup(null)} />
+
+      {/* Create entity modal */}
+      <CreateEntityModal isOpen={showCreateEntity} onClose={() => setShowCreateEntity(false)} />
     </div>
   )
 }

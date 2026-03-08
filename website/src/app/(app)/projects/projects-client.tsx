@@ -7,10 +7,13 @@ import {
   formatProjectStatus,
   projectStatusBadgeVariant,
   formatProjectType,
-  formatCategory,
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { SectionCard } from '@/components/ui/section-card'
+import { CreateProjectModal } from './create-project-modal'
+import { ProjectPartnersForm } from './project-partners-form'
+import { ProjectEntitiesForm } from './project-entities-form'
+import { ProjectBudgetForm } from './project-budget-form'
 
 import type {
   ProjectListItem,
@@ -19,16 +22,21 @@ import type {
   BudgetVsActualRow,
   Currency,
 } from '@/lib/types'
+import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
 
 type Props = {
   projects: ProjectListItem[]
   detail: ProjectDetailData | null
   selectedId: string | null
   onSelect: (id: string | null) => void
+  partnerCompanies: PartnerCompanyOption[]
+  categories: CategoryOption[]
+  tags: { id: string; name: string }[]
 }
 
-export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props) {
+export function ProjectsClient({ projects, detail, selectedId, onSelect, partnerCompanies, categories, tags }: Props) {
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all')
+  const [showCreateProject, setShowCreateProject] = useState(false)
 
   const filteredProjects = useMemo(() => {
     if (statusFilter === 'all') return projects
@@ -60,12 +68,12 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
             selectedId ? 'hidden md:block' : ''
           }`}
         >
-          {/* Status filter */}
-          <div className="mb-3">
+          {/* Status filter + Create button */}
+          <div className="mb-3 flex gap-2">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ProjectStatusFilter)}
-              className="w-full rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+              className="flex-1 rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
             >
               <option value="all">All statuses</option>
               <option value="active">Active</option>
@@ -73,6 +81,12 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
+            <button
+              onClick={() => setShowCreateProject(true)}
+              className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              + Create
+            </button>
           </div>
 
           {/* Project table */}
@@ -141,10 +155,16 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect }: Props
               contractCurrency={contractCurrency}
               totalActual={totalActual}
               totalBudgeted={totalBudgeted}
+              partnerCompanies={partnerCompanies}
+              categories={categories}
+              tags={tags}
             />
           )}
         </div>
       </div>
+
+      {/* Create project modal */}
+      <CreateProjectModal isOpen={showCreateProject} onClose={() => setShowCreateProject(false)} />
     </div>
   )
 }
@@ -159,6 +179,9 @@ function ProjectDetail({
   contractCurrency,
   totalActual,
   totalBudgeted,
+  partnerCompanies,
+  categories,
+  tags,
 }: {
   detail: ProjectDetailData
   hasBudget: boolean
@@ -167,8 +190,11 @@ function ProjectDetail({
   contractCurrency: Currency
   totalActual: number
   totalBudgeted: number | null
+  partnerCompanies: PartnerCompanyOption[]
+  categories: CategoryOption[]
+  tags: { id: string; name: string }[]
 }) {
-  const { project, clientName, entities, arInvoices } = detail
+  const { project, clientName, entities, arInvoices, partners, assignedEntities } = detail
 
   return (
     <div className="space-y-6">
@@ -218,14 +244,26 @@ function ProjectDetail({
         </div>
       </div>
 
+      <ProjectPartnersForm
+        projectId={project.id}
+        partners={partners}
+        partnerCompanies={partnerCompanies}
+      />
+      <ProjectEntitiesForm
+        projectId={project.id}
+        assignedEntities={assignedEntities}
+        tags={tags}
+      />
       <ProjectEntitiesSection entities={entities} />
-      <ProjectBudgetSection
+      <ProjectBudgetForm
+        projectId={project.id}
         budgetRows={budgetRows}
         hasBudget={hasBudget}
         contractValue={contractValue}
         contractCurrency={contractCurrency}
         totalActual={totalActual}
         totalBudgeted={totalBudgeted}
+        categories={categories}
       />
       <ProjectArSection arInvoices={arInvoices} />
 
@@ -319,132 +357,6 @@ function ProjectEntitiesSection({ entities }: { entities: ProjectDetailData['ent
   )
 }
 
-function ProjectBudgetSection({
-  budgetRows,
-  hasBudget,
-  contractValue,
-  contractCurrency,
-  totalActual,
-  totalBudgeted,
-}: {
-  budgetRows: BudgetVsActualRow[]
-  hasBudget: boolean
-  contractValue: number | null
-  contractCurrency: Currency
-  totalActual: number
-  totalBudgeted: number | null
-}) {
-  return (
-    <SectionCard title="Costs & Budget">
-      {budgetRows.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-zinc-400">
-          No cost data available
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium">Category</th>
-                {hasBudget && (
-                  <th className="px-4 py-2 text-right font-medium">Budgeted</th>
-                )}
-                <th className="px-4 py-2 text-right font-medium">Actual</th>
-                {hasBudget && (
-                  <th className="px-4 py-2 text-right font-medium">% Used</th>
-                )}
-                {contractValue !== null && (
-                  <th className="px-4 py-2 text-right font-medium">% of Contract</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {budgetRows.map((b, i) => {
-                const actual = b.actual_amount ?? 0
-                const pctUsed = b.pct_used ?? 0
-                const pctOfContract =
-                  contractValue !== null && contractValue > 0
-                    ? (actual / contractValue) * 100
-                    : null
-
-                return (
-                  <tr key={`${b.category}-${i}`}>
-                    <td className="px-4 py-2 font-medium text-zinc-800">
-                      {formatCategory(b.category)}
-                    </td>
-                    {hasBudget && (
-                      <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
-                        {b.budgeted_amount !== null
-                          ? formatCurrency(b.budgeted_amount, contractCurrency)
-                          : '--'}
-                      </td>
-                    )}
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
-                      {formatCurrency(actual, contractCurrency)}
-                    </td>
-                    {hasBudget && (
-                      <td
-                        className={`whitespace-nowrap px-4 py-2 text-right font-mono font-medium ${pctUsedColor(
-                          pctUsed,
-                          b.budgeted_amount
-                        )}`}
-                      >
-                        {b.budgeted_amount !== null && b.budgeted_amount > 0
-                          ? `${pctUsed.toFixed(1)}%`
-                          : '--'}
-                      </td>
-                    )}
-                    {contractValue !== null && (
-                      <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-600">
-                        {pctOfContract !== null ? `${pctOfContract.toFixed(1)}%` : '--'}
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-zinc-200 bg-zinc-50">
-                <td className="px-4 py-2 font-medium text-zinc-700">Total</td>
-                {hasBudget && (
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
-                    {totalBudgeted !== null
-                      ? formatCurrency(totalBudgeted, contractCurrency)
-                      : '--'}
-                  </td>
-                )}
-                <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
-                  {formatCurrency(totalActual, contractCurrency)}
-                </td>
-                {hasBudget && (
-                  <td
-                    className={`whitespace-nowrap px-4 py-2 text-right font-mono font-semibold ${
-                      totalBudgeted !== null && totalBudgeted > 0
-                        ? pctUsedColor((totalActual / totalBudgeted) * 100, totalBudgeted)
-                        : 'text-zinc-700'
-                    }`}
-                  >
-                    {totalBudgeted !== null && totalBudgeted > 0
-                      ? `${((totalActual / totalBudgeted) * 100).toFixed(1)}%`
-                      : '--'}
-                  </td>
-                )}
-                {contractValue !== null && (
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-700">
-                    {contractValue > 0
-                      ? `${((totalActual / contractValue) * 100).toFixed(1)}%`
-                      : '--'}
-                  </td>
-                )}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
-    </SectionCard>
-  )
-}
-
 function ProjectArSection({ arInvoices }: { arInvoices: ProjectDetailData['arInvoices'] }) {
   return (
     <SectionCard title="AR Invoices">
@@ -484,11 +396,3 @@ function ProjectArSection({ arInvoices }: { arInvoices: ProjectDetailData['arInv
   )
 }
 
-// --- Helpers ---
-
-function pctUsedColor(pct: number, budgeted: number | null): string {
-  if (budgeted === null || budgeted === 0) return 'text-zinc-600'
-  if (pct > 100) return 'text-red-600'
-  if (pct > 90) return 'text-amber-600'
-  return 'text-green-600'
-}

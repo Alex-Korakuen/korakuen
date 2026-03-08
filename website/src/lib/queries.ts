@@ -34,6 +34,8 @@ import type {
   ProjectListItem,
   ProjectTransactionGroup,
   ProjectEntitySummary,
+  ProjectPartnerRow,
+  ProjectAssignedEntity,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -1421,10 +1423,11 @@ export async function getProjectsList(): Promise<ProjectListItem[]> {
 export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  // 1. Fetch project, project_entities, budget, AR invoices in parallel
-  const [projectResult, peResult, budgetResult, arResult] = await Promise.all([
+  // 1. Fetch project, project_entities, project_partners, budget, AR invoices in parallel
+  const [projectResult, peResult, ppResult, budgetResult, arResult] = await Promise.all([
     supabase.from('projects').select('*').eq('id', projectId).single(),
-    supabase.from('project_entities').select('entity_id, tag_id').eq('project_id', projectId),
+    supabase.from('project_entities').select('id, entity_id, tag_id').eq('project_id', projectId),
+    supabase.from('project_partners').select('id, partner_company_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
     supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
     supabase
       .from('v_ar_balances')
@@ -1550,12 +1553,43 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     payment_status: ar.payment_status ?? 'pending',
   }))
 
+  // 6. Partners — build name map from partner_companies
+  const ppData = ppResult.data ?? []
+  const partnerCompanyIds = [...new Set(ppData.map(pp => pp.partner_company_id))]
+  let partnerNameMap = new Map<string, string>()
+  if (partnerCompanyIds.length > 0) {
+    const { data: pcData } = await supabase
+      .from('partner_companies')
+      .select('id, name')
+      .in('id', partnerCompanyIds)
+    for (const pc of pcData ?? []) {
+      partnerNameMap.set(pc.id, pc.name)
+    }
+  }
+  const partners: ProjectPartnerRow[] = ppData.map(pp => ({
+    id: pp.id,
+    partnerCompanyId: pp.partner_company_id,
+    partnerName: partnerNameMap.get(pp.partner_company_id) ?? '—',
+    profitSharePct: pp.profit_share_pct,
+  }))
+
+  // 7. Assigned entities (for inline form — separate from spending summary)
+  const assignedEntities: ProjectAssignedEntity[] = peData.map(pe => ({
+    id: pe.id,
+    entityId: pe.entity_id,
+    entityName: entityMap.get(pe.entity_id) ?? '—',
+    tagId: pe.tag_id,
+    tagName: tagMap.get(pe.tag_id) ?? '—',
+  }))
+
   return {
     project,
     clientName,
     entities,
     budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
     arInvoices,
+    partners,
+    assignedEntities,
   }
 }
 
@@ -1953,6 +1987,67 @@ export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
   const { data } = await supabase
     .from('partner_companies')
     .select('id, name')
+    .order('name')
+  return data ?? []
+}
+
+// --- Entity search (for entity picker) ---
+
+export async function searchEntities(
+  query: string
+): Promise<{ id: string; legal_name: string; common_name: string | null; document_number: string }[]> {
+  if (!query || query.trim().length < 2) return []
+  const supabase = await createServerSupabaseClient()
+  const pattern = `%${query.trim()}%`
+  const { data } = await supabase
+    .from('entities')
+    .select('id, legal_name, common_name, document_number')
+    .eq('is_active', true)
+    .or(`legal_name.ilike.${pattern},common_name.ilike.${pattern},document_number.ilike.${pattern}`)
+    .order('legal_name')
+    .limit(10)
+  return data ?? []
+}
+
+// --- Next project code ---
+
+export async function getNextProjectCode(): Promise<string> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('projects')
+    .select('project_code')
+    .order('project_code', { ascending: false })
+    .limit(1)
+  if (data && data.length > 0) {
+    const lastNum = parseInt(data[0].project_code.replace('PRY', ''), 10)
+    return `PRY${String(lastNum + 1).padStart(3, '0')}`
+  }
+  return 'PRY001'
+}
+
+// --- Categories (for budget form) ---
+
+export type CategoryOption = { name: string; cost_type: string }
+
+export async function getProjectCategories(): Promise<CategoryOption[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('categories')
+    .select('name, cost_type')
+    .eq('is_active', true)
+    .eq('cost_type', 'project_cost')
+    .order('name')
+  return data ?? []
+}
+
+// --- Tags (standalone for role dropdowns) ---
+
+export async function getTags(): Promise<{ id: string; name: string }[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('tags')
+    .select('id, name')
+    .eq('is_active', true)
     .order('name')
   return data ?? []
 }
