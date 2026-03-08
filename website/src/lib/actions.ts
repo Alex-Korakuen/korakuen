@@ -64,15 +64,6 @@ export async function addEntityContact(
 ) {
   const supabase = await createServerSupabaseClient()
 
-  // Check if entity already has contacts — first contact should be primary
-  const { data: existing } = await supabase
-    .from('entity_contacts')
-    .select('id')
-    .eq('entity_id', entityId)
-    .eq('is_active', true)
-    .limit(1)
-  const isPrimary = !existing || existing.length === 0
-
   const { error } = await supabase
     .from('entity_contacts')
     .insert({
@@ -81,7 +72,6 @@ export async function addEntityContact(
       phone: data.phone || null,
       email: data.email || null,
       role: data.role || null,
-      is_primary: isPrimary,
     })
   if (error) throw new Error(error.message)
   revalidatePath('/entities')

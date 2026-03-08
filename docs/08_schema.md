@@ -182,13 +182,10 @@ People associated with an entity. For company entities: representatives, salespe
 | role | VARCHAR | YES | e.g. "Sales Manager", "Project Manager" |
 | phone | VARCHAR | YES | |
 | email | VARCHAR | YES | |
-| is_primary | BOOLEAN | NO | flags the main contact for this entity |
 | is_active | BOOLEAN | NO | default true, soft delete |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto set on insert |
 | updated_at | TIMESTAMP | NO | auto updated on change |
-
-**Rule:** Every entity must have at least one contact record flagged `is_primary = true`. For individual entities, this record represents the individual themselves.
 
 ---
 

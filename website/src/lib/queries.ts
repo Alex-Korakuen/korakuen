@@ -1698,7 +1698,7 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
       .select('*')
       .eq('entity_id', entityId)
       .eq('is_active', true)
-      .order('is_primary', { ascending: false }),
+      .order('full_name'),
     supabase
       .from('v_entity_transactions')
       .select('*')

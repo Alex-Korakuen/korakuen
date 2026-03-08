@@ -152,9 +152,9 @@ def add_entity():
         return
     entity_id = response.data[0]["id"]
 
-    # --- Prompt to add primary contact ---
-    if confirm("\nAdd a primary contact for this entity?"):
-        _add_contact_for_entity(entity_id, is_primary=True)
+    # --- Prompt to add contact ---
+    if confirm("\nAdd a contact for this entity?"):
+        _add_contact_for_entity(entity_id)
 
     # --- Prompt to add tags ---
     if confirm("\nAdd tags to this entity?"):
@@ -180,16 +180,13 @@ def add_contact():
     input("\nPress Enter to continue...")
 
 
-def _add_contact_for_entity(entity_id, is_primary=False):
+def _add_contact_for_entity(entity_id):
     """Collect contact fields and insert into entity_contacts."""
     print("\n  --- Contact Details ---")
     full_name = get_input("  Full name: ")
     role = get_optional_input("  Role (optional — press Enter to skip): ")
     phone = get_optional_input("  Phone (optional — press Enter to skip): ")
     email = get_optional_input("  Email (optional — press Enter to skip): ")
-
-    if not is_primary:
-        is_primary = confirm("  Is this the primary contact?")
 
     print("\n  --- Contact Summary ---")
     print(f"    Name:    {full_name}")
@@ -199,7 +196,6 @@ def _add_contact_for_entity(entity_id, is_primary=False):
         print(f"    Phone:   {phone}")
     if email:
         print(f"    Email:   {email}")
-    print(f"    Primary: {'Yes' if is_primary else 'No'}")
 
     if not confirm("\n  Register this contact?"):
         print("  Cancelled.")
@@ -208,7 +204,6 @@ def _add_contact_for_entity(entity_id, is_primary=False):
     data = {
         "entity_id": entity_id,
         "full_name": full_name,
-        "is_primary": is_primary,
     }
     if role:
         data["role"] = role
