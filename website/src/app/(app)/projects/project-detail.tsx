@@ -6,7 +6,6 @@ import {
   formatProjectType,
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { ProjectPartnersForm } from './project-partners-form'
 import { ProjectPartnerSettlement } from './project-partner-settlement'
 import { ProjectEntitiesForm } from './project-entities-form'
 import { ProjectBudgetForm } from './project-budget-form'
@@ -83,14 +82,11 @@ export function ProjectDetail({
         </div>
       </div>
 
-      <ProjectPartnersForm
-        projectId={project.id}
-        partners={partners}
-        partnerCompanies={partnerCompanies}
-      />
       <ProjectPartnerSettlement
         projectId={project.id}
+        partners={partners}
         settlements={partnerSettlements}
+        partnerCompanies={partnerCompanies}
       />
       <ProjectEntitiesForm
         projectId={project.id}
