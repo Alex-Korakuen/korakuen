@@ -1503,11 +1503,32 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     }
   }
 
-  // Look up entity names for entities with spending
+  // Look up entity names and tags for entities with spending
   const spendingEntityIds = [...new Set(
     (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null)
   )]
   const entityMap = await buildEntityNameMap(supabase, spendingEntityIds)
+
+  // Fetch tags for these entities via entity_tags → tags
+  const entityTagMap = new Map<string, string[]>()
+  if (spendingEntityIds.length > 0) {
+    const { data: entityTags } = await supabase
+      .from('entity_tags')
+      .select('entity_id, tag_id')
+      .in('entity_id', spendingEntityIds)
+    const tagIds = [...new Set((entityTags ?? []).map(et => et.tag_id))]
+    if (tagIds.length > 0) {
+      const { data: tags } = await supabase.from('tags').select('id, name').in('id', tagIds)
+      const tagNameMap = new Map((tags ?? []).map(t => [t.id, t.name]))
+      for (const et of entityTags ?? []) {
+        const name = tagNameMap.get(et.tag_id)
+        if (!name) continue
+        const existing = entityTagMap.get(et.entity_id) ?? []
+        existing.push(name)
+        entityTagMap.set(et.entity_id, existing)
+      }
+    }
+  }
 
   const entities: ProjectEntitySummary[] = []
   for (const [key, spending] of spendingMap) {
@@ -1516,6 +1537,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     entities.push({
       entityId,
       entityName: entityId ? entityMap.get(entityId) ?? '—' : 'Other (no entity)',
+      tags: entityId ? entityTagMap.get(entityId) ?? [] : [],
       totalSpent: spending.totalSpent,
       invoiceCount: spending.invoiceCount,
       currency,

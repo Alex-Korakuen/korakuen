@@ -9,7 +9,6 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { ProjectPartnerSettlement } from './project-partner-settlement'
 import { ProjectBudgetForm } from './project-budget-form'
 import { ProjectEntitiesSection } from './project-entities-section'
-import { ProjectArSection } from './project-ar-section'
 
 import type { ProjectDetailData, Currency } from '@/lib/types'
 import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
@@ -84,6 +83,7 @@ export function ProjectDetail({
         partners={partners}
         settlements={partnerSettlements}
         partnerCompanies={partnerCompanies}
+        arInvoices={arInvoices}
       />
       <ProjectEntitiesSection entities={entities} />
       <ProjectBudgetForm
@@ -93,7 +93,6 @@ export function ProjectDetail({
         contractCurrency={contractCurrency}
         categories={categories}
       />
-      <ProjectArSection arInvoices={arInvoices} />
 
       {project.notes && (
         <div className="rounded-lg border border-zinc-200 p-4">

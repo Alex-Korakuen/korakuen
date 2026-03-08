@@ -293,6 +293,7 @@ export type ProjectListItem = {
 export type ProjectEntitySummary = {
   entityId: string | null
   entityName: string
+  tags: string[]
   totalSpent: number | null
   invoiceCount: number | null
   currency: string

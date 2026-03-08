@@ -15,6 +15,7 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
                 <th className="px-4 py-2 text-left font-medium">Entity Name</th>
+                <th className="px-4 py-2 text-left font-medium">Tags</th>
                 <th className="px-4 py-2 text-right font-medium">Total Spent</th>
                 <th className="px-4 py-2 text-right font-medium"># Invoices</th>
               </tr>
@@ -33,6 +34,9 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
                     ) : (
                       <span className="font-medium text-zinc-800">{e.entityName}</span>
                     )}
+                  </td>
+                  <td className="px-4 py-2 text-zinc-600">
+                    {e.tags.length > 0 ? e.tags.join(', ') : '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
                     {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency as Currency) : '—'}
@@ -60,6 +64,7 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
                     <td className="px-4 py-2 text-sm font-medium text-zinc-700">
                       {currencies.length > 1 ? `Total ${c}` : 'Total'}
                     </td>
+                    <td className="px-4 py-2" />
                     <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
                       {formatCurrency(byCurrency[c].total, c as Currency)}
                     </td>

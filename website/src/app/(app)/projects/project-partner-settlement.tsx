@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate, formatCategory } from '@/lib/formatters'
 import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
-import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
+import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, ProjectArInvoice, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -14,10 +14,12 @@ type Props = {
   partners: ProjectPartnerRow[]
   settlements: SettlementRow[]
   partnerCompanies: PartnerCompanyOption[]
+  arInvoices: ProjectArInvoice[]
 }
 
-export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies }: Props) {
+export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies, arInvoices }: Props) {
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null)
+  const [showArModal, setShowArModal] = useState(false)
   const [detailTab, setDetailTab] = useState<'costs' | 'revenue'>('costs')
   const [costDetails, setCostDetails] = useState<PartnerCostDetail[]>([])
   const [revenueDetails, setRevenueDetails] = useState<PartnerRevenueDetail[]>([])
@@ -156,7 +158,11 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t border-zinc-200 bg-zinc-50">
+              <tr
+                className="border-t border-zinc-200 bg-zinc-50 cursor-pointer transition-colors hover:bg-blue-50"
+                onClick={() => setShowArModal(true)}
+                title="Click to view all AR invoices"
+              >
                 <td className="px-4 py-2 font-medium text-zinc-700">Total</td>
                 <td className={`px-4 py-2 text-right font-mono font-semibold ${
                   totalShare === 100 ? 'text-green-600' : 'text-amber-600'
@@ -410,6 +416,46 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
               )
             )}
           </div>
+        )}
+      </Modal>
+
+      {/* Project AR invoices modal */}
+      <Modal
+        isOpen={showArModal}
+        onClose={() => setShowArModal(false)}
+        title="AR Invoices"
+      >
+        {arInvoices.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500">No AR invoices</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-xs text-zinc-500">
+                <th className="pb-2 text-left font-medium">Invoice #</th>
+                <th className="pb-2 text-left font-medium">Date</th>
+                <th className="pb-2 text-right font-medium">Gross Total</th>
+                <th className="pb-2 text-left font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {arInvoices.map((ar) => (
+                <tr key={ar.id}>
+                  <td className="py-2 font-medium text-zinc-800">
+                    {ar.invoice_number ?? '—'}
+                  </td>
+                  <td className="py-2 whitespace-nowrap text-zinc-600">
+                    {ar.invoice_date ? formatDate(ar.invoice_date) : '—'}
+                  </td>
+                  <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
+                    {formatCurrency(ar.gross_total, ar.currency as Currency)}
+                  </td>
+                  <td className="py-2 whitespace-nowrap text-zinc-600">
+                    {ar.payment_status}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </Modal>
     </SectionCard>
