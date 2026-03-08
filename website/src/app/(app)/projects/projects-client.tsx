@@ -25,10 +25,9 @@ type Props = {
   onSelect: (id: string | null) => void
   partnerCompanies: PartnerCompanyOption[]
   categories: CategoryOption[]
-  tags: { id: string; name: string }[]
 }
 
-export function ProjectsClient({ projects, detail, selectedId, onSelect, partnerCompanies, categories, tags }: Props) {
+export function ProjectsClient({ projects, detail, selectedId, onSelect, partnerCompanies, categories }: Props) {
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all')
   const [showCreateProject, setShowCreateProject] = useState(false)
 
@@ -129,7 +128,6 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect, partner
               contractCurrency={contractCurrency}
               partnerCompanies={partnerCompanies}
               categories={categories}
-              tags={tags}
             />
           )}
         </div>

@@ -272,47 +272,6 @@ export async function removeProjectPartner(id: string) {
   revalidatePath('/projects')
 }
 
-// --- Project Entities ---
-
-export async function addProjectEntity(
-  projectId: string,
-  entityId: string,
-  tagId: string
-) {
-  const supabase = await createServerSupabaseClient()
-
-  // Check for duplicate (same entity + tag + project)
-  const { data: existing } = await supabase
-    .from('project_entities')
-    .select('id')
-    .eq('project_id', projectId)
-    .eq('entity_id', entityId)
-    .eq('tag_id', tagId)
-    .eq('is_active', true)
-    .limit(1)
-  if (existing && existing.length > 0) {
-    throw new Error('This entity is already assigned to the project with this role')
-  }
-
-  const { error } = await supabase.from('project_entities').insert({
-    project_id: projectId,
-    entity_id: entityId,
-    tag_id: tagId,
-  })
-  if (error) throw new Error(error.message)
-  revalidatePath('/projects')
-}
-
-export async function removeProjectEntity(id: string) {
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
-    .from('project_entities')
-    .update({ is_active: false })
-    .eq('id', id)
-  if (error) throw new Error(error.message)
-  revalidatePath('/projects')
-}
-
 // --- Project Budgets ---
 
 export async function upsertProjectBudget(

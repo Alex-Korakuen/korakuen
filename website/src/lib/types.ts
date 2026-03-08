@@ -293,7 +293,6 @@ export type ProjectListItem = {
 export type ProjectEntitySummary = {
   entityId: string | null
   entityName: string
-  roleName: string | null
   totalSpent: number | null
   invoiceCount: number | null
   currency: string
@@ -327,14 +326,6 @@ export type ProjectPartnerSettlement = {
   balance: number            // shouldReceive - profit (positive = owed, negative = overpaid)
 }
 
-export type ProjectAssignedEntity = {
-  id: string
-  entityId: string
-  entityName: string
-  tagId: string
-  tagName: string
-}
-
 export type ProjectDetailData = {
   project: Project
   clientName: string | null
@@ -342,7 +333,6 @@ export type ProjectDetailData = {
   budget: BudgetVsActualRow[]
   arInvoices: ProjectArInvoice[]
   partners: ProjectPartnerRow[]
-  assignedEntities: ProjectAssignedEntity[]
   partnerSettlements: ProjectPartnerSettlement[]
 }
 

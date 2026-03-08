@@ -7,7 +7,6 @@ import {
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { ProjectPartnerSettlement } from './project-partner-settlement'
-import { ProjectEntitiesForm } from './project-entities-form'
 import { ProjectBudgetForm } from './project-budget-form'
 import { ProjectEntitiesSection } from './project-entities-section'
 import { ProjectArSection } from './project-ar-section'
@@ -21,7 +20,6 @@ type Props = {
   contractCurrency: Currency
   partnerCompanies: PartnerCompanyOption[]
   categories: CategoryOption[]
-  tags: { id: string; name: string }[]
 }
 
 export function ProjectDetail({
@@ -30,9 +28,8 @@ export function ProjectDetail({
   contractCurrency,
   partnerCompanies,
   categories,
-  tags,
 }: Props) {
-  const { project, clientName, entities, arInvoices, partners, assignedEntities, partnerSettlements } = detail
+  const { project, clientName, entities, arInvoices, partners, partnerSettlements } = detail
 
   return (
     <div className="space-y-6">
@@ -87,11 +84,6 @@ export function ProjectDetail({
         partners={partners}
         settlements={partnerSettlements}
         partnerCompanies={partnerCompanies}
-      />
-      <ProjectEntitiesForm
-        projectId={project.id}
-        assignedEntities={assignedEntities}
-        tags={tags}
       />
       <ProjectEntitiesSection entities={entities} />
       <ProjectBudgetForm

@@ -35,7 +35,6 @@ import type {
   ProjectTransactionGroup,
   ProjectEntitySummary,
   ProjectPartnerRow,
-  ProjectAssignedEntity,
   ProjectPartnerSettlement,
   EntitySearchResult,
 } from './types'
@@ -1468,10 +1467,9 @@ export async function getProjectsList(): Promise<ProjectListItem[]> {
 export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  // 1. Fetch project, project_entities, project_partners, budget, AR invoices in parallel
-  const [projectResult, peResult, ppResult, budgetResult, arResult] = await Promise.all([
+  // 1. Fetch project, project_partners, budget, AR invoices in parallel
+  const [projectResult, ppResult, budgetResult, arResult] = await Promise.all([
     supabase.from('projects').select('*').eq('id', projectId).single(),
-    supabase.from('project_entities').select('id, entity_id, tag_id').eq('project_id', projectId),
     supabase.from('project_partners').select('id, partner_company_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
     supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
     supabase
@@ -1484,21 +1482,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   if (projectResult.error) throw projectResult.error
   const project = projectResult.data
 
-  // 2. Look up entity names and tag/role names for assigned entities
-  const peData = peResult.data ?? []
-  const entityIds = [...new Set(peData.map(pe => pe.entity_id).filter(Boolean))]
-  const tagIds = [...new Set(peData.map(pe => pe.tag_id).filter(Boolean))]
-
-  const [entityMap, tagsResult] = await Promise.all([
-    buildEntityNameMap(supabase, entityIds),
-    tagIds.length > 0
-      ? supabase.from('tags').select('id, name').in('id', tagIds)
-      : { data: [] },
-  ])
-
-  const tagMap = new Map((tagsResult.data ?? []).map(t => [t.id, t.name]))
-
-  // 3. Spending by entity: query v_cost_totals for this project, group by (entity_id, currency)
+  // 2. Spending by entity: query v_cost_totals for this project, group by (entity_id, currency)
   const { data: costTotals } = await supabase
     .from('v_cost_totals')
     .select('entity_id, currency, subtotal')
@@ -1519,62 +1503,26 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     }
   }
 
-  // Look up any entity names not already in entityMap (entities with spending but no assignment)
+  // Look up entity names for entities with spending
   const spendingEntityIds = [...new Set(
-    (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null && !entityMap.has(id))
+    (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null)
   )]
-  if (spendingEntityIds.length > 0) {
-    const extraMap = await buildEntityNameMap(supabase, spendingEntityIds)
-    for (const [id, name] of extraMap) {
-      entityMap.set(id, name)
-    }
-  }
+  const entityMap = await buildEntityNameMap(supabase, spendingEntityIds)
 
-  // Merge assigned entities + spending into one unified list
-  // Build role map: entityId -> roleName (from project_entities)
-  const roleMap = new Map<string, string>()
-  for (const pe of peData) {
-    roleMap.set(pe.entity_id, pe.tag_id ? tagMap.get(pe.tag_id) ?? '—' : '—')
-  }
-
-  // Collect all currencies that appear in spending
-  const allCurrencies = [...new Set((costTotals ?? []).map(ct => ct.currency ?? 'PEN'))]
-  if (allCurrencies.length === 0) allCurrencies.push('PEN')
-
-  const entitySet = new Set<string>() // track which entities we've added
   const entities: ProjectEntitySummary[] = []
-
-  // First: entities that have spending (may or may not have assignment)
   for (const [key, spending] of spendingMap) {
     const [entityIdRaw, currency] = key.split('|')
     const entityId = entityIdRaw === '__none__' ? null : entityIdRaw
     entities.push({
       entityId,
       entityName: entityId ? entityMap.get(entityId) ?? '—' : 'Other (no entity)',
-      roleName: entityId ? roleMap.get(entityId) ?? null : null,
       totalSpent: spending.totalSpent,
       invoiceCount: spending.invoiceCount,
       currency,
     })
-    if (entityId) entitySet.add(entityId)
   }
 
-  // Second: assigned entities with no spending — show with null totals
-  for (const pe of peData) {
-    if (!entitySet.has(pe.entity_id)) {
-      entities.push({
-        entityId: pe.entity_id,
-        entityName: entityMap.get(pe.entity_id) ?? '—',
-        roleName: pe.tag_id ? tagMap.get(pe.tag_id) ?? '—' : '—',
-        totalSpent: null,
-        invoiceCount: null,
-        currency: allCurrencies[0],
-      })
-      entitySet.add(pe.entity_id)
-    }
-  }
-
-  // Sort: entities with spending first (desc by totalSpent), then no-spend entities
+  // Sort by totalSpent descending
   entities.sort((a, b) => (b.totalSpent ?? -1) - (a.totalSpent ?? -1))
 
   // 4. Client name
@@ -1618,16 +1566,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     profitSharePct: pp.profit_share_pct,
   }))
 
-  // 7. Assigned entities (for inline form — separate from spending summary)
-  const assignedEntities: ProjectAssignedEntity[] = peData.map(pe => ({
-    id: pe.id,
-    entityId: pe.entity_id,
-    entityName: entityMap.get(pe.entity_id) ?? '—',
-    tagId: pe.tag_id,
-    tagName: tagMap.get(pe.tag_id) ?? '—',
-  }))
-
-  // 8. Partner settlements — fetch from v_partner_ledger + actual AR payments received
+  // 7. Partner settlements — fetch from v_partner_ledger + actual AR payments received
   let partnerSettlements: ProjectPartnerSettlement[] = []
   if (partners.length > 0) {
     const { data: ledger } = await supabase
@@ -1702,7 +1641,6 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
     arInvoices,
     partners,
-    assignedEntities,
     partnerSettlements,
   }
 }

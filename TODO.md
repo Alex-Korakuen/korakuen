@@ -47,6 +47,16 @@ The `v_partner_ledger` view currently calculates `income_share_pen = total_incom
 - [ ] Test with real data to verify settlements net to zero across partners
 
 
+## Investigate: Partner Removal Impact on Financial Data
+
+When a partner is removed from a project, their historical costs and AR payments remain in the database. Need to investigate:
+- What happens to settlement calculations when a partner is removed but still has costs/revenue linked?
+- Should removal be blocked if the partner has financial data?
+- Should removed partners still appear in the settlement view (read-only, no delete button)?
+- Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
+
+---
+
 ## Known Issues
 
 ### Cost Import — Headers Without Items Warning [LOW]
