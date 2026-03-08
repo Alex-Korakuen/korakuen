@@ -298,15 +298,6 @@ export type ProjectEntitySummary = {
   currency: string
 }
 
-export type ProjectArInvoice = {
-  id: string
-  invoice_number: string | null
-  invoice_date: string | null
-  gross_total: number
-  currency: string
-  payment_status: string
-}
-
 export type ProjectPartnerRow = {
   id: string
   partnerCompanyId: string
@@ -331,7 +322,6 @@ export type ProjectDetailData = {
   clientName: string | null
   entities: ProjectEntitySummary[]
   budget: BudgetVsActualRow[]
-  arInvoices: ProjectArInvoice[]
   partners: ProjectPartnerRow[]
   partnerSettlements: ProjectPartnerSettlement[]
 }

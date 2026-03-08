@@ -29,7 +29,6 @@ import type {
   Payment,
   PriceFilterOptions,
   PriceHistoryRow,
-  ProjectArInvoice,
   ProjectDetailData,
   ProjectListItem,
   ProjectTransactionGroup,
@@ -1451,15 +1450,10 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   const supabase = await createServerSupabaseClient()
 
   // 1. Fetch project, project_partners, budget, AR invoices in parallel
-  const [projectResult, ppResult, budgetResult, arResult] = await Promise.all([
+  const [projectResult, ppResult, budgetResult] = await Promise.all([
     supabase.from('projects').select('*').eq('id', projectId).single(),
     supabase.from('project_partners').select('id, partner_company_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
     supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
-    supabase
-      .from('v_ar_balances')
-      .select('ar_invoice_id, invoice_number, invoice_date, gross_total, currency, payment_status')
-      .eq('project_id', projectId)
-      .order('invoice_date', { ascending: false }),
   ])
 
   if (projectResult.error) throw projectResult.error
@@ -1541,17 +1535,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     clientName = clientEntity?.common_name || clientEntity?.legal_name || null
   }
 
-  // 5. AR invoices
-  const arInvoices: ProjectArInvoice[] = (arResult.data ?? []).map(ar => ({
-    id: ar.ar_invoice_id!,
-    invoice_number: ar.invoice_number,
-    invoice_date: ar.invoice_date,
-    gross_total: ar.gross_total ?? 0,
-    currency: ar.currency ?? 'PEN',
-    payment_status: ar.payment_status ?? 'pending',
-  }))
-
-  // 6. Partners — build name map from partner_companies
+  // 5. Partners — build name map from partner_companies
   const ppData = ppResult.data ?? []
   const partnerCompanyIds = [...new Set(ppData.map(pp => pp.partner_company_id))]
   let partnerNameMap = new Map<string, string>()
@@ -1644,7 +1628,6 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     clientName,
     entities,
     budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
-    arInvoices,
     partners,
     partnerSettlements,
   }

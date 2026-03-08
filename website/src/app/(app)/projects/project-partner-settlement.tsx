@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
-import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, ProjectArInvoice, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
+import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -14,12 +14,10 @@ type Props = {
   partners: ProjectPartnerRow[]
   settlements: SettlementRow[]
   partnerCompanies: PartnerCompanyOption[]
-  arInvoices: ProjectArInvoice[]
 }
 
-export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies, arInvoices }: Props) {
+export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies }: Props) {
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null)
-  const [showArModal, setShowArModal] = useState(false)
   const [detailTab, setDetailTab] = useState<'costs' | 'revenue'>('costs')
   const [costDetails, setCostDetails] = useState<PartnerCostDetail[]>([])
   const [revenueDetails, setRevenueDetails] = useState<PartnerRevenueDetail[]>([])
@@ -49,12 +47,30 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     setCostDetails([])
     setRevenueDetails([])
     try {
-      const [costs, revenue] = await Promise.all([
-        fetchPartnerCosts(projectId, partnerCompanyId),
-        fetchPartnerRevenue(projectId, partnerCompanyId),
-      ])
-      setCostDetails(costs)
-      setRevenueDetails(revenue)
+      if (partnerCompanyId === '__all__') {
+        // Fetch costs and revenue for all partners
+        const partnerIds = partners.map(p => p.partnerCompanyId)
+        const results = await Promise.all(
+          partnerIds.flatMap(id => [fetchPartnerCosts(projectId, id), fetchPartnerRevenue(projectId, id)])
+        )
+        const allCosts: PartnerCostDetail[] = []
+        const allRevenue: PartnerRevenueDetail[] = []
+        for (let i = 0; i < partnerIds.length; i++) {
+          allCosts.push(...(results[i * 2] as PartnerCostDetail[]))
+          allRevenue.push(...(results[i * 2 + 1] as PartnerRevenueDetail[]))
+        }
+        allCosts.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+        allRevenue.sort((a, b) => (b.payment_date ?? '').localeCompare(a.payment_date ?? ''))
+        setCostDetails(allCosts)
+        setRevenueDetails(allRevenue)
+      } else {
+        const [costs, revenue] = await Promise.all([
+          fetchPartnerCosts(projectId, partnerCompanyId),
+          fetchPartnerRevenue(projectId, partnerCompanyId),
+        ])
+        setCostDetails(costs)
+        setRevenueDetails(revenue)
+      }
     } catch {
       setError(true)
     } finally {
@@ -96,7 +112,18 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     })
   }
 
-  const selectedSettlement = settlements.find(s => s.partnerCompanyId === expandedPartner)
+  const selectedSettlement = expandedPartner === '__all__'
+    ? {
+        partnerCompanyId: '__all__',
+        partnerName: 'All Partners',
+        profitSharePct: totalShare,
+        costsContributed: settlements.reduce((sum, s) => sum + s.costsContributed, 0),
+        revenueReceived: settlements.reduce((sum, s) => sum + s.revenueReceived, 0),
+        profit: totalProfit,
+        shouldReceive: totalShouldReceive,
+        balance: totalBalance,
+      }
+    : settlements.find(s => s.partnerCompanyId === expandedPartner)
 
   return (
     <SectionCard title="Partners">
@@ -162,8 +189,8 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             <tfoot>
               <tr
                 className="border-t border-zinc-200 bg-zinc-50 cursor-pointer transition-colors hover:bg-blue-50"
-                onClick={() => setShowArModal(true)}
-                title="Click to view all AR invoices"
+                onClick={() => handlePartnerClick('__all__')}
+                title="Click to view all costs and revenue"
               >
                 <td className="px-4 py-2 font-medium text-zinc-700">Total</td>
                 <td className={`px-4 py-2 text-right font-mono font-semibold ${
@@ -423,45 +450,6 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         )}
       </Modal>
 
-      {/* Project AR invoices modal */}
-      <Modal
-        isOpen={showArModal}
-        onClose={() => setShowArModal(false)}
-        title="AR Invoices"
-      >
-        {arInvoices.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">No AR invoices</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 text-xs text-zinc-500">
-                <th className="pb-2 text-left font-medium">Invoice #</th>
-                <th className="pb-2 text-left font-medium">Date</th>
-                <th className="pb-2 text-right font-medium">Gross Total</th>
-                <th className="pb-2 text-left font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {arInvoices.map((ar) => (
-                <tr key={ar.id}>
-                  <td className="py-2 font-medium text-zinc-800">
-                    {ar.invoice_number ?? '—'}
-                  </td>
-                  <td className="py-2 whitespace-nowrap text-zinc-600">
-                    {ar.invoice_date ? formatDate(ar.invoice_date) : '—'}
-                  </td>
-                  <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
-                    {formatCurrency(ar.gross_total, ar.currency as Currency)}
-                  </td>
-                  <td className="py-2 whitespace-nowrap text-zinc-600">
-                    {ar.payment_status}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Modal>
     </SectionCard>
   )
 }

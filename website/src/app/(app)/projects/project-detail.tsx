@@ -28,7 +28,7 @@ export function ProjectDetail({
   partnerCompanies,
   categories,
 }: Props) {
-  const { project, clientName, entities, arInvoices, partners, partnerSettlements } = detail
+  const { project, clientName, entities, partners, partnerSettlements } = detail
 
   return (
     <div className="space-y-6">
@@ -83,7 +83,6 @@ export function ProjectDetail({
         partners={partners}
         settlements={partnerSettlements}
         partnerCompanies={partnerCompanies}
-        arInvoices={arInvoices}
       />
       <ProjectEntitiesSection entities={entities} />
       <ProjectBudgetForm
