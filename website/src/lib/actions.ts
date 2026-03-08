@@ -63,6 +63,16 @@ export async function addEntityContact(
   data: { full_name: string; phone?: string; email?: string; role?: string }
 ) {
   const supabase = await createServerSupabaseClient()
+
+  // Check if entity already has contacts — first contact should be primary
+  const { data: existing } = await supabase
+    .from('entity_contacts')
+    .select('id')
+    .eq('entity_id', entityId)
+    .eq('is_active', true)
+    .limit(1)
+  const isPrimary = !existing || existing.length === 0
+
   const { error } = await supabase
     .from('entity_contacts')
     .insert({
@@ -71,6 +81,7 @@ export async function addEntityContact(
       phone: data.phone || null,
       email: data.email || null,
       role: data.role || null,
+      is_primary: isPrimary,
     })
   if (error) throw new Error(error.message)
   revalidatePath('/entities')
@@ -264,6 +275,20 @@ export async function addProjectEntity(
   tagId: string
 ) {
   const supabase = await createServerSupabaseClient()
+
+  // Check for duplicate (same entity + tag + project)
+  const { data: existing } = await supabase
+    .from('project_entities')
+    .select('id')
+    .eq('project_id', projectId)
+    .eq('entity_id', entityId)
+    .eq('tag_id', tagId)
+    .eq('is_active', true)
+    .limit(1)
+  if (existing && existing.length > 0) {
+    throw new Error('This entity is already assigned to the project with this role')
+  }
+
   const { error } = await supabase.from('project_entities').insert({
     project_id: projectId,
     entity_id: entityId,

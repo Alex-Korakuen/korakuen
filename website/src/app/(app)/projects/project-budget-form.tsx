@@ -142,7 +142,14 @@ export function ProjectBudgetForm({
                             if (e.key === 'Enter') handleEditSave(b.category!)
                             if (e.key === 'Escape') handleEditCancel()
                           }}
-                          onBlur={() => handleEditSave(b.category!)}
+                          onBlur={() => {
+                            const newAmount = parseFloat(editValue)
+                            if (newAmount === b.budgeted_amount) {
+                              handleEditCancel()
+                            } else {
+                              handleEditSave(b.category!)
+                            }
+                          }}
                           autoFocus
                           step="0.01"
                           min="0"

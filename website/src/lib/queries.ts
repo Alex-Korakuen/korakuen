@@ -1987,6 +1987,7 @@ export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
   const { data } = await supabase
     .from('partner_companies')
     .select('id, name')
+    .eq('is_active', true)
     .order('name')
   return data ?? []
 }
