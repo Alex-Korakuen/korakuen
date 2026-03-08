@@ -48,8 +48,26 @@ def add_loan():
     clear_screen()
     print("\n=== Add Loan ===\n")
 
+    # --- Partner company ---
+    partners = (
+        supabase.table("partner_companies")
+        .select("id, name, ruc")
+        .eq("is_active", True)
+        .execute()
+    )
+    if not list_choices("Partner companies", partners.data, display=["name", "ruc"]):
+        input("\nPress Enter to continue...")
+        return
+    partner_num = get_input("  Select partner company number: ")
+    try:
+        partner = partners.data[int(partner_num) - 1]
+    except (ValueError, IndexError):
+        print("\n  ✗ Invalid selection.")
+        input("\nPress Enter to continue...")
+        return
+
     # --- Lender info ---
-    lender_name = get_input("  Lender name: ")
+    lender_name = get_input("\n  Lender name: ")
     lender_contact = get_optional_input("  Lender contact (optional — press Enter to skip): ")
 
     # --- Principal ---
@@ -92,6 +110,7 @@ def add_loan():
 
     # --- Summary ---
     print("\n--- Loan Summary ---")
+    print(f"  Partner:       {partner['name']}")
     print(f"  Lender:        {lender_name}")
     if lender_contact:
         print(f"  Contact:       {lender_contact}")
@@ -118,6 +137,7 @@ def add_loan():
 
     # --- Insert ---
     data = {
+        "partner_company_id": partner["id"],
         "lender_name": lender_name,
         "amount": amount,
         "currency": currency,
