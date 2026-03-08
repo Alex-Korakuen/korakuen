@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getBankTransactions, searchEntities, getNextProjectCode } from '@/lib/queries'
-import type { PartnerCostDetail, BankTransaction, Currency } from '@/lib/types'
+import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode } from '@/lib/queries'
+import type { PartnerCostDetail, PartnerRevenueDetail, BankTransaction, Currency } from '@/lib/types'
 
 export async function fetchCostDetail(costId: string) {
   return getCostDetail(costId)
@@ -28,6 +28,13 @@ export async function fetchPartnerCosts(
   partnerCompanyId: string,
 ): Promise<PartnerCostDetail[]> {
   return getPartnerCostDetails(projectId, partnerCompanyId)
+}
+
+export async function fetchPartnerRevenue(
+  projectId: string,
+  partnerCompanyId: string,
+): Promise<PartnerRevenueDetail[]> {
+  return getPartnerRevenueDetails(projectId, partnerCompanyId)
 }
 
 export async function fetchBankTransactions(

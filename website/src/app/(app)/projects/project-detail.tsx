@@ -7,6 +7,7 @@ import {
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { ProjectPartnersForm } from './project-partners-form'
+import { ProjectPartnerSettlement } from './project-partner-settlement'
 import { ProjectEntitiesForm } from './project-entities-form'
 import { ProjectBudgetForm } from './project-budget-form'
 import { ProjectEntitiesSection } from './project-entities-section'
@@ -32,7 +33,7 @@ export function ProjectDetail({
   categories,
   tags,
 }: Props) {
-  const { project, clientName, entities, arInvoices, partners, assignedEntities } = detail
+  const { project, clientName, entities, arInvoices, partners, assignedEntities, partnerSettlements } = detail
 
   return (
     <div className="space-y-6">
@@ -86,6 +87,10 @@ export function ProjectDetail({
         projectId={project.id}
         partners={partners}
         partnerCompanies={partnerCompanies}
+      />
+      <ProjectPartnerSettlement
+        projectId={project.id}
+        settlements={partnerSettlements}
       />
       <ProjectEntitiesForm
         projectId={project.id}

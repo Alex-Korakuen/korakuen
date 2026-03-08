@@ -189,6 +189,16 @@ export type PartnerCostDetail = {
   subtotal_pen: number // subtotal * exchange_rate for USD, subtotal for PEN
 }
 
+export type PartnerRevenueDetail = {
+  payment_id: string
+  payment_date: string | null
+  invoice_number: string | null
+  amount: number
+  currency: string | null
+  exchange_rate: number | null
+  amount_pen: number
+}
+
 // --- Cash Flow component types ---
 
 export type CashFlowMonth = {
@@ -305,6 +315,18 @@ export type ProjectPartnerRow = {
   profitSharePct: number
 }
 
+// Settlement data for each partner within a project (all in PEN at transaction-date rates)
+export type ProjectPartnerSettlement = {
+  partnerCompanyId: string
+  partnerName: string
+  profitSharePct: number
+  costsContributed: number   // project costs paid by this partner
+  revenueReceived: number    // actual AR payments received
+  profit: number             // revenueReceived - costsContributed
+  shouldReceive: number      // their profit_share_pct × total project profit
+  balance: number            // shouldReceive - profit (positive = owed, negative = overpaid)
+}
+
 export type ProjectAssignedEntity = {
   id: string
   entityId: string
@@ -321,6 +343,7 @@ export type ProjectDetailData = {
   arInvoices: ProjectArInvoice[]
   partners: ProjectPartnerRow[]
   assignedEntities: ProjectAssignedEntity[]
+  partnerSettlements: ProjectPartnerSettlement[]
 }
 
 export type ProjectStatusFilter = 'all' | ProjectStatus

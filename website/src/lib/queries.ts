@@ -36,6 +36,7 @@ import type {
   ProjectEntitySummary,
   ProjectPartnerRow,
   ProjectAssignedEntity,
+  ProjectPartnerSettlement,
   EntitySearchResult,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -1185,6 +1186,49 @@ export async function getPartnerCostDetails(
   })
 }
 
+export async function getPartnerRevenueDetails(
+  projectId: string,
+  partnerCompanyId: string,
+): Promise<import('./types').PartnerRevenueDetail[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Get AR invoices for this project+partner
+  const { data: ars } = await supabase
+    .from('ar_invoices')
+    .select('id, invoice_number, currency')
+    .eq('project_id', projectId)
+    .eq('partner_company_id', partnerCompanyId)
+
+  if (!ars || ars.length === 0) return []
+
+  const arIds = ars.map(a => a.id)
+  const arMap = new Map(ars.map(a => [a.id, a]))
+
+  // Get payments linked to these AR invoices
+  const { data: payments } = await supabase
+    .from('payments')
+    .select('id, related_id, payment_date, amount, currency, exchange_rate')
+    .in('related_id', arIds)
+    .eq('related_to', 'ar_invoice')
+    .order('payment_date', { ascending: false })
+
+  return (payments ?? []).map(p => {
+    const ar = arMap.get(p.related_id)
+    const currency = p.currency ?? ar?.currency ?? 'PEN'
+    const amount = p.amount ?? 0
+    const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
+    return {
+      payment_id: p.id,
+      payment_date: p.payment_date,
+      invoice_number: ar?.invoice_number ?? null,
+      amount,
+      currency,
+      exchange_rate: p.exchange_rate ? Number(p.exchange_rate) : null,
+      amount_pen: currency === 'USD' ? Math.round(amount * rate * 100) / 100 : amount,
+    }
+  })
+}
+
 // --- Financial Position queries ---
 
 
@@ -1583,6 +1627,74 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     tagName: tagMap.get(pe.tag_id) ?? '—',
   }))
 
+  // 8. Partner settlements — fetch from v_partner_ledger + actual AR payments received
+  let partnerSettlements: ProjectPartnerSettlement[] = []
+  if (partners.length > 0) {
+    const { data: ledger } = await supabase
+      .from('v_partner_ledger')
+      .select('*')
+      .eq('project_id', projectId)
+
+    // Get actual AR payments received per partner
+    const { data: projectArInvoices } = await supabase
+      .from('ar_invoices')
+      .select('id, partner_company_id, currency')
+      .eq('project_id', projectId)
+
+    const arIds = (projectArInvoices ?? []).map(a => a.id)
+    const receivedByPartner = new Map<string, number>()
+
+    if (arIds.length > 0) {
+      const { data: arPayments } = await supabase
+        .from('payments')
+        .select('related_id, amount, currency, exchange_rate')
+        .in('related_id', arIds)
+        .eq('related_to', 'ar_invoice')
+
+      const arPartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
+      for (const ar of projectArInvoices ?? []) {
+        if (ar.partner_company_id) {
+          arPartnerMap.set(ar.id, { partner_company_id: ar.partner_company_id, currency: ar.currency })
+        }
+      }
+
+      for (const p of arPayments ?? []) {
+        const arInfo = arPartnerMap.get(p.related_id)
+        if (!arInfo) continue
+        const paymentCurrency = p.currency ?? arInfo.currency
+        const amount = p.amount ?? 0
+        const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
+        const amountPen = paymentCurrency === 'USD' ? amount * rate : amount
+        receivedByPartner.set(arInfo.partner_company_id, (receivedByPartner.get(arInfo.partner_company_id) ?? 0) + amountPen)
+      }
+    }
+
+    // Compute total project profit (sum of all revenue received - sum of all costs)
+    const totalCosts = (ledger ?? []).reduce((sum, row) => sum + (row.contribution_amount_pen ?? 0), 0)
+    const totalRevenue = [...receivedByPartner.values()].reduce((sum, v) => sum + v, 0)
+    const totalProjectProfit = totalRevenue - totalCosts
+
+    // Build settlement rows — one per partner
+    partnerSettlements = partners.map(p => {
+      const ledgerRow = (ledger ?? []).find(r => r.partner_company_id === p.partnerCompanyId)
+      const costsContributed = ledgerRow?.contribution_amount_pen ?? 0
+      const revenueReceived = receivedByPartner.get(p.partnerCompanyId) ?? 0
+      const profit = Math.round((revenueReceived - costsContributed) * 100) / 100
+      const shouldReceive = Math.round(totalProjectProfit * (p.profitSharePct / 100) * 100) / 100
+      const balance = Math.round((shouldReceive - profit) * 100) / 100
+      return {
+        partnerCompanyId: p.partnerCompanyId,
+        partnerName: p.partnerName,
+        profitSharePct: p.profitSharePct,
+        costsContributed,
+        revenueReceived: Math.round(revenueReceived * 100) / 100,
+        profit,
+        shouldReceive,
+        balance,
+      }
+    })
+  }
+
   return {
     project,
     clientName,
@@ -1591,6 +1703,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     arInvoices,
     partners,
     assignedEntities,
+    partnerSettlements,
   }
 }
 
