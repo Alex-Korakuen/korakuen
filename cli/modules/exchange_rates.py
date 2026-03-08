@@ -81,6 +81,9 @@ def add_rate():
         return
 
     # --- Insert ---
+    # NOTE: Manual insert (not execute_insert) — intentional.
+    # This module needs upsert logic: on duplicate rate_date, offer to update.
+    # execute_insert doesn't support upsert, so we handle insert + conflict here.
     data = {
         "rate_date": rate_date,
         "buy_rate": buy_rate,

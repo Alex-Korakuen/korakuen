@@ -13,6 +13,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_nonneg_float, execute_insert,
+    search_and_select_entity,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -95,7 +96,6 @@ def add_project():
     client_entity_id = None
     client_name = None
     if confirm("\n  Assign a client entity?"):
-        from lib.helpers import search_and_select_entity
         entity = search_and_select_entity()
         if entity:
             client_entity_id = entity["id"]
@@ -506,20 +506,42 @@ def set_partner_shares():
         cancel_and_wait()
         return
 
-    # --- Delete existing and insert new ---
+    # --- Soft-delete existing and upsert new ---
     try:
-        # Delete existing shares for this project
-        supabase.table("project_partners").delete().eq("project_id", project_id).execute()
+        # Soft-delete all existing active shares for this project
+        supabase.table("project_partners").update(
+            {"is_active": False}
+        ).eq("project_id", project_id).eq("is_active", True).execute()
 
-        records = []
+        # Upsert new shares (reactivate if previously soft-deleted)
+        count = 0
         for s in shares:
-            records.append({
-                "project_id": project_id,
-                "partner_company_id": s["partner"]["id"],
-                "profit_share_pct": s["pct"],
-            })
-        response = supabase.table("project_partners").insert(records).execute()
-        print(f"\n✓ Partner shares set for {project_code}: {len(response.data)} partners")
+            partner_id = s["partner"]["id"]
+            # Check if an inactive row exists for this pair
+            existing = (
+                supabase.table("project_partners")
+                .select("id")
+                .eq("project_id", project_id)
+                .eq("partner_company_id", partner_id)
+                .eq("is_active", False)
+                .limit(1)
+                .execute()
+            )
+            if existing.data:
+                # Reactivate and update
+                supabase.table("project_partners").update({
+                    "profit_share_pct": s["pct"],
+                    "is_active": True,
+                }).eq("id", existing.data[0]["id"]).execute()
+            else:
+                # Insert new
+                supabase.table("project_partners").insert({
+                    "project_id": project_id,
+                    "partner_company_id": partner_id,
+                    "profit_share_pct": s["pct"],
+                }).execute()
+            count += 1
+        print(f"\n✓ Partner shares set for {project_code}: {count} partners")
     except Exception as e:
         print(f"\n✗ Error: {e}")
 

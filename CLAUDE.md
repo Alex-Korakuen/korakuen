@@ -148,7 +148,7 @@ Read these documents for context on specific tasks:
 | Understanding business context | `docs/01_business_context.md` |
 | Understanding architecture decisions | `docs/02_system_architecture.md` |
 | Understanding module behavior | `docs/03_module_specifications.md` |
-| Building website views | `docs/04_visualization.md` + `docs/13_view_prototypes.md` |
+| Building website views | `docs/04_visualization.md` |
 | Understanding file/document references | `docs/07_file_storage.md` |
 | Knowing what to build next | `TODO.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |

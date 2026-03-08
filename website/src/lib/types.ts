@@ -89,6 +89,7 @@ export type LoanDetailData = {
     loan_id: string
     scheduled_date: string
     scheduled_amount: number
+    exchange_rate: number
     paid: boolean
     actual_payment_id: string | null
     created_at: string
@@ -100,6 +101,9 @@ export type LoanDetailData = {
     payment_date: string
     amount: number
     currency: string
+    exchange_rate: number
+    source: string | null
+    settlement_ref: string | null
     notes: string | null
     created_at: string
     updated_at: string

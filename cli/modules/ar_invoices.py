@@ -13,7 +13,7 @@ from lib.helpers import (
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     select_bank_account, get_nonneg_float, execute_insert,
-    COMPROBANTE_TYPES_AR,
+    search_and_select_entity, COMPROBANTE_TYPES_AR,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -71,7 +71,6 @@ def add_ar_invoice():
         return
 
     # --- Select client entity ---
-    from lib.helpers import search_and_select_entity
     print("\n  Client entity:")
     entity = search_and_select_entity()
     if not entity:

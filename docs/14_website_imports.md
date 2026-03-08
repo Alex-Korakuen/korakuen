@@ -120,8 +120,24 @@ For creating a single entity quickly without Excel.
 
 Same fields as the template, presented as a form.
 
-#### Entity Tags and Contacts
-Deferred — will be discussed separately.
+#### Entity Tags — Dropdown management
+Wherever tags appear (entity detail panel, entity list badges), add a multi-select dropdown to manage them.
+
+- Source: existing `tags` table (25 pre-seeded tags)
+- UI: Dropdown with checkboxes. Selecting/deselecting immediately adds/removes `entity_tags` rows
+- No tag creation from UI — tags are master data managed in Supabase Dashboard
+
+#### Entity Contacts — Inline form in entity detail
+Within the right panel detail view, under a "Contacts" section.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| Name | text | yes | Contact person name |
+| Phone | text | no | |
+| Email | text | no | |
+| Role | text | no | Role at the entity |
+
+UI: Small table with add/remove rows.
 
 ---
 
@@ -355,13 +371,42 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 
 ---
 
+## Technical Decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Excel parsing library | xlsx (SheetJS CE) | Most popular, server-side Node, no native deps |
+| Mutation pattern | Next.js Server Actions | Matches existing server-side data fetching pattern |
+| Template delivery | Static files in `public/templates/` | Simple, cacheable, no generation |
+| Upload size limit | 5MB | Covers thousands of rows in .xlsx |
+| Cost insert | Reuse `fn_create_cost_with_items()` RPC | Already atomic (header + items in one call) |
+| Form validation | zod schemas | Type-safe, composable, works on server |
+
+---
+
+## Prerequisites — RLS Insert Policies
+
+The website is currently read-only. Before any writes work, INSERT (and where needed, UPDATE) RLS policies must be added for authenticated users on every table that receives website writes:
+
+- entities, entity_tags, entity_contacts
+- projects, project_partners, project_entities, project_budgets
+- quotes
+- costs, cost_items
+- ar_invoices
+- payments
+- loans, loan_schedule, loan_payments
+- bank_accounts
+
+---
+
 ## Not included
 
 | Item | Reason |
 |---|---|
 | Exchange rates | Managed via Supabase Dashboard — simple single-row inserts |
-| Entity tags & contacts | Deferred — will be discussed separately |
-| Categories table | Pending TODO — currently hardcoded. Import UI will use whatever source exists |
+| Categories management | Managed via Supabase Dashboard — rarely changes |
+| Edit/update existing records | Deferred. Create-only in this phase |
+| Soft-delete from UI | Deferred. Use Supabase Dashboard to deactivate records |
 
 ---
 
@@ -383,6 +428,43 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 | Loans | Modal | Financial Position | no (not needed) |
 | Loan schedule | Inline form | Loan detail | no (not needed) |
 | Loan repayments | Modal action | AP Calendar row detail | no (not needed) |
+| Entity tags | Dropdown (inline) | Entities detail panel | no (not needed) |
+| Entity contacts | Inline form | Entities detail panel | no (not needed) |
+
+---
+
+## Implementation Phases
+
+Small UIs first — establish mutation patterns before tackling complex Excel imports.
+
+### Phase 0 — Prerequisites
+- RLS INSERT/UPDATE policies for all writable tables (single migration)
+- Install `xlsx` (SheetJS) + `zod` dependencies
+
+### Phase 1 — Simplest inline UIs (establish Server Action mutation patterns)
+- Entity tags dropdown (toggling entity_tags rows — simplest possible write)
+- Entity contacts inline form (4 fields, add/remove rows)
+- Create Bank Account modal (6 fields, standalone)
+
+### Phase 2 — Create modals with lookups
+- Create Entity modal (8 fields, standalone)
+- Create Project modal (10 fields, entity picker for client)
+- Project partners inline form (2 fields, sum-to-100% validation)
+- Project entities inline form (2 fields, entity picker)
+- Project budgets inline form (2 fields, editable cells in existing table)
+
+### Phase 3 — Action modals (contextual, need parent record)
+- Register Payment (AP Calendar cost detail modal)
+- Register Collection (AR Outstanding invoice detail modal)
+- Create Loan modal + loan schedule inline form
+- Register Loan Repayment (AP Calendar loan detail modal)
+
+### Phase 4 — Excel imports (shared upload/preview infrastructure first)
+- Shared import UI: file upload component, preview table, error display, confirm flow
+- Entities import
+- Quotes import
+- AR invoices import
+- Costs import (most complex — grouped rows)
 
 ---
 

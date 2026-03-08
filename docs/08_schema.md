@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables and historical reference tables are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets). Transaction tables and historical reference tables are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
@@ -246,10 +246,11 @@ Stores the agreed profit share percentage per partner company per project. Each 
 | project_id | UUID | NO | references projects |
 | partner_company_id | UUID | NO | references partner_companies |
 | profit_share_pct | NUMERIC(5,2) | NO | e.g. 40.00 = 40%, must be > 0 and <= 100 |
+| is_active | BOOLEAN | NO | default TRUE — soft delete |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-UNIQUE constraint on (project_id, partner_company_id).
+Partial UNIQUE index on (project_id, partner_company_id) WHERE is_active = TRUE.
 
 ---
 

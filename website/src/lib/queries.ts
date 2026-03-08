@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from './supabase/server'
 import { convertAmount, sumByCurrency } from './formatters'
 import { paginateArray, PAGE_SIZE } from './pagination'
+import { sortRows } from './sort-utils'
 import type { PaginatedResult } from './pagination'
 import type {
   ApCalendarRow,
@@ -36,19 +37,6 @@ import type {
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-/** Sort an array by a column key with null-last, numeric, and string comparison. */
-function serverSort<T>(rows: T[], column: string, dir: 'asc' | 'desc'): T[] {
-  const m = dir === 'asc' ? 1 : -1
-  return [...rows].sort((a, b) => {
-    const av = (a as Record<string, unknown>)[column] as string | number | null ?? null
-    const bv = (b as Record<string, unknown>)[column] as string | number | null ?? null
-    if (av === null && bv === null) return 0
-    if (av === null) return 1
-    if (bv === null) return -1
-    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * m
-    return String(av).localeCompare(String(bv)) * m
-  })
-}
 
 /** Fetch entity names by IDs and return a Map of id -> display name (common_name || legal_name) */
 async function buildEntityNameMap(
@@ -210,7 +198,7 @@ export async function getApCalendar(
   }
 
   // Sort and paginate
-  rows = serverSort(rows, filters.sort, filters.dir)
+  rows = sortRows(rows, filters.sort, filters.dir)
   const paginated = paginateArray(rows, filters.page)
 
   return { paginated, bucketCounts, uniqueSuppliers }
@@ -481,7 +469,7 @@ export async function getArOutstanding(
   }
 
   // Sort and paginate
-  rows = serverSort(rows, filters.sort, filters.dir)
+  rows = sortRows(rows, filters.sort, filters.dir)
   const paginated = paginateArray(rows, filters.page)
 
   return { paginated, bucketCounts, totals }
@@ -1889,7 +1877,7 @@ export async function getPriceHistory(
   if (filters.dateTo) rows = rows.filter(r => r.date <= filters.dateTo!)
 
   // Sort and paginate
-  rows = serverSort(rows, filters.sort, filters.dir)
+  rows = sortRows(rows, filters.sort, filters.dir)
   return paginateArray(rows, filters.page)
 }
 

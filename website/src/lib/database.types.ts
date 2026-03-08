@@ -244,6 +244,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_cost_items_category"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["name"]
+          },
+          {
             foreignKeyName: "fk_cost_items_costs"
             columns: ["cost_id"]
             isOneToOne: false
@@ -513,7 +520,7 @@ export type Database = {
           mid_rate: number
           rate_date: string
           sell_rate: number
-          source: string | null
+          source: string
           updated_at: string
         }
         Insert: {
@@ -523,7 +530,7 @@ export type Database = {
           mid_rate: number
           rate_date: string
           sell_rate: number
-          source?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -533,7 +540,7 @@ export type Database = {
           mid_rate?: number
           rate_date?: string
           sell_rate?: number
-          source?: string | null
+          source?: string
           updated_at?: string
         }
         Relationships: []
@@ -716,6 +723,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_loans_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_loans_projects"
             columns: ["project_id"]
             isOneToOne: false
@@ -878,6 +892,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_project_budgets_category"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["name"]
+          },
+          {
             foreignKeyName: "fk_project_budgets_projects"
             columns: ["project_id"]
             isOneToOne: false
@@ -948,6 +969,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           partner_company_id: string
           profit_share_pct: number
           project_id: string
@@ -956,6 +978,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_active?: boolean
           partner_company_id: string
           profit_share_pct: number
           project_id: string
@@ -964,6 +987,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           partner_company_id?: string
           profit_share_pct?: number
           project_id?: string
@@ -1300,6 +1324,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_project_budgets_category"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["name"]
+          },
+          {
             foreignKeyName: "fk_project_budgets_projects"
             columns: ["project_id"]
             isOneToOne: false
@@ -1474,6 +1505,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_loans_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_loans_projects"
             columns: ["project_id"]
             isOneToOne: false
@@ -1489,13 +1527,13 @@ export type Database = {
           partner_company_id: string | null
           partner_name: string | null
           profit_share_pct: number | null
+          profit_share_pen: number | null
           project_code: string | null
           project_costs_pen: number | null
           project_id: string | null
           project_income_pen: number | null
           project_name: string | null
           project_profit_pen: number | null
-          profit_share_pen: number | null
           should_receive_pen: number | null
         }
         Relationships: [

@@ -13,6 +13,7 @@ from lib.helpers import (
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
     select_project, select_bank_account, get_nonneg_float,
+    search_and_select_entity,
     COMPROBANTE_TYPES_ALL, NO_IGV_CREDIT_TYPES,
 )
 from lib.import_helpers import (
@@ -93,7 +94,6 @@ def add_cost():
     # --- Entity (optional) ---
     entity = None
     if confirm("\n  Assign an entity (supplier)?"):
-        from lib.helpers import search_and_select_entity
         entity = search_and_select_entity()
 
     # --- Quote (optional) ---

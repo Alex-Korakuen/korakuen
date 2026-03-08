@@ -137,9 +137,7 @@ Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Categ
 **SG&A Categories:**
 - Software & Licenses
 - Partner Compensation
-- Business Development (meals, travel, entertainment)
 - Professional Services (accountant, lawyer, legal)
-- Office & Admin
 - Other
 
 ---

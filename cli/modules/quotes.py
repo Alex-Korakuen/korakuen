@@ -12,7 +12,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
-    get_nonneg_float, execute_insert,
+    get_nonneg_float, execute_insert, search_and_select_entity,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -62,7 +62,6 @@ def add_quote():
         return
 
     # --- Select entity ---
-    from lib.helpers import search_and_select_entity
     print()
     entity = search_and_select_entity()
     if not entity:
@@ -98,7 +97,8 @@ def add_quote():
         return
 
     # --- IGV ---
-    igv_suggestion = subtotal * 0.18
+    DEFAULT_IGV_RATE = 0.18
+    igv_suggestion = subtotal * DEFAULT_IGV_RATE
     igv_amount = get_nonneg_float(f"  IGV amount (suggested: {igv_suggestion:,.2f}, optional — press Enter to skip): ", required=False)
 
     # --- Total ---

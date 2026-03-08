@@ -7,6 +7,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
+from lib.db import supabase
 from lib.helpers import get_input
 
 # Error highlighting — dark red fill for invalid cells
@@ -270,34 +271,29 @@ def process_import_errors(file_path, errors):
 
 def load_project_map():
     """Return {project_code: id} for all active projects."""
-    from lib.db import supabase
     result = supabase.table("projects").select("id, project_code").eq("is_active", True).execute()
     return {r["project_code"]: r["id"] for r in result.data}
 
 
 def load_entity_map():
     """Return {document_number: id} for all active entities."""
-    from lib.db import supabase
     result = supabase.table("entities").select("id, document_number").eq("is_active", True).execute()
     return {r["document_number"]: r["id"] for r in result.data}
 
 
 def load_bank_account_map():
     """Return {label: id} for all active bank accounts."""
-    from lib.db import supabase
     result = supabase.table("bank_accounts").select("id, label").eq("is_active", True).execute()
     return {r["label"]: r["id"] for r in result.data}
 
 
 def load_partner_map():
     """Return {name: id} for all active partner companies."""
-    from lib.db import supabase
     result = supabase.table("partner_companies").select("id, name").eq("is_active", True).execute()
     return {r["name"]: r["id"] for r in result.data}
 
 
 def load_quote_map():
     """Return {document_ref: id} for all quotes with a document_ref."""
-    from lib.db import supabase
     result = supabase.table("quotes").select("id, document_ref").execute()
     return {r["document_ref"]: r["id"] for r in result.data if r.get("document_ref")}

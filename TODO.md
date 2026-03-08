@@ -4,19 +4,27 @@ Development is complete — only minor adjustments and feature additions remain.
 
 ---
 
-## Excel Import on Website
+## Website Data Entry
 
-Add Excel import features directly to the website. Currently, bulk data import is done via CLI scripts reading Excel templates. Move this capability to the web interface so all partners can import data.
+Move all data entry from CLI to website. Excel imports, inline forms, and action modals — all partners can create and manage data directly. See `docs/14_website_imports.md` for full spec.
 
 ### Tasks
 
+- [ ] Add RLS INSERT/UPDATE policies for all writable tables
 - [ ] Design import UI (file upload component, preview/validation step, confirmation)
-- [ ] Implement server-side Excel parsing (reuse validation logic from `cli/lib/import_helpers.py`)
-- [ ] Costs import page
-- [ ] AR invoices import page
-- [ ] Payments import page
-- [ ] Entities import page
-- [ ] Exchange rates import page
+- [ ] Implement server-side Excel parsing (SheetJS + zod validation)
+- [ ] Entities import + create modal
+- [ ] Entity tags dropdown management (inline, wherever tags appear)
+- [ ] Entity contacts inline form (entity detail panel)
+- [ ] Quotes import (Prices page)
+- [ ] Costs import (AP Calendar — single-file grouped format)
+- [ ] AR invoices import (AR Outstanding)
+- [ ] Register Payment modal (AP Calendar row detail)
+- [ ] Register Collection modal (AR Outstanding row detail)
+- [ ] Create Project modal + inline forms (partners, entities, budgets)
+- [ ] Create Bank Account modal (Financial Position)
+- [ ] Create Loan modal + loan schedule inline form (Financial Position)
+- [ ] Register Loan Repayment modal (AP Calendar row detail)
 
 ---
 
