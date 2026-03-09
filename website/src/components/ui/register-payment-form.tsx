@@ -14,6 +14,7 @@ type Props = {
   currency: string
   outstanding: number
   onSuccess: () => void
+  onCancel: () => void
 }
 
 const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion'] as const
@@ -30,8 +31,8 @@ export function RegisterPaymentForm({
   currency,
   outstanding,
   onSuccess,
+  onCancel,
 }: Props) {
-  const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // Form state
@@ -50,23 +51,21 @@ export function RegisterPaymentForm({
   // Exchange rate (auto-fetched)
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
 
-  // Load bank accounts when form opens
+  // Load bank accounts on mount
   useEffect(() => {
-    if (!open) return
     setLoadingAccounts(true)
     fetchBankAccountsForPayment(partnerCompanyId)
       .then(setBankAccounts)
       .catch(() => setBankAccounts([]))
       .finally(() => setLoadingAccounts(false))
-  }, [open, partnerCompanyId])
+  }, [partnerCompanyId])
 
   // Auto-fetch exchange rate when payment date changes
   useEffect(() => {
-    if (!open) return
     fetchExchangeRateForDate(paymentDate)
       .then(rate => setExchangeRate(rate?.mid_rate ?? null))
       .catch(() => setExchangeRate(null))
-  }, [open, paymentDate])
+  }, [paymentDate])
 
   // Filter bank accounts by payment type
   const filteredAccounts = bankAccounts.filter(ba => {
@@ -81,21 +80,6 @@ export function RegisterPaymentForm({
 
   const isRetencion = paymentType === 'retencion'
   const buttonLabel = relatedTo === 'cost' ? 'Register Payment' : 'Register Collection'
-
-  function resetForm() {
-    setPaymentType('regular')
-    setPaymentDate(todayISO())
-    setAmount('')
-    setBankAccountId('')
-    setNotes('')
-    setError(null)
-    setSuccess(false)
-  }
-
-  function handleCancel() {
-    resetForm()
-    setOpen(false)
-  }
 
   function handleSubmit() {
     setError(null)
@@ -138,35 +122,22 @@ export function RegisterPaymentForm({
       } else {
         setSuccess(true)
         setTimeout(() => {
-          resetForm()
-          setOpen(false)
           onSuccess()
         }, 800)
       }
     })
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mt-4 w-full rounded bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
-      >
-        {buttonLabel}
-      </button>
-    )
-  }
-
   if (success) {
     return (
-      <div className="mt-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
         Payment registered successfully.
       </div>
     )
   }
 
   return (
-    <div className="mt-4 rounded border border-zinc-200 bg-zinc-50 px-4 py-4">
+    <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-4">
       <h3 className="mb-3 text-sm font-semibold text-zinc-700">{buttonLabel}</h3>
 
       <div className="space-y-3">
@@ -272,7 +243,7 @@ export function RegisterPaymentForm({
             {isPending ? 'Saving...' : 'Submit'}
           </button>
           <button
-            onClick={handleCancel}
+            onClick={onCancel}
             disabled={isPending}
             className="rounded border border-zinc-300 px-4 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
           >

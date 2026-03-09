@@ -1,7 +1,6 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import { RegisterPaymentForm } from '@/components/ui/register-payment-form'
 import type { ArOutstandingRow, ArInvoiceDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
@@ -77,8 +76,23 @@ export function InvoiceDetailContent({
         </div>
       )}
 
-      {/* Payment history */}
-      <PaymentHistoryTable payments={detail.payments} />
+      {/* Payment history + inline form */}
+      <PaymentHistoryTable
+        payments={detail.payments}
+        paymentFormProps={
+          row.outstanding > 0 && row.partner_company_id && onPaymentSuccess
+            ? {
+                relatedTo: 'ar_invoice',
+                relatedId: row.ar_invoice_id,
+                direction: 'inbound',
+                partnerCompanyId: row.partner_company_id,
+                currency: row.currency,
+                outstanding: row.outstanding,
+                onSuccess: onPaymentSuccess,
+              }
+            : undefined
+        }
+      />
 
       {/* Payment summary */}
       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -103,19 +117,6 @@ export function InvoiceDetailContent({
             />
           </div>
         </div>
-      )}
-
-      {/* Register collection form */}
-      {row.outstanding > 0 && row.partner_company_id && onPaymentSuccess && (
-        <RegisterPaymentForm
-          relatedTo="ar_invoice"
-          relatedId={row.ar_invoice_id}
-          direction="inbound"
-          partnerCompanyId={row.partner_company_id}
-          currency={row.currency}
-          outstanding={row.outstanding}
-          onSuccess={onPaymentSuccess}
-        />
       )}
     </div>
   )
