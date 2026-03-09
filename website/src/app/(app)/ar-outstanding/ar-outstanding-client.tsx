@@ -340,7 +340,7 @@ export function ArOutstandingClient({
         )}
 
         {!modal.loading && modal.selectedRow && modal.detail && (
-          <InvoiceDetailContent row={modal.selectedRow} detail={modal.detail} />
+          <InvoiceDetailContent row={modal.selectedRow} detail={modal.detail} onPaymentSuccess={modal.refetch} />
         )}
 
         {!modal.loading && modal.error && (

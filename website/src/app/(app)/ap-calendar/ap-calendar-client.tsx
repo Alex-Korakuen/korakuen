@@ -179,6 +179,7 @@ export function ApCalendarClient({
           <CostDetailContent
             row={modal.selectedRow}
             detail={modal.detail as CostDetailData}
+            onPaymentSuccess={modal.refetch}
           />
         )}
 

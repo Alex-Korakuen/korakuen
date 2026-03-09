@@ -1,6 +1,7 @@
 import { formatCurrency, formatDate, formatComprobanteType } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
+import { RegisterPaymentForm } from '@/components/ui/register-payment-form'
 import type { ApCalendarRow, CostDetailData, LoanDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
@@ -8,9 +9,11 @@ export { DetailField }
 export function CostDetailContent({
   row,
   detail,
+  onPaymentSuccess,
 }: {
   row: ApCalendarRow
   detail: CostDetailData
+  onPaymentSuccess?: () => void
 }) {
   const cost = detail.cost
 
@@ -133,6 +136,19 @@ export function CostDetailContent({
             {formatCurrency(cost.outstanding ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
           </span>
         </div>
+      )}
+
+      {/* Register payment form */}
+      {cost && cost.cost_id && (cost.outstanding ?? 0) > 0 && onPaymentSuccess && (
+        <RegisterPaymentForm
+          relatedTo="cost"
+          relatedId={cost.cost_id}
+          direction="outbound"
+          partnerCompanyId={cost.partner_company_id ?? ''}
+          currency={cost.currency ?? 'PEN'}
+          outstanding={cost.outstanding ?? 0}
+          onSuccess={onPaymentSuccess}
+        />
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
+import { RegisterPaymentForm } from '@/components/ui/register-payment-form'
 import type { ArOutstandingRow, ArInvoiceDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
@@ -8,9 +9,11 @@ export { DetailField }
 export function InvoiceDetailContent({
   row,
   detail,
+  onPaymentSuccess,
 }: {
   row: ArOutstandingRow
   detail: ArInvoiceDetailData
+  onPaymentSuccess?: () => void
 }) {
   const invoice = detail.invoice
   const cur = (row.currency ?? 'PEN') as 'PEN' | 'USD'
@@ -100,6 +103,19 @@ export function InvoiceDetailContent({
             />
           </div>
         </div>
+      )}
+
+      {/* Register collection form */}
+      {row.outstanding > 0 && row.partner_company_id && onPaymentSuccess && (
+        <RegisterPaymentForm
+          relatedTo="ar_invoice"
+          relatedId={row.ar_invoice_id}
+          direction="inbound"
+          partnerCompanyId={row.partner_company_id}
+          currency={row.currency}
+          outstanding={row.outstanding}
+          onSuccess={onPaymentSuccess}
+        />
       )}
     </div>
   )

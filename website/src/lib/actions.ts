@@ -43,6 +43,116 @@ export async function fetchBankTransactions(
   return getBankTransactions(bankAccountId)
 }
 
+// --- Payment actions ---
+
+export type BankAccountOption = {
+  id: string
+  bank_name: string
+  account_number_last4: string
+  label: string
+  currency: string
+  is_detraccion_account: boolean
+}
+
+export async function fetchBankAccountsForPayment(
+  partnerCompanyId: string
+): Promise<BankAccountOption[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('bank_accounts')
+    .select('id, bank_name, account_number_last4, label, currency, is_detraccion_account')
+    .eq('partner_company_id', partnerCompanyId)
+    .eq('is_active', true)
+    .order('label')
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function fetchExchangeRateForDate(
+  date: string
+): Promise<{ mid_rate: number; rate_date: string } | null> {
+  const supabase = await createServerSupabaseClient()
+  // Try exact date first, then fall back to latest available before that date
+  const { data, error } = await supabase
+    .from('exchange_rates')
+    .select('mid_rate, rate_date')
+    .lte('rate_date', date)
+    .order('rate_date', { ascending: false })
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
+}
+
+export async function registerPayment(input: {
+  related_to: 'cost' | 'ar_invoice'
+  related_id: string
+  direction: 'outbound' | 'inbound'
+  payment_type: 'regular' | 'detraccion' | 'retencion'
+  payment_date: string
+  amount: number
+  currency: string
+  exchange_rate: number
+  partner_company_id: string
+  bank_account_id: string | null
+  notes: string | null
+}): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  // Validate amount > 0
+  if (input.amount <= 0) return { error: 'Amount must be greater than 0' }
+
+  // Validate bank_account_id required unless retencion
+  if (input.payment_type !== 'retencion' && !input.bank_account_id) {
+    return { error: 'Bank account is required for this payment type' }
+  }
+
+  // Re-query outstanding to prevent overpayment
+  if (input.related_to === 'cost') {
+    const { data: cost } = await supabase
+      .from('v_cost_balances')
+      .select('outstanding')
+      .eq('cost_id', input.related_id)
+      .single()
+    if (!cost) return { error: 'Cost not found' }
+    if (input.amount > (cost.outstanding ?? 0)) {
+      return { error: `Amount exceeds outstanding balance (${cost.outstanding})` }
+    }
+  } else {
+    const { data: ar } = await supabase
+      .from('v_ar_balances')
+      .select('outstanding')
+      .eq('ar_invoice_id', input.related_id)
+      .single()
+    if (!ar) return { error: 'AR invoice not found' }
+    if (input.amount > (ar.outstanding ?? 0)) {
+      return { error: `Amount exceeds outstanding balance (${ar.outstanding})` }
+    }
+  }
+
+  const { error } = await supabase.from('payments').insert({
+    related_to: input.related_to,
+    related_id: input.related_id,
+    direction: input.direction,
+    payment_type: input.payment_type,
+    payment_date: input.payment_date,
+    amount: input.amount,
+    currency: input.currency,
+    exchange_rate: input.exchange_rate,
+    partner_company_id: input.partner_company_id,
+    bank_account_id: input.bank_account_id,
+    notes: input.notes,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/ap-calendar')
+  revalidatePath('/ar-outstanding')
+  revalidatePath('/financial-position')
+  revalidatePath('/cash-flow')
+  return {}
+}
+
 // --- Mutation actions ---
 
 export async function addEntityTag(entityId: string, tagId: string) {
