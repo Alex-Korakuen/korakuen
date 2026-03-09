@@ -24,7 +24,6 @@ import type {
   FinancialPositionData,
   IgvByCurrency,
   LoanDetailData,
-  PartnerBalanceData,
   PartnerCostDetail,
   Payment,
   PriceFilterOptions,
@@ -968,107 +967,7 @@ export async function getCashFlow(
   return buildCashFlowResult(monthBuckets, raw.allProjects, year)
 }
 
-// --- Partner Balances queries ---
-
-export async function getPartnerLedger(
-  projectId: string,
-  currentRate: number // fallback rate for any payments missing exchange_rate
-): Promise<PartnerBalanceData> {
-  const supabase = await createServerSupabaseClient()
-
-  // Fetch partner ledger for this project (all amounts already in PEN via view)
-  const { data: ledger, error: ledgerError } = await supabase
-    .from('v_partner_ledger')
-    .select('*')
-    .eq('project_id', projectId)
-
-  if (ledgerError) throw ledgerError
-  if (!ledger || ledger.length === 0) {
-    // Get project info even if no costs yet
-    const { data: project } = await supabase
-      .from('projects')
-      .select('project_code, name')
-      .eq('id', projectId)
-      .single()
-    return {
-      contributions: [],
-      settlements: [],
-      projectCode: project?.project_code ?? '—',
-      projectName: project?.name ?? '—',
-    }
-  }
-
-  const projectCode = ledger[0].project_code ?? '—'
-  const projectName = ledger[0].project_name ?? '—'
-
-  // View now returns one row per partner per project, all in PEN
-  // Profit-based: should_receive = costs_paid + profit × their %
-  const contributions = ledger.map(row => ({
-    partner_company_id: row.partner_company_id!,
-    partner_name: row.partner_name ?? '—',
-    contribution_amount_pen: row.contribution_amount_pen ?? 0,
-    contribution_pct: row.contribution_pct ?? 0,
-    profit_share_pct: row.profit_share_pct ?? 0,
-    project_income_pen: row.project_income_pen ?? 0,
-    project_costs_pen: row.project_costs_pen ?? 0,
-    project_profit_pen: row.project_profit_pen ?? 0,
-    profit_share_pen: row.profit_share_pen ?? 0,
-    should_receive_pen: row.should_receive_pen ?? 0,
-  }))
-
-  // Fetch actual AR payments received per partner for this project
-  const { data: arInvoices } = await supabase
-    .from('ar_invoices')
-    .select('id, partner_company_id, currency')
-    .eq('project_id', projectId)
-
-  const arIds = (arInvoices ?? []).map(a => a.id)
-  // partner_id -> total received in PEN
-  const receivedByPartner = new Map<string, number>()
-
-  if (arIds.length > 0) {
-    const { data: payments } = await supabase
-      .from('payments')
-      .select('related_id, amount, currency, exchange_rate')
-      .in('related_id', arIds)
-      .eq('related_to', 'ar_invoice')
-
-    // Build AR -> partner map
-    const arPartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
-    for (const ar of arInvoices ?? []) {
-      if (ar.partner_company_id) {
-        arPartnerMap.set(ar.id, { partner_company_id: ar.partner_company_id, currency: ar.currency })
-      }
-    }
-
-    for (const p of payments ?? []) {
-      const arInfo = arPartnerMap.get(p.related_id)
-      if (!arInfo) continue
-      const partnerKey = arInfo.partner_company_id
-      const paymentCurrency = p.currency ?? arInfo.currency
-      const amount = p.amount ?? 0
-      // Convert USD payments to PEN at transaction-date rate (stored on each payment)
-      const rate = p.exchange_rate ?? currentRate
-      const amountPen = paymentCurrency === 'USD' ? amount * rate : amount
-      receivedByPartner.set(partnerKey, (receivedByPartner.get(partnerKey) ?? 0) + amountPen)
-    }
-  }
-
-  // Build settlements — all in PEN
-  // should_receive = costs_paid + profit × their %
-  const settlements = contributions.map(c => {
-    const actuallyReceivedPen = receivedByPartner.get(c.partner_company_id) ?? 0
-    return {
-      partner_company_id: c.partner_company_id,
-      partner_name: c.partner_name,
-      should_receive_pen: c.should_receive_pen,
-      actually_received_pen: Math.round(actuallyReceivedPen * 100) / 100,
-      settlement_balance_pen: Math.round((c.should_receive_pen - actuallyReceivedPen) * 100) / 100,
-    }
-  })
-
-  return { contributions, settlements, projectCode, projectName }
-}
+// --- Partner detail queries (used by Project Detail settlement section) ---
 
 export async function getPartnerCostDetails(
   projectId: string,

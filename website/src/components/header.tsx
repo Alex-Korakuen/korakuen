@@ -12,7 +12,6 @@ const pageTitles: Record<string, string> = {
   '/ap-calendar': 'AP Calendar',
   '/ar-outstanding': 'AR Outstanding',
   '/cash-flow': 'Cash Flow',
-  '/partner-balances': 'Partner Balances',
   '/financial-position': 'Financial Position',
   '/settings/password': 'Change Password',
 }

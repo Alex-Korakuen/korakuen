@@ -144,34 +144,6 @@ export type ArOutstandingBucketId = 'all' | 'current' | '31-60' | '61-90' | '90+
 
 // --- Partner Balances component types ---
 
-export type PartnerContribution = {
-  partner_company_id: string
-  partner_name: string
-  contribution_amount_pen: number
-  contribution_pct: number
-  profit_share_pct: number
-  project_income_pen: number
-  project_costs_pen: number
-  project_profit_pen: number
-  profit_share_pen: number
-  should_receive_pen: number
-}
-
-export type PartnerSettlement = {
-  partner_company_id: string
-  partner_name: string
-  should_receive_pen: number
-  actually_received_pen: number
-  settlement_balance_pen: number
-}
-
-export type PartnerBalanceData = {
-  contributions: PartnerContribution[]
-  settlements: PartnerSettlement[]
-  projectCode: string
-  projectName: string
-}
-
 export type PartnerCostDetail = {
   cost_id: string
   date: string | null
