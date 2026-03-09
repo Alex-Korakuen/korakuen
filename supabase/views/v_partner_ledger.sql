@@ -3,7 +3,7 @@
 --          Distributes PROFIT (income - project costs) by profit_share_pct, not income.
 --          SG&A costs excluded — they belong to the individual partner.
 --          Each partner should receive from income pool: costs_paid + profit × their %.
--- Source tables: project_partners, costs, bank_accounts, partner_companies, projects, v_cost_totals, ar_invoices
+-- Source tables: project_partners, partner_companies, projects, v_cost_totals, ar_invoices
 -- Used by: Partner Balances page
 
 CREATE OR REPLACE VIEW v_partner_ledger
@@ -14,7 +14,7 @@ WITH partner_costs AS (
   -- Only project_cost type — SG&A excluded from settlement calculation
   SELECT
     ct.project_id,
-    ba.partner_company_id,
+    ct.partner_company_id,
     COALESCE(SUM(
       CASE WHEN ct.currency = 'USD'
         THEN ct.subtotal * ct.exchange_rate  -- transaction-date conversion
@@ -22,10 +22,9 @@ WITH partner_costs AS (
       END
     ), 0) AS contribution_amount_pen
   FROM v_cost_totals ct
-  JOIN bank_accounts ba ON ba.id = ct.bank_account_id
   WHERE ct.project_id IS NOT NULL
     AND ct.cost_type = 'project_cost'
-  GROUP BY ct.project_id, ba.partner_company_id
+  GROUP BY ct.project_id, ct.partner_company_id
 ),
 project_totals AS (
   -- Total project costs in PEN (for contribution percentage calculation)

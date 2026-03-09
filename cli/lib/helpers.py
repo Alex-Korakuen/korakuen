@@ -355,6 +355,36 @@ def search_and_select_entity():
         return None
 
 
+def select_partner_company():
+    """Query active partner companies and let user select one.
+
+    Returns the selected partner_company dict (id, name), or None.
+    """
+    partners = (
+        supabase.table("partner_companies")
+        .select("id, name")
+        .eq("is_active", True)
+        .execute()
+    )
+    if not partners.data:
+        print("\n  No partner companies found.")
+        input("\nPress Enter to continue...")
+        return None
+
+    print("\n  Partner companies:")
+    for i, p in enumerate(partners.data, start=1):
+        print(f"    {i}. {p['name']}")
+    print()
+
+    num = get_input("  Select partner company: ")
+    try:
+        return partners.data[int(num) - 1]
+    except (ValueError, IndexError):
+        print("\n  ✗ Invalid selection.")
+        input("\nPress Enter to continue...")
+        return None
+
+
 def select_bank_account(detraccion_filter=None, label="bank account", currency=None):
     """Query active bank accounts and let user select one.
 

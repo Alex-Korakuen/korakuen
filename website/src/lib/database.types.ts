@@ -12,11 +12,35 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       ar_invoices: {
         Row: {
-          bank_account_id: string
           comprobante_type: string
           created_at: string
           currency: string
@@ -39,7 +63,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          bank_account_id: string
           comprobante_type: string
           created_at?: string
           currency: string
@@ -62,7 +85,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          bank_account_id?: string
           comprobante_type?: string
           created_at?: string
           currency?: string
@@ -85,20 +107,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_ar_invoices_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "v_bank_balances"
-            referencedColumns: ["bank_account_id"]
-          },
           {
             foreignKeyName: "fk_ar_invoices_entities"
             columns: ["entity_id"]
@@ -275,7 +283,6 @@ export type Database = {
       }
       costs: {
         Row: {
-          bank_account_id: string
           comprobante_number: string | null
           comprobante_type: string | null
           cost_type: string
@@ -290,6 +297,7 @@ export type Database = {
           id: string
           igv_rate: number
           notes: string | null
+          partner_company_id: string
           payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
@@ -298,7 +306,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          bank_account_id: string
           comprobante_number?: string | null
           comprobante_type?: string | null
           cost_type: string
@@ -313,6 +320,7 @@ export type Database = {
           id?: string
           igv_rate?: number
           notes?: string | null
+          partner_company_id: string
           payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
@@ -321,7 +329,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          bank_account_id?: string
           comprobante_number?: string | null
           comprobante_type?: string | null
           cost_type?: string
@@ -336,6 +343,7 @@ export type Database = {
           id?: string
           igv_rate?: number
           notes?: string | null
+          partner_company_id?: string
           payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
@@ -345,24 +353,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "v_bank_balances"
-            referencedColumns: ["bank_account_id"]
-          },
-          {
             foreignKeyName: "fk_costs_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_costs_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1188,7 +1189,6 @@ export type Database = {
       v_ap_calendar: {
         Row: {
           amount_paid: number | null
-          bank_account_id: string | null
           bdn_outstanding: number | null
           cost_id: string | null
           cost_type: string | null
@@ -1204,6 +1204,7 @@ export type Database = {
           igv_amount: number | null
           loan_id: string | null
           outstanding: number | null
+          partner_company_id: string | null
           payable: number | null
           payment_status: string | null
           project_code: string | null
@@ -1220,7 +1221,6 @@ export type Database = {
         Row: {
           amount_paid: number | null
           ar_invoice_id: string | null
-          bank_account_id: string | null
           bdn_outstanding: number | null
           comprobante_type: string | null
           currency: string | null
@@ -1249,20 +1249,6 @@ export type Database = {
           subtotal: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_ar_invoices_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "v_bank_balances"
-            referencedColumns: ["bank_account_id"]
-          },
           {
             foreignKeyName: "fk_ar_invoices_entities"
             columns: ["entity_id"]
@@ -1342,7 +1328,6 @@ export type Database = {
       v_cost_balances: {
         Row: {
           amount_paid: number | null
-          bank_account_id: string | null
           cost_id: string | null
           cost_type: string | null
           currency: string | null
@@ -1354,6 +1339,7 @@ export type Database = {
           exchange_rate: number | null
           igv_amount: number | null
           outstanding: number | null
+          partner_company_id: string | null
           payment_status: string | null
           project_id: string | null
           subtotal: number | null
@@ -1362,24 +1348,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "v_bank_balances"
-            referencedColumns: ["bank_account_id"]
-          },
-          {
             foreignKeyName: "fk_costs_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_costs_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1393,7 +1372,6 @@ export type Database = {
       }
       v_cost_totals: {
         Row: {
-          bank_account_id: string | null
           comprobante_number: string | null
           comprobante_type: string | null
           cost_id: string | null
@@ -1409,6 +1387,7 @@ export type Database = {
           igv_amount: number | null
           igv_rate: number | null
           notes: string | null
+          partner_company_id: string | null
           payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
@@ -1419,24 +1398,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_bank_accounts"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "v_bank_balances"
-            referencedColumns: ["bank_account_id"]
-          },
-          {
             foreignKeyName: "fk_costs_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_costs_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1715,6 +1687,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

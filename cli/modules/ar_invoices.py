@@ -12,7 +12,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
-    select_bank_account, get_nonneg_float, execute_insert,
+    get_nonneg_float, execute_insert,
     search_and_select_entity, COMPROBANTE_TYPES_AR,
 )
 from lib.import_helpers import (
@@ -20,9 +20,8 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number, validate_exchange_rate,
     validate_boolean, parse_bool,
-    validate_bank_account,
     process_import_errors,
-    load_project_map, load_entity_map, load_bank_account_map,
+    load_project_map, load_entity_map,
     load_partner_map,
     load_excel_file, print_import_summary,
     opt_str, opt_float, opt_date,
@@ -63,11 +62,6 @@ def add_ar_invoice():
     # --- Select project ---
     project = select_project()
     if not project:
-        return
-
-    # --- Select bank account ---
-    bank_account = select_bank_account(detraccion_filter=False, label="regular bank")
-    if not bank_account:
         return
 
     # --- Select client entity ---
@@ -183,7 +177,6 @@ def add_ar_invoice():
     # --- Insert ---
     data = {
         "project_id": project["id"],
-        "bank_account_id": bank_account["id"],
         "entity_id": entity["id"],
         "partner_company_id": partner["id"],
         "invoice_number": invoice_number,
@@ -229,7 +222,6 @@ def _load_ar_lookups():
     return {
         "projects": load_project_map(),
         "entities": load_entity_map(),
-        "bank_accounts": load_bank_account_map(),
         "partners": load_partner_map(),
         "project_clients": project_clients,
         "existing_partner_invoices": existing_partner_invoices,
@@ -241,7 +233,6 @@ def _load_ar_lookups():
 def _validate_ar_row(row_num, row, errors, lookups):
     """Validate a single AR invoice row."""
     validate_required(row_num, row, "project_code", errors)
-    validate_required(row_num, row, "bank_account", errors)
     validate_required(row_num, row, "entity_document_number", errors)
     validate_required(row_num, row, "partner_company_name", errors)
     validate_required(row_num, row, "invoice_number", errors)
@@ -260,8 +251,6 @@ def _validate_ar_row(row_num, row, errors, lookups):
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
     validate_lookup(row_num, row, "partner_company_name", lookups["partners"], errors)
-
-    validate_bank_account(row_num, row, lookups, errors)
 
     validate_date(row_num, row, "invoice_date", errors)
     validate_date(row_num, row, "due_date", errors)
@@ -316,7 +305,6 @@ def _build_ar_record(row, lookups):
 
     data = {
         "project_id": project_id,
-        "bank_account_id": lookups["bank_accounts"][str(row["bank_account"]).strip()],
         "entity_id": lookups["entities"][str(row["entity_document_number"]).strip()],
         "partner_company_id": lookups["partners"][str(row["partner_company_name"]).strip()],
         "invoice_number": str(row["invoice_number"]).strip(),

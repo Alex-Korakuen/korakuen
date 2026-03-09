@@ -35,17 +35,6 @@ export function CostDetailContent({
         />
       </div>
 
-      {/* Bank info */}
-      {detail.bank && (
-        <div className="grid grid-cols-2 gap-4">
-          <DetailField label="Bank" value={detail.bank.bank_name} />
-          <DetailField
-            label="Account (last 4)"
-            value={detail.bank.account_number_last4 ?? '--'}
-          />
-        </div>
-      )}
-
       {/* Comprobante info */}
       {detail.header && (
         <div className="grid grid-cols-2 gap-4">

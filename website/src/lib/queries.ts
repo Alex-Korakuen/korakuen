@@ -65,18 +65,6 @@ async function buildProjectCodeMap(
   return new Map((data ?? []).map(p => [p.id, p.project_code]))
 }
 
-/** Fetch partner_company_id for a set of bank_account IDs */
-async function buildBankPartnerMap(
-  supabase: SupabaseClient,
-  bankAccountIds: Set<string>
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  if (bankAccountIds.size > 0) {
-    const { data } = await supabase.from('bank_accounts').select('id, partner_company_id').in('id', [...bankAccountIds])
-    for (const ba of data ?? []) map.set(ba.id, ba.partner_company_id)
-  }
-  return map
-}
 
 type ApCalendarFilters = {
   projectId?: string
@@ -131,31 +119,11 @@ export async function getApCalendar(
   if (error) throw error
   let rows = (data ?? []) as ApCalendarRow[]
 
-  // Partner filter via bank_account -> partner_company_id for costs, loan -> partner for loans
+  // Partner filter — both costs and loans now have partner_company_id directly in the view
   if (partnerIds.length > 0) {
-    const bankAccountIds = new Set<string>()
-    const loanIds = new Set<string>()
-    for (const row of rows) {
-      if (row.type === 'supplier_invoice' && row.bank_account_id) bankAccountIds.add(row.bank_account_id)
-      if (row.type === 'loan_payment' && row.loan_id) loanIds.add(row.loan_id)
-    }
-
-    const bankPartnerMap = await buildBankPartnerMap(supabase, bankAccountIds)
-
-    const loanPartnerMap = new Map<string, string>()
-    if (loanIds.size > 0) {
-      const { data: loans } = await supabase.from('loans').select('id, partner_company_id').in('id', [...loanIds])
-      for (const l of loans ?? []) loanPartnerMap.set(l.id, l.partner_company_id)
-    }
-
     rows = rows.filter((row) => {
-      if (row.type === 'supplier_invoice' && row.bank_account_id) {
-        const partner = bankPartnerMap.get(row.bank_account_id)
-        return partner ? partnerIds.includes(partner) : true
-      }
-      if (row.type === 'loan_payment' && row.loan_id) {
-        const partner = loanPartnerMap.get(row.loan_id)
-        return partner ? partnerIds.includes(partner) : true
+      if (row.partner_company_id) {
+        return partnerIds.includes(row.partner_company_id)
       }
       return true
     })
@@ -228,30 +196,18 @@ export async function getCostDetail(costId: string): Promise<CostDetailData> {
       .order('payment_date'),
   ])
 
-  // Fetch cost header for comprobante and bank info
+  // Fetch cost header for comprobante info
   const costHeaderResult = await supabase
     .from('costs')
-    .select('comprobante_type, comprobante_number, document_ref, bank_account_id')
+    .select('comprobante_type, comprobante_number, document_ref')
     .eq('id', costId)
     .single()
-
-  // Fetch bank account name if available
-  let bankInfo = null
-  if (costHeaderResult.data?.bank_account_id) {
-    const bankResult = await supabase
-      .from('bank_accounts')
-      .select('bank_name, account_number_last4, partner_company_id')
-      .eq('id', costHeaderResult.data.bank_account_id)
-      .single()
-    bankInfo = bankResult.data
-  }
 
   return {
     cost: costResult.data as CostBalanceRow | null,
     items: (itemsResult.data ?? []) as CostItem[],
     payments: (paymentsResult.data ?? []) as Payment[],
     header: costHeaderResult.data,
-    bank: bankInfo,
   }
 }
 
@@ -606,7 +562,7 @@ type MonthBucket = {
 
 type CashFlowRawData = {
   payments: { id: string; related_to: string; related_id: string; direction: string; payment_type: string; payment_date: string; amount: number; currency: string; exchange_rate: number; partner_company_id: string }[]
-  costBalances: { cost_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number | null; cost_type: string | null; bank_account_id: string | null }[]
+  costBalances: { cost_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number | null; cost_type: string | null; partner_company_id: string | null }[]
   arBalances: { ar_invoice_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number; partner_company_id: string | null }[]
   loanSchedule: { id: string; loan_id: string; scheduled_date: string; scheduled_amount: number; paid: boolean; exchange_rate: number | null; loans: { currency: string; project_id: string | null; partner_company_id: string | null }[] }[]
   loanDisbursements: { id: string; amount: number; currency: string; exchange_rate: number | null; date_borrowed: string; project_id: string | null; partner_company_id: string }[]
@@ -616,7 +572,6 @@ type CashFlowRawData = {
 }
 
 type CashFlowMaps = {
-  bankPartnerMap: Map<string, string>
   costProjectMap: Map<string, string | null>
   costTypeMap: Map<string, string>
   arProjectMap: Map<string, string | null>
@@ -646,7 +601,7 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
       .lte('payment_date', yearEnd),
     supabase
       .from('v_cost_balances')
-      .select('cost_id, project_id, due_date, outstanding, currency, exchange_rate, cost_type, bank_account_id')
+      .select('cost_id, project_id, due_date, outstanding, currency, exchange_rate, cost_type, partner_company_id')
       .in('payment_status', ['pending', 'partial'])
       .not('due_date', 'is', null),
     supabase
@@ -698,15 +653,6 @@ async function buildCashFlowMaps(
   raw: CashFlowRawData,
   hasPartnerFilter: boolean,
 ): Promise<CashFlowMaps> {
-  // bank_account_id -> partner_company_id for cost partner filtering
-  const bankAccountIds = new Set<string>()
-  if (hasPartnerFilter) {
-    for (const cb of raw.costBalances) {
-      if (cb.bank_account_id) bankAccountIds.add(cb.bank_account_id)
-    }
-  }
-  const bankPartnerMap = await buildBankPartnerMap(supabase, bankAccountIds)
-
   // Collect relevant cost_ids, then fetch cost_items only for those
   const relevantCostIds = new Set<string>()
   for (const cb of raw.costBalances) {
@@ -806,7 +752,7 @@ async function buildCashFlowMaps(
     }
   }
 
-  return { bankPartnerMap, costProjectMap, costTypeMap, arProjectMap, costCategoryMap, loanProjectMap, loanPartnerMap }
+  return { costProjectMap, costTypeMap, arProjectMap, costCategoryMap, loanProjectMap, loanPartnerMap }
 }
 
 function processMonthBuckets(
@@ -864,9 +810,8 @@ function processMonthBuckets(
     const monthKey = toMonthKey(cost.due_date)
     if (monthKey <= currentMonthKey || monthKey < `${year}-01` || monthKey > `${year}-12`) continue
     if (projectId && cost.project_id !== projectId) continue
-    if (hasPartnerFilter && cost.bank_account_id) {
-      const costPartner = maps.bankPartnerMap.get(cost.bank_account_id)
-      if (costPartner && !partnerIds.includes(costPartner)) continue
+    if (hasPartnerFilter && cost.partner_company_id) {
+      if (!partnerIds.includes(cost.partner_company_id)) continue
     }
 
     const bucket = monthBuckets.get(monthKey)
@@ -1131,22 +1076,12 @@ export async function getPartnerCostDetails(
 ): Promise<PartnerCostDetail[]> {
   const supabase = await createServerSupabaseClient()
 
-  // Get bank accounts for this partner
-  const { data: bankAccounts } = await supabase
-    .from('bank_accounts')
-    .select('id')
-    .eq('partner_company_id', partnerCompanyId)
-
-  if (!bankAccounts || bankAccounts.length === 0) return []
-
-  const bankIds = bankAccounts.map(b => b.id)
-
-  // Get all costs for this project from these bank accounts (both PEN and USD)
+  // Get all costs for this project by this partner
   const { data: costs, error } = await supabase
     .from('v_cost_totals')
     .select('cost_id, date, comprobante_number, currency, subtotal, exchange_rate')
     .eq('project_id', projectId)
-    .in('bank_account_id', bankIds)
+    .eq('partner_company_id', partnerCompanyId)
     .order('date', { ascending: false })
 
   if (error) throw error
@@ -1243,20 +1178,11 @@ export async function getFinancialPosition(
   ] = await Promise.all([
     supabase.from('v_bank_balances').select('*'),
     supabase.from('v_ar_balances').select('outstanding, currency, payment_status, partner_company_id'),
-    supabase.from('v_cost_balances').select('outstanding, currency, payment_status, bank_account_id'),
+    supabase.from('v_cost_balances').select('outstanding, currency, payment_status, partner_company_id'),
     supabase.from('v_igv_position').select('*'),
     supabase.from('v_retencion_dashboard').select('retencion_amount, currency, retencion_verified'),
     supabase.from('v_loan_balances').select('*'),
   ])
-
-  // Build bank_account -> partner map for cost filtering
-  const bankIds = new Set<string>()
-  if (hasPartnerFilter) {
-    for (const c of costResult.data ?? []) {
-      if (c.bank_account_id) bankIds.add(c.bank_account_id)
-    }
-  }
-  const bankPartnerMap = await buildBankPartnerMap(supabase, bankIds)
 
   // Bank account cards — filter by partner
   let bankAccounts = (bankResult.data ?? [])
@@ -1285,13 +1211,12 @@ export async function getFinancialPosition(
     arRows.map(ar => ({ amount: ar.outstanding ?? 0, currency: ar.currency }))
   )
 
-  // AP outstanding grouped by currency — filter by partner via bank_account
+  // AP outstanding grouped by currency — filter by partner
   let costRows = (costResult.data ?? []).filter(c => c.payment_status !== 'paid')
   if (hasPartnerFilter) {
     costRows = costRows.filter(c => {
-      if (!c.bank_account_id) return true
-      const partner = bankPartnerMap.get(c.bank_account_id)
-      return partner ? partnerIds.includes(partner) : true
+      if (!c.partner_company_id) return true
+      return partnerIds.includes(c.partner_company_id)
     })
   }
   const apOutstanding = groupByCurrency(

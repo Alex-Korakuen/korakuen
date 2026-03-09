@@ -46,7 +46,7 @@ export type CostDetailData = {
     outstanding: number | null
     payment_status: string | null
     project_id: string | null
-    bank_account_id: string | null
+    partner_company_id: string | null
     document_ref: string | null
   } | null
   items: CostItem[]
@@ -55,12 +55,6 @@ export type CostDetailData = {
     comprobante_type: string | null
     comprobante_number: string | null
     document_ref: string | null
-    bank_account_id: string | null
-  } | null
-  bank: {
-    bank_name: string
-    account_number_last4: string | null
-    partner_company_id: string | null
   } | null
 }
 

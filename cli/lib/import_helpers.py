@@ -229,6 +229,15 @@ def validate_bank_account(row_num, row, lookups, errors):
             errors.append((row_num, "bank_account", f"Bank account '{label}' not found"))
 
 
+def validate_partner_company(row_num, row, lookups, errors):
+    """Check that partner_company name matches a known partner. Skip if empty."""
+    val = row.get("partner_company")
+    if not is_empty(val):
+        name = cell_str(val)
+        if name not in lookups["partners"]:
+            errors.append((row_num, "partner_company", f"Partner company '{name}' not found"))
+
+
 def print_errors(errors, file_path):
     """Print a formatted error table to the terminal."""
     print(f"\n✗ {len(errors)} validation error(s) found:\n")

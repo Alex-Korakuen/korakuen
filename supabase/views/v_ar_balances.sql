@@ -11,7 +11,6 @@ WITH ar_base AS (
   SELECT
     ar.id                 AS ar_invoice_id,
     ar.project_id,
-    ar.bank_account_id,
     ar.entity_id,
     ar.partner_company_id,
     ar.invoice_number,
@@ -42,7 +41,6 @@ ar_computed AS (
 SELECT
   ac.ar_invoice_id,
   ac.project_id,
-  ac.bank_account_id,
   ac.entity_id,
   ac.partner_company_id,
   ac.invoice_number,
@@ -80,7 +78,6 @@ LEFT JOIN payments p
 GROUP BY
   ac.ar_invoice_id,
   ac.project_id,
-  ac.bank_account_id,
   ac.entity_id,
   ac.partner_company_id,
   ac.invoice_number,

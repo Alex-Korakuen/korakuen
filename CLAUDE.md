@@ -111,7 +111,7 @@ Key facts:
 
 - **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on AR only — Korakuen is NOT a retencion agent)
 - **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on costs — cash purchases and informal suppliers are valid
-- **Partner asymmetry:** Alex's bank accounts are fully tracked. Partner bank accounts are reference only — partner identity is derived from bank_account on costs, explicit on ar_invoices, payments, and loans
+- **Partner identity:** All financial tables (costs, ar_invoices, payments, loans) have explicit `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices or costs
 - **Costs have line items:** `costs` is the header, `cost_items` holds detail. Category lives on cost_items, not the header
 - **PO module hook:** `costs` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null in V0
 - **No stored totals:** subtotal, igv_amount, total on costs are derived from cost_items via `v_cost_totals`. Payment status derived from payments via `v_cost_balances` and `v_ar_balances`

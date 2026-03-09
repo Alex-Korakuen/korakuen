@@ -12,7 +12,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
-    select_project, select_bank_account, get_nonneg_float,
+    select_project, select_partner_company, get_nonneg_float,
     search_and_select_entity,
     COMPROBANTE_TYPES_ALL, NO_IGV_CREDIT_TYPES,
 )
@@ -22,9 +22,9 @@ from lib.import_helpers import (
     validate_required, validate_enum, validate_lookup,
     validate_date, validate_nonneg_number,
     validate_exchange_rate,
-    validate_bank_account,
+    validate_partner_company,
     process_import_errors,
-    load_project_map, load_entity_map, load_bank_account_map,
+    load_project_map, load_entity_map, load_partner_map,
     load_quote_map,
     load_excel_file, print_import_summary,
     opt_float, opt_date,
@@ -86,9 +86,9 @@ def add_cost():
         if not project:
             return
 
-    # --- Bank account (required) ---
-    bank_account = select_bank_account()
-    if not bank_account:
+    # --- Partner company (required) ---
+    partner = select_partner_company()
+    if not partner:
         return
 
     # --- Entity (optional) ---
@@ -228,8 +228,7 @@ def add_cost():
         print(f"  Entity:      {entity['legal_name']}")
     print(f"  Date:        {date_str}")
     print(f"  Title:       {title}")
-    partner_name = bank_account.get("partner_companies", {}).get("name", "Unknown")
-    print(f"  Bank:        {bank_account['bank_name']} {bank_account['currency']} {bank_account['account_number_last4']} ({partner_name})")
+    print(f"  Partner:     {partner['name']}")
     print(f"  Cost type:   {cost_type}")
     print(f"  Currency:    {currency}")
     if payment_method:
@@ -252,7 +251,7 @@ def add_cost():
     # ---- BUILD HEADER + ITEMS DATA ----
     header_data = {
         "cost_type": cost_type,
-        "bank_account_id": bank_account["id"],
+        "partner_company_id": partner["id"],
         "date": date_str,
         "title": title,
         "igv_rate": igv_rate,
@@ -319,7 +318,7 @@ def add_cost():
 
 # Header fields that must be consistent across rows in the same document_ref group
 HEADER_FIELDS = [
-    "document_ref", "date", "title", "bank_account", "currency", "igv_rate",
+    "document_ref", "date", "title", "partner_company", "currency", "igv_rate",
     "project_code", "entity_document_number", "exchange_rate",
     "comprobante_type", "comprobante_number", "detraccion_rate",
     "payment_method", "quote_document_ref", "due_date", "notes",
@@ -347,7 +346,7 @@ def _load_cost_lookups():
     return {
         "projects": load_project_map(),
         "entities": load_entity_map(),
-        "bank_accounts": load_bank_account_map(),
+        "partners": load_partner_map(),
         "quotes": load_quote_map(),
         "existing_document_refs": existing_refs,
         "existing_entity_comprobantes": existing_entity_comprobantes,
@@ -362,7 +361,7 @@ def _validate_cost_row(row_num, row, errors, lookups):
     validate_required(row_num, row, "document_ref", errors)
     validate_required(row_num, row, "date", errors)
     validate_required(row_num, row, "title", errors)
-    validate_required(row_num, row, "bank_account", errors)
+    validate_required(row_num, row, "partner_company", errors)
     validate_required(row_num, row, "currency", errors)
     validate_required(row_num, row, "igv_rate", errors)
 
@@ -380,7 +379,7 @@ def _validate_cost_row(row_num, row, errors, lookups):
     # Lookups
     validate_lookup(row_num, row, "project_code", lookups["projects"], errors)
     validate_lookup(row_num, row, "entity_document_number", lookups["entities"], errors)
-    validate_bank_account(row_num, row, lookups, errors)
+    validate_partner_company(row_num, row, lookups, errors)
     validate_lookup(row_num, row, "quote_document_ref", lookups["quotes"], errors)
 
     # Dates and numbers
@@ -487,7 +486,7 @@ def _build_header_data(first_row, lookups):
 
     data = {
         "cost_type": cost_type,
-        "bank_account_id": lookups["bank_accounts"][cell_str(first_row["bank_account"])],
+        "partner_company_id": lookups["partners"][cell_str(first_row["partner_company"])],
         "date": pd.Timestamp(first_row["date"]).strftime("%Y-%m-%d"),
         "title": cell_str(first_row["title"]),
         "igv_rate": float(first_row["igv_rate"]),

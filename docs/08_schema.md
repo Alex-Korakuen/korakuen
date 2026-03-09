@@ -330,7 +330,7 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | YES | references projects — null if SG&A |
-| bank_account_id | UUID | NO | references bank_accounts — partner derived from this |
+| partner_company_id | UUID | NO | references partner_companies — which partner incurred this cost |
 | entity_id | UUID | YES | references entities — null if informal/unassigned |
 | quote_id | UUID | YES | references quotes — null if no prior quote |
 | purchase_order_id | UUID | YES | reserved for future PO module — null in V0, will reference purchase_orders table |
@@ -394,7 +394,6 @@ Invoices sent to clients. Subtotal entered directly. Totals and payment status d
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | NO | references projects |
-| bank_account_id | UUID | NO | references bank_accounts — regular receipt account |
 | entity_id | UUID | NO | references entities — the client |
 | partner_company_id | UUID | NO | references partner_companies — who issued invoice |
 | invoice_number | VARCHAR | NO | own numbering from Alegra/Contasis |
@@ -644,9 +643,9 @@ Layer 7 (project extensions):
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on costs.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.
-- **Partner is derived from bank_account** on costs. Partner is explicit on ar_invoices and payments.
+- **Partner is explicit** on costs, ar_invoices, and payments via `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices.
 - **Tags serve all classification needs** — entity categorization and project roles use the same master list.
-- **Partner balances are derived** from costs (via bank_account) and AR invoices + payments per project. No separate settlement table.
+- **Partner balances are derived** from costs and AR invoices (via `partner_company_id`) + payments per project. No separate settlement table.
 
 ---
 
