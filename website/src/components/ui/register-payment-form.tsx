@@ -13,6 +13,9 @@ type Props = {
   partnerCompanyId: string
   currency: string
   outstanding: number
+  payable: number
+  bdnOutstanding: number
+  retencionOutstanding?: number
   onSuccess: () => void
   onCancel: () => void
 }
@@ -30,6 +33,9 @@ export function RegisterPaymentForm({
   partnerCompanyId,
   currency,
   outstanding,
+  payable,
+  bdnOutstanding,
+  retencionOutstanding,
   onSuccess,
   onCancel,
 }: Props) {
@@ -78,8 +84,24 @@ export function RegisterPaymentForm({
     setBankAccountId('')
   }, [paymentType])
 
+  // Max amount per payment type
+  const maxAmount =
+    paymentType === 'detraccion'
+      ? bdnOutstanding
+      : paymentType === 'retencion'
+        ? (retencionOutstanding ?? 0)
+        : payable
+
   const isRetencion = paymentType === 'retencion'
   const buttonLabel = relatedTo === 'cost' ? 'Register Payment' : 'Register Collection'
+
+  // Filter out payment types with zero remaining
+  const availableTypes = PAYMENT_TYPES.filter(t => {
+    if (t === 'regular') return payable > 0
+    if (t === 'detraccion') return bdnOutstanding > 0
+    if (t === 'retencion') return (retencionOutstanding ?? 0) > 0
+    return true
+  })
 
   function handleSubmit() {
     setError(null)
@@ -89,8 +111,8 @@ export function RegisterPaymentForm({
       setError('Enter a valid amount greater than 0')
       return
     }
-    if (parsedAmount > outstanding) {
-      setError(`Amount cannot exceed outstanding balance (${formatCurrency(outstanding, currency as 'PEN' | 'USD')})`)
+    if (parsedAmount > maxAmount) {
+      setError(`Amount cannot exceed ${formatCurrency(maxAmount, currency as 'PEN' | 'USD')} for ${paymentType} payments`)
       return
     }
     if (!isRetencion && !bankAccountId) {
@@ -149,7 +171,7 @@ export function RegisterPaymentForm({
             onChange={e => setPaymentType(e.target.value as typeof PAYMENT_TYPES[number])}
             className={`${inputCompactClass} w-full`}
           >
-            {PAYMENT_TYPES.map(t => (
+            {availableTypes.map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -169,13 +191,13 @@ export function RegisterPaymentForm({
         {/* Amount */}
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-500">
-            Amount ({currency}) — max {formatCurrency(outstanding, currency as 'PEN' | 'USD')}
+            Amount ({currency}) — max {formatCurrency(maxAmount, currency as 'PEN' | 'USD')}
           </label>
           <input
             type="number"
             step="0.01"
             min="0"
-            max={outstanding}
+            max={maxAmount}
             value={amount}
             onChange={e => setAmount(e.target.value)}
             placeholder="0.00"

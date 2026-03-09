@@ -19,6 +19,9 @@ type PaymentFormProps = {
   partnerCompanyId: string
   currency: string
   outstanding: number
+  payable: number
+  bdnOutstanding: number
+  retencionOutstanding?: number
   onSuccess: () => void
 }
 

@@ -107,26 +107,61 @@ export async function registerPayment(input: {
     return { error: 'Bank account is required for this payment type' }
   }
 
-  // Re-query outstanding to prevent overpayment
+  // Re-query balances and validate per payment type
   if (input.related_to === 'cost') {
     const { data: cost } = await supabase
       .from('v_cost_balances')
-      .select('outstanding')
+      .select('outstanding, detraccion_amount')
       .eq('cost_id', input.related_id)
       .single()
     if (!cost) return { error: 'Cost not found' }
-    if (input.amount > (cost.outstanding ?? 0)) {
-      return { error: `Amount exceeds outstanding balance (${cost.outstanding})` }
+    const outstanding = cost.outstanding ?? 0
+    const detraccion = cost.detraccion_amount ?? 0
+    // Query detraccion already paid to get accurate remaining
+    const { data: detraccionPayments } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('related_id', input.related_id)
+      .eq('related_to', 'cost')
+      .eq('payment_type', 'detraccion')
+    const detraccionPaid = (detraccionPayments ?? []).reduce((s, p) => s + p.amount, 0)
+    const bdnOutstanding = Math.max(0, detraccion - detraccionPaid)
+    const payable = Math.max(0, outstanding - bdnOutstanding)
+    const maxAmount = input.payment_type === 'detraccion' ? bdnOutstanding : payable
+    if (input.amount > maxAmount) {
+      return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
     }
   } else {
     const { data: ar } = await supabase
       .from('v_ar_balances')
-      .select('outstanding')
+      .select('outstanding, detraccion_amount, retencion_amount')
       .eq('ar_invoice_id', input.related_id)
       .single()
     if (!ar) return { error: 'AR invoice not found' }
-    if (input.amount > (ar.outstanding ?? 0)) {
-      return { error: `Amount exceeds outstanding balance (${ar.outstanding})` }
+    const arOutstanding = ar.outstanding ?? 0
+    // Query payments by type for accurate per-type limits
+    const { data: typedPayments } = await supabase
+      .from('payments')
+      .select('amount, payment_type')
+      .eq('related_id', input.related_id)
+      .eq('related_to', 'ar_invoice')
+    const paidByType = (typedPayments ?? []).reduce((acc, p) => {
+      acc[p.payment_type] = (acc[p.payment_type] ?? 0) + p.amount
+      return acc
+    }, {} as Record<string, number>)
+    const bdnOutstanding = Math.max(0, (ar.detraccion_amount ?? 0) - (paidByType.detraccion ?? 0))
+    const retencionOutstanding = Math.max(0, (ar.retencion_amount ?? 0) - (paidByType.retencion ?? 0))
+    const arPayable = Math.max(0, arOutstanding - bdnOutstanding - retencionOutstanding)
+    let maxAmount: number
+    if (input.payment_type === 'detraccion') {
+      maxAmount = bdnOutstanding
+    } else if (input.payment_type === 'retencion') {
+      maxAmount = retencionOutstanding
+    } else {
+      maxAmount = arPayable
+    }
+    if (input.amount > maxAmount) {
+      return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
     }
   }
 

@@ -17,6 +17,17 @@ export function InvoiceDetailContent({
   const invoice = detail.invoice
   const cur = (row.currency ?? 'PEN') as 'PEN' | 'USD'
 
+  // Compute per-type outstanding from payment history
+  const detraccionPaid = detail.payments
+    .filter(p => p.payment_type === 'detraccion')
+    .reduce((sum, p) => sum + p.amount, 0)
+  const retencionPaid = detail.payments
+    .filter(p => p.payment_type === 'retencion')
+    .reduce((sum, p) => sum + p.amount, 0)
+  const bdnOutstanding = Math.max(0, row.detraccion_amount - detraccionPaid)
+  const retencionOutstanding = Math.max(0, row.retencion_amount - retencionPaid)
+  const arPayable = Math.max(0, row.outstanding - bdnOutstanding - retencionOutstanding)
+
   return (
     <div className="space-y-6">
       {/* Header info */}
@@ -88,6 +99,9 @@ export function InvoiceDetailContent({
                 partnerCompanyId: row.partner_company_id,
                 currency: row.currency,
                 outstanding: row.outstanding,
+                payable: arPayable,
+                bdnOutstanding,
+                retencionOutstanding,
                 onSuccess: onPaymentSuccess,
               }
             : undefined

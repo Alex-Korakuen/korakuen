@@ -16,6 +16,15 @@ export function CostDetailContent({
 }) {
   const cost = detail.cost
 
+  // Compute per-type outstanding from payment history
+  const detraccionPaid = detail.payments
+    .filter(p => p.payment_type === 'detraccion')
+    .reduce((sum, p) => sum + p.amount, 0)
+  const costDetraccion = cost?.detraccion_amount ?? 0
+  const costOutstanding = cost?.outstanding ?? 0
+  const bdnOutstanding = Math.max(0, costDetraccion - detraccionPaid)
+  const costPayable = Math.max(0, costOutstanding - bdnOutstanding)
+
   return (
     <div className="space-y-6">
       {/* Header info */}
@@ -131,7 +140,9 @@ export function CostDetailContent({
                 direction: 'outbound',
                 partnerCompanyId: cost.partner_company_id ?? '',
                 currency: cost.currency ?? 'PEN',
-                outstanding: cost.outstanding ?? 0,
+                outstanding: costOutstanding,
+                payable: costPayable,
+                bdnOutstanding,
                 onSuccess: onPaymentSuccess,
               }
             : undefined
