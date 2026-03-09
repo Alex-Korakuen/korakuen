@@ -1,7 +1,7 @@
 -- View: v_ap_calendar
 -- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
 --          Combines supplier invoices (from costs) and loan repayment schedule (from loan_schedule).
---          Feeds the Accounts Payable payment calendar on the website.
+--          Uses detraccion_paid from v_cost_balances for accurate payable/bdn splits.
 -- Source tables: v_cost_balances, projects, entities, loan_schedule, loans
 -- Used by: AP calendar page, payment planning dashboard
 
@@ -34,8 +34,8 @@ SELECT
   cb.detraccion_amount,
   cb.amount_paid,
   cb.outstanding,
-  GREATEST(0, cb.outstanding - COALESCE(cb.detraccion_amount, 0)) AS payable,
-  LEAST(cb.outstanding, COALESCE(cb.detraccion_amount, 0)) AS bdn_outstanding,
+  GREATEST(0, cb.outstanding - GREATEST(0, COALESCE(cb.detraccion_amount, 0) - cb.detraccion_paid)) AS payable,
+  GREATEST(0, COALESCE(cb.detraccion_amount, 0) - cb.detraccion_paid) AS bdn_outstanding,
   cb.payment_status
 FROM v_cost_balances cb
 LEFT JOIN projects p ON p.id = cb.project_id

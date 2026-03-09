@@ -1,6 +1,7 @@
 -- View: v_ar_balances
 -- Purpose: Derives igv_amount, gross_total, detraccion, retencion, net_receivable,
---          amount_paid, outstanding, and payment_status per AR invoice
+--          amount_paid, outstanding, and payment_status per AR invoice.
+--          Uses payment_type-aware aggregation for accurate receivable/bdn/retencion splits.
 -- Source tables: ar_invoices, payments
 -- Used by: AR detail pages, project P&L, company P&L
 
@@ -64,8 +65,16 @@ SELECT
   ac.gross_total - ac.detraccion_amount - ac.retencion_amount AS net_receivable,
   COALESCE(SUM(p.amount), 0) AS amount_paid,
   ac.gross_total - COALESCE(SUM(p.amount), 0) AS outstanding,
-  GREATEST(0, ac.gross_total - COALESCE(SUM(p.amount), 0) - COALESCE(ac.detraccion_amount, 0)) AS receivable,
-  LEAST(ac.gross_total - COALESCE(SUM(p.amount), 0), COALESCE(ac.detraccion_amount, 0)) AS bdn_outstanding,
+  COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'detraccion'), 0) AS detraccion_paid,
+  COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'retencion'), 0) AS retencion_paid,
+  -- receivable: outstanding minus remaining detraccion and retencion portions
+  GREATEST(0,
+    ac.gross_total - COALESCE(SUM(p.amount), 0)
+    - GREATEST(0, ac.detraccion_amount - COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'detraccion'), 0))
+    - GREATEST(0, ac.retencion_amount - COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'retencion'), 0))
+  ) AS receivable,
+  -- bdn_outstanding: detraccion amount minus what's been paid as detraccion
+  GREATEST(0, ac.detraccion_amount - COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'detraccion'), 0)) AS bdn_outstanding,
   CASE
     WHEN COALESCE(SUM(p.amount), 0) = 0 THEN 'pending'
     WHEN COALESCE(SUM(p.amount), 0) >= ac.gross_total THEN 'paid'

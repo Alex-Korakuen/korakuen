@@ -1225,6 +1225,7 @@ export type Database = {
           comprobante_type: string | null
           currency: string | null
           detraccion_amount: number | null
+          detraccion_paid: number | null
           detraccion_rate: number | null
           document_ref: string | null
           due_date: string | null
@@ -1244,6 +1245,7 @@ export type Database = {
           receivable: number | null
           retencion_amount: number | null
           retencion_applicable: boolean | null
+          retencion_paid: number | null
           retencion_rate: number | null
           retencion_verified: boolean | null
           subtotal: number | null
@@ -1333,6 +1335,7 @@ export type Database = {
           currency: string | null
           date: string | null
           detraccion_amount: number | null
+          detraccion_paid: number | null
           document_ref: string | null
           due_date: string | null
           entity_id: string | null
