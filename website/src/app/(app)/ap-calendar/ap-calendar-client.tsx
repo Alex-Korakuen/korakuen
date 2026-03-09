@@ -9,7 +9,8 @@ import { Pagination } from '@/components/ui/pagination'
 import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
 import { formatType } from './helpers'
-import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
+import { DetailField, CostDetailContent } from './ap-calendar-detail'
+import { LoanDetailContent } from './loan-detail-content'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
 import type {
@@ -181,6 +182,7 @@ export function ApCalendarClient({
           <LoanDetailContent
             row={modal.selectedRow}
             detail={modal.detail as LoanDetailData}
+            onRepaymentSuccess={modal.refetch}
           />
         )}
 

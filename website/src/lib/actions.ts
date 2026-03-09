@@ -440,3 +440,144 @@ export async function removeProjectBudget(projectId: string, category: string) {
   if (error) throw new Error(error.message)
   revalidatePath('/projects')
 }
+
+// --- Loans ---
+
+export async function createLoan(data: {
+  partner_company_id: string
+  lender_name: string
+  lender_contact?: string
+  amount: number
+  currency: Currency
+  exchange_rate: number
+  date_borrowed: string
+  project_id?: string
+  purpose: string
+  return_type: 'percentage' | 'fixed'
+  agreed_return_rate?: number
+  agreed_return_amount?: number
+  due_date?: string
+  notes?: string
+}): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
+  if (data.return_type === 'percentage' && (data.agreed_return_rate == null || data.agreed_return_rate < 0)) {
+    return { error: 'Agreed return rate is required for percentage return type' }
+  }
+  if (data.return_type === 'fixed' && (data.agreed_return_amount == null || data.agreed_return_amount < 0)) {
+    return { error: 'Agreed return amount is required for fixed return type' }
+  }
+
+  const { error } = await supabase.from('loans').insert({
+    partner_company_id: data.partner_company_id,
+    lender_name: data.lender_name.trim(),
+    lender_contact: data.lender_contact?.trim() || null,
+    amount: data.amount,
+    currency: data.currency,
+    exchange_rate: data.exchange_rate,
+    date_borrowed: data.date_borrowed,
+    project_id: data.project_id || null,
+    purpose: data.purpose.trim(),
+    return_type: data.return_type,
+    agreed_return_rate: data.return_type === 'percentage' ? data.agreed_return_rate : null,
+    agreed_return_amount: data.return_type === 'fixed' ? data.agreed_return_amount : null,
+    due_date: data.due_date || null,
+    status: 'active',
+    notes: data.notes?.trim() || null,
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/financial-position')
+  revalidatePath('/ap-calendar')
+  return {}
+}
+
+export async function addLoanScheduleEntry(data: {
+  loan_id: string
+  scheduled_date: string
+  scheduled_amount: number
+  exchange_rate: number
+}): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  if (data.scheduled_amount <= 0) return { error: 'Amount must be greater than 0' }
+
+  const { error } = await supabase.from('loan_schedule').insert({
+    loan_id: data.loan_id,
+    scheduled_date: data.scheduled_date,
+    scheduled_amount: data.scheduled_amount,
+    exchange_rate: data.exchange_rate,
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/ap-calendar')
+  revalidatePath('/financial-position')
+  return {}
+}
+
+export async function registerLoanRepayment(data: {
+  loan_id: string
+  schedule_entry_id?: string
+  payment_date: string
+  amount: number
+  currency: Currency
+  exchange_rate: number
+  source?: string
+  settlement_ref?: string
+  notes?: string
+}): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
+
+  // Validate against outstanding balance
+  const { data: loan } = await supabase
+    .from('v_loan_balances')
+    .select('outstanding')
+    .eq('loan_id', data.loan_id)
+    .single()
+  if (!loan) return { error: 'Loan not found' }
+  if (data.amount > (loan.outstanding ?? 0)) {
+    return { error: `Amount exceeds outstanding balance (${loan.outstanding})` }
+  }
+
+  // Insert the loan payment
+  const { data: payment, error: paymentError } = await supabase
+    .from('loan_payments')
+    .insert({
+      loan_id: data.loan_id,
+      payment_date: data.payment_date,
+      amount: data.amount,
+      currency: data.currency,
+      exchange_rate: data.exchange_rate,
+      source: data.source || null,
+      settlement_ref: data.settlement_ref?.trim() || null,
+      notes: data.notes?.trim() || null,
+    })
+    .select('id')
+    .single()
+
+  if (paymentError) return { error: paymentError.message }
+
+  // If linked to a schedule entry, mark it as paid
+  if (data.schedule_entry_id && payment) {
+    await supabase
+      .from('loan_schedule')
+      .update({ paid: true, actual_payment_id: payment.id })
+      .eq('id', data.schedule_entry_id)
+  }
+
+  // Update loan status based on new outstanding
+  const newOutstanding = (loan.outstanding ?? 0) - data.amount
+  if (newOutstanding <= 0) {
+    await supabase.from('loans').update({ status: 'settled' }).eq('id', data.loan_id)
+  } else {
+    await supabase.from('loans').update({ status: 'partially_paid' }).eq('id', data.loan_id)
+  }
+
+  revalidatePath('/ap-calendar')
+  revalidatePath('/financial-position')
+  revalidatePath('/cash-flow')
+  return {}
+}

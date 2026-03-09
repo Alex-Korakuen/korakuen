@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
 import { CreateBankAccountModal } from './create-bank-account-modal'
+import { CreateLoanModal } from './create-loan-modal'
 import { fetchBankTransactions } from '@/lib/actions'
 import type { BankTransaction, FinancialPositionData } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
@@ -12,14 +13,16 @@ import type { PartnerCompanyOption } from '@/lib/queries'
 type Props = {
   data: FinancialPositionData
   partnerCompanies: PartnerCompanyOption[]
+  projects: { id: string; project_code: string; name: string }[]
 }
 
 function fmt(amount: number, currency: string) {
   return formatCurrency(amount, currency)
 }
 
-export function FPClient({ data, partnerCompanies }: Props) {
+export function FPClient({ data, partnerCompanies, projects }: Props) {
   const [showCreateAccount, setShowCreateAccount] = useState(false)
+  const [showCreateLoan, setShowCreateLoan] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<{
     bankAccountId: string
     bankName: string | null
@@ -133,20 +136,30 @@ export function FPClient({ data, partnerCompanies }: Props) {
       </SectionCard>
 
       {/* LOANS */}
-      {data.loans.length > 0 && (
-        <SectionCard title="Loans">
-          <div className="divide-y divide-zinc-100">
-            {data.loans.map((loan) => (
-              <div key={loan.loanId} className="flex items-center justify-between px-6 py-3">
-                <span className="text-sm text-zinc-700">{loan.lenderName}</span>
-                <span className="text-sm font-medium text-zinc-800">
-                  {fmt(loan.outstanding, loan.currency)}
-                </span>
-              </div>
-            ))}
+      <SectionCard title="Loans">
+        <div className="divide-y divide-zinc-100">
+          {data.loans.map((loan) => (
+            <div key={loan.loanId} className="flex items-center justify-between px-6 py-3">
+              <span className="text-sm text-zinc-700">{loan.lenderName}</span>
+              <span className="text-sm font-medium text-zinc-800">
+                {fmt(loan.outstanding, loan.currency)}
+              </span>
+            </div>
+          ))}
+          {data.loans.length === 0 && (
+            <p className="px-6 py-4 text-sm text-zinc-400">No loans</p>
+          )}
+          <div className="border-t border-zinc-100 px-6 py-2">
+            <button
+              type="button"
+              onClick={() => setShowCreateLoan(true)}
+              className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+            >
+              + Add loan
+            </button>
           </div>
-        </SectionCard>
-      )}
+        </div>
+      </SectionCard>
 
       {/* SEPARATOR — Tax position is derived from the same invoices/costs above */}
       {(data.igv.length > 0 || data.retencionesUnverified.length > 0) && (
@@ -275,6 +288,14 @@ export function FPClient({ data, partnerCompanies }: Props) {
         isOpen={showCreateAccount}
         onClose={() => setShowCreateAccount(false)}
         partnerCompanies={partnerCompanies}
+      />
+
+      {/* Create Loan Modal */}
+      <CreateLoanModal
+        isOpen={showCreateLoan}
+        onClose={() => setShowCreateLoan(false)}
+        partnerCompanies={partnerCompanies}
+        projects={projects}
       />
     </div>
   )

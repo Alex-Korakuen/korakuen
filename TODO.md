@@ -8,23 +8,28 @@ Development is complete — only minor adjustments and feature additions remain.
 
 Move all data entry from CLI to website. Excel imports, inline forms, and action modals — all partners can create and manage data directly. See `docs/14_website_imports.md` for full spec.
 
-### Tasks
+### Done
 
-- [ ] Add RLS INSERT/UPDATE policies for all writable tables
+- [x] Add RLS INSERT/UPDATE policies for all writable tables
+- [x] Entities create modal
+- [x] Entity tags dropdown management (inline)
+- [x] Entity contacts inline form (entity detail panel)
+- [x] Register Payment inline form (AP Calendar detail — Payment History section)
+- [x] Register Collection inline form (AR Outstanding detail — Payment History section)
+- [x] Create Project modal
+- [x] Project budgets inline form (project detail)
+- [x] Create Bank Account modal (Financial Position)
+- [x] Create Loan modal + loan schedule inline form (Financial Position / AP Calendar detail)
+- [x] Register Loan Repayment form (AP Calendar loan detail)
+
+### Remaining
+
 - [ ] Design import UI (file upload component, preview/validation step, confirmation)
 - [ ] Implement server-side Excel parsing (SheetJS + zod validation)
-- [ ] Entities import + create modal
-- [ ] Entity tags dropdown management (inline, wherever tags appear)
-- [ ] Entity contacts inline form (entity detail panel)
+- [ ] Entities import (bulk from Excel)
 - [ ] Quotes import (Prices page)
 - [ ] Costs import (AP Calendar — single-file grouped format)
 - [ ] AR invoices import (AR Outstanding)
-- [ ] Register Payment modal (AP Calendar row detail)
-- [ ] Register Collection modal (AR Outstanding row detail)
-- [ ] Create Project modal + inline forms (partners, entities, budgets)
-- [ ] Create Bank Account modal (Financial Position)
-- [ ] Create Loan modal + loan schedule inline form (Financial Position)
-- [ ] Register Loan Repayment modal (AP Calendar row detail)
 
 ---
 

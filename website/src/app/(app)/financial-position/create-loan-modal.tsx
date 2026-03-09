@@ -1,0 +1,307 @@
+'use client'
+
+import { useState, useEffect, useTransition } from 'react'
+import { Modal } from '@/components/ui/modal'
+import { ModalActions } from '@/components/ui/modal-actions'
+import { createLoan, fetchExchangeRateForDate } from '@/lib/actions'
+import type { PartnerCompanyOption, Currency } from '@/lib/types'
+import { inputClass } from '@/lib/styles'
+
+type Props = {
+  isOpen: boolean
+  onClose: () => void
+  partnerCompanies: PartnerCompanyOption[]
+  projects: { id: string; project_code: string; name: string }[]
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0]
+}
+
+export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }: Props) {
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  const [partnerCompanyId, setPartnerCompanyId] = useState('')
+  const [lenderName, setLenderName] = useState('')
+  const [lenderContact, setLenderContact] = useState('')
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<Currency>('PEN')
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
+  const [dateBorrowed, setDateBorrowed] = useState(todayISO)
+  const [projectId, setProjectId] = useState('')
+  const [purpose, setPurpose] = useState('')
+  const [returnType, setReturnType] = useState<'percentage' | 'fixed'>('percentage')
+  const [agreedReturnRate, setAgreedReturnRate] = useState('10')
+  const [agreedReturnAmount, setAgreedReturnAmount] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [notes, setNotes] = useState('')
+
+  // Auto-fetch exchange rate when date changes
+  useEffect(() => {
+    if (!isOpen) return
+    fetchExchangeRateForDate(dateBorrowed)
+      .then(rate => setExchangeRate(rate?.mid_rate ?? null))
+      .catch(() => setExchangeRate(null))
+  }, [dateBorrowed, isOpen])
+
+  function resetForm() {
+    setPartnerCompanyId('')
+    setLenderName('')
+    setLenderContact('')
+    setAmount('')
+    setCurrency('PEN')
+    setExchangeRate(null)
+    setDateBorrowed(todayISO())
+    setProjectId('')
+    setPurpose('')
+    setReturnType('percentage')
+    setAgreedReturnRate('10')
+    setAgreedReturnAmount('')
+    setDueDate('')
+    setNotes('')
+    setError(null)
+  }
+
+  function handleClose() {
+    resetForm()
+    onClose()
+  }
+
+  function handleSubmit() {
+    const parsedAmount = parseFloat(amount)
+    if (!partnerCompanyId || !lenderName.trim() || isNaN(parsedAmount) || parsedAmount <= 0 || !purpose.trim()) return
+    if (exchangeRate === null) {
+      setError('Exchange rate not available for this date')
+      return
+    }
+    setError(null)
+
+    startTransition(async () => {
+      const result = await createLoan({
+        partner_company_id: partnerCompanyId,
+        lender_name: lenderName.trim(),
+        lender_contact: lenderContact.trim() || undefined,
+        amount: parsedAmount,
+        currency,
+        exchange_rate: exchangeRate,
+        date_borrowed: dateBorrowed,
+        project_id: projectId || undefined,
+        purpose: purpose.trim(),
+        return_type: returnType,
+        agreed_return_rate: returnType === 'percentage' ? parseFloat(agreedReturnRate) || 0 : undefined,
+        agreed_return_amount: returnType === 'fixed' ? parseFloat(agreedReturnAmount) || 0 : undefined,
+        due_date: dueDate || undefined,
+        notes: notes.trim() || undefined,
+      })
+
+      if (result.error) {
+        setError(result.error)
+      } else {
+        handleClose()
+      }
+    })
+  }
+
+  const parsedAmount = parseFloat(amount)
+  const canSubmit = partnerCompanyId && lenderName.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && purpose.trim() && exchangeRate !== null
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title="Create Loan">
+      <div className="space-y-4">
+        {/* Partner Company */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Partner Company *</label>
+          <select
+            value={partnerCompanyId}
+            onChange={(e) => setPartnerCompanyId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Select partner...</option>
+            {partnerCompanies.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Lender Name + Contact — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Lender Name *</label>
+            <input
+              type="text"
+              value={lenderName}
+              onChange={(e) => setLenderName(e.target.value)}
+              placeholder="Person or company name"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Lender Contact</label>
+            <input
+              type="text"
+              value={lenderContact}
+              onChange={(e) => setLenderContact(e.target.value)}
+              placeholder="Phone or email"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Amount + Currency — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Principal Amount *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className={`${inputClass} font-mono`}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Currency *</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              className={inputClass}
+            >
+              <option value="PEN">PEN</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Borrowed + Exchange Rate — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Date Borrowed *</label>
+            <input
+              type="date"
+              value={dateBorrowed}
+              onChange={(e) => setDateBorrowed(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Exchange Rate *</label>
+            <input
+              type="number"
+              step="0.0001"
+              min="0"
+              value={exchangeRate ?? ''}
+              onChange={(e) => setExchangeRate(parseFloat(e.target.value) || null)}
+              placeholder="Auto-fetched"
+              className={`${inputClass} font-mono`}
+            />
+          </div>
+        </div>
+
+        {/* Project */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Project <span className="font-normal text-zinc-400">(optional — which project this funded)</span></label>
+          <select
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">No project</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.project_code} — {p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Purpose */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Purpose *</label>
+          <input
+            type="text"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="What the loan is for"
+            className={inputClass}
+          />
+        </div>
+
+        {/* Return Type + Rate/Amount — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Return Type *</label>
+            <select
+              value={returnType}
+              onChange={(e) => setReturnType(e.target.value as 'percentage' | 'fixed')}
+              className={inputClass}
+            >
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed Amount</option>
+            </select>
+          </div>
+          <div>
+            {returnType === 'percentage' ? (
+              <>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">Agreed Return Rate % *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={agreedReturnRate}
+                  onChange={(e) => setAgreedReturnRate(e.target.value)}
+                  placeholder="10.00"
+                  className={`${inputClass} font-mono`}
+                />
+              </>
+            ) : (
+              <>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">Agreed Return Amount *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={agreedReturnAmount}
+                  onChange={(e) => setAgreedReturnAmount(e.target.value)}
+                  placeholder="0.00"
+                  className={`${inputClass} font-mono`}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Due Date */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Due Date <span className="font-normal text-zinc-400">(optional)</span></label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className={inputClass}
+            placeholder="Additional details..."
+          />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <p className="text-sm text-red-600">{error}</p>
+        )}
+
+        {/* Actions */}
+        <ModalActions onCancel={handleClose} onSubmit={handleSubmit} disabled={!canSubmit} isPending={isPending} />
+      </div>
+    </Modal>
+  )
+}

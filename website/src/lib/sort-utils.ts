@@ -3,9 +3,6 @@
 import { useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
-// Re-export sortRows from shared module so existing client imports still work
-export { sortRows } from './sort-rows'
-
 /**
  * URL-driven sort hook for paginated pages.
  * Reads sort/dir from URL searchParams, updates via router.push.
