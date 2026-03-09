@@ -217,7 +217,7 @@ export function PricesClient({
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                     {row.unit_price !== null
-                      ? formatCurrency(row.unit_price, row.currency as 'PEN' | 'USD')
+                      ? formatCurrency(row.unit_price, row.currency)
                       : '--'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-zinc-500">

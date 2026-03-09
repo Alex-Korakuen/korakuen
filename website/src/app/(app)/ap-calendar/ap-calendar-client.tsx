@@ -12,19 +12,13 @@ import { formatType } from './helpers'
 import { DetailField, CostDetailContent, LoanDetailContent } from './ap-calendar-detail'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
-import type { ApCalendarRow } from '@/lib/types'
 import type {
+  ApCalendarRow,
   CostDetailData,
   LoanDetailData,
   ApCalendarBucketId as BucketId,
+  ApCalendarBucketCounts as BucketCounts,
 } from '@/lib/types'
-
-type BucketCounts = {
-  overdue: { count: number; pen: number; usd: number }
-  today: { count: number; pen: number; usd: number }
-  'this-week': { count: number; pen: number; usd: number }
-  'next-30': { count: number; pen: number; usd: number }
-}
 
 type Props = {
   data: ApCalendarRow[]
@@ -210,7 +204,7 @@ export function ApCalendarClient({
               label="Outstanding"
               value={
                 modal.selectedRow.outstanding !== null && modal.selectedRow.currency
-                  ? formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency as 'PEN' | 'USD')
+                  ? formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency)
                   : '--'
               }
             />

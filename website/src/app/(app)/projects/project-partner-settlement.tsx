@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
-import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerCostDetail, PartnerRevenueDetail, Currency } from '@/lib/types'
+import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerCostDetail, PartnerRevenueDetail } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -385,7 +385,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                         </td>
                         <td className="py-2 text-zinc-700">{d.comprobante_number ?? '—'}</td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
-                          {formatCurrency(d.subtotal, (d.currency ?? 'PEN') as Currency)}
+                          {formatCurrency(d.subtotal, d.currency ?? 'PEN')}
                         </td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
                           {formatCurrency(d.subtotal_pen, 'PEN')}
@@ -427,7 +427,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                         </td>
                         <td className="py-2 text-zinc-700">{d.invoice_number ?? '—'}</td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
-                          {formatCurrency(d.amount, (d.currency ?? 'PEN') as Currency)}
+                          {formatCurrency(d.amount, d.currency ?? 'PEN')}
                         </td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
                           {formatCurrency(d.amount_pen, 'PEN')}

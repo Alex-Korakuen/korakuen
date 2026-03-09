@@ -1,9 +1,5 @@
 import { cookies } from 'next/headers'
-
-function parsePartnerFilterCookie(cookieValue: string | undefined): string[] {
-  if (!cookieValue) return []
-  return cookieValue.split(',').filter(Boolean)
-}
+import { parsePartnerFilterCookie } from './partner-filter-utils'
 
 /** Read partner filter from cookie on the server side. Returns empty array = all partners. */
 export async function getPartnerFilter(): Promise<string[]> {

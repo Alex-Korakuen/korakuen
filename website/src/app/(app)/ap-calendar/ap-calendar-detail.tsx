@@ -83,13 +83,13 @@ export function CostDetailContent({
                     <td className="px-3 py-2 text-zinc-500">{item.unit_of_measure ?? '--'}</td>
                     <td className="px-3 py-2 text-right font-mono text-zinc-600">
                       {item.unit_price != null
-                        ? formatCurrency(item.unit_price, (cost?.currency ?? 'PEN') as 'PEN' | 'USD')
+                        ? formatCurrency(item.unit_price, (cost?.currency ?? 'PEN'))
                         : '--'}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(
                         item.subtotal,
-                        (cost?.currency ?? 'PEN') as 'PEN' | 'USD'
+                        (cost?.currency ?? 'PEN')
                       )}
                     </td>
                   </tr>
@@ -107,21 +107,21 @@ export function CostDetailContent({
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-zinc-500">Subtotal</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(cost.subtotal ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(cost.subtotal ?? 0, (cost.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">IGV</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(cost.igv_amount ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(cost.igv_amount ?? 0, (cost.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">Total</span>
             <span className="text-right font-mono font-semibold text-zinc-900">
-              {formatCurrency(cost.total ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(cost.total ?? 0, (cost.currency ?? 'PEN'))}
             </span>
             {(cost.detraccion_amount ?? 0) > 0 && (
               <>
                 <span className="text-zinc-500">Detraccion</span>
                 <span className="text-right font-mono text-zinc-700">
-                  {formatCurrency(cost.detraccion_amount ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+                  {formatCurrency(cost.detraccion_amount ?? 0, (cost.currency ?? 'PEN'))}
                 </span>
               </>
             )}
@@ -154,11 +154,11 @@ export function CostDetailContent({
         <div className="grid grid-cols-2 gap-2 text-sm">
           <span className="font-medium text-zinc-500">Total Paid</span>
           <span className="text-right font-mono text-zinc-700">
-            {formatCurrency(cost.amount_paid ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+            {formatCurrency(cost.amount_paid ?? 0, (cost.currency ?? 'PEN'))}
           </span>
           <span className="font-medium text-zinc-500">Outstanding</span>
           <span className="text-right font-mono font-semibold text-red-600">
-            {formatCurrency(cost.outstanding ?? 0, (cost.currency ?? 'PEN') as 'PEN' | 'USD')}
+            {formatCurrency(cost.outstanding ?? 0, (cost.currency ?? 'PEN'))}
           </span>
         </div>
       )}
@@ -198,19 +198,19 @@ export function LoanDetailContent({
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-zinc-500">Principal</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(loan.principal ?? 0, (loan.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(loan.principal ?? 0, (loan.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">Total Owed</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(loan.total_owed ?? 0, (loan.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(loan.total_owed ?? 0, (loan.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">Paid</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(loan.total_paid ?? 0, (loan.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(loan.total_paid ?? 0, (loan.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">Outstanding</span>
             <span className="text-right font-mono font-semibold text-red-600">
-              {formatCurrency(loan.outstanding ?? 0, (loan.currency ?? 'PEN') as 'PEN' | 'USD')}
+              {formatCurrency(loan.outstanding ?? 0, (loan.currency ?? 'PEN'))}
             </span>
           </div>
         </div>
@@ -240,7 +240,7 @@ export function LoanDetailContent({
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(
                         entry.scheduled_amount,
-                        (loan?.currency ?? 'PEN') as 'PEN' | 'USD'
+                        (loan?.currency ?? 'PEN')
                       )}
                     </td>
                     <td className="px-3 py-2">
@@ -277,7 +277,7 @@ export function LoanDetailContent({
                       {formatDate(pmt.payment_date)}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
-                      {formatCurrency(pmt.amount, pmt.currency as 'PEN' | 'USD')}
+                      {formatCurrency(pmt.amount, pmt.currency)}
                     </td>
                     <td className="px-3 py-2 text-zinc-500">{pmt.notes ?? '--'}</td>
                   </tr>

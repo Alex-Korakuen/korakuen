@@ -473,7 +473,3 @@ CREATE TRIGGER trg_payments_updated_at
 -- End of migration 001
 -- Rollback: DROP all tables in reverse order, then DROP FUNCTION update_updated_at()
 -- ============================================================
-
--- TODO (V1): Add Row Level Security (RLS) policies when Supabase Auth is enabled.
--- V0 has no authentication — all three partners share full read access via anon key.
--- When auth is added, restrict anon key access to read-only on views only.

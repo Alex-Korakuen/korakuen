@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from './supabase/server'
 import { convertAmount } from './formatters'
+import { getDaysUntilEndOfWeek, getAgingBucket } from './date-utils'
 import { paginateArray, PAGE_SIZE } from './pagination'
 import { sortRows } from './sort-rows'
 import type { PaginatedResult } from './pagination'
@@ -35,6 +36,11 @@ import type {
   ProjectPartnerRow,
   ProjectPartnerSettlement,
   EntitySearchResult,
+  PartnerCompanyOption,
+  CategoryOption,
+  ApCalendarBucketCounts,
+  ArOutstandingBucketCounts,
+  BucketValue,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -76,24 +82,12 @@ type ApCalendarFilters = {
   page: number
 }
 
-type ApCalendarBucketCounts = {
-  overdue: { count: number; pen: number; usd: number }
-  today: { count: number; pen: number; usd: number }
-  'this-week': { count: number; pen: number; usd: number }
-  'next-30': { count: number; pen: number; usd: number }
-}
-
 type ApCalendarResult = {
   paginated: PaginatedResult<ApCalendarRow>
   bucketCounts: ApCalendarBucketCounts
   uniqueSuppliers: string[]
 }
 
-function getDaysUntilEndOfWeek(): number {
-  const dayOfWeek = new Date().getDay()
-  if (dayOfWeek === 0) return 0
-  return 7 - dayOfWeek
-}
 
 function getApBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
   if (daysRemaining === null) return null
@@ -279,13 +273,6 @@ type ArOutstandingFilters = {
   page: number
 }
 
-type ArOutstandingBucketCounts = {
-  current: { count: number; pen: number; usd: number }
-  '31-60': { count: number; pen: number; usd: number }
-  '61-90': { count: number; pen: number; usd: number }
-  '90+': { count: number; pen: number; usd: number }
-}
-
 type ArOutstandingTotals = {
   pen: { gross: number; receivable: number; bdn: number; count: number }
   usd: { gross: number; receivable: number; bdn: number; count: number }
@@ -295,13 +282,6 @@ type ArOutstandingResult = {
   paginated: PaginatedResult<ArOutstandingRow>
   bucketCounts: ArOutstandingBucketCounts
   totals: ArOutstandingTotals
-}
-
-function getAgingBucket(daysOverdue: number): 'current' | '31-60' | '61-90' | '90+' {
-  if (daysOverdue <= 30) return 'current'
-  if (daysOverdue <= 60) return '31-60'
-  if (daysOverdue <= 90) return '61-90'
-  return '90+'
 }
 
 export async function getArOutstanding(
@@ -1830,6 +1810,44 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
 // Exchange Rate
 // ============================================================
 
+export type BankAccountOption = {
+  id: string
+  bank_name: string
+  account_number_last4: string
+  label: string
+  currency: string
+  is_detraccion_account: boolean
+}
+
+export async function getBankAccountsForPartner(
+  partnerCompanyId: string
+): Promise<BankAccountOption[]> {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('bank_accounts')
+    .select('id, bank_name, account_number_last4, label, currency, is_detraccion_account')
+    .eq('partner_company_id', partnerCompanyId)
+    .eq('is_active', true)
+    .order('label')
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function getExchangeRateForDate(
+  date: string
+): Promise<{ mid_rate: number; rate_date: string } | null> {
+  const supabase = await createServerSupabaseClient()
+  const { data, error } = await supabase
+    .from('exchange_rates')
+    .select('mid_rate, rate_date')
+    .lte('rate_date', date)
+    .order('rate_date', { ascending: false })
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
+}
+
 export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_date: string } | null> {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
@@ -1844,7 +1862,6 @@ export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_
 
 // --- Partner companies (for dropdowns) ---
 
-import type { PartnerCompanyOption, CategoryOption } from './types'
 export type { PartnerCompanyOption, CategoryOption }
 
 export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {

@@ -1,9 +1,4 @@
-export function getAgingBucket(daysOverdue: number): 'current' | '31-60' | '61-90' | '90+' {
-  if (daysOverdue <= 30) return 'current'
-  if (daysOverdue <= 60) return '31-60'
-  if (daysOverdue <= 90) return '61-90'
-  return '90+'
-}
+export { getAgingBucket } from '@/lib/date-utils'
 
 export function getAgingColorClass(daysOverdue: number): string {
   if (daysOverdue <= 30) return 'text-green-600'
@@ -18,12 +13,3 @@ export function getAgingRowBorderClass(daysOverdue: number): string {
   if (daysOverdue <= 90) return 'border-l-4 border-l-orange-400'
   return 'border-l-4 border-l-red-400'
 }
-
-export function getRetencionAgingColor(daysSinceInvoice: number, verified: boolean): string {
-  if (verified) return 'text-green-600'
-  if (daysSinceInvoice <= 30) return 'text-green-600'
-  if (daysSinceInvoice <= 60) return 'text-yellow-600'
-  if (daysSinceInvoice <= 90) return 'text-orange-600'
-  return 'text-red-600'
-}
-

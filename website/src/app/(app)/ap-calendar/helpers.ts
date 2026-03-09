@@ -1,8 +1,5 @@
-export function getDaysUntilEndOfWeek(): number {
-  const dayOfWeek = new Date().getDay() // 0=Sunday
-  if (dayOfWeek === 0) return 0
-  return 7 - dayOfWeek
-}
+import { getDaysUntilEndOfWeek } from '@/lib/date-utils'
+export { getDaysUntilEndOfWeek }
 
 export function getRowBorderClass(daysRemaining: number | null): string {
   if (daysRemaining === null) return ''

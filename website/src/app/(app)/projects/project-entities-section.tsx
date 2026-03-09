@@ -1,6 +1,6 @@
 import { formatCurrency } from '@/lib/formatters'
 import { SectionCard } from '@/components/ui/section-card'
-import type { ProjectDetailData, Currency } from '@/lib/types'
+import type { ProjectDetailData } from '@/lib/types'
 
 export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailData['entities'] }) {
   return (
@@ -39,7 +39,7 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
                     {e.tags.length > 0 ? e.tags.join(', ') : '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
-                    {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency as Currency) : '—'}
+                    {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency) : '—'}
                   </td>
                   <td className="px-4 py-2 text-right text-zinc-600">
                     {e.invoiceCount ?? '—'}
@@ -66,7 +66,7 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
                     </td>
                     <td className="px-4 py-2" />
                     <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
-                      {formatCurrency(byCurrency[c].total, c as Currency)}
+                      {formatCurrency(byCurrency[c].total, c)}
                     </td>
                     <td className="px-4 py-2 text-right font-medium text-zinc-700">
                       {byCurrency[c].count}

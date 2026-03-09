@@ -8,7 +8,7 @@
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — never deleted or deactivated. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes) are permanent records — never deleted or deactivated. Bridge tables (project_entities, project_partners) use soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
 **Table count:** 20 tables total across 7 layers.
 
@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets). Transaction tables and historical reference tables are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and bridge tables (project_entities, project_partners). Transaction tables and historical reference tables are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
@@ -228,6 +228,7 @@ Bridge table linking entities to projects with a specific role. Answers "who par
 | tag_id | UUID | NO | references tags — the role on this project |
 | start_date | DATE | YES | when entity started on this project |
 | end_date | DATE | YES | when entity finished on this project |
+| is_active | BOOLEAN | NO | default TRUE — soft delete |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
@@ -357,6 +358,7 @@ One row per invoice or cash movement. Holds all financial context, tax, and docu
 - `total` — subtotal + igv_amount
 - `amount_paid` — SUM of payments against this cost
 - `outstanding` — total - amount_paid
+- `detraccion_paid` — SUM of payments where payment_type = 'detraccion'
 - `payment_status` — pending / partial / paid
 
 ---
@@ -417,10 +419,14 @@ Invoices sent to clients. Subtotal entered directly. Totals and payment status d
 - `igv_amount` — subtotal × igv_rate
 - `gross_total` — subtotal + igv_amount
 - `detraccion_amount` — gross_total × detraccion_rate
-- `retencion_amount` — gross_total × retencion_rate
+- `retencion_amount` — gross_total × retencion_rate (only when retencion_applicable = true)
 - `net_receivable` — gross_total - detraccion_amount - retencion_amount
 - `amount_paid` — SUM of payments against this invoice
 - `outstanding` — gross_total - amount_paid
+- `detraccion_paid` — SUM of payments where payment_type = 'detraccion'
+- `retencion_paid` — SUM of payments where payment_type = 'retencion'
+- `receivable` — outstanding minus remaining unpaid detraccion and retencion portions
+- `bdn_outstanding` — detraccion_amount minus detraccion_paid
 - `payment_status` — pending / partial / paid
 
 ---
@@ -639,7 +645,7 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and bridge tables (project_entities, project_partners) use `is_active` soft deletes. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on costs.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.

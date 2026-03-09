@@ -10,7 +10,7 @@ from lib.helpers import (
     get_input, get_optional_input, get_date_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_optional_enum_input, get_currency, get_exchange_rate,
-    select_project, get_nonneg_float, execute_insert,
+    select_project, select_partner_company, get_nonneg_float, execute_insert,
 )
 
 
@@ -49,21 +49,8 @@ def add_loan():
     print("\n=== Add Loan ===\n")
 
     # --- Partner company ---
-    partners = (
-        supabase.table("partner_companies")
-        .select("id, name, ruc")
-        .eq("is_active", True)
-        .execute()
-    )
-    if not list_choices("Partner companies", partners.data, display=["name", "ruc"]):
-        input("\nPress Enter to continue...")
-        return
-    partner_num = get_input("  Select partner company number: ")
-    try:
-        partner = partners.data[int(partner_num) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    partner = select_partner_company(show_ruc=True)
+    if not partner:
         return
 
     # --- Lender info ---

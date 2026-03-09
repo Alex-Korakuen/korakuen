@@ -13,7 +13,7 @@ from lib.helpers import (
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_exchange_rate, select_project,
     get_nonneg_float, execute_insert,
-    search_and_select_entity, COMPROBANTE_TYPES_AR,
+    search_and_select_entity, select_partner_company, COMPROBANTE_TYPES_AR,
 )
 from lib.import_helpers import (
     DATA_START_ROW,
@@ -97,21 +97,8 @@ def add_ar_invoice():
         print("  Note: Project has no client entity assigned — skipping client check.")
 
     # --- Select partner company ---
-    partners = (
-        supabase.table("partner_companies")
-        .select("id, name, ruc")
-        .eq("is_active", True)
-        .execute()
-    )
-    if not list_choices("Partner companies", partners.data, display=["name", "ruc"]):
-        input("\nPress Enter to continue...")
-        return
-    partner_num = get_input("  Select partner company number: ")
-    try:
-        partner = partners.data[int(partner_num) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
+    partner = select_partner_company(show_ruc=True)
+    if not partner:
         return
 
     # --- Invoice details ---

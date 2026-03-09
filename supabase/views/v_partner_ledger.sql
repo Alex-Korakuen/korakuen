@@ -75,8 +75,10 @@ SELECT
       * (pp.profit_share_pct / 100), 2
   )                     AS should_receive_pen
 FROM project_partners pp
+-- Only active partners participate in settlement; inactive ones have been removed.
 -- No is_active filter on projects/partner_companies: financial history must remain
 -- visible even after deactivation. Filtering handled at the application layer.
+WHERE pp.is_active = TRUE
 JOIN projects p         ON p.id = pp.project_id
 JOIN partner_companies pco ON pco.id = pp.partner_company_id
 LEFT JOIN partner_costs pc ON pc.project_id = pp.project_id

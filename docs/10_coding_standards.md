@@ -215,7 +215,7 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 - Foreign keys: always `[table_singular]_id` — `project_id`, `entity_id`
 - Booleans: always prefix with `is_` or `has_` — `is_active`, `is_detraccion_account`
 - Timestamps: `created_at` and `updated_at` on every table
-- Soft delete: `is_active BOOLEAN DEFAULT true` on reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects) — transaction and historical reference tables are permanent records
+- Soft delete: `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and bridge tables (project_entities, project_partners) — transaction and historical reference tables are permanent records
 - Amounts: `NUMERIC(15,2)` for money, `NUMERIC(15,4)` for quantities and unit prices
 - Rates/percentages: `NUMERIC(5,2)` — e.g. 18.00 for IGV, 4.00 for detraccion
 - Currency: `VARCHAR(3)` — always 'USD' or 'PEN'
@@ -249,9 +249,8 @@ src/
       ap-calendar/      → AP payment calendar (default landing)
       ar-outstanding/   → AR outstanding & collections
       cash-flow/        → cash flow dashboard
-      partner-balances/ → partner contribution & settlement view
       financial-position/ → balance sheet
-      projects/         → project list and detail
+      projects/         → project list and detail (includes partner settlement)
       entities/         → entity/contact directory
       prices/           → historical pricing reference
       settings/

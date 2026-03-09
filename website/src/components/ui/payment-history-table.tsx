@@ -88,7 +88,7 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
                   </td>
                   <td className="px-3 py-2 capitalize text-zinc-500">{pmt.payment_type}</td>
                   <td className="px-3 py-2 text-right font-mono text-zinc-700">
-                    {formatCurrency(pmt.amount, pmt.currency as 'PEN' | 'USD')}
+                    {formatCurrency(pmt.amount, pmt.currency)}
                   </td>
                   <td className="px-3 py-2 text-zinc-500">{pmt.currency}</td>
                 </tr>

@@ -456,19 +456,20 @@ def import_entities():
     existing = supabase.table("entities").select("document_number").execute()
     existing_doc_numbers = {row["document_number"] for row in existing.data}
 
-    # Also check for duplicates within the file
+    # Check for duplicates within the file
     file_doc_numbers = set()
+    file_duplicate_errors = []
     for idx, row in df.iterrows():
         doc_num = row.get("document_number")
         if doc_num and not pd.isna(doc_num):
             doc_str = str(doc_num).strip()
             if doc_str in file_doc_numbers:
-                # Will be caught as duplicate in database check or we flag it
-                pass
+                excel_row = idx + DATA_START_ROW
+                file_duplicate_errors.append((excel_row, f"Duplicate document_number '{doc_str}' within file"))
             file_doc_numbers.add(doc_str)
 
     # Validate all rows
-    errors = []
+    errors = list(file_duplicate_errors)
     for idx, row in df.iterrows():
         excel_row = idx + DATA_START_ROW
         _validate_entity_row(excel_row, row, errors, existing_doc_numbers)

@@ -15,7 +15,7 @@ export function InvoiceDetailContent({
   onPaymentSuccess?: () => void
 }) {
   const invoice = detail.invoice
-  const cur = (row.currency ?? 'PEN') as 'PEN' | 'USD'
+  const cur = (row.currency ?? 'PEN')
 
   // Compute per-type outstanding from payment history
   const detraccionPaid = detail.payments

@@ -3,7 +3,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { SectionCard } from '@/components/ui/section-card'
 import { EntityTagsDropdown } from './entity-tags-dropdown'
 import { EntityContactsForm } from './entity-contacts-form'
-import type { EntityDetailData, Currency, ProjectTransactionGroup } from '@/lib/types'
+import type { EntityDetailData, ProjectTransactionGroup } from '@/lib/types'
 
 type Props = {
   detail: EntityDetailData
@@ -79,7 +79,7 @@ export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick,
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {detail.transactionsByProject.map((group) => {
-                    const cur = group.currency as Currency
+                    const cur = group.currency
                     return (
                       <tr
                         key={`${group.projectId}|${group.currency}`}

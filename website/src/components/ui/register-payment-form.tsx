@@ -112,7 +112,7 @@ export function RegisterPaymentForm({
       return
     }
     if (parsedAmount > maxAmount) {
-      setError(`Amount cannot exceed ${formatCurrency(maxAmount, currency as 'PEN' | 'USD')} for ${paymentType} payments`)
+      setError(`Amount cannot exceed ${formatCurrency(maxAmount, currency)} for ${paymentType} payments`)
       return
     }
     if (!isRetencion && !bankAccountId) {
@@ -191,7 +191,7 @@ export function RegisterPaymentForm({
         {/* Amount */}
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-500">
-            Amount ({currency}) — max {formatCurrency(maxAmount, currency as 'PEN' | 'USD')}
+            Amount ({currency}) — max {formatCurrency(maxAmount, currency)}
           </label>
           <input
             type="number"

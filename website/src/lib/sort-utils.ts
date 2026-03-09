@@ -1,34 +1,10 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
 // Re-export sortRows from shared module so existing client imports still work
 export { sortRows } from './sort-rows'
-
-/**
- * Hook that manages sortColumn and sortDirection state.
- * Returns the current sort state and a handleSort function that toggles direction
- * if the same column is clicked, otherwise sets the new column with 'asc'.
- */
-export function useSort<TColumn extends string>(
-  defaultColumn: TColumn,
-  defaultDirection: 'asc' | 'desc' = 'asc'
-) {
-  const [sortColumn, setSortColumn] = useState<TColumn>(defaultColumn)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(defaultDirection)
-
-  function handleSort(column: TColumn) {
-    if (sortColumn === column) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
-  }
-
-  return { sortColumn, sortDirection, handleSort }
-}
 
 /**
  * URL-driven sort hook for paginated pages.

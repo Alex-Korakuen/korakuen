@@ -12,8 +12,8 @@ function formatUSD(amount: number): string {
   }).format(amount)
 }
 
-export function formatCurrency(amount: number, currency: 'PEN' | 'USD'): string {
-  return currency === 'PEN' ? formatPEN(amount) : formatUSD(amount)
+export function formatCurrency(amount: number, currency: string | null): string {
+  return currency === 'USD' ? formatUSD(amount) : formatPEN(amount)
 }
 
 export function formatDate(dateStr: string): string {

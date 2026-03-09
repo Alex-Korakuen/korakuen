@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode } from '@/lib/queries'
+import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
 import type { PartnerCostDetail, PartnerRevenueDetail, BankTransaction, Currency } from '@/lib/types'
 
 export async function fetchCostDetail(costId: string) {
@@ -45,43 +45,18 @@ export async function fetchBankTransactions(
 
 // --- Payment actions ---
 
-export type BankAccountOption = {
-  id: string
-  bank_name: string
-  account_number_last4: string
-  label: string
-  currency: string
-  is_detraccion_account: boolean
-}
+export type { BankAccountOption } from '@/lib/queries'
 
 export async function fetchBankAccountsForPayment(
   partnerCompanyId: string
-): Promise<BankAccountOption[]> {
-  const supabase = await createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('bank_accounts')
-    .select('id, bank_name, account_number_last4, label, currency, is_detraccion_account')
-    .eq('partner_company_id', partnerCompanyId)
-    .eq('is_active', true)
-    .order('label')
-  if (error) throw new Error(error.message)
-  return data ?? []
+) {
+  return getBankAccountsForPartner(partnerCompanyId)
 }
 
 export async function fetchExchangeRateForDate(
   date: string
-): Promise<{ mid_rate: number; rate_date: string } | null> {
-  const supabase = await createServerSupabaseClient()
-  // Try exact date first, then fall back to latest available before that date
-  const { data, error } = await supabase
-    .from('exchange_rates')
-    .select('mid_rate, rate_date')
-    .lte('rate_date', date)
-    .order('rate_date', { ascending: false })
-    .limit(1)
-    .single()
-  if (error || !data) return null
-  return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
+) {
+  return getExchangeRateForDate(date)
 }
 
 export async function registerPayment(input: {
@@ -423,7 +398,7 @@ export async function upsertProjectBudget(
   projectId: string,
   category: string,
   budgetedAmount: number,
-  currency: Currency
+  currency: string
 ) {
   const supabase = await createServerSupabaseClient()
 

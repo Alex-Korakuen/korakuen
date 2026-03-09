@@ -338,10 +338,10 @@ def _load_cost_lookups():
     }
 
     # Load exchange rates for auto-lookup
-    exchange_rates_resp = supabase.table("exchange_rates").select("rate_date, buy_rate").execute()
+    exchange_rates_resp = supabase.table("exchange_rates").select("rate_date, mid_rate").execute()
     exchange_rate_by_date = {}
     for r in exchange_rates_resp.data:
-        exchange_rate_by_date[r["rate_date"]] = float(r["buy_rate"])
+        exchange_rate_by_date[r["rate_date"]] = float(r["mid_rate"])
 
     return {
         "projects": load_project_map(),

@@ -1,6 +1,6 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
-import type { ProjectTransactionGroup, Currency } from '@/lib/types'
+import type { ProjectTransactionGroup } from '@/lib/types'
 
 type Props = {
   group: ProjectTransactionGroup | null
@@ -8,7 +8,7 @@ type Props = {
 }
 
 export function TransactionModal({ group, onClose }: Props) {
-  const cur = (group?.currency ?? 'PEN') as Currency
+  const cur = group?.currency ?? 'PEN'
 
   return (
     <Modal

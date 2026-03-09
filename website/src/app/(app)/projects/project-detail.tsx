@@ -10,13 +10,13 @@ import { ProjectPartnerSettlement } from './project-partner-settlement'
 import { ProjectBudgetForm } from './project-budget-form'
 import { ProjectEntitiesSection } from './project-entities-section'
 
-import type { ProjectDetailData, Currency } from '@/lib/types'
+import type { ProjectDetailData } from '@/lib/types'
 import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
 
 type Props = {
   detail: ProjectDetailData
   contractValue: number | null
-  contractCurrency: Currency
+  contractCurrency: string
   partnerCompanies: PartnerCompanyOption[]
   categories: CategoryOption[]
 }

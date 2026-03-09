@@ -120,17 +120,17 @@ export function ApCalendarTable({
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
                   {row.total !== null && row.currency
-                    ? formatCurrency(row.total, row.currency as 'PEN' | 'USD')
+                    ? formatCurrency(row.total, row.currency)
                     : '--'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
                   {row.payable !== null && row.currency
-                    ? formatCurrency(row.payable, row.currency as 'PEN' | 'USD')
+                    ? formatCurrency(row.payable, row.currency)
                     : '--'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
                   {row.bdn_outstanding !== null && row.bdn_outstanding > 0 && row.currency
-                    ? formatCurrency(row.bdn_outstanding, row.currency as 'PEN' | 'USD')
+                    ? formatCurrency(row.bdn_outstanding, row.currency)
                     : '--'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-500">

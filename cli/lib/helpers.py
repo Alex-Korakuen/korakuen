@@ -8,6 +8,9 @@ from datetime import datetime
 from lib.db import supabase
 
 
+# IGV (Peru VAT) rate — 18%
+IGV_RATE = 0.18
+
 # PEN/USD exchange rate — historical range for sanity checks
 EXCHANGE_RATE_MIN = 2.5
 EXCHANGE_RATE_MAX = 6.0
@@ -212,7 +215,8 @@ def get_exchange_rate(transaction_date=None, prompt=None):
                 suggested_rate = float(result.data[0]["mid_rate"])
                 suggested_date = result.data[0]["rate_date"]
         except Exception:
-            pass  # Fall through to manual entry
+            print("  (Could not look up exchange rate — enter manually)")
+
 
     while True:
         if prompt:
@@ -355,14 +359,18 @@ def search_and_select_entity():
         return None
 
 
-def select_partner_company():
+def select_partner_company(show_ruc=False):
     """Query active partner companies and let user select one.
 
-    Returns the selected partner_company dict (id, name), or None.
+    Args:
+        show_ruc: If True, display RUC alongside name.
+
+    Returns the selected partner_company dict (id, name, and ruc if show_ruc), or None.
     """
+    fields = "id, name, ruc" if show_ruc else "id, name"
     partners = (
         supabase.table("partner_companies")
-        .select("id, name")
+        .select(fields)
         .eq("is_active", True)
         .execute()
     )
@@ -371,10 +379,8 @@ def select_partner_company():
         input("\nPress Enter to continue...")
         return None
 
-    print("\n  Partner companies:")
-    for i, p in enumerate(partners.data, start=1):
-        print(f"    {i}. {p['name']}")
-    print()
+    display = ["name", "ruc"] if show_ruc else ["name"]
+    list_choices("Partner companies", partners.data, display=display)
 
     num = get_input("  Select partner company: ")
     try:

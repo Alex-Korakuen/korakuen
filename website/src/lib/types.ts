@@ -12,6 +12,7 @@ export type Project = Database['public']['Tables']['projects']['Row']
 export type Cost = Database['public']['Tables']['costs']['Row']
 export type CostItem = Database['public']['Tables']['cost_items']['Row']
 
+export type ArInvoice = Database['public']['Tables']['ar_invoices']['Row']
 export type Payment = Database['public']['Tables']['payments']['Row']
 
 // --- View row types ---
@@ -30,25 +31,7 @@ export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
 // --- AP Calendar component types ---
 
 export type CostDetailData = {
-  cost: {
-    cost_id: string | null
-    cost_type: string | null
-    currency: string | null
-    date: string | null
-    due_date: string | null
-    entity_id: string | null
-    title: string | null
-    subtotal: number | null
-    igv_amount: number | null
-    total: number | null
-    detraccion_amount: number | null
-    amount_paid: number | null
-    outstanding: number | null
-    payment_status: string | null
-    project_id: string | null
-    partner_company_id: string | null
-    document_ref: string | null
-  } | null
+  cost: CostBalanceRow | null
   items: CostItem[]
   payments: Payment[]
   header: {
@@ -103,6 +86,22 @@ export type LoanDetailData = {
 }
 
 export type ApCalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
+
+export type BucketValue = { count: number; pen: number; usd: number }
+
+export type ApCalendarBucketCounts = {
+  overdue: BucketValue
+  today: BucketValue
+  'this-week': BucketValue
+  'next-30': BucketValue
+}
+
+export type ArOutstandingBucketCounts = {
+  current: BucketValue
+  '31-60': BucketValue
+  '61-90': BucketValue
+  '90+': BucketValue
+}
 
 // --- AR Outstanding component types ---
 

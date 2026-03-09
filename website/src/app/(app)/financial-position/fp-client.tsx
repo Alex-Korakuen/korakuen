@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
 import { CreateBankAccountModal } from './create-bank-account-modal'
 import { fetchBankTransactions } from '@/lib/actions'
-import type { BankTransaction, Currency, FinancialPositionData } from '@/lib/types'
+import type { BankTransaction, FinancialPositionData } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -15,7 +15,7 @@ type Props = {
 }
 
 function fmt(amount: number, currency: string) {
-  return formatCurrency(amount, currency as Currency)
+  return formatCurrency(amount, currency)
 }
 
 export function FPClient({ data, partnerCompanies }: Props) {

@@ -14,7 +14,6 @@ import type {
   ProjectListItem,
   ProjectDetailData,
   ProjectStatusFilter,
-  Currency,
 } from '@/lib/types'
 import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
 
@@ -37,7 +36,7 @@ export function ProjectsClient({ projects, detail, selectedId, onSelect, partner
   }, [projects, statusFilter])
 
   const contractValue = detail?.project.contract_value ?? null
-  const contractCurrency = (detail?.project.contract_currency ?? 'PEN') as Currency
+  const contractCurrency = detail?.project.contract_currency ?? 'PEN'
 
   return (
     <div>

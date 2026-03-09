@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import { formatCurrency, formatCategory } from '@/lib/formatters'
 import { SectionCard } from '@/components/ui/section-card'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
-import type { BudgetVsActualRow, Currency } from '@/lib/types'
+import type { BudgetVsActualRow } from '@/lib/types'
 import type { CategoryOption } from '@/lib/queries'
 import { inputCompactClass } from '@/lib/styles'
 
@@ -12,7 +12,7 @@ type Props = {
   projectId: string
   budgetRows: BudgetVsActualRow[]
   contractValue: number | null
-  contractCurrency: Currency
+  contractCurrency: string
   categories: CategoryOption[]
 }
 

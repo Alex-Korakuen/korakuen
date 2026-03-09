@@ -19,14 +19,8 @@ import type {
   ArOutstandingRow,
   ArInvoiceDetailData,
   ArOutstandingBucketId as BucketId,
+  ArOutstandingBucketCounts as BucketCounts,
 } from '@/lib/types'
-
-type BucketCounts = {
-  current: { count: number; pen: number; usd: number }
-  '31-60': { count: number; pen: number; usd: number }
-  '61-90': { count: number; pen: number; usd: number }
-  '90+': { count: number; pen: number; usd: number }
-}
 
 type Totals = {
   pen: { gross: number; receivable: number; bdn: number; count: number }
@@ -267,14 +261,14 @@ export function ArOutstandingClient({
                         {row.project_code}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                        {formatCurrency(row.gross_total, row.currency as 'PEN' | 'USD')}
+                        {formatCurrency(row.gross_total, row.currency)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                        {formatCurrency(row.receivable, row.currency as 'PEN' | 'USD')}
+                        {formatCurrency(row.receivable, row.currency)}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
                         {row.bdn_outstanding > 0
-                          ? formatCurrency(row.bdn_outstanding, row.currency as 'PEN' | 'USD')
+                          ? formatCurrency(row.bdn_outstanding, row.currency)
                           : '--'}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
@@ -354,7 +348,7 @@ export function ArOutstandingClient({
             <DetailField label="Invoice#" value={modal.selectedRow.invoice_number ?? '--'} />
             <DetailField label="Client" value={modal.selectedRow.client_name} />
             <DetailField label="Project" value={modal.selectedRow.project_code} />
-            <DetailField label="Outstanding" value={formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency as 'PEN' | 'USD')} />
+            <DetailField label="Outstanding" value={formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency)} />
           </div>
         )}
       </Modal>

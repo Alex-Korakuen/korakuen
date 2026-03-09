@@ -18,16 +18,11 @@ type PartnerFilterContextType = {
 
 const PartnerFilterContext = createContext<PartnerFilterContextType | null>(null)
 
-const COOKIE_NAME = 'partner_filter'
+import { COOKIE_NAME } from './partner-filter-utils'
 
 function setCookie(ids: string[]) {
   const value = ids.length > 0 ? ids.join(',') : ''
   document.cookie = `${COOKIE_NAME}=${value};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
-}
-
-function parsePartnerFilterCookie(cookieValue: string | undefined): string[] {
-  if (!cookieValue) return []
-  return cookieValue.split(',').filter(Boolean)
 }
 
 export function PartnerFilterProvider({
