@@ -173,11 +173,11 @@ SELECT
       * (pp.profit_share_pct / 100), 2
   )                     AS should_receive_pen
 FROM project_partners pp
-WHERE pp.is_active = TRUE
 JOIN projects p         ON p.id = pp.project_id
 JOIN partner_companies pco ON pco.id = pp.partner_company_id
 LEFT JOIN partner_costs pc ON pc.project_id = pp.project_id
                           AND pc.partner_company_id = pp.partner_company_id
 LEFT JOIN project_totals pt ON pt.project_id = pp.project_id
 LEFT JOIN project_income pi ON pi.project_id = pp.project_id
+WHERE pp.is_active = TRUE
 ORDER BY p.project_code, pco.name;

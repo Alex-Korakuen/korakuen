@@ -6,8 +6,9 @@ import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
 import { CreateBankAccountModal } from './create-bank-account-modal'
 import { CreateLoanModal } from './create-loan-modal'
-import { fetchBankTransactions } from '@/lib/actions'
-import type { BankTransaction, FinancialPositionData } from '@/lib/types'
+import { LoanDetailContent } from '../ap-calendar/loan-detail-content'
+import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
+import type { BankTransaction, FinancialPositionData, LoanDetailData, ApCalendarRow } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -31,6 +32,14 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [loadingTxns, setLoadingTxns] = useState(false)
 
+  // Loan detail modal state
+  const [selectedLoan, setSelectedLoan] = useState<{
+    loanId: string
+    lenderName: string
+  } | null>(null)
+  const [loanDetail, setLoanDetail] = useState<LoanDetailData | null>(null)
+  const [loadingLoan, setLoadingLoan] = useState(false)
+
   const handleAccountClick = async (ba: FinancialPositionData['bankAccounts'][0]) => {
     setSelectedAccount({
       bankAccountId: ba.bankAccountId,
@@ -47,6 +56,59 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       setLoadingTxns(false)
     }
   }
+
+  const handleLoanClick = async (loan: FinancialPositionData['loans'][0]) => {
+    setSelectedLoan({ loanId: loan.loanId, lenderName: loan.lenderName })
+    setLoadingLoan(true)
+    try {
+      const detail = await fetchLoanDetailById(loan.loanId)
+      setLoanDetail(detail)
+    } catch {
+      setLoanDetail(null)
+    } finally {
+      setLoadingLoan(false)
+    }
+  }
+
+  const handleLoanRefresh = async () => {
+    if (!selectedLoan) return
+    try {
+      const detail = await fetchLoanDetailById(selectedLoan.loanId)
+      setLoanDetail(detail)
+    } catch {
+      // keep existing detail
+    }
+  }
+
+  // Build a minimal ApCalendarRow stub for LoanDetailContent
+  const loanModalRow: ApCalendarRow | null = selectedLoan && loanDetail?.loan ? {
+    type: 'loan_payment',
+    cost_id: null,
+    loan_id: selectedLoan.loanId,
+    partner_company_id: loanDetail.loan.project_id ?? null,
+    project_id: loanDetail.loan.project_id ?? null,
+    project_code: null,
+    project_name: null,
+    entity_id: null,
+    entity_name: selectedLoan.lenderName,
+    cost_type: null,
+    date: loanDetail.loan.date_borrowed,
+    title: loanDetail.loan.purpose,
+    currency: loanDetail.loan.currency,
+    exchange_rate: null,
+    document_ref: null,
+    due_date: loanDetail.loan.due_date,
+    days_remaining: null,
+    subtotal: null,
+    igv_amount: null,
+    total: loanDetail.loan.total_owed,
+    detraccion_amount: null,
+    amount_paid: loanDetail.loan.total_paid,
+    outstanding: loanDetail.loan.outstanding,
+    payable: loanDetail.loan.outstanding,
+    bdn_outstanding: 0,
+    payment_status: loanDetail.loan.status,
+  } as ApCalendarRow : null
 
   return (
     <div className="space-y-6">
@@ -139,7 +201,11 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       <SectionCard title="Loans">
         <div className="divide-y divide-zinc-100">
           {data.loans.map((loan) => (
-            <div key={loan.loanId} className="flex items-center justify-between px-6 py-3">
+            <div
+              key={loan.loanId}
+              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-blue-50"
+              onClick={() => handleLoanClick(loan)}
+            >
               <span className="text-sm text-zinc-700">{loan.lenderName}</span>
               <span className="text-sm font-medium text-zinc-800">
                 {fmt(loan.outstanding, loan.currency)}
@@ -280,6 +346,27 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
               </tbody>
             </table>
           </div>
+        )}
+      </Modal>
+
+      {/* Loan Detail Modal */}
+      <Modal
+        isOpen={selectedLoan !== null}
+        onClose={() => { setSelectedLoan(null); setLoanDetail(null) }}
+        title={`Loan — ${selectedLoan?.lenderName ?? ''}`}
+      >
+        {loadingLoan && (
+          <p className="py-8 text-center text-sm text-zinc-500">Loading loan detail...</p>
+        )}
+        {!loadingLoan && loanDetail && loanModalRow && (
+          <LoanDetailContent
+            row={loanModalRow}
+            detail={loanDetail}
+            onRepaymentSuccess={handleLoanRefresh}
+          />
+        )}
+        {!loadingLoan && !loanDetail && selectedLoan && (
+          <p className="py-8 text-center text-sm text-zinc-500">Could not load loan detail.</p>
         )}
       </Modal>
 

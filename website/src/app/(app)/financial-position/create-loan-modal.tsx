@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
+import { EntityPicker } from '@/components/ui/entity-picker'
 import { createLoan, fetchExchangeRateForDate } from '@/lib/actions'
 import type { PartnerCompanyOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
@@ -23,14 +24,13 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   const [error, setError] = useState<string | null>(null)
 
   const [partnerCompanyId, setPartnerCompanyId] = useState('')
-  const [lenderName, setLenderName] = useState('')
-  const [lenderContact, setLenderContact] = useState('')
+  const [entityId, setEntityId] = useState<string | null>(null)
+  const [entityName, setEntityName] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<Currency>('PEN')
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
   const [dateBorrowed, setDateBorrowed] = useState(todayISO)
   const [projectId, setProjectId] = useState('')
-  const [purpose, setPurpose] = useState('')
   const [returnType, setReturnType] = useState<'percentage' | 'fixed'>('percentage')
   const [agreedReturnRate, setAgreedReturnRate] = useState('10')
   const [agreedReturnAmount, setAgreedReturnAmount] = useState('')
@@ -47,14 +47,13 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
   function resetForm() {
     setPartnerCompanyId('')
-    setLenderName('')
-    setLenderContact('')
+    setEntityId(null)
+    setEntityName(null)
     setAmount('')
     setCurrency('PEN')
     setExchangeRate(null)
     setDateBorrowed(todayISO())
     setProjectId('')
-    setPurpose('')
     setReturnType('percentage')
     setAgreedReturnRate('10')
     setAgreedReturnAmount('')
@@ -70,7 +69,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
   function handleSubmit() {
     const parsedAmount = parseFloat(amount)
-    if (!partnerCompanyId || !lenderName.trim() || isNaN(parsedAmount) || parsedAmount <= 0 || !purpose.trim()) return
+    if (!partnerCompanyId || !entityId || isNaN(parsedAmount) || parsedAmount <= 0) return
     if (exchangeRate === null) {
       setError('Exchange rate not available for this date')
       return
@@ -80,14 +79,13 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
     startTransition(async () => {
       const result = await createLoan({
         partner_company_id: partnerCompanyId,
-        lender_name: lenderName.trim(),
-        lender_contact: lenderContact.trim() || undefined,
+        entity_id: entityId,
+        lender_name: entityName ?? '',
         amount: parsedAmount,
         currency,
         exchange_rate: exchangeRate,
         date_borrowed: dateBorrowed,
         project_id: projectId || undefined,
-        purpose: purpose.trim(),
         return_type: returnType,
         agreed_return_rate: returnType === 'percentage' ? parseFloat(agreedReturnRate) || 0 : undefined,
         agreed_return_amount: returnType === 'fixed' ? parseFloat(agreedReturnAmount) || 0 : undefined,
@@ -104,7 +102,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   }
 
   const parsedAmount = parseFloat(amount)
-  const canSubmit = partnerCompanyId && lenderName.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && purpose.trim() && exchangeRate !== null
+  const canSubmit = partnerCompanyId && entityId && !isNaN(parsedAmount) && parsedAmount > 0 && exchangeRate !== null
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Loan">
@@ -124,28 +122,15 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
           </select>
         </div>
 
-        {/* Lender Name + Contact — side by side */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Lender Name *</label>
-            <input
-              type="text"
-              value={lenderName}
-              onChange={(e) => setLenderName(e.target.value)}
-              placeholder="Person or company name"
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Lender Contact</label>
-            <input
-              type="text"
-              value={lenderContact}
-              onChange={(e) => setLenderContact(e.target.value)}
-              placeholder="Phone or email"
-              className={inputClass}
-            />
-          </div>
+        {/* Lender (entity picker) */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-zinc-700">Lender *</label>
+          <EntityPicker
+            value={entityId}
+            displayName={entityName}
+            onChange={(id, name) => { setEntityId(id); setEntityName(name) }}
+            placeholder="Search lender by name or document..."
+          />
         </div>
 
         {/* Amount + Currency — side by side */}
@@ -175,7 +160,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
           </div>
         </div>
 
-        {/* Date Borrowed + Exchange Rate — side by side */}
+        {/* Date Borrowed + Due Date — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-700">Date Borrowed *</label>
@@ -187,15 +172,12 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Exchange Rate *</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Due Date <span className="font-normal text-zinc-400">(optional)</span></label>
             <input
-              type="number"
-              step="0.0001"
-              min="0"
-              value={exchangeRate ?? ''}
-              onChange={(e) => setExchangeRate(parseFloat(e.target.value) || null)}
-              placeholder="Auto-fetched"
-              className={`${inputClass} font-mono`}
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className={inputClass}
             />
           </div>
         </div>
@@ -213,18 +195,6 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
               <option key={p.id} value={p.id}>{p.project_code} — {p.name}</option>
             ))}
           </select>
-        </div>
-
-        {/* Purpose */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Purpose *</label>
-          <input
-            type="text"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="What the loan is for"
-            className={inputClass}
-          />
         </div>
 
         {/* Return Type + Rate/Amount — side by side */}
@@ -269,17 +239,6 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
               </>
             )}
           </div>
-        </div>
-
-        {/* Due Date */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Due Date <span className="font-normal text-zinc-400">(optional)</span></label>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={inputClass}
-          />
         </div>
 
         {/* Notes */}

@@ -19,6 +19,10 @@ export async function fetchLoanDetailFromSchedule(
   return getLoanDetail(loanId)
 }
 
+export async function fetchLoanDetailById(loanId: string) {
+  return getLoanDetail(loanId)
+}
+
 export async function fetchArInvoiceDetail(arInvoiceId: string) {
   return getArInvoiceDetail(arInvoiceId)
 }
@@ -445,14 +449,13 @@ export async function removeProjectBudget(projectId: string, category: string) {
 
 export async function createLoan(data: {
   partner_company_id: string
+  entity_id: string
   lender_name: string
-  lender_contact?: string
   amount: number
   currency: Currency
   exchange_rate: number
   date_borrowed: string
   project_id?: string
-  purpose: string
   return_type: 'percentage' | 'fixed'
   agreed_return_rate?: number
   agreed_return_amount?: number
@@ -471,14 +474,15 @@ export async function createLoan(data: {
 
   const { error } = await supabase.from('loans').insert({
     partner_company_id: data.partner_company_id,
+    entity_id: data.entity_id,
     lender_name: data.lender_name.trim(),
-    lender_contact: data.lender_contact?.trim() || null,
+    lender_contact: null,
     amount: data.amount,
     currency: data.currency,
     exchange_rate: data.exchange_rate,
     date_borrowed: data.date_borrowed,
     project_id: data.project_id || null,
-    purpose: data.purpose.trim(),
+    purpose: data.notes?.trim() || 'Loan',
     return_type: data.return_type,
     agreed_return_rate: data.return_type === 'percentage' ? data.agreed_return_rate : null,
     agreed_return_amount: data.return_type === 'fixed' ? data.agreed_return_amount : null,
@@ -502,6 +506,25 @@ export async function addLoanScheduleEntry(data: {
   const supabase = await createServerSupabaseClient()
 
   if (data.scheduled_amount <= 0) return { error: 'Amount must be greater than 0' }
+
+  // Validate total scheduled doesn't exceed total_owed
+  const { data: loan } = await supabase
+    .from('v_loan_balances')
+    .select('total_owed')
+    .eq('loan_id', data.loan_id)
+    .single()
+  if (!loan) return { error: 'Loan not found' }
+
+  const { data: existingSchedule } = await supabase
+    .from('loan_schedule')
+    .select('scheduled_amount')
+    .eq('loan_id', data.loan_id)
+  const totalScheduled = (existingSchedule ?? []).reduce((sum, s) => sum + s.scheduled_amount, 0)
+  const remaining = (loan.total_owed ?? 0) - totalScheduled
+
+  if (data.scheduled_amount > remaining) {
+    return { error: `Amount exceeds remaining schedulable amount (${remaining.toFixed(2)}). Total owed: ${(loan.total_owed ?? 0).toFixed(2)}, already scheduled: ${totalScheduled.toFixed(2)}` }
+  }
 
   const { error } = await supabase.from('loan_schedule').insert({
     loan_id: data.loan_id,
