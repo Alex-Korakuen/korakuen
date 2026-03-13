@@ -1,8 +1,11 @@
+'use client'
+
 import { formatCurrency, formatDate, formatEntityType } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { SectionCard } from '@/components/ui/section-card'
+import { TabBar } from '@/components/ui/tab-bar'
 import { EntityTagsDropdown } from './entity-tags-dropdown'
 import { EntityContactsForm } from './entity-contacts-form'
+import type { Tab } from '@/components/ui/tab-bar'
 import type { EntityDetailData, ProjectTransactionGroup } from '@/lib/types'
 
 type Props = {
@@ -13,53 +16,17 @@ type Props = {
 }
 
 export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick, hidden }: Props) {
-  return (
-    <div className={`min-w-0 flex-1 ${hidden ? 'hidden md:block' : ''}`}>
-      <div className="space-y-6">
-        {/* Entity Header */}
-        <div>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold text-zinc-800">
-                {detail.entity.legal_name}
-              </h2>
-              {detail.entity.common_name &&
-                detail.entity.common_name !== detail.entity.legal_name && (
-                  <p className="mt-0.5 text-sm text-zinc-500">{detail.entity.common_name}</p>
-                )}
-            </div>
-          </div>
-
-          {/* Type, document, location — single line */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
-            <StatusBadge label={formatEntityType(detail.entity.entity_type)} variant="zinc" />
-            {detail.entity.document_number && (
-              <span>
-                {detail.entity.document_type}: {detail.entity.document_number}
-              </span>
-            )}
-            {(detail.entity.city || detail.entity.region) && (
-              <span>
-                {[detail.entity.city, detail.entity.region].filter(Boolean).join(', ')}
-              </span>
-            )}
-          </div>
-
-          {/* Tags */}
-          <EntityTagsDropdown
-            entityId={detail.entity.id}
-            currentTags={detail.tags}
-            availableTags={availableTags}
-          />
-        </div>
-
-        {/* Contacts */}
-        <SectionCard title="Contacts">
-          <EntityContactsForm entityId={detail.entity.id} contacts={detail.contacts} />
-        </SectionCard>
-
-        {/* Transaction History */}
-        <SectionCard title="Transaction History">
+  const tabs: Tab[] = [
+    {
+      key: 'contacts',
+      label: 'Contacts',
+      content: <EntityContactsForm entityId={detail.entity.id} contacts={detail.contacts} />,
+    },
+    {
+      key: 'transactions',
+      label: 'Transactions',
+      content: (
+        <>
           {detail.transactionsByProject.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-zinc-500">
               No transactions recorded
@@ -120,7 +87,55 @@ export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick,
               </table>
             </div>
           )}
-        </SectionCard>
+        </>
+      ),
+    },
+  ]
+
+  return (
+    <div className={`min-w-0 flex-1 ${hidden ? 'hidden md:block' : ''}`}>
+      <div className="space-y-4">
+        {/* Entity Header */}
+        <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold text-zinc-800">
+                {detail.entity.legal_name}
+              </h2>
+              {detail.entity.common_name &&
+                detail.entity.common_name !== detail.entity.legal_name && (
+                  <p className="mt-0.5 text-sm text-zinc-500">{detail.entity.common_name}</p>
+                )}
+            </div>
+          </div>
+
+          {/* Type, document, location — single line */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+            <StatusBadge label={formatEntityType(detail.entity.entity_type)} variant="zinc" />
+            {detail.entity.document_number && (
+              <span>
+                {detail.entity.document_type}: {detail.entity.document_number}
+              </span>
+            )}
+            {(detail.entity.city || detail.entity.region) && (
+              <span>
+                {[detail.entity.city, detail.entity.region].filter(Boolean).join(', ')}
+              </span>
+            )}
+          </div>
+
+          {/* Tags */}
+          <EntityTagsDropdown
+            entityId={detail.entity.id}
+            currentTags={detail.tags}
+            availableTags={availableTags}
+          />
+        </div>
+
+        {/* Tabbed sections */}
+        <div className="rounded-lg border border-zinc-200 bg-white">
+          <TabBar tabs={tabs} defaultTab="contacts" />
+        </div>
       </div>
     </div>
   )
