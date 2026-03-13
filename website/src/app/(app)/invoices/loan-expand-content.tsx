@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { RegisterLoanRepaymentForm } from '@/app/(app)/ap-calendar/register-loan-repayment-form'
+import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
 import type { LoanDetailData, Currency } from '@/lib/types'
 
 type Props = {

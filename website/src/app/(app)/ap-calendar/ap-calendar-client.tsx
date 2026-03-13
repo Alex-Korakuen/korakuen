@@ -1,20 +1,14 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useUrlSort } from '@/lib/sort-utils'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { SummaryCard } from '@/components/ui/summary-card'
-import { Modal } from '@/components/ui/modal'
 import { Pagination } from '@/components/ui/pagination'
-import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
-import { useDetailModal } from '@/lib/use-detail-modal'
-import { InvoiceDetailContent } from './ap-calendar-detail'
-import { LoanDetailContent } from './loan-detail-content'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
 import type {
   ObligationCalendarRow,
-  InvoiceDetailData,
-  LoanDetailData,
   CalendarBucketId as BucketId,
   CalendarBucketCounts as BucketCounts,
 } from '@/lib/types'
@@ -46,9 +40,9 @@ export function ApCalendarClient({
   uniqueSuppliers,
   currentFilters,
 }: Props) {
+  const router = useRouter()
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
   const { setFilter } = useUrlFilters()
-  const modal = useDetailModal<ObligationCalendarRow, InvoiceDetailData | LoanDetailData>()
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -73,14 +67,13 @@ export function ApCalendarClient({
   }
 
   const handleRowClick = (row: ObligationCalendarRow) => {
-    modal.open(row, async () => {
-      if (row.type === 'commercial' && row.invoice_id) {
-        return await fetchInvoiceDetail(row.invoice_id) as InvoiceDetailData | null
-      } else if (row.type === 'loan' && row.loan_id) {
-        return await fetchLoanDetailById(row.loan_id) as LoanDetailData | null
-      }
-      return null
-    })
+    // Navigate to Invoices page filtered to payable direction
+    const params = new URLSearchParams()
+    params.set('direction', 'payable')
+    if (row.type === 'loan') params.set('type', 'loan')
+    else params.set('type', 'commercial')
+    if (row.entity_name) params.set('entity', row.entity_name)
+    router.push(`/invoices?${params.toString()}`)
   }
 
   return (
@@ -147,45 +140,6 @@ export function ApCalendarClient({
           <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
         </div>
       </div>
-
-      {/* Detail Modal */}
-      <Modal
-        isOpen={modal.selectedRow !== null}
-        onClose={modal.close}
-        title={
-          modal.selectedRow?.type === 'loan'
-            ? 'Loan Payment Detail'
-            : 'Invoice Detail'
-        }
-      >
-        {modal.loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-zinc-400">Loading detail...</div>
-          </div>
-        )}
-
-        {!modal.loading && modal.selectedRow?.type === 'commercial' && modal.detail && (
-          <InvoiceDetailContent
-            row={modal.selectedRow}
-            detail={modal.detail as InvoiceDetailData}
-            onPaymentSuccess={modal.refetch}
-          />
-        )}
-
-        {!modal.loading && modal.selectedRow?.type === 'loan' && modal.detail && (
-          <LoanDetailContent
-            row={modal.selectedRow}
-            detail={modal.detail as LoanDetailData}
-            onRepaymentSuccess={modal.refetch}
-          />
-        )}
-
-        {!modal.loading && !modal.detail && modal.selectedRow && (
-          <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            Could not load detail for this record.
-          </div>
-        )}
-      </Modal>
     </div>
   )
 }

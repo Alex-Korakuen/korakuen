@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
 import { CreateBankAccountModal } from './create-bank-account-modal'
 import { CreateLoanModal } from './create-loan-modal'
-import { LoanDetailContent } from '../ap-calendar/loan-detail-content'
+import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
 import type { BankTransaction, FinancialPositionData, LoanDetailData, ObligationCalendarRow } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
@@ -22,6 +23,7 @@ function fmt(amount: number, currency: string) {
 }
 
 export function FPClient({ data, partnerCompanies, projects }: Props) {
+  const router = useRouter()
   const [showCreateAccount, setShowCreateAccount] = useState(false)
   const [showCreateLoan, setShowCreateLoan] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<{
@@ -160,7 +162,10 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
 
       {/* ACCOUNTS RECEIVABLE */}
       <SectionCard title="Accounts Receivable">
-        <div className="px-6 py-4">
+        <div
+          className="cursor-pointer px-6 py-4 transition-colors hover:bg-blue-50"
+          onClick={() => router.push('/invoices?direction=receivable')}
+        >
           {data.arOutstanding.length === 0 ? (
             <p className="text-sm text-zinc-400">No outstanding invoices</p>
           ) : (
@@ -180,7 +185,10 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
 
       {/* ACCOUNTS PAYABLE */}
       <SectionCard title="Accounts Payable">
-        <div className="px-6 py-4">
+        <div
+          className="cursor-pointer px-6 py-4 transition-colors hover:bg-blue-50"
+          onClick={() => router.push('/invoices?direction=payable')}
+        >
           {data.apOutstanding.length === 0 ? (
             <p className="text-sm text-zinc-400">No outstanding costs</p>
           ) : (

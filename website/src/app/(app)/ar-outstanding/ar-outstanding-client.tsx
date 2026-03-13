@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { useUrlSort } from '@/lib/sort-utils'
 import { useUrlFilters } from '@/lib/use-url-filters'
@@ -7,17 +8,12 @@ import { SortIndicator } from '@/components/ui/sort-indicator'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { Pagination } from '@/components/ui/pagination'
-import { Modal } from '@/components/ui/modal'
-import { fetchInvoiceDetail } from '@/lib/actions'
-import { useDetailModal } from '@/lib/use-detail-modal'
 import {
   getAgingColorClass,
   getAgingRowBorderClass,
 } from './helpers'
-import { DetailField, InvoiceDetailContent } from './ar-outstanding-detail'
 import type { ArOutstandingRow } from '@/lib/queries'
 import type {
-  InvoiceDetailData,
   InvoiceAgingBucketId as BucketId,
   InvoiceAgingBuckets as BucketCounts,
 } from '@/lib/types'
@@ -58,9 +54,9 @@ export function ArOutstandingClient({
   partners,
   currentFilters,
 }: Props) {
+  const router = useRouter()
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
   const { setFilter } = useUrlFilters()
-  const modal = useDetailModal<ArOutstandingRow, InvoiceDetailData>()
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -85,7 +81,10 @@ export function ArOutstandingClient({
   }
 
   const handleRowClick = (row: ArOutstandingRow) => {
-    modal.open(row, () => fetchInvoiceDetail(row.invoice_id) as Promise<InvoiceDetailData | null>)
+    const params = new URLSearchParams()
+    params.set('direction', 'receivable')
+    if (row.client_name) params.set('entity', row.client_name)
+    router.push(`/invoices?${params.toString()}`)
   }
 
   return (
@@ -140,7 +139,6 @@ export function ArOutstandingClient({
             options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
             placeholder="All projects"
           />
-
           <FilterSelect
             label="Client"
             value={currentFilters.client}
@@ -148,7 +146,6 @@ export function ArOutstandingClient({
             options={clients.map((c) => ({ value: c.name, label: c.name }))}
             placeholder="All clients"
           />
-
           <FilterSelect
             label="Partner"
             value={currentFilters.partnerCompanyId}
@@ -156,7 +153,6 @@ export function ArOutstandingClient({
             options={partners.map((p) => ({ value: p.id, label: p.name }))}
             placeholder="All partners"
           />
-
           <FilterSelect
             label="Currency"
             value={currentFilters.currency}
@@ -167,7 +163,6 @@ export function ArOutstandingClient({
             ]}
             placeholder="All"
           />
-
           {hasActiveFilters && (
             <button
               type="button"
@@ -184,53 +179,29 @@ export function ArOutstandingClient({
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
               <tr>
-                <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                  onClick={() => handleSort('due_date')}
-                >
+                <th className="cursor-pointer px-4 py-3 hover:text-zinc-700" onClick={() => handleSort('due_date')}>
                   Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                  onClick={() => handleSort('days_overdue')}
-                >
+                <th className="cursor-pointer px-4 py-3 hover:text-zinc-700" onClick={() => handleSort('days_overdue')}>
                   Days <SortIndicator column="days_overdue" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                  onClick={() => handleSort('client_name')}
-                >
+                <th className="cursor-pointer px-4 py-3 hover:text-zinc-700" onClick={() => handleSort('client_name')}>
                   Client <SortIndicator column="client_name" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                  onClick={() => handleSort('project_code')}
-                >
+                <th className="cursor-pointer px-4 py-3 hover:text-zinc-700" onClick={() => handleSort('project_code')}>
                   Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                  onClick={() => handleSort('gross_total')}
-                >
+                <th className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700" onClick={() => handleSort('gross_total')}>
                   Total <SortIndicator column="gross_total" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                  onClick={() => handleSort('receivable')}
-                >
+                <th className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700" onClick={() => handleSort('receivable')}>
                   Receivable <SortIndicator column="receivable" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th
-                  className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-                  onClick={() => handleSort('bdn_outstanding')}
-                >
+                <th className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700" onClick={() => handleSort('bdn_outstanding')}>
                   BdN <SortIndicator column="bdn_outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th className="px-4 py-3">Cur.</th>
-                <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-                  onClick={() => handleSort('invoice_number')}
-                >
+                <th className="cursor-pointer px-4 py-3 hover:text-zinc-700" onClick={() => handleSort('invoice_number')}>
                   Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
               </tr>
@@ -250,67 +221,32 @@ export function ArOutstandingClient({
                       className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getAgingRowBorderClass(row.days_overdue)}`}
                       onClick={() => handleRowClick(row)}
                     >
-                      <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
-                        {row.due_date ? formatDate(row.due_date) : '--'}
-                      </td>
-                      <td className={`whitespace-nowrap px-4 py-3 ${getAgingColorClass(row.days_overdue)}`}>
-                        {row.days_overdue > 0 ? row.days_overdue : '—'}
-                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{row.due_date ? formatDate(row.due_date) : '--'}</td>
+                      <td className={`whitespace-nowrap px-4 py-3 ${getAgingColorClass(row.days_overdue)}`}>{row.days_overdue > 0 ? row.days_overdue : '—'}</td>
                       <td className="px-4 py-3 text-zinc-700">{row.client_name}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                        {row.project_code}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                        {formatCurrency(row.gross_total, row.currency)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                        {formatCurrency(row.receivable, row.currency)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                        {row.bdn_outstanding > 0
-                          ? formatCurrency(row.bdn_outstanding, row.currency)
-                          : '--'}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                        {row.currency}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                        {row.invoice_number ?? '--'}
-                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">{row.project_code}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">{formatCurrency(row.gross_total, row.currency)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">{formatCurrency(row.receivable, row.currency)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">{row.bdn_outstanding > 0 ? formatCurrency(row.bdn_outstanding, row.currency) : '--'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-zinc-500">{row.currency}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">{row.invoice_number ?? '--'}</td>
                     </tr>
                   ))}
-                  {/* Total rows (one per currency with data) */}
                   {(totals.pen.receivable !== 0 || totals.pen.bdn !== 0) && (
                     <tr className="bg-zinc-50 font-medium">
-                      <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
-                        Total PEN ({totals.pen.count} invoices)
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                        {formatCurrency(totals.pen.gross, 'PEN')}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
-                        {formatCurrency(totals.pen.receivable, 'PEN')}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                        {totals.pen.bdn > 0 ? formatCurrency(totals.pen.bdn, 'PEN') : '--'}
-                      </td>
+                      <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">Total PEN ({totals.pen.count} invoices)</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">{formatCurrency(totals.pen.gross, 'PEN')}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">{formatCurrency(totals.pen.receivable, 'PEN')}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">{totals.pen.bdn > 0 ? formatCurrency(totals.pen.bdn, 'PEN') : '--'}</td>
                       <td colSpan={2} />
                     </tr>
                   )}
                   {(totals.usd.receivable !== 0 || totals.usd.bdn !== 0) && (
                     <tr className="bg-zinc-50 font-medium">
-                      <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">
-                        Total USD ({totals.usd.count} invoices)
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                        {formatCurrency(totals.usd.gross, 'USD')}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">
-                        {formatCurrency(totals.usd.receivable, 'USD')}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                        {totals.usd.bdn > 0 ? formatCurrency(totals.usd.bdn, 'USD') : '--'}
-                      </td>
+                      <td colSpan={4} className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-500">Total USD ({totals.usd.count} invoices)</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">{formatCurrency(totals.usd.gross, 'USD')}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-semibold text-zinc-900">{formatCurrency(totals.usd.receivable, 'USD')}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">{totals.usd.bdn > 0 ? formatCurrency(totals.usd.bdn, 'USD') : '--'}</td>
                       <td colSpan={2} />
                     </tr>
                   )}
@@ -324,34 +260,6 @@ export function ArOutstandingClient({
           <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
         </div>
       </div>
-
-      {/* Invoice detail modal */}
-      <Modal isOpen={modal.selectedRow !== null} onClose={modal.close} title="Invoice Detail">
-        {modal.loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-zinc-400">Loading detail...</div>
-          </div>
-        )}
-
-        {!modal.loading && modal.selectedRow && modal.detail && (
-          <InvoiceDetailContent row={modal.selectedRow} detail={modal.detail} onPaymentSuccess={modal.refetch} />
-        )}
-
-        {!modal.loading && modal.error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Could not load full detail. Showing summary only.
-          </div>
-        )}
-
-        {!modal.loading && modal.selectedRow && !modal.detail && (
-          <div className="space-y-3">
-            <DetailField label="Invoice#" value={modal.selectedRow.invoice_number ?? '--'} />
-            <DetailField label="Client" value={modal.selectedRow.client_name} />
-            <DetailField label="Project" value={modal.selectedRow.project_code} />
-            <DetailField label="Outstanding" value={formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency)} />
-          </div>
-        )}
-      </Modal>
     </div>
   )
 }

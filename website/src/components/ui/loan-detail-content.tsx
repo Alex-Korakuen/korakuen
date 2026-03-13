@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { DetailField } from '@/components/ui/detail-field'
-import { LoanScheduleForm } from './loan-schedule-form'
-import { RegisterLoanRepaymentForm } from './register-loan-repayment-form'
+import { LoanScheduleForm } from '@/components/ui/loan-schedule-form'
+import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
 import type { ObligationCalendarRow, LoanDetailData, Currency } from '@/lib/types'
 
 export function LoanDetailContent({
