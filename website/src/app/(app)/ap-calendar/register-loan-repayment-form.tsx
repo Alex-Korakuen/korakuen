@@ -8,14 +8,13 @@ import type { Currency } from '@/lib/types'
 
 type Props = {
   loanId: string
+  scheduleEntryId: string
   currency: Currency
   outstanding: number
-  scheduleEntryId?: string
+  partnerCompanyId: string
   onSuccess: () => void
   onCancel: () => void
 }
-
-const SOURCES = ['project_settlement', 'personal_funds', 'other'] as const
 
 function todayISO() {
   return new Date().toISOString().split('T')[0]
@@ -23,9 +22,10 @@ function todayISO() {
 
 export function RegisterLoanRepaymentForm({
   loanId,
+  scheduleEntryId,
   currency,
   outstanding,
-  scheduleEntryId,
+  partnerCompanyId,
   onSuccess,
   onCancel,
 }: Props) {
@@ -36,8 +36,6 @@ export function RegisterLoanRepaymentForm({
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-  const [source, setSource] = useState<string>('')
-  const [settlementRef, setSettlementRef] = useState('')
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
@@ -71,8 +69,7 @@ export function RegisterLoanRepaymentForm({
         amount: parsed,
         currency,
         exchange_rate: exchangeRate,
-        source: source || undefined,
-        settlement_ref: settlementRef.trim() || undefined,
+        partner_company_id: partnerCompanyId,
         notes: notes.trim() || undefined,
       })
 
@@ -125,53 +122,6 @@ export function RegisterLoanRepaymentForm({
             className={`${inputCompactClass} w-full font-mono`}
           />
         </div>
-
-        {/* Exchange rate */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">Exchange Rate</label>
-          <input
-            type="number"
-            step="0.0001"
-            min="0"
-            value={exchangeRate ?? ''}
-            onChange={e => setExchangeRate(parseFloat(e.target.value) || null)}
-            placeholder="Auto-fetched"
-            className={`${inputCompactClass} w-full font-mono`}
-          />
-        </div>
-
-        {/* Source */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">Source (optional)</label>
-          <select
-            value={source}
-            onChange={e => setSource(e.target.value)}
-            className={`${inputCompactClass} w-full`}
-          >
-            <option value="">Select source...</option>
-            {SOURCES.map(s => (
-              <option key={s} value={s}>
-                {s === 'project_settlement' ? 'Project Settlement'
-                  : s === 'personal_funds' ? 'Personal Funds'
-                  : 'Other'}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Settlement reference */}
-        {source === 'project_settlement' && (
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Settlement Reference</label>
-            <input
-              type="text"
-              value={settlementRef}
-              onChange={e => setSettlementRef(e.target.value)}
-              placeholder="PRY001-Settlement-1"
-              className={`${inputCompactClass} w-full`}
-            />
-          </div>
-        )}
 
         {/* Notes */}
         <div>

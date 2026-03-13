@@ -487,7 +487,6 @@ export async function createLoan(data: {
     agreed_return_rate: data.return_type === 'percentage' ? data.agreed_return_rate : null,
     agreed_return_amount: data.return_type === 'fixed' ? data.agreed_return_amount : null,
     due_date: data.due_date || null,
-    status: 'active',
     notes: data.notes?.trim() || null,
   })
 
@@ -541,63 +540,56 @@ export async function addLoanScheduleEntry(data: {
 
 export async function registerLoanRepayment(data: {
   loan_id: string
-  schedule_entry_id?: string
+  schedule_entry_id: string
   payment_date: string
   amount: number
   currency: Currency
   exchange_rate: number
-  source?: string
-  settlement_ref?: string
+  partner_company_id: string
   notes?: string
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
 
-  // Validate against outstanding balance
-  const { data: loan } = await supabase
-    .from('v_loan_balances')
-    .select('outstanding')
-    .eq('loan_id', data.loan_id)
-    .single()
-  if (!loan) return { error: 'Loan not found' }
-  if (data.amount > (loan.outstanding ?? 0)) {
-    return { error: `Amount exceeds outstanding balance (${loan.outstanding})` }
-  }
+  // Validate against schedule entry outstanding
+  const { data: existingPayments } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('related_to', 'loan_schedule')
+    .eq('related_id', data.schedule_entry_id)
 
-  // Insert the loan payment
-  const { data: payment, error: paymentError } = await supabase
-    .from('loan_payments')
-    .insert({
-      loan_id: data.loan_id,
-      payment_date: data.payment_date,
-      amount: data.amount,
-      currency: data.currency,
-      exchange_rate: data.exchange_rate,
-      source: data.source || null,
-      settlement_ref: data.settlement_ref?.trim() || null,
-      notes: data.notes?.trim() || null,
-    })
-    .select('id')
+  const { data: scheduleEntry } = await supabase
+    .from('loan_schedule')
+    .select('scheduled_amount')
+    .eq('id', data.schedule_entry_id)
     .single()
 
-  if (paymentError) return { error: paymentError.message }
+  if (!scheduleEntry) return { error: 'Schedule entry not found' }
 
-  // If linked to a schedule entry, mark it as paid
-  if (data.schedule_entry_id && payment) {
-    await supabase
-      .from('loan_schedule')
-      .update({ paid: true, actual_payment_id: payment.id })
-      .eq('id', data.schedule_entry_id)
+  const totalPaid = (existingPayments ?? []).reduce((s, p) => s + p.amount, 0)
+  const entryOutstanding = scheduleEntry.scheduled_amount - totalPaid
+
+  if (data.amount > entryOutstanding) {
+    return { error: `Amount exceeds schedule entry outstanding (${entryOutstanding.toFixed(2)})` }
   }
 
-  // Update loan status based on new outstanding
-  const newOutstanding = (loan.outstanding ?? 0) - data.amount
-  if (newOutstanding <= 0) {
-    await supabase.from('loans').update({ status: 'settled' }).eq('id', data.loan_id)
-  } else {
-    await supabase.from('loans').update({ status: 'partially_paid' }).eq('id', data.loan_id)
-  }
+  // Insert into payments table (same table as cost/AR payments)
+  const { error } = await supabase.from('payments').insert({
+    related_to: 'loan_schedule',
+    related_id: data.schedule_entry_id,
+    direction: 'outbound',
+    payment_type: 'regular',
+    payment_date: data.payment_date,
+    amount: data.amount,
+    currency: data.currency,
+    exchange_rate: data.exchange_rate,
+    partner_company_id: data.partner_company_id,
+    bank_account_id: null,
+    notes: data.notes?.trim() || null,
+  })
+
+  if (error) return { error: error.message }
 
   revalidatePath('/ap-calendar')
   revalidatePath('/financial-position')

@@ -19,14 +19,20 @@ export function LoanDetailContent({
 }) {
   const loan = detail.loan
   const [showRepaymentForm, setShowRepaymentForm] = useState(false)
-
-  // Find the current schedule entry (the one matching this row's due date)
-  const currentScheduleEntry = detail.schedule.find(
-    s => !s.paid && s.scheduled_date === row.due_date
-  )
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
 
   const loanOutstanding = loan?.outstanding ?? 0
   const loanCurrency = (loan?.currency ?? 'PEN') as Currency
+
+  // Find the current schedule entry (matching this row's due date, not fully paid)
+  const currentScheduleEntry = detail.schedule.find(
+    s => s.payment_status !== 'paid' && s.scheduled_date === row.due_date
+  )
+
+  function handleRegisterPayment(entryId: string) {
+    setSelectedEntryId(entryId)
+    setShowRepaymentForm(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -81,7 +87,9 @@ export function LoanDetailContent({
                 <tr>
                   <th className="px-3 py-2">Scheduled Date</th>
                   <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2 text-right">Paid</th>
                   <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -93,11 +101,25 @@ export function LoanDetailContent({
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(entry.scheduled_amount, loanCurrency)}
                     </td>
+                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                      {entry.amount_paid > 0 ? formatCurrency(entry.amount_paid, loanCurrency) : '--'}
+                    </td>
                     <td className="px-3 py-2">
                       <StatusBadge
-                        label={entry.paid ? 'Paid' : 'Pending'}
-                        variant={entry.paid ? 'green' : 'yellow'}
+                        label={entry.payment_status === 'paid' ? 'Paid' : entry.payment_status === 'partial' ? 'Partial' : 'Pending'}
+                        variant={entry.payment_status === 'paid' ? 'green' : entry.payment_status === 'partial' ? 'blue' : 'yellow'}
                       />
+                    </td>
+                    <td className="px-3 py-2">
+                      {entry.payment_status !== 'paid' && onRepaymentSuccess && (
+                        <button
+                          type="button"
+                          onClick={() => handleRegisterPayment(entry.id)}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Pay
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -123,7 +145,6 @@ export function LoanDetailContent({
                 <tr>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2 text-right">Amount</th>
-                  <th className="px-3 py-2">Source</th>
                   <th className="px-3 py-2">Notes</th>
                 </tr>
               </thead>
@@ -136,7 +157,6 @@ export function LoanDetailContent({
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(pmt.amount, pmt.currency)}
                     </td>
-                    <td className="px-3 py-2 text-zinc-500">{pmt.source ?? '--'}</td>
                     <td className="px-3 py-2 text-zinc-500">{pmt.notes ?? '--'}</td>
                   </tr>
                 ))}
@@ -147,27 +167,36 @@ export function LoanDetailContent({
       )}
 
       {/* Register repayment form */}
-      {loan && loanOutstanding > 0 && onRepaymentSuccess && (
-        <>
-          {showRepaymentForm ? (
-            <RegisterLoanRepaymentForm
-              loanId={loan.loan_id!}
-              currency={loanCurrency}
-              outstanding={loanOutstanding}
-              scheduleEntryId={currentScheduleEntry?.id}
-              onSuccess={onRepaymentSuccess}
-              onCancel={() => setShowRepaymentForm(false)}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowRepaymentForm(true)}
-              className="rounded bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700"
-            >
-              Register Repayment
-            </button>
-          )}
-        </>
+      {showRepaymentForm && selectedEntryId && loan && onRepaymentSuccess && (
+        <RegisterLoanRepaymentForm
+          loanId={loan.loan_id!}
+          scheduleEntryId={selectedEntryId}
+          currency={loanCurrency}
+          outstanding={
+            detail.schedule.find(s => s.id === selectedEntryId)?.outstanding ?? 0
+          }
+          partnerCompanyId={row.partner_company_id!}
+          onSuccess={() => {
+            setShowRepaymentForm(false)
+            setSelectedEntryId(null)
+            onRepaymentSuccess()
+          }}
+          onCancel={() => {
+            setShowRepaymentForm(false)
+            setSelectedEntryId(null)
+          }}
+        />
+      )}
+
+      {/* Show register button if no form is open and there are unpaid entries */}
+      {!showRepaymentForm && loan && loanOutstanding > 0 && onRepaymentSuccess && currentScheduleEntry && (
+        <button
+          type="button"
+          onClick={() => handleRegisterPayment(currentScheduleEntry.id)}
+          className="rounded bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          Register Repayment
+        </button>
       )}
     </div>
   )

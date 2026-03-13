@@ -25,6 +25,7 @@ import type {
   FinancialPositionData,
   IgvByCurrency,
   LoanDetailData,
+  LoanScheduleEntry,
   PartnerCostDetail,
   Payment,
   PriceFilterOptions,
@@ -210,22 +211,36 @@ export async function getLoanIdFromSchedule(
 ): Promise<string | null> {
   const supabase = await createServerSupabaseClient()
 
-  const { data: scheduleRow } = await supabase
+  // Find schedule entries matching date+amount, then check if still outstanding
+  const { data: scheduleRows } = await supabase
     .from('loan_schedule')
-    .select('loan_id')
+    .select('id, loan_id, scheduled_amount')
     .eq('scheduled_date', scheduledDate)
     .eq('scheduled_amount', scheduledAmount)
-    .eq('paid', false)
-    .limit(1)
-    .single()
+    .limit(5)
 
-  return scheduleRow?.loan_id ?? null
+  if (!scheduleRows || scheduleRows.length === 0) return null
+
+  // Check which ones are not fully paid
+  for (const row of scheduleRows) {
+    const { data: paidData } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('related_to', 'loan_schedule')
+      .eq('related_id', row.id)
+    const totalPaid = (paidData ?? []).reduce((s, p) => s + p.amount, 0)
+    if (totalPaid < row.scheduled_amount) {
+      return row.loan_id
+    }
+  }
+
+  return null
 }
 
 export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  const [loanResult, scheduleResult, paymentsResult] = await Promise.all([
+  const [loanResult, scheduleResult] = await Promise.all([
     supabase
       .from('v_loan_balances')
       .select('*')
@@ -233,20 +248,41 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
       .single(),
     supabase
       .from('loan_schedule')
-      .select('*')
+      .select('id, loan_id, scheduled_date, scheduled_amount, exchange_rate, created_at, updated_at')
       .eq('loan_id', loanId)
       .order('scheduled_date'),
-    supabase
-      .from('loan_payments')
-      .select('*')
-      .eq('loan_id', loanId)
-      .order('payment_date'),
   ])
+
+  const scheduleEntries = scheduleResult.data ?? []
+  const scheduleIds = scheduleEntries.map(s => s.id)
+
+  // Fetch all payments linked to this loan's schedule entries
+  let payments: Payment[] = []
+  if (scheduleIds.length > 0) {
+    const { data } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('related_to', 'loan_schedule')
+      .in('related_id', scheduleIds)
+      .order('payment_date')
+    payments = (data ?? []) as Payment[]
+  }
+
+  // Compute derived fields per schedule entry
+  const schedule: LoanScheduleEntry[] = scheduleEntries.map(entry => {
+    const entryPayments = payments.filter(p => p.related_id === entry.id)
+    const amountPaid = entryPayments.reduce((sum, p) => sum + p.amount, 0)
+    const outstanding = entry.scheduled_amount - amountPaid
+    const status = amountPaid >= entry.scheduled_amount ? 'paid'
+      : amountPaid > 0 ? 'partial'
+      : 'pending'
+    return { ...entry, amount_paid: amountPaid, outstanding, payment_status: status }
+  })
 
   return {
     loan: loanResult.data,
-    schedule: scheduleResult.data ?? [],
-    payments: paymentsResult.data ?? [],
+    schedule,
+    payments,
   }
 }
 
@@ -543,9 +579,8 @@ type CashFlowRawData = {
   payments: { id: string; related_to: string; related_id: string; direction: string; payment_type: string; payment_date: string; amount: number; currency: string; exchange_rate: number; partner_company_id: string }[]
   costBalances: { cost_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number | null; cost_type: string | null; partner_company_id: string | null }[]
   arBalances: { ar_invoice_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number; partner_company_id: string | null }[]
-  loanSchedule: { id: string; loan_id: string; scheduled_date: string; scheduled_amount: number; paid: boolean; exchange_rate: number | null; loans: { currency: string; project_id: string | null; partner_company_id: string | null }[] }[]
+  loanSchedule: { id: string; loan_id: string; scheduled_date: string; scheduled_amount: number; exchange_rate: number | null; loans: { currency: string; project_id: string | null; partner_company_id: string | null }[] }[]
   loanDisbursements: { id: string; amount: number; currency: string; exchange_rate: number | null; date_borrowed: string; project_id: string | null; partner_company_id: string }[]
-  loanRepayments: { id: string; loan_id: string; payment_date: string; amount: number; currency: string; exchange_rate: number | null }[]
   allProjects: { id: string; project_code: string; name: string }[]
   forecastRate: number | null
 }
@@ -557,6 +592,7 @@ type CashFlowMaps = {
   costCategoryMap: Map<string, { category: string; proportion: number }[]>
   loanProjectMap: Map<string, string | null>
   loanPartnerMap: Map<string, string | null>
+  scheduleToLoanMap: Map<string, string>
 }
 
 async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promise<CashFlowRawData> {
@@ -569,7 +605,6 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
     arBalancesResult,
     loanScheduleResult,
     loansResult,
-    loanPaymentsResult,
     latestRate,
     projectsResult,
   ] = await Promise.all([
@@ -590,18 +625,12 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
       .not('due_date', 'is', null),
     supabase
       .from('loan_schedule')
-      .select('id, loan_id, scheduled_date, scheduled_amount, paid, exchange_rate, loans!fk_loan_schedule_loans(currency, project_id, partner_company_id)')
-      .eq('paid', false),
+      .select('id, loan_id, scheduled_date, scheduled_amount, exchange_rate, loans!fk_loan_schedule_loans(currency, project_id, partner_company_id)'),
     supabase
       .from('loans')
       .select('id, amount, currency, exchange_rate, date_borrowed, project_id, partner_company_id')
       .gte('date_borrowed', yearStart)
       .lte('date_borrowed', yearEnd),
-    supabase
-      .from('loan_payments')
-      .select('id, loan_id, payment_date, amount, currency, exchange_rate')
-      .gte('payment_date', yearStart)
-      .lte('payment_date', yearEnd),
     supabase
       .from('exchange_rates')
       .select('mid_rate, rate_date')
@@ -621,7 +650,6 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
     arBalances: arBalancesResult.data ?? [],
     loanSchedule: loanScheduleResult.data ?? [],
     loanDisbursements: loansResult.data ?? [],
-    loanRepayments: loanPaymentsResult.data ?? [],
     allProjects: projectsResult.data ?? [],
     forecastRate: latestRate.data ? Number(latestRate.data.mid_rate) : null,
   }
@@ -717,21 +745,49 @@ async function buildCashFlowMaps(
     loanProjectMap.set(loan.id, loan.project_id)
     loanPartnerMap.set(loan.id, loan.partner_company_id)
   }
-  const repaymentLoanIds = raw.loanRepayments
-    .map(lp => lp.loan_id)
-    .filter(id => !loanProjectMap.has(id))
-  if (repaymentLoanIds.length > 0) {
-    const { data: extraLoans } = await supabase
-      .from('loans')
-      .select('id, project_id, partner_company_id')
-      .in('id', repaymentLoanIds)
-    for (const l of extraLoans ?? []) {
-      loanProjectMap.set(l.id, l.project_id)
-      loanPartnerMap.set(l.id, l.partner_company_id)
+
+  // schedule_entry_id -> loan_id (for mapping loan repayment payments to loans)
+  const scheduleToLoanMap = new Map<string, string>()
+  for (const entry of raw.loanSchedule) {
+    scheduleToLoanMap.set(entry.id, entry.loan_id)
+    // Also populate loan maps from schedule entry data if not already present
+    if (!loanProjectMap.has(entry.loan_id)) {
+      const loanData = (entry.loans?.[0] ?? null) as { currency: string; project_id: string | null; partner_company_id: string | null } | null
+      if (loanData) {
+        loanProjectMap.set(entry.loan_id, loanData.project_id)
+        loanPartnerMap.set(entry.loan_id, loanData.partner_company_id)
+      }
     }
   }
 
-  return { costProjectMap, costTypeMap, arProjectMap, costCategoryMap, loanProjectMap, loanPartnerMap }
+  // Fetch loan info for any loan_schedule payments referencing loans we haven't seen
+  const loanRepaymentScheduleIds = raw.payments
+    .filter(p => p.related_to === 'loan_schedule')
+    .map(p => p.related_id)
+    .filter(id => !scheduleToLoanMap.has(id))
+  if (loanRepaymentScheduleIds.length > 0) {
+    const { data: extraSchedule } = await supabase
+      .from('loan_schedule')
+      .select('id, loan_id')
+      .in('id', loanRepaymentScheduleIds)
+    for (const s of extraSchedule ?? []) {
+      scheduleToLoanMap.set(s.id, s.loan_id)
+    }
+    const missingLoanIds = [...new Set((extraSchedule ?? []).map(s => s.loan_id))]
+      .filter(id => !loanProjectMap.has(id))
+    if (missingLoanIds.length > 0) {
+      const { data: extraLoans } = await supabase
+        .from('loans')
+        .select('id, project_id, partner_company_id')
+        .in('id', missingLoanIds)
+      for (const l of extraLoans ?? []) {
+        loanProjectMap.set(l.id, l.project_id)
+        loanPartnerMap.set(l.id, l.partner_company_id)
+      }
+    }
+  }
+
+  return { costProjectMap, costTypeMap, arProjectMap, costCategoryMap, loanProjectMap, loanPartnerMap, scheduleToLoanMap }
 }
 
 function processMonthBuckets(
@@ -756,6 +812,21 @@ function processMonthBuckets(
   // Actual payments
   for (const p of raw.payments) {
     if (hasPartnerFilter && !partnerIds.includes(p.partner_company_id)) continue
+
+    // Loan schedule repayments
+    if (p.related_to === 'loan_schedule') {
+      const loanId = maps.scheduleToLoanMap.get(p.related_id)
+      if (projectId && loanId) {
+        const lpProjectId = maps.loanProjectMap.get(loanId)
+        if (lpProjectId !== projectId) continue
+      }
+      const monthKey = toMonthKey(p.payment_date)
+      const bucket = monthBuckets.get(monthKey)
+      if (!bucket) continue
+      bucket.loanRepayment += convertAmount(p.amount, p.currency, p.exchange_rate, reportingCurrency)
+      continue
+    }
+
     const pProjectId = p.related_to === 'cost'
       ? maps.costProjectMap.get(p.related_id)
       : maps.arProjectMap.get(p.related_id)
@@ -825,9 +896,21 @@ function processMonthBuckets(
     bucket.cashInByProject[projId] = (bucket.cashInByProject[projId] ?? 0) + amount
   }
 
-  // Forecast: loan schedule
+  // Forecast: loan schedule (only entries not yet fully paid)
+  // Build a set of paid amounts per schedule entry from actual payments
+  const schedulePaidAmounts = new Map<string, number>()
+  for (const p of raw.payments) {
+    if (p.related_to === 'loan_schedule') {
+      schedulePaidAmounts.set(p.related_id, (schedulePaidAmounts.get(p.related_id) ?? 0) + p.amount)
+    }
+  }
+
   for (const entry of raw.loanSchedule) {
     if (!entry.scheduled_date) continue
+    const paidAmount = schedulePaidAmounts.get(entry.id) ?? 0
+    const remaining = entry.scheduled_amount - paidAmount
+    if (remaining <= 0) continue // fully paid
+
     const monthKey = toMonthKey(entry.scheduled_date)
     if (monthKey <= currentMonthKey || monthKey < `${year}-01` || monthKey > `${year}-12`) continue
 
@@ -839,7 +922,7 @@ function processMonthBuckets(
     if (!bucket) continue
 
     const loanCurrency = loanData?.currency ?? 'PEN'
-    bucket.loanRepayment += convertAmount(entry.scheduled_amount, loanCurrency, raw.forecastRate ?? entry.exchange_rate ?? null, reportingCurrency)
+    bucket.loanRepayment += convertAmount(remaining, loanCurrency, raw.forecastRate ?? entry.exchange_rate ?? null, reportingCurrency)
   }
 
   // Actual loan disbursements as cash in
@@ -852,22 +935,6 @@ function processMonthBuckets(
     if (!bucket) continue
 
     bucket.loansCashIn += convertAmount(loan.amount, loan.currency, loan.exchange_rate ?? null, reportingCurrency)
-  }
-
-  // Actual loan repayments
-  for (const lp of raw.loanRepayments) {
-    const lpPartner = maps.loanPartnerMap.get(lp.loan_id)
-    if (hasPartnerFilter && lpPartner && !partnerIds.includes(lpPartner)) continue
-    if (projectId) {
-      const lpProjectId = maps.loanProjectMap.get(lp.loan_id)
-      if (lpProjectId !== projectId) continue
-    }
-
-    const monthKey = toMonthKey(lp.payment_date)
-    const bucket = monthBuckets.get(monthKey)
-    if (!bucket) continue
-
-    bucket.loanRepayment += convertAmount(lp.amount, lp.currency, lp.exchange_rate ?? null, reportingCurrency)
   }
 
   return monthBuckets

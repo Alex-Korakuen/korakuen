@@ -543,105 +543,35 @@ export type Database = {
         }
         Relationships: []
       }
-      loan_payments: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          exchange_rate: number
-          id: string
-          loan_id: string
-          notes: string | null
-          payment_date: string
-          settlement_ref: string | null
-          source: string | null
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency: string
-          exchange_rate?: number
-          id?: string
-          loan_id: string
-          notes?: string | null
-          payment_date: string
-          settlement_ref?: string | null
-          source?: string | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          exchange_rate?: number
-          id?: string
-          loan_id?: string
-          notes?: string | null
-          payment_date?: string
-          settlement_ref?: string | null
-          source?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_loan_payments_loans"
-            columns: ["loan_id"]
-            isOneToOne: false
-            referencedRelation: "loans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_loan_payments_loans"
-            columns: ["loan_id"]
-            isOneToOne: false
-            referencedRelation: "v_loan_balances"
-            referencedColumns: ["loan_id"]
-          },
-        ]
-      }
       loan_schedule: {
         Row: {
-          actual_payment_id: string | null
           created_at: string
           exchange_rate: number
           id: string
           loan_id: string
-          paid: boolean
           scheduled_amount: number
           scheduled_date: string
           updated_at: string
         }
         Insert: {
-          actual_payment_id?: string | null
           created_at?: string
           exchange_rate?: number
           id?: string
           loan_id: string
-          paid?: boolean
           scheduled_amount: number
           scheduled_date: string
           updated_at?: string
         }
         Update: {
-          actual_payment_id?: string | null
           created_at?: string
           exchange_rate?: number
           id?: string
           loan_id?: string
-          paid?: boolean
           scheduled_amount?: number
           scheduled_date?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_loan_schedule_loan_payments"
-            columns: ["actual_payment_id"]
-            isOneToOne: false
-            referencedRelation: "loan_payments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_loan_schedule_loans"
             columns: ["loan_id"]
@@ -667,6 +597,7 @@ export type Database = {
           currency: string
           date_borrowed: string
           due_date: string | null
+          entity_id: string | null
           exchange_rate: number
           id: string
           lender_contact: string | null
@@ -676,7 +607,6 @@ export type Database = {
           project_id: string | null
           purpose: string
           return_type: string
-          status: string
           updated_at: string
         }
         Insert: {
@@ -687,6 +617,7 @@ export type Database = {
           currency: string
           date_borrowed: string
           due_date?: string | null
+          entity_id?: string | null
           exchange_rate?: number
           id?: string
           lender_contact?: string | null
@@ -696,7 +627,6 @@ export type Database = {
           project_id?: string | null
           purpose: string
           return_type: string
-          status: string
           updated_at?: string
         }
         Update: {
@@ -707,6 +637,7 @@ export type Database = {
           currency?: string
           date_borrowed?: string
           due_date?: string | null
+          entity_id?: string | null
           exchange_rate?: number
           id?: string
           lender_contact?: string | null
@@ -716,10 +647,16 @@ export type Database = {
           project_id?: string | null
           purpose?: string
           return_type?: string
-          status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_loans_entities"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_loans_partner_companies"
             columns: ["partner_company_id"]

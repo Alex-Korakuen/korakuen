@@ -1,8 +1,8 @@
 -- View: v_ap_calendar
 -- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
 --          Combines supplier invoices (from costs) and loan repayment schedule (from loan_schedule).
---          Uses detraccion_paid from v_cost_balances for accurate payable/bdn splits.
--- Source tables: v_cost_balances, projects, entities, loan_schedule, loans
+--          Loan schedule entry status derived from SUM of payments (related_to = 'loan_schedule').
+-- Source tables: v_cost_balances, projects, entities, loan_schedule, loans, payments
 -- Used by: AP calendar page, payment planning dashboard
 
 CREATE OR REPLACE VIEW v_ap_calendar
@@ -45,7 +45,7 @@ WHERE cb.due_date IS NOT NULL
 
 UNION ALL
 
--- Part 2: Loan repayment schedule
+-- Part 2: Loan repayment schedule (status derived from payments)
 SELECT
   'loan_payment'::VARCHAR AS type,
   NULL::UUID             AS cost_id,
@@ -68,18 +68,24 @@ SELECT
   NULL::NUMERIC(15,2)    AS igv_amount,
   ls.scheduled_amount    AS total,
   NULL::NUMERIC(15,2)    AS detraccion_amount,
-  COALESCE(lp.amount, 0) AS amount_paid,
-  ls.scheduled_amount - COALESCE(lp.amount, 0) AS outstanding,
-  ls.scheduled_amount - COALESCE(lp.amount, 0) AS payable,
+  COALESCE(pay.amount_paid, 0) AS amount_paid,
+  ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS outstanding,
+  ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS payable,
   0::NUMERIC(15,2) AS bdn_outstanding,
   CASE
-    WHEN lp.amount IS NOT NULL AND lp.amount < ls.scheduled_amount THEN 'partial'
+    WHEN COALESCE(pay.amount_paid, 0) >= ls.scheduled_amount THEN 'paid'
+    WHEN COALESCE(pay.amount_paid, 0) > 0 THEN 'partial'
     ELSE 'pending'
   END                    AS payment_status
 FROM loan_schedule ls
 JOIN loans l ON l.id = ls.loan_id
-LEFT JOIN loan_payments lp ON lp.id = ls.actual_payment_id
+LEFT JOIN LATERAL (
+  SELECT COALESCE(SUM(pm.amount), 0) AS amount_paid
+  FROM payments pm
+  WHERE pm.related_to = 'loan_schedule'
+    AND pm.related_id = ls.id
+) pay ON true
 LEFT JOIN projects p ON p.id = l.project_id
-WHERE NOT ls.paid
+WHERE ls.scheduled_amount - COALESCE(pay.amount_paid, 0) > 0
 
 ORDER BY due_date ASC;

@@ -85,7 +85,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     type: 'loan_payment',
     cost_id: null,
     loan_id: selectedLoan.loanId,
-    partner_company_id: loanDetail.loan.project_id ?? null,
+    partner_company_id: loanDetail.loan.partner_company_id ?? null,
     project_id: loanDetail.loan.project_id ?? null,
     project_code: null,
     project_name: null,

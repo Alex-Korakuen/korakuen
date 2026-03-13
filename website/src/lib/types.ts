@@ -41,6 +41,19 @@ export type CostDetailData = {
   } | null
 }
 
+export type LoanScheduleEntry = {
+  id: string
+  loan_id: string
+  scheduled_date: string
+  scheduled_amount: number
+  exchange_rate: number
+  amount_paid: number   // derived: SUM of payments for this entry
+  outstanding: number   // derived: scheduled_amount - amount_paid
+  payment_status: 'pending' | 'partial' | 'paid'
+  created_at: string
+  updated_at: string
+}
+
 export type LoanDetailData = {
   loan: {
     loan_id: string | null
@@ -58,31 +71,10 @@ export type LoanDetailData = {
     scheduled_payments_count: number | null
     paid_schedule_count: number | null
     project_id: string | null
+    partner_company_id: string | null
   } | null
-  schedule: {
-    id: string
-    loan_id: string
-    scheduled_date: string
-    scheduled_amount: number
-    exchange_rate: number
-    paid: boolean
-    actual_payment_id: string | null
-    created_at: string
-    updated_at: string
-  }[]
-  payments: {
-    id: string
-    loan_id: string
-    payment_date: string
-    amount: number
-    currency: string
-    exchange_rate: number
-    source: string | null
-    settlement_ref: string | null
-    notes: string | null
-    created_at: string
-    updated_at: string
-  }[]
+  schedule: LoanScheduleEntry[]
+  payments: Payment[]
 }
 
 export type ApCalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
