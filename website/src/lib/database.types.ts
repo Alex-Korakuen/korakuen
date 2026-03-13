@@ -1195,6 +1195,7 @@ export type Database = {
           retencion_amount: number | null
           amount_paid: number | null
           outstanding: number | null
+          bdn_outstanding: number | null
           payment_status: string | null
           days_overdue: number | null
           aging_bucket: string | null

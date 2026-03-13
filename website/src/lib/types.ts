@@ -115,6 +115,7 @@ export type InvoicesPageRow = {
   total: number
   amount_paid: number
   outstanding: number
+  bdn_outstanding: number
   payment_status: string
   // Loan-specific (null for commercial)
   loan_id: string | null

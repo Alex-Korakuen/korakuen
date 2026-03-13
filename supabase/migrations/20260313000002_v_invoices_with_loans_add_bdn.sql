@@ -1,15 +1,12 @@
--- View: v_invoices_with_loans
--- Purpose: Unified view of all commercial invoices (payable + receivable) and loan schedule entries.
---          Shows ALL statuses (paid, partial, pending) with aging bucket computation.
---          Used by the Invoices browse page.
--- Source tables: v_invoice_balances, projects, entities, loan_schedule, loans, payments
--- Used by: Invoices page (browse), future drill-down from Financial Position / Cash Flow
+-- Migration: Recreate v_invoices_with_loans with bdn_outstanding column
+-- Must use DROP + CREATE because PostgreSQL cannot add columns mid-view with CREATE OR REPLACE
 
-CREATE OR REPLACE VIEW v_invoices_with_loans
+DROP VIEW IF EXISTS v_invoices_with_loans;
+
+CREATE VIEW v_invoices_with_loans
 WITH (security_invoker = on)
 AS
 
--- Part 1: Commercial invoices (both payable and receivable, all statuses)
 SELECT
   'commercial'::VARCHAR AS type,
   ib.invoice_id         AS id,
@@ -39,7 +36,6 @@ SELECT
   ib.outstanding,
   ib.bdn_outstanding,
   ib.payment_status,
-  -- Aging: days past due (positive = overdue, negative/zero = current)
   CASE
     WHEN ib.due_date IS NOT NULL THEN (CURRENT_DATE - ib.due_date)
     ELSE 0
@@ -58,7 +54,6 @@ LEFT JOIN entities e ON e.id = ib.entity_id
 
 UNION ALL
 
--- Part 2: Loan repayment schedule entries (always payable direction, all statuses)
 SELECT
   'loan'::VARCHAR       AS type,
   ls.id                 AS id,

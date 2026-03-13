@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
-import { SummaryCard } from '@/components/ui/summary-card'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
@@ -16,6 +15,7 @@ import type {
   LoanDetailData,
   InvoiceAgingBucketId as BucketId,
   InvoiceAgingBuckets as BucketCounts,
+  BucketValue,
 } from '@/lib/types'
 
 type Summary = {
@@ -43,6 +43,123 @@ type Props = {
   }
 }
 
+// --- Aging dot color by bucket ---
+const agingDotColors: Record<string, string> = {
+  current: 'bg-green-400',
+  '1-30': 'bg-yellow-400',
+  '31-60': 'bg-orange-400',
+  '61-90': 'bg-red-400',
+  '90+': 'bg-red-600',
+}
+
+function AgingRow({
+  label,
+  bucket,
+  value,
+  isActive,
+  onClick,
+}: {
+  label: string
+  bucket: string
+  value: BucketValue
+  isActive: boolean
+  onClick: () => void
+}) {
+  const hasValue = value.pen > 0 || value.usd > 0
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-zinc-100 ${
+        isActive ? 'bg-zinc-100 ring-1 ring-zinc-300' : ''
+      }`}
+    >
+      <span className={`h-2 w-2 shrink-0 rounded-full ${agingDotColors[bucket] ?? 'bg-zinc-300'}`} />
+      <span className="w-20 text-zinc-600">{label}</span>
+      <span className="flex-1 text-right font-mono text-zinc-800">
+        {hasValue ? formatCurrency(value.pen, 'PEN') : '—'}
+      </span>
+      {value.usd > 0 && (
+        <span className="w-24 text-right font-mono text-zinc-500">
+          {formatCurrency(value.usd, 'USD')}
+        </span>
+      )}
+      <span className="w-16 text-right text-xs text-zinc-400">
+        {value.count} {value.count === 1 ? 'item' : 'items'}
+      </span>
+    </button>
+  )
+}
+
+function SummaryPanel({
+  title,
+  totalPen,
+  totalUsd,
+  subtotals,
+  buckets,
+  activeBucket,
+  activeDirection,
+  direction,
+  onBucketClick,
+}: {
+  title: string
+  totalPen: number
+  totalUsd: number
+  subtotals?: { label: string; pen: number; usd: number }[]
+  buckets: BucketCounts
+  activeBucket: BucketId
+  activeDirection: string
+  direction: 'payable' | 'receivable'
+  onBucketClick: (bucket: BucketId, direction: 'payable' | 'receivable') => void
+}) {
+  const isActiveDir = activeDirection === direction
+  const agingRows: { label: string; key: keyof BucketCounts }[] = [
+    { label: 'Current', key: 'current' },
+    { label: '1-30 days', key: '1-30' },
+    { label: '31-60 days', key: '31-60' },
+    { label: '61-90 days', key: '61-90' },
+    { label: '90+ days', key: '90+' },
+  ]
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white">
+      {/* Header */}
+      <div className="border-b border-zinc-100 px-4 py-3">
+        <div className="flex items-baseline gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{title}</h3>
+          <span className="text-lg font-semibold text-zinc-900">{formatCurrency(totalPen, 'PEN')}</span>
+          {totalUsd > 0 && (
+            <span className="text-sm text-zinc-500">{formatCurrency(totalUsd, 'USD')}</span>
+          )}
+        </div>
+        {subtotals && subtotals.length > 0 && (
+          <div className="mt-1 flex gap-4 text-xs text-zinc-400">
+            {subtotals.map(s => (
+              <span key={s.label}>
+                {s.label}: {formatCurrency(s.pen, 'PEN')}
+                {s.usd > 0 ? ` + ${formatCurrency(s.usd, 'USD')}` : ''}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Aging rows */}
+      <div className="px-1 py-1">
+        {agingRows.map(({ label, key }) => (
+          <AgingRow
+            key={key}
+            label={label}
+            bucket={key}
+            value={buckets[key]}
+            isActive={isActiveDir && activeBucket === key}
+            onClick={() => onBucketClick(key, direction)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function InvoicesClient({
   data,
   totalCount,
@@ -67,7 +184,6 @@ export function InvoicesClient({
   const activeBucket = currentFilters.bucket as BucketId
 
   function handleBucketClick(bucket: BucketId, direction: 'payable' | 'receivable') {
-    // If clicking the same bucket+direction that's active, clear it
     if (activeBucket === bucket && currentFilters.direction === direction) {
       setFilters({ bucket: '', direction: '' })
     } else {
@@ -95,7 +211,6 @@ export function InvoicesClient({
   }
 
   const handleRowClick = useCallback(async (row: InvoicesPageRow) => {
-    // Toggle: if clicking the same row, collapse
     if (expandedId === row.id) {
       setExpandedId(null)
       setExpandedDetail(null)
@@ -124,7 +239,6 @@ export function InvoicesClient({
   }, [expandedId])
 
   const handlePaymentSuccess = useCallback(() => {
-    // Refetch detail for the expanded row, then refresh page data
     if (expandedRow) {
       handleRowClick(expandedRow)
     }
@@ -155,129 +269,32 @@ export function InvoicesClient({
 
   return (
     <div>
-      {/* Summary cards: Payable (left) + Receivable (right) */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Payable section */}
-        <div>
-          <div className="mb-2 flex items-baseline gap-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Payable</h3>
-            <span className="text-lg font-semibold text-zinc-900">{formatCurrency(summary.payable.pen, 'PEN')}</span>
-            {summary.payable.usd > 0 && (
-              <span className="text-sm text-zinc-600">{formatCurrency(summary.payable.usd, 'USD')}</span>
-            )}
-          </div>
-          {(summary.payable.commercialPen > 0 || summary.payable.loanPen > 0 || summary.payable.commercialUsd > 0 || summary.payable.loanUsd > 0) && (
-            <div className="mb-3 flex gap-4 text-xs text-zinc-500">
-              <span>Commercial: {formatCurrency(summary.payable.commercialPen, 'PEN')}{summary.payable.commercialUsd > 0 ? ` + ${formatCurrency(summary.payable.commercialUsd, 'USD')}` : ''}</span>
-              <span>Loans: {formatCurrency(summary.payable.loanPen, 'PEN')}{summary.payable.loanUsd > 0 ? ` + ${formatCurrency(summary.payable.loanUsd, 'USD')}` : ''}</span>
-            </div>
-          )}
-          <div className="flex flex-wrap gap-3">
-            <SummaryCard
-              title="Current"
-              count={payableBuckets.current.count}
-              totalPEN={payableBuckets.current.pen}
-              totalUSD={payableBuckets.current.usd}
-              variant="future"
-              isActive={activeBucket === 'current' && currentFilters.direction === 'payable'}
-              onClick={() => handleBucketClick('current', 'payable')}
-            />
-            <SummaryCard
-              title="1-30 Days"
-              count={payableBuckets['1-30'].count}
-              totalPEN={payableBuckets['1-30'].pen}
-              totalUSD={payableBuckets['1-30'].usd}
-              variant="this-week"
-              isActive={activeBucket === '1-30' && currentFilters.direction === 'payable'}
-              onClick={() => handleBucketClick('1-30', 'payable')}
-            />
-            <SummaryCard
-              title="31-60 Days"
-              count={payableBuckets['31-60'].count}
-              totalPEN={payableBuckets['31-60'].pen}
-              totalUSD={payableBuckets['31-60'].usd}
-              variant="today"
-              isActive={activeBucket === '31-60' && currentFilters.direction === 'payable'}
-              onClick={() => handleBucketClick('31-60', 'payable')}
-            />
-            <SummaryCard
-              title="61-90 Days"
-              count={payableBuckets['61-90'].count}
-              totalPEN={payableBuckets['61-90'].pen}
-              totalUSD={payableBuckets['61-90'].usd}
-              variant="overdue"
-              isActive={activeBucket === '61-90' && currentFilters.direction === 'payable'}
-              onClick={() => handleBucketClick('61-90', 'payable')}
-            />
-            <SummaryCard
-              title="90+ Days"
-              count={payableBuckets['90+'].count}
-              totalPEN={payableBuckets['90+'].pen}
-              totalUSD={payableBuckets['90+'].usd}
-              variant="overdue"
-              isActive={activeBucket === '90+' && currentFilters.direction === 'payable'}
-              onClick={() => handleBucketClick('90+', 'payable')}
-            />
-          </div>
-        </div>
-
-        {/* Receivable section */}
-        <div>
-          <div className="mb-2 flex items-baseline gap-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Receivable</h3>
-            <span className="text-lg font-semibold text-zinc-900">{formatCurrency(summary.receivable.pen, 'PEN')}</span>
-            {summary.receivable.usd > 0 && (
-              <span className="text-sm text-zinc-600">{formatCurrency(summary.receivable.usd, 'USD')}</span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-3 mt-[1.625rem]">
-            <SummaryCard
-              title="Current"
-              count={receivableBuckets.current.count}
-              totalPEN={receivableBuckets.current.pen}
-              totalUSD={receivableBuckets.current.usd}
-              variant="future"
-              isActive={activeBucket === 'current' && currentFilters.direction === 'receivable'}
-              onClick={() => handleBucketClick('current', 'receivable')}
-            />
-            <SummaryCard
-              title="1-30 Days"
-              count={receivableBuckets['1-30'].count}
-              totalPEN={receivableBuckets['1-30'].pen}
-              totalUSD={receivableBuckets['1-30'].usd}
-              variant="this-week"
-              isActive={activeBucket === '1-30' && currentFilters.direction === 'receivable'}
-              onClick={() => handleBucketClick('1-30', 'receivable')}
-            />
-            <SummaryCard
-              title="31-60 Days"
-              count={receivableBuckets['31-60'].count}
-              totalPEN={receivableBuckets['31-60'].pen}
-              totalUSD={receivableBuckets['31-60'].usd}
-              variant="today"
-              isActive={activeBucket === '31-60' && currentFilters.direction === 'receivable'}
-              onClick={() => handleBucketClick('31-60', 'receivable')}
-            />
-            <SummaryCard
-              title="61-90 Days"
-              count={receivableBuckets['61-90'].count}
-              totalPEN={receivableBuckets['61-90'].pen}
-              totalUSD={receivableBuckets['61-90'].usd}
-              variant="overdue"
-              isActive={activeBucket === '61-90' && currentFilters.direction === 'receivable'}
-              onClick={() => handleBucketClick('61-90', 'receivable')}
-            />
-            <SummaryCard
-              title="90+ Days"
-              count={receivableBuckets['90+'].count}
-              totalPEN={receivableBuckets['90+'].pen}
-              totalUSD={receivableBuckets['90+'].usd}
-              variant="overdue"
-              isActive={activeBucket === '90+' && currentFilters.direction === 'receivable'}
-              onClick={() => handleBucketClick('90+', 'receivable')}
-            />
-          </div>
-        </div>
+      {/* Summary panels: Payable (left) + Receivable (right) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SummaryPanel
+          title="Payable"
+          totalPen={summary.payable.pen}
+          totalUsd={summary.payable.usd}
+          subtotals={[
+            { label: 'Commercial', pen: summary.payable.commercialPen, usd: summary.payable.commercialUsd },
+            { label: 'Loans', pen: summary.payable.loanPen, usd: summary.payable.loanUsd },
+          ]}
+          buckets={payableBuckets}
+          activeBucket={activeBucket}
+          activeDirection={currentFilters.direction}
+          direction="payable"
+          onBucketClick={handleBucketClick}
+        />
+        <SummaryPanel
+          title="Receivable"
+          totalPen={summary.receivable.pen}
+          totalUsd={summary.receivable.usd}
+          buckets={receivableBuckets}
+          activeBucket={activeBucket}
+          activeDirection={currentFilters.direction}
+          direction="receivable"
+          onBucketClick={handleBucketClick}
+        />
       </div>
 
       {/* Filters */}

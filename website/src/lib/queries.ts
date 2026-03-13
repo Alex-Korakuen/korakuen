@@ -632,6 +632,7 @@ export async function getInvoicesPage(
     total: r.total ?? 0,
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,
+    bdn_outstanding: r.bdn_outstanding ?? 0,
     payment_status: r.payment_status ?? 'pending',
     loan_id: r.loan_id,
   }))

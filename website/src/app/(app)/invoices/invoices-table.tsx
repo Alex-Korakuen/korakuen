@@ -45,7 +45,6 @@ export function InvoicesTable({
           <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="px-3 py-3">Dir</th>
-              <th className="px-3 py-3">Type</th>
               <th
                 className="cursor-pointer px-3 py-3 hover:text-zinc-700"
                 onClick={() => handleSort('due_date')}
@@ -65,6 +64,12 @@ export function InvoicesTable({
                 Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th
+                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                onClick={() => handleSort('invoice_number')}
+              >
+                Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+              </th>
+              <th
                 className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
                 onClick={() => handleSort('total')}
               >
@@ -74,7 +79,13 @@ export function InvoicesTable({
                 className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
                 onClick={() => handleSort('outstanding')}
               >
-                Balance <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+                Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+              </th>
+              <th
+                className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+                onClick={() => handleSort('bdn_outstanding')}
+              >
+                BdN <SortIndicator column="bdn_outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th className="px-3 py-3">Status</th>
             </tr>
@@ -82,7 +93,7 @@ export function InvoicesTable({
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
                   No invoices found
                 </td>
               </tr>
@@ -146,25 +157,6 @@ function InvoiceRow({
             {getDirectionLabel(row.direction)}
           </span>
         </td>
-        <td className="whitespace-nowrap px-3 py-3 text-zinc-500">
-          {row.type === 'loan' ? (
-            <span title="Loan">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="12" height="10" rx="1.5" />
-                <line x1="2" y1="7" x2="14" y2="7" />
-              </svg>
-            </span>
-          ) : (
-            <span title="Commercial">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 2h8l1 3H3l1-3z" />
-                <rect x="3" y="5" width="10" height="9" rx="1" />
-                <line x1="6" y1="8" x2="10" y2="8" />
-                <line x1="6" y1="10.5" x2="10" y2="10.5" />
-              </svg>
-            </span>
-          )}
-        </td>
         <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
           {row.due_date ? formatDate(row.due_date) : '--'}
         </td>
@@ -174,11 +166,17 @@ function InvoiceRow({
         <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
           {row.project_code ?? '--'}
         </td>
+        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+          {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
+        </td>
         <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-700">
           {formatCurrency(row.total, row.currency)}
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
           {row.outstanding > 0 ? formatCurrency(row.outstanding, row.currency) : '--'}
+        </td>
+        <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-600">
+          {row.bdn_outstanding > 0 ? formatCurrency(row.bdn_outstanding, row.currency) : '--'}
         </td>
         <td className="whitespace-nowrap px-3 py-3">
           <StatusBadge
@@ -189,7 +187,7 @@ function InvoiceRow({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={8} className="border-t border-zinc-200 bg-zinc-50/50">
+          <td colSpan={9} className="border-t border-zinc-200 bg-zinc-50/50">
             {expandLoading ? (
               <div className="flex items-center justify-center py-6">
                 <span className="text-sm text-zinc-400">Loading detail...</span>
