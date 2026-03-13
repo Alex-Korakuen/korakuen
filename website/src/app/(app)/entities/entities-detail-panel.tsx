@@ -6,16 +6,74 @@ import { TabBar } from '@/components/ui/tab-bar'
 import { EntityTagsDropdown } from './entity-tags-dropdown'
 import { EntityContactsForm } from './entity-contacts-form'
 import type { Tab } from '@/components/ui/tab-bar'
-import type { EntityDetailData, ProjectTransactionGroup } from '@/lib/types'
+import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
 
 type Props = {
   detail: EntityDetailData
   availableTags: { id: string; name: string }[]
-  onTransactionClick: (group: ProjectTransactionGroup) => void
+  onLedgerClick: (group: EntityLedgerGroup) => void
   hidden: boolean
 }
 
-export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick, hidden }: Props) {
+function LedgerTable({ groups, onRowClick, emptyMessage }: {
+  groups: EntityLedgerGroup[]
+  onRowClick: (group: EntityLedgerGroup) => void
+  emptyMessage: string
+}) {
+  if (groups.length === 0) {
+    return <div className="px-4 py-6 text-center text-sm text-zinc-500">{emptyMessage}</div>
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-zinc-50 text-xs text-zinc-500">
+          <tr>
+            <th className="px-4 py-2 text-left font-medium">Project</th>
+            <th className="px-4 py-2 text-right font-medium">Invoice Total</th>
+            <th className="px-4 py-2 text-right font-medium">Outstanding</th>
+            <th className="px-4 py-2 text-right font-medium">Last Date</th>
+            <th className="px-4 py-2 text-right font-medium">Currency</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-100">
+          {groups.map((group) => (
+            <tr
+              key={`${group.projectId}|${group.currency}`}
+              onClick={() => onRowClick(group)}
+              className="cursor-pointer transition-colors hover:bg-blue-50"
+            >
+              <td className="px-4 py-2">
+                <a
+                  href={`/projects?selected=${group.projectId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {group.projectCode}
+                </a>
+                <span className="ml-1.5 hidden text-zinc-500 lg:inline">— {group.projectName}</span>
+              </td>
+              <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                {formatCurrency(group.invoiceTotal, group.currency)}
+              </td>
+              <td className={`px-4 py-2 text-right font-mono font-medium ${
+                group.outstanding > 0 ? 'text-amber-600' : 'text-green-600'
+              }`}>
+                {group.outstanding === 0 ? 'Paid' : formatCurrency(group.outstanding, group.currency)}
+              </td>
+              <td className="px-4 py-2 text-right text-zinc-600">
+                {group.lastDate ? formatDate(group.lastDate) : '—'}
+              </td>
+              <td className="px-4 py-2 text-right text-zinc-600">{group.currency}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function EntitiesDetailPanel({ detail, availableTags, onLedgerClick, hidden }: Props) {
   const tabs: Tab[] = [
     {
       key: 'contacts',
@@ -23,71 +81,25 @@ export function EntitiesDetailPanel({ detail, availableTags, onTransactionClick,
       content: <EntityContactsForm entityId={detail.entity.id} contacts={detail.contacts} />,
     },
     {
-      key: 'transactions',
-      label: 'Transactions',
+      key: 'payables',
+      label: 'Payables',
       content: (
-        <>
-          {detail.transactionsByProject.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-500">
-              No transactions recorded
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-xs text-zinc-500">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium">Project</th>
-                    <th className="px-4 py-2 text-right font-medium">AP Total</th>
-                    <th className="px-4 py-2 text-right font-medium">AR Total</th>
-                    <th className="px-4 py-2 text-right font-medium">Net</th>
-                    <th className="px-4 py-2 text-right font-medium">Last Date</th>
-                    <th className="px-4 py-2 text-right font-medium">Currency</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {detail.transactionsByProject.map((group) => {
-                    const cur = group.currency
-                    return (
-                      <tr
-                        key={`${group.projectId}|${group.currency}`}
-                        onClick={() => onTransactionClick(group)}
-                        className="cursor-pointer transition-colors hover:bg-blue-50"
-                      >
-                        <td className="px-4 py-2">
-                          <a
-                            href={`/projects?selected=${group.projectId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {group.projectCode}
-                          </a>
-                          <span className="ml-1.5 hidden text-zinc-500 lg:inline">— {group.projectName}</span>
-                        </td>
-                        <td className="px-4 py-2 text-right font-mono text-zinc-700">
-                          {group.apTotal > 0 ? formatCurrency(group.apTotal, cur) : '—'}
-                        </td>
-                        <td className="px-4 py-2 text-right font-mono text-zinc-700">
-                          {group.arTotal > 0 ? formatCurrency(group.arTotal, cur) : '—'}
-                        </td>
-                        <td
-                          className={`px-4 py-2 text-right font-mono font-medium ${
-                            group.net > 0 ? 'text-green-600' : group.net < 0 ? 'text-red-600' : 'text-zinc-600'
-                          }`}
-                        >
-                          {formatCurrency(group.net, cur)}
-                        </td>
-                        <td className="px-4 py-2 text-right text-zinc-600">
-                          {group.lastDate ? formatDate(group.lastDate) : '—'}
-                        </td>
-                        <td className="px-4 py-2 text-right text-zinc-600">{group.currency}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
+        <LedgerTable
+          groups={detail.payablesByProject}
+          onRowClick={onLedgerClick}
+          emptyMessage="No payables recorded"
+        />
+      ),
+    },
+    {
+      key: 'receivables',
+      label: 'Receivables',
+      content: (
+        <LedgerTable
+          groups={detail.receivablesByProject}
+          onRowClick={onLedgerClick}
+          emptyMessage="No receivables recorded"
+        />
       ),
     },
   ]

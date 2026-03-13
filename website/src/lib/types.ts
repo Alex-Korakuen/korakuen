@@ -19,7 +19,6 @@ export type Payment = Database['public']['Tables']['payments']['Row']
 export type ApCalendarRow = Database['public']['Views']['v_ap_calendar']['Row']
 export type CostBalanceRow = Database['public']['Views']['v_cost_balances']['Row']
 export type ArBalanceRow = Database['public']['Views']['v_ar_balances']['Row']
-export type EntityTransactionRow = Database['public']['Views']['v_entity_transactions']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
 
 
@@ -299,17 +298,24 @@ export type EntityListItem = {
   tags: string[]
 }
 
-export type ProjectTransactionGroup = {
+export type EntityLedgerRow = {
+  transactionId: string
+  date: string | null
+  title: string | null
+  invoiceTotal: number
+  outstanding: number
+  currency: string
+}
+
+export type EntityLedgerGroup = {
   projectId: string
   projectCode: string
   projectName: string
-  apTotal: number
-  arTotal: number
-  net: number
-  transactionCount: number
+  invoiceTotal: number
+  outstanding: number
   lastDate: string | null
   currency: string
-  transactions: EntityTransactionRow[]
+  transactions: EntityLedgerRow[]
 }
 
 export type EntityTagItem = { tagId: string; name: string }
@@ -318,7 +324,8 @@ export type EntityDetailData = {
   entity: Entity
   tags: EntityTagItem[]
   contacts: EntityContact[]
-  transactionsByProject: ProjectTransactionGroup[]
+  payablesByProject: EntityLedgerGroup[]
+  receivablesByProject: EntityLedgerGroup[]
 }
 
 export type EntitiesFilterOptions = {

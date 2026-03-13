@@ -10,7 +10,7 @@ import type {
   EntityListItem,
   EntityDetailData,
   EntitiesFilterOptions,
-  ProjectTransactionGroup,
+  EntityLedgerGroup,
 } from '@/lib/types'
 
 type Props = {
@@ -42,7 +42,7 @@ export function EntitiesClient({
   onSelect,
   currentFilters,
 }: Props) {
-  const [modalGroup, setModalGroup] = useState<ProjectTransactionGroup | null>(null)
+  const [modalGroup, setModalGroup] = useState<EntityLedgerGroup | null>(null)
   const [showCreateEntity, setShowCreateEntity] = useState(false)
 
   const showDetailMobile = selectedId && detail
@@ -79,7 +79,7 @@ export function EntitiesClient({
           <EntitiesDetailPanel
             detail={detail}
             availableTags={filterOptions.tags}
-            onTransactionClick={setModalGroup}
+            onLedgerClick={setModalGroup}
             hidden={!showDetailMobile}
           />
         )}

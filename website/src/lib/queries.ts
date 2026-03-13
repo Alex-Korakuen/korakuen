@@ -20,7 +20,8 @@ import type {
   CurrencyAmount,
   EntityDetailData,
   EntityListItem,
-  EntityTransactionRow,
+  EntityLedgerGroup,
+  EntityLedgerRow,
   EntitiesFilterOptions,
   FinancialPositionData,
   IgvByCurrency,
@@ -32,7 +33,6 @@ import type {
   PriceHistoryRow,
   ProjectDetailData,
   ProjectListItem,
-  ProjectTransactionGroup,
   ProjectEntitySummary,
   ProjectPartnerRow,
   ProjectPartnerSettlement,
@@ -1581,7 +1581,7 @@ export async function getEntitiesList(
 export async function getEntityDetail(entityId: string): Promise<EntityDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  const [entityResult, tagsResult, contactsResult, transactionsResult] = await Promise.all([
+  const [entityResult, tagsResult, contactsResult, costsResult, arResult] = await Promise.all([
     supabase.from('entities').select('*').eq('id', entityId).single(),
     supabase.from('entity_tags').select('tag_id, tags(name)').eq('entity_id', entityId),
     supabase
@@ -1591,10 +1591,15 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
       .eq('is_active', true)
       .order('full_name'),
     supabase
-      .from('v_entity_transactions')
-      .select('*')
+      .from('v_cost_balances')
+      .select('cost_id, project_id, date, title, currency, total, outstanding')
       .eq('entity_id', entityId)
       .order('date', { ascending: false }),
+    supabase
+      .from('v_ar_balances')
+      .select('ar_invoice_id, project_id, invoice_date, invoice_number, notes, currency, gross_total, outstanding')
+      .eq('entity_id', entityId)
+      .order('invoice_date', { ascending: false }),
   ])
 
   if (entityResult.error) throw entityResult.error
@@ -1606,51 +1611,110 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
     })
     .filter((t): t is { tagId: string; name: string } => t !== null)
 
-  // Group transactions by (project_id, currency)
-  const projectGroups = new Map<string, ProjectTransactionGroup>()
-  for (const tx of transactionsResult.data ?? []) {
-    const key = `${tx.project_id ?? '__none__'}|${tx.currency ?? 'PEN'}`
-    const existing = projectGroups.get(key)
-    const amount = tx.amount ?? 0
+  // Collect all project IDs to fetch codes/names
+  const projectIds = new Set<string>()
+  for (const c of costsResult.data ?? []) if (c.project_id) projectIds.add(c.project_id)
+  for (const a of arResult.data ?? []) if (a.project_id) projectIds.add(a.project_id)
 
-    if (existing) {
-      if (tx.transaction_type === 'cost') {
-        existing.apTotal += amount
-      } else {
-        existing.arTotal += amount
-      }
-      existing.transactionCount += 1
-      if (tx.date && (!existing.lastDate || tx.date > existing.lastDate)) {
-        existing.lastDate = tx.date
-      }
-      existing.transactions.push(tx as EntityTransactionRow)
-    } else {
-      projectGroups.set(key, {
-        projectId: tx.project_id ?? '',
-        projectCode: tx.project_code ?? '—',
-        projectName: tx.project_name ?? '—',
-        apTotal: tx.transaction_type === 'cost' ? amount : 0,
-        arTotal: tx.transaction_type === 'ar_invoice' ? amount : 0,
-        net: 0, // computed below
-        transactionCount: 1,
-        lastDate: tx.date,
-        currency: tx.currency ?? 'PEN',
-        transactions: [tx as EntityTransactionRow],
-      })
+  const projectMap = new Map<string, { code: string; name: string }>()
+  if (projectIds.size > 0) {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, project_code, name')
+      .in('id', [...projectIds])
+    for (const p of projects ?? []) {
+      projectMap.set(p.id, { code: p.project_code, name: p.name })
     }
   }
 
-  // Compute net and sort
-  const transactionsByProject = [...projectGroups.values()]
-    .map(g => ({ ...g, net: g.arTotal - g.apTotal }))
-    .sort((a, b) => (b.apTotal + b.arTotal) - (a.apTotal + a.arTotal))
+  // Group payables by (project_id, currency)
+  const payablesByProject = groupLedger(
+    (costsResult.data ?? []).map(c => ({
+      transactionId: c.cost_id,
+      projectId: c.project_id,
+      date: c.date,
+      title: c.title,
+      currency: c.currency ?? 'PEN',
+      invoiceTotal: c.total ?? 0,
+      outstanding: c.outstanding ?? 0,
+    })),
+    projectMap,
+  )
+
+  // Group receivables by (project_id, currency)
+  const receivablesByProject = groupLedger(
+    (arResult.data ?? []).map(a => ({
+      transactionId: a.ar_invoice_id,
+      projectId: a.project_id,
+      date: a.invoice_date,
+      title: a.notes ?? (a.invoice_number ? `Invoice ${a.invoice_number}` : null),
+      currency: a.currency ?? 'PEN',
+      invoiceTotal: a.gross_total ?? 0,
+      outstanding: a.outstanding ?? 0,
+    })),
+    projectMap,
+  )
 
   return {
     entity: entityResult.data,
     tags,
     contacts: contactsResult.data ?? [],
-    transactionsByProject,
+    payablesByProject,
+    receivablesByProject,
   }
+}
+
+type RawLedgerRow = {
+  transactionId: string | null
+  projectId: string | null
+  date: string | null
+  title: string | null
+  currency: string
+  invoiceTotal: number
+  outstanding: number
+}
+
+function groupLedger(
+  rows: RawLedgerRow[],
+  projectMap: Map<string, { code: string; name: string }>,
+): EntityLedgerGroup[] {
+  const groups = new Map<string, EntityLedgerGroup>()
+
+  for (const row of rows) {
+    const key = `${row.projectId ?? '__none__'}|${row.currency}`
+    const existing = groups.get(key)
+    const proj = row.projectId ? projectMap.get(row.projectId) : null
+    const txRow: EntityLedgerRow = {
+      transactionId: row.transactionId ?? '',
+      date: row.date,
+      title: row.title,
+      invoiceTotal: row.invoiceTotal,
+      outstanding: row.outstanding,
+      currency: row.currency,
+    }
+
+    if (existing) {
+      existing.invoiceTotal += row.invoiceTotal
+      existing.outstanding += row.outstanding
+      if (row.date && (!existing.lastDate || row.date > existing.lastDate)) {
+        existing.lastDate = row.date
+      }
+      existing.transactions.push(txRow)
+    } else {
+      groups.set(key, {
+        projectId: row.projectId ?? '',
+        projectCode: proj?.code ?? '—',
+        projectName: proj?.name ?? '—',
+        invoiceTotal: row.invoiceTotal,
+        outstanding: row.outstanding,
+        lastDate: row.date,
+        currency: row.currency,
+        transactions: [txRow],
+      })
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => b.invoiceTotal - a.invoiceTotal)
 }
 
 export async function getEntitiesFilterOptions(): Promise<EntitiesFilterOptions> {
