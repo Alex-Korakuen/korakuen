@@ -86,7 +86,6 @@ korakuen/
 │   │   ├── v_cost_balances.sql
 │   │   ├── v_cost_totals.sql
 │   │   ├── v_entity_transactions.sql
-│   │   ├── v_partner_ledger.sql
 │   │   ├── v_retencion_dashboard.sql
 │   │   ├── v_loan_balances.sql
 │   │   ├── v_budget_vs_actual.sql

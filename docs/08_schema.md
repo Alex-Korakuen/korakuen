@@ -236,7 +236,7 @@ Bridge table linking entities to projects with a specific role. Answers "who par
 ---
 
 ### `project_partners`
-Stores the agreed profit share percentage per partner company per project. Each partner's share is set explicitly and must total 100% per project (enforced at application level). Used by `v_partner_ledger` to calculate profit distribution — each partner's profit = (project income - project costs) × their profit_share_pct.
+Stores the agreed profit share percentage per partner company per project. Each partner's share is set explicitly and must total 100% per project (enforced at application level). Settlement logic (profit distribution) is computed in the application layer using `v_cost_totals` — each partner's profit = (project income - project costs) × their profit_share_pct.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
@@ -595,7 +595,7 @@ Layer 7 (project extensions):
 
 ## Database Views — Complete List
 
-**Existing views (11 — built and deployed):**
+**Existing views (10 — built and deployed):**
 
 | View | Source Tables | Purpose |
 |---|---|---|
@@ -603,7 +603,6 @@ Layer 7 (project extensions):
 | `v_cost_balances` | costs + payments | amount_paid, outstanding, payment_status per cost |
 | `v_ar_balances` | ar_invoices + payments | amount_paid, outstanding, payment_status per AR invoice |
 | `v_ap_calendar` | costs + v_cost_balances + loan_schedule | pending/partial costs and loan payments sorted by due date |
-| `v_partner_ledger` | costs + ar_invoices + payments | contributions, profit share, and settlement per project |
 | `v_entity_transactions` | costs + ar_invoices filtered by entity | all transactions per entity per project |
 | `v_bank_balances` | payments grouped by bank_account | running balance per account |
 | `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |

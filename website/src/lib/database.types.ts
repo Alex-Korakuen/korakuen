@@ -1432,39 +1432,6 @@ export type Database = {
           },
         ]
       }
-      v_partner_ledger: {
-        Row: {
-          contribution_amount_pen: number | null
-          contribution_pct: number | null
-          partner_company_id: string | null
-          partner_name: string | null
-          profit_share_pct: number | null
-          profit_share_pen: number | null
-          project_code: string | null
-          project_costs_pen: number | null
-          project_id: string | null
-          project_income_pen: number | null
-          project_name: string | null
-          project_profit_pen: number | null
-          should_receive_pen: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_project_partners_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_project_partners_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       v_retencion_dashboard: {
         Row: {
           ar_invoice_id: string | null

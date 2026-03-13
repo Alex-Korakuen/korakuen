@@ -81,7 +81,7 @@ korakuen/
 
 ---
 
-## Database — 20 Tables
+## Database — 19 Tables
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
@@ -208,7 +208,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** CLI application (8 modules), database (19 tables, 11 views), and visualization website (7 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`.
+**Development complete.** CLI application (8 modules), database (19 tables, 10 views), and visualization website (7 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`.
 
 **Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 7 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 

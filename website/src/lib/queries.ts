@@ -1396,13 +1396,25 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     profitSharePct: pp.profit_share_pct,
   }))
 
-  // 7. Partner settlements — fetch from v_partner_ledger + actual AR payments received
+  // 7. Partner settlements — compute cost contributions + AR payments received
   let partnerSettlements: ProjectPartnerSettlement[] = []
   if (partners.length > 0) {
-    const { data: ledger } = await supabase
-      .from('v_partner_ledger')
-      .select('*')
+    // Fetch project costs per partner from v_cost_totals (project_cost only, SGA excluded)
+    const { data: costTotals } = await supabase
+      .from('v_cost_totals')
+      .select('partner_company_id, subtotal, currency, exchange_rate')
       .eq('project_id', projectId)
+      .eq('cost_type', 'project_cost')
+
+    // Sum cost contributions per partner in PEN
+    const costsByPartner = new Map<string, number>()
+    for (const ct of costTotals ?? []) {
+      if (!ct.partner_company_id) continue
+      const subtotal = ct.subtotal ?? 0
+      const rate = ct.exchange_rate ? Number(ct.exchange_rate) : 1
+      const amountPen = ct.currency === 'USD' ? subtotal * rate : subtotal
+      costsByPartner.set(ct.partner_company_id, (costsByPartner.get(ct.partner_company_id) ?? 0) + amountPen)
+    }
 
     // Get actual AR payments received per partner
     const { data: projectArInvoices } = await supabase
@@ -1439,14 +1451,13 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     }
 
     // Compute total project profit (sum of all revenue received - sum of all costs)
-    const totalCosts = (ledger ?? []).reduce((sum, row) => sum + (row.contribution_amount_pen ?? 0), 0)
+    const totalCosts = [...costsByPartner.values()].reduce((sum, v) => sum + v, 0)
     const totalRevenue = [...receivedByPartner.values()].reduce((sum, v) => sum + v, 0)
     const totalProjectProfit = totalRevenue - totalCosts
 
     // Build settlement rows — one per partner
     partnerSettlements = partners.map(p => {
-      const ledgerRow = (ledger ?? []).find(r => r.partner_company_id === p.partnerCompanyId)
-      const costsContributed = ledgerRow?.contribution_amount_pen ?? 0
+      const costsContributed = costsByPartner.get(p.partnerCompanyId) ?? 0
       const revenueReceived = receivedByPartner.get(p.partnerCompanyId) ?? 0
       const profit = Math.round((revenueReceived - costsContributed) * 100) / 100
       const shouldReceive = Math.round(totalProjectProfit * (p.profitSharePct / 100) * 100) / 100

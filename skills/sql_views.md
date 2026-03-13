@@ -18,7 +18,6 @@
 | `v_cost_balances.sql` | `v_cost_balances` | amount_paid, outstanding, payment_status per cost |
 | `v_ar_balances.sql` | `v_ar_balances` | amount_paid, outstanding, payment_status per AR invoice |
 | `v_ap_calendar.sql` | `v_ap_calendar` | Unpaid/partial costs sorted by due date with days remaining |
-| `v_partner_ledger.sql` | `v_partner_ledger` | Contributions, profit share, and settlement per project |
 | `v_entity_transactions.sql` | `v_entity_transactions` | All transactions per entity per project (costs + AR) |
 | `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
 | `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
@@ -110,7 +109,7 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records and do not have `is_active` — never filter them.
 
-**Exception — financial/historical views:** Views that report on financial history (e.g., `v_partner_ledger`, `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
+**Exception — financial/historical views:** Views that report on financial history (e.g., `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 
 ### Currency Awareness
 
@@ -145,15 +144,6 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Filters: only costs with `due_date IS NOT NULL` and payment_status IN ('pending', 'partial')
 - Sorted by due_date ASC
 - Includes days_remaining calculated from due_date
-
-### v_partner_ledger
-- Source: `project_partners` JOIN `costs` + `bank_accounts` (contributions), `ar_invoices` (income)
-- **Only includes `cost_type = 'project_cost'`** — SG&A costs are excluded (they belong to the individual partner)
-- Uses `profit_share_pct` from `project_partners` for **profit** distribution (not income distribution)
-- Project profit = project income - project costs. Each partner's profit share = profit × their %
-- Settlement = costs_paid + profit_share (what each partner should receive from income pool)
-- Groups cost contributions by partner_company (derived from bank_account on costs)
-- Shows both contribution % (actual spend ratio) and profit share % (agreed split) — these are independent
 
 ### v_entity_transactions
 - Source: `costs` UNION ALL `ar_invoices`, filtered by entity_id

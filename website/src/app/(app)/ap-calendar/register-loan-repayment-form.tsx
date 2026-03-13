@@ -36,7 +36,6 @@ export function RegisterLoanRepaymentForm({
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     fetchExchangeRateForDate(paymentDate)
@@ -70,7 +69,6 @@ export function RegisterLoanRepaymentForm({
         currency,
         exchange_rate: exchangeRate,
         partner_company_id: partnerCompanyId,
-        notes: notes.trim() || undefined,
       })
 
       if (result.error) {
@@ -84,32 +82,33 @@ export function RegisterLoanRepaymentForm({
 
   if (success) {
     return (
-      <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
         Loan repayment registered successfully.
       </div>
     )
   }
 
   return (
-    <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-4">
-      <h3 className="mb-3 text-sm font-semibold text-zinc-700">Register Repayment</h3>
+    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wide text-blue-600">New Repayment</span>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isPending}
+          className="flex h-5 w-5 items-center justify-center rounded text-blue-400 hover:bg-blue-100 hover:text-blue-600"
+        >
+          &times;
+        </button>
+      </div>
 
-      <div className="space-y-3">
-        {/* Payment date */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">Payment Date</label>
-          <input
-            type="date"
-            value={paymentDate}
-            onChange={e => setPaymentDate(e.target.value)}
-            className={`${inputCompactClass} w-full`}
-          />
-        </div>
-
+      {/* Fields grid — 2 columns */}
+      <div className="grid grid-cols-2 gap-3">
         {/* Amount */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">
-            Amount ({currency}) — max {formatCurrency(outstanding, currency)}
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+            Amount
           </label>
           <input
             type="number"
@@ -119,45 +118,40 @@ export function RegisterLoanRepaymentForm({
             value={amount}
             onChange={e => setAmount(e.target.value)}
             placeholder="0.00"
-            className={`${inputCompactClass} w-full font-mono`}
+            className={`${inputCompactClass} w-full bg-white font-mono`}
           />
+          <p className="mt-0.5 text-[10px] text-blue-400">
+            max {formatCurrency(outstanding, currency)}
+          </p>
         </div>
 
-        {/* Notes */}
+        {/* Date */}
         <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-500">Notes (optional)</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={2}
-            className={`${inputCompactClass} w-full`}
-            placeholder="Additional details..."
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+            Date
+          </label>
+          <input
+            type="date"
+            value={paymentDate}
+            onChange={e => setPaymentDate(e.target.value)}
+            className={`${inputCompactClass} w-full bg-white`}
           />
-        </div>
-
-        {/* Error */}
-        {error && (
-          <p className="text-xs font-medium text-red-600">{error}</p>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="rounded bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-          >
-            {isPending ? 'Saving...' : 'Submit'}
-          </button>
-          <button
-            onClick={onCancel}
-            disabled={isPending}
-            className="rounded border border-zinc-300 px-4 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
-          >
-            Cancel
-          </button>
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="mt-2 text-xs font-medium text-red-600">{error}</p>
+      )}
+
+      {/* Confirm button */}
+      <button
+        onClick={handleSubmit}
+        disabled={isPending}
+        className="mt-3 w-full rounded-lg bg-blue-600 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {isPending ? 'Saving...' : 'Confirm Repayment'}
+      </button>
     </div>
   )
 }

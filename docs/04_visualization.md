@@ -207,7 +207,7 @@ Two sections:
 
 **Profit & Settlement section:** Project profit = project income - project costs. Each partner's profit share = profit × their `profit_share_pct` from `project_partners`. Settlement = profit_share - costs_they_actually_paid (positive = they're owed, negative = they owe). Equivalently, each partner should receive from the income pool: costs_they_paid + profit × their %. Shows who owes whom and how much.
 
-**Data source:** Costs table grouped by bank_account -> partner_company per project, AR invoices + Payments (via v_partner_ledger view)
+**Data source:** Cost contributions from `v_cost_totals` (project_cost only, grouped by partner), AR payments from `payments` table — all computed in application layer (queries.ts)
 
 ---
 

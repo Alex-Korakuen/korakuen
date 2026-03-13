@@ -1,7 +1,7 @@
 -- View: v_cost_totals
 -- Purpose: Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items
 -- Source tables: costs, cost_items
--- Used by: v_cost_balances, v_ap_calendar, v_entity_transactions, v_partner_ledger
+-- Used by: v_cost_balances, v_ap_calendar, v_entity_transactions, queries.ts (settlement)
 
 CREATE OR REPLACE VIEW v_cost_totals
 WITH (security_invoker = on)

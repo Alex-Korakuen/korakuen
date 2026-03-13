@@ -33,25 +33,6 @@ Move all data entry from CLI to website. Excel imports, inline forms, and action
 
 ---
 
-## Fix Partner Ledger Settlement Logic
-
-The `v_partner_ledger` view currently calculates `income_share_pen = total_income × profit_share_pct`, which distributes the **entire income** by %. The correct formula is to distribute **profit** (income - project costs) by %. SG&A costs are excluded — they belong to the individual partner.
-
-### Correct settlement formula
-- Project profit = project income - project costs (where `cost_type = 'project_cost'`)
-- Each partner's profit share = profit × `profit_share_pct`
-- Settlement = profit_share - costs_they_actually_paid
-- Each partner receives from income pool: costs_paid + profit × their %
-
-### Tasks
-
-- [x] Rewrite `v_partner_ledger` SQL view to use profit-based distribution
-- [x] Filter costs to `cost_type = 'project_cost'` only (exclude SG&A)
-- [x] Add `profit_share_pen` and `should_receive_pen` columns to the view
-- [x] Update Partner Balances page (`queries.ts` + component) to use new columns
-- [ ] Test with real data to verify settlements net to zero across partners
-
-
 ## Investigate: Partner Removal Impact on Financial Data
 
 When a partner is removed from a project, their historical costs and AR payments remain in the database. Need to investigate:
