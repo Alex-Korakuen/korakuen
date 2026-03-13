@@ -1202,6 +1202,28 @@ export type Database = {
         }
         Relationships: []
       }
+      v_payments_enriched: {
+        Row: {
+          id: string | null
+          payment_date: string | null
+          direction: string | null
+          payment_type: string | null
+          amount: number | null
+          currency: string | null
+          exchange_rate: number | null
+          related_to: string | null
+          related_id: string | null
+          partner_company_id: string | null
+          bank_account_id: string | null
+          notes: string | null
+          invoice_number: string | null
+          project_id: string | null
+          project_code: string | null
+          entity_name: string | null
+          bank_name: string | null
+        }
+        Relationships: []
+      }
       v_obligation_calendar: {
         Row: {
           amount_paid: number | null

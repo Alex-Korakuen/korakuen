@@ -13,6 +13,17 @@ export async function fetchLoanDetailById(loanId: string) {
   return getLoanDetail(loanId)
 }
 
+export async function fetchLoanDetailByScheduleId(scheduleEntryId: string) {
+  const supabase = await createServerSupabaseClient()
+  const { data } = await supabase
+    .from('loan_schedule')
+    .select('loan_id')
+    .eq('id', scheduleEntryId)
+    .single()
+  if (!data?.loan_id) return null
+  return getLoanDetail(data.loan_id)
+}
+
 export async function fetchPartnerPayables(
   projectId: string,
   partnerCompanyId: string,
@@ -141,6 +152,7 @@ export async function registerPayment(input: {
   revalidatePath('/ap-calendar')
   revalidatePath('/ar-outstanding')
   revalidatePath('/invoices')
+  revalidatePath('/payments')
   revalidatePath('/financial-position')
   revalidatePath('/cash-flow')
   return {}
@@ -572,6 +584,7 @@ export async function registerLoanRepayment(data: {
 
   revalidatePath('/ap-calendar')
   revalidatePath('/invoices')
+  revalidatePath('/payments')
   revalidatePath('/financial-position')
   revalidatePath('/cash-flow')
   return {}
