@@ -7,8 +7,6 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { Pagination } from '@/components/ui/pagination'
 import {
   getAgingRowBorderClass,
-  getDirectionLabel,
-  getDirectionColorClass,
   getStatusLabel,
   getStatusVariant,
 } from './helpers'
@@ -44,7 +42,6 @@ export function InvoicesTable({
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
             <tr>
-              <th className="px-3 py-3">Dir</th>
               <th
                 className="cursor-pointer px-3 py-3 hover:text-zinc-700"
                 onClick={() => handleSort('due_date')}
@@ -93,7 +90,7 @@ export function InvoicesTable({
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                   No invoices found
                 </td>
               </tr>
@@ -152,11 +149,6 @@ function InvoiceRow({
         className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass} ${isExpanded ? 'bg-zinc-50' : ''}`}
         onClick={() => onRowClick(row)}
       >
-        <td className="whitespace-nowrap px-3 py-3">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getDirectionColorClass(row.direction)}`}>
-            {getDirectionLabel(row.direction)}
-          </span>
-        </td>
         <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
           {row.due_date ? formatDate(row.due_date) : '--'}
         </td>
@@ -187,7 +179,7 @@ function InvoiceRow({
       </tr>
       {isExpanded && (
         <tr>
-          <td colSpan={9} className="border-t border-zinc-200 bg-zinc-50/50">
+          <td colSpan={8} className="border-t border-zinc-200 bg-zinc-50/50">
             {expandLoading ? (
               <div className="flex items-center justify-center py-6">
                 <span className="text-sm text-zinc-400">Loading detail...</span>

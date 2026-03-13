@@ -132,16 +132,17 @@ function SummaryPanel({
             <span className="text-sm text-zinc-500">{formatCurrency(totalUsd, 'USD')}</span>
           )}
         </div>
-        {subtotals && subtotals.length > 0 && (
-          <div className="mt-1 flex gap-4 text-xs text-zinc-400">
-            {subtotals.map(s => (
-              <span key={s.label}>
-                {s.label}: {formatCurrency(s.pen, 'PEN')}
-                {s.usd > 0 ? ` + ${formatCurrency(s.usd, 'USD')}` : ''}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="mt-1 flex gap-4 text-xs text-zinc-400">
+          {subtotals && subtotals.length > 0
+            ? subtotals.map(s => (
+                <span key={s.label}>
+                  {s.label}: {formatCurrency(s.pen, 'PEN')}
+                  {s.usd > 0 ? ` + ${formatCurrency(s.usd, 'USD')}` : ''}
+                </span>
+              ))
+            : <span>&nbsp;</span>
+          }
+        </div>
       </div>
       {/* Aging rows */}
       <div className="px-1 py-1">
