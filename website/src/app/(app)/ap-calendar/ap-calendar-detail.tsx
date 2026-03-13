@@ -1,28 +1,28 @@
 import { formatCurrency, formatDate, formatComprobanteType } from '@/lib/formatters'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import type { ApCalendarRow, CostDetailData } from '@/lib/types'
+import type { ObligationCalendarRow, InvoiceDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
 
-export function CostDetailContent({
+export function InvoiceDetailContent({
   row,
   detail,
   onPaymentSuccess,
 }: {
-  row: ApCalendarRow
-  detail: CostDetailData
+  row: ObligationCalendarRow
+  detail: InvoiceDetailData
   onPaymentSuccess?: () => void
 }) {
-  const cost = detail.cost
+  const invoice = detail.invoice
 
   // Compute per-type outstanding from payment history
   const detraccionPaid = detail.payments
     .filter(p => p.payment_type === 'detraccion')
     .reduce((sum, p) => sum + p.amount, 0)
-  const costDetraccion = cost?.detraccion_amount ?? 0
-  const costOutstanding = cost?.outstanding ?? 0
-  const bdnOutstanding = Math.max(0, costDetraccion - detraccionPaid)
-  const costPayable = Math.max(0, costOutstanding - bdnOutstanding)
+  const invoiceDetraccion = invoice?.detraccion_amount ?? 0
+  const invoiceOutstanding = invoice?.outstanding ?? 0
+  const bdnOutstanding = Math.max(0, invoiceDetraccion - detraccionPaid)
+  const invoicePayable = Math.max(0, invoiceOutstanding - bdnOutstanding)
 
   return (
     <div className="space-y-6">
@@ -33,7 +33,7 @@ export function CostDetailContent({
         <DetailField label="Supplier" value={row.entity_name ?? '--'} />
         <DetailField
           label="Date"
-          value={cost?.date ? formatDate(cost.date) : '--'}
+          value={invoice?.invoice_date ? formatDate(invoice.invoice_date) : '--'}
         />
         <DetailField
           label="Due Date"
@@ -41,28 +41,28 @@ export function CostDetailContent({
         />
         <DetailField
           label="Document Ref"
-          value={detail.header?.document_ref ?? row.document_ref ?? '--'}
+          value={invoice?.document_ref ?? row.document_ref ?? '--'}
         />
       </div>
 
       {/* Comprobante info */}
-      {detail.header && (
+      {invoice && (
         <div className="grid grid-cols-2 gap-4">
           <DetailField
             label="Comprobante Type"
-            value={formatComprobanteType(detail.header.comprobante_type)}
+            value={formatComprobanteType(invoice.comprobante_type)}
           />
           <DetailField
-            label="Comprobante Number"
-            value={detail.header.comprobante_number ?? '--'}
+            label="Invoice Number"
+            value={invoice.invoice_number ?? '--'}
           />
         </div>
       )}
 
-      {/* Cost items */}
+      {/* Invoice items */}
       {detail.items.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Cost Items</h3>
+          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Invoice Items</h3>
           <div className="overflow-x-auto rounded border border-zinc-200">
             <table className="w-full text-left text-xs">
               <thead className="bg-zinc-50 text-zinc-500">
@@ -82,13 +82,13 @@ export function CostDetailContent({
                     <td className="px-3 py-2 text-zinc-500">{item.unit_of_measure ?? '--'}</td>
                     <td className="px-3 py-2 text-right font-mono text-zinc-600">
                       {item.unit_price != null
-                        ? formatCurrency(item.unit_price, (cost?.currency ?? 'PEN'))
+                        ? formatCurrency(item.unit_price, (invoice?.currency ?? 'PEN'))
                         : '--'}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(
                         item.subtotal,
-                        (cost?.currency ?? 'PEN')
+                        (invoice?.currency ?? 'PEN')
                       )}
                     </td>
                   </tr>
@@ -100,27 +100,27 @@ export function CostDetailContent({
       )}
 
       {/* Totals */}
-      {cost && (
+      {invoice && (
         <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
           <h3 className="mb-2 text-sm font-semibold text-zinc-700">Totals</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <span className="text-zinc-500">Subtotal</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(cost.subtotal ?? 0, (cost.currency ?? 'PEN'))}
+              {formatCurrency(invoice.subtotal ?? 0, (invoice.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">IGV</span>
             <span className="text-right font-mono text-zinc-700">
-              {formatCurrency(cost.igv_amount ?? 0, (cost.currency ?? 'PEN'))}
+              {formatCurrency(invoice.igv_amount ?? 0, (invoice.currency ?? 'PEN'))}
             </span>
             <span className="text-zinc-500">Total</span>
             <span className="text-right font-mono font-semibold text-zinc-900">
-              {formatCurrency(cost.total ?? 0, (cost.currency ?? 'PEN'))}
+              {formatCurrency(invoice.total ?? 0, (invoice.currency ?? 'PEN'))}
             </span>
-            {(cost.detraccion_amount ?? 0) > 0 && (
+            {(invoice.detraccion_amount ?? 0) > 0 && (
               <>
                 <span className="text-zinc-500">Detraccion</span>
                 <span className="text-right font-mono text-zinc-700">
-                  {formatCurrency(cost.detraccion_amount ?? 0, (cost.currency ?? 'PEN'))}
+                  {formatCurrency(invoice.detraccion_amount ?? 0, (invoice.currency ?? 'PEN'))}
                 </span>
               </>
             )}
@@ -132,15 +132,15 @@ export function CostDetailContent({
       <PaymentHistoryTable
         payments={detail.payments}
         paymentFormProps={
-          cost && cost.cost_id && (cost.outstanding ?? 0) > 0 && onPaymentSuccess
+          invoice && invoice.invoice_id && (invoice.outstanding ?? 0) > 0 && onPaymentSuccess
             ? {
-                relatedTo: 'cost',
-                relatedId: cost.cost_id,
+                relatedTo: 'invoice',
+                relatedId: invoice.invoice_id,
                 direction: 'outbound',
-                partnerCompanyId: cost.partner_company_id ?? '',
-                currency: cost.currency ?? 'PEN',
-                outstanding: costOutstanding,
-                payable: costPayable,
+                partnerCompanyId: invoice.partner_company_id ?? '',
+                currency: invoice.currency ?? 'PEN',
+                outstanding: invoiceOutstanding,
+                payable: invoicePayable,
                 bdnOutstanding,
                 onSuccess: onPaymentSuccess,
               }
@@ -149,15 +149,15 @@ export function CostDetailContent({
       />
 
       {/* Payment summary */}
-      {cost && (
+      {invoice && (
         <div className="grid grid-cols-2 gap-2 text-sm">
           <span className="font-medium text-zinc-500">Total Paid</span>
           <span className="text-right font-mono text-zinc-700">
-            {formatCurrency(cost.amount_paid ?? 0, (cost.currency ?? 'PEN'))}
+            {formatCurrency(invoice.amount_paid ?? 0, (invoice.currency ?? 'PEN'))}
           </span>
           <span className="font-medium text-zinc-500">Outstanding</span>
           <span className="text-right font-mono font-semibold text-red-600">
-            {formatCurrency(cost.outstanding ?? 0, (cost.currency ?? 'PEN'))}
+            {formatCurrency(invoice.outstanding ?? 0, (invoice.currency ?? 'PEN'))}
           </span>
         </div>
       )}

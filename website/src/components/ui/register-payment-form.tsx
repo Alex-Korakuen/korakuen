@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass } from '@/lib/styles'
 
 type Props = {
-  relatedTo: 'cost' | 'ar_invoice'
+  relatedTo: 'invoice' | 'loan_schedule'
   relatedId: string
   direction: 'outbound' | 'inbound'
   partnerCompanyId: string
@@ -93,7 +93,7 @@ export function RegisterPaymentForm({
         : payable
 
   const isRetencion = paymentType === 'retencion'
-  const buttonLabel = relatedTo === 'cost' ? 'Confirm Payment' : 'Confirm Collection'
+  const buttonLabel = direction === 'outbound' ? 'Confirm Payment' : 'Confirm Collection'
 
   // Filter out payment types with zero remaining
   const availableTypes = PAYMENT_TYPES.filter(t => {

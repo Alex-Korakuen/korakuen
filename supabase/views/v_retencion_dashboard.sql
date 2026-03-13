@@ -1,28 +1,29 @@
 -- View: v_retencion_dashboard
--- Purpose: Tracks AR invoices where retencion is applicable, showing verification status
+-- Purpose: Tracks receivable invoices where retencion is applicable, showing verification status
 --          and days since invoice to highlight aged unverified retenciones
--- Source tables: ar_invoices, projects, entities
--- Used by: Retencion dashboard page, retencion verification workflow
+-- Source tables: v_invoice_totals, projects, entities
+-- Used by: Retencion dashboard, retencion verification workflow
 
 CREATE OR REPLACE VIEW v_retencion_dashboard
 WITH (security_invoker = on)
 AS
 WITH ar_base AS (
   SELECT
-    ar.id                 AS ar_invoice_id,
-    ar.project_id,
-    ar.entity_id,
-    ar.invoice_number,
-    ar.invoice_date,
-    ar.due_date,
-    ar.subtotal,
-    ar.igv_rate,
-    ar.retencion_rate,
-    ar.currency,
-    ar.retencion_verified,
-    fn_igv_amount(ar.subtotal, ar.igv_rate) AS igv_amount
-  FROM ar_invoices ar
-  WHERE ar.retencion_applicable = true
+    i.invoice_id,
+    i.project_id,
+    i.entity_id,
+    i.invoice_number,
+    i.invoice_date,
+    i.due_date,
+    i.subtotal,
+    i.igv_rate,
+    i.retencion_rate,
+    i.currency,
+    i.retencion_verified,
+    fn_igv_amount(i.subtotal, i.igv_rate) AS igv_amount
+  FROM v_invoice_totals i
+  WHERE i.direction = 'receivable'
+    AND i.retencion_applicable = true
 ),
 ar_with_totals AS (
   SELECT
@@ -32,7 +33,7 @@ ar_with_totals AS (
   FROM ar_base ab
 )
 SELECT
-  awt.ar_invoice_id,
+  awt.invoice_id,
   p.project_code,
   e.legal_name          AS client_name,
   awt.invoice_number,

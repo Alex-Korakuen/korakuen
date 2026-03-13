@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
+import { fetchPartnerPayables, fetchPartnerReceivables, addProjectPartner, removeProjectPartner } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
-import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerCostDetail, PartnerRevenueDetail } from '@/lib/types'
+import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerPayableDetail, PartnerReceivableDetail } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -18,8 +18,8 @@ type Props = {
 export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies }: Props) {
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null)
   const [detailTab, setDetailTab] = useState<'costs' | 'revenue'>('costs')
-  const [costDetails, setCostDetails] = useState<PartnerCostDetail[]>([])
-  const [revenueDetails, setRevenueDetails] = useState<PartnerRevenueDetail[]>([])
+  const [costDetails, setCostDetails] = useState<PartnerPayableDetail[]>([])
+  const [revenueDetails, setRevenueDetails] = useState<PartnerReceivableDetail[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
@@ -50,13 +50,13 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         // Fetch costs and revenue for all partners
         const partnerIds = partners.map(p => p.partnerCompanyId)
         const results = await Promise.all(
-          partnerIds.flatMap(id => [fetchPartnerCosts(projectId, id), fetchPartnerRevenue(projectId, id)])
+          partnerIds.flatMap(id => [fetchPartnerPayables(projectId, id), fetchPartnerReceivables(projectId, id)])
         )
-        const allCosts: PartnerCostDetail[] = []
-        const allRevenue: PartnerRevenueDetail[] = []
+        const allCosts: PartnerPayableDetail[] = []
+        const allRevenue: PartnerReceivableDetail[] = []
         for (let i = 0; i < partnerIds.length; i++) {
-          allCosts.push(...(results[i * 2] as PartnerCostDetail[]))
-          allRevenue.push(...(results[i * 2 + 1] as PartnerRevenueDetail[]))
+          allCosts.push(...(results[i * 2] as PartnerPayableDetail[]))
+          allRevenue.push(...(results[i * 2 + 1] as PartnerReceivableDetail[]))
         }
         allCosts.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
         allRevenue.sort((a, b) => (b.payment_date ?? '').localeCompare(a.payment_date ?? ''))
@@ -64,8 +64,8 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         setRevenueDetails(allRevenue)
       } else {
         const [costs, revenue] = await Promise.all([
-          fetchPartnerCosts(projectId, partnerCompanyId),
-          fetchPartnerRevenue(projectId, partnerCompanyId),
+          fetchPartnerPayables(projectId, partnerCompanyId),
+          fetchPartnerReceivables(projectId, partnerCompanyId),
         ])
         setCostDetails(costs)
         setRevenueDetails(revenue)
@@ -378,11 +378,11 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {costDetails.map((d) => (
-                      <tr key={d.cost_id}>
+                      <tr key={d.invoice_id}>
                         <td className="py-2 whitespace-nowrap text-zinc-600">
                           {d.date ? formatDate(d.date) : '—'}
                         </td>
-                        <td className="py-2 text-zinc-700">{d.comprobante_number ?? '—'}</td>
+                        <td className="py-2 text-zinc-700">{d.invoice_number ?? '—'}</td>
                         <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
                           {formatCurrency(d.subtotal, d.currency ?? 'PEN')}
                         </td>

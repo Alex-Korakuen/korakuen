@@ -13,8 +13,8 @@ export function getRowBorderClass(daysRemaining: number | null): string {
 }
 
 export function formatType(type: string | null): string {
-  if (type === 'supplier_invoice') return 'Supplier'
-  if (type === 'loan_payment') return 'Loan'
+  if (type === 'commercial') return 'Supplier'
+  if (type === 'loan') return 'Loan'
   return type ?? '--'
 }
 

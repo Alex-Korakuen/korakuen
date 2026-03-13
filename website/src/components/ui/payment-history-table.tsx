@@ -13,7 +13,7 @@ type Payment = {
 }
 
 type PaymentFormProps = {
-  relatedTo: 'cost' | 'ar_invoice'
+  relatedTo: 'invoice'
   relatedId: string
   direction: 'outbound' | 'inbound'
   partnerCompanyId: string

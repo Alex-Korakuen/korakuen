@@ -39,93 +39,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      ar_invoices: {
+      invoice_items: {
         Row: {
-          comprobante_type: string
+          category: string | null
           created_at: string
-          currency: string
-          detraccion_rate: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string
-          exchange_rate: number
           id: string
-          igv_rate: number
-          invoice_date: string
-          invoice_number: string
+          invoice_id: string
           notes: string | null
-          partner_company_id: string
-          project_id: string
-          retencion_applicable: boolean
-          retencion_rate: number | null
-          retencion_verified: boolean
+          quantity: number | null
           subtotal: number
+          title: string
+          unit_of_measure: string | null
+          unit_price: number | null
           updated_at: string
         }
         Insert: {
-          comprobante_type: string
+          category?: string | null
           created_at?: string
-          currency: string
-          detraccion_rate?: number | null
-          document_ref?: string | null
-          due_date?: string | null
-          entity_id: string
-          exchange_rate?: number
           id?: string
-          igv_rate?: number
-          invoice_date: string
-          invoice_number: string
+          invoice_id: string
           notes?: string | null
-          partner_company_id: string
-          project_id: string
-          retencion_applicable?: boolean
-          retencion_rate?: number | null
-          retencion_verified?: boolean
+          quantity?: number | null
           subtotal: number
+          title: string
+          unit_of_measure?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Update: {
-          comprobante_type?: string
+          category?: string | null
           created_at?: string
-          currency?: string
-          detraccion_rate?: number | null
-          document_ref?: string | null
-          due_date?: string | null
-          entity_id?: string
-          exchange_rate?: number
           id?: string
-          igv_rate?: number
-          invoice_date?: string
-          invoice_number?: string
+          invoice_id?: string
           notes?: string | null
-          partner_company_id?: string
-          project_id?: string
-          retencion_applicable?: boolean
-          retencion_rate?: number | null
-          retencion_verified?: boolean
+          quantity?: number | null
           subtotal?: number
+          title?: string
+          unit_of_measure?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_ar_invoices_entities"
+            foreignKeyName: "fk_invoice_items_category"
+            columns: ["category"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["name"]
+          },
+          {
+            foreignKeyName: "fk_invoice_items_invoices"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoice_items_invoices"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_balances"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "fk_invoice_items_invoices"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoice_totals"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          comprobante_type: string | null
+          cost_type: string | null
+          created_at: string
+          currency: string
+          detraccion_rate: number | null
+          direction: string
+          document_ref: string | null
+          due_date: string | null
+          entity_id: string | null
+          exchange_rate: number
+          id: string
+          igv_rate: number
+          invoice_date: string
+          invoice_number: string | null
+          notes: string | null
+          partner_company_id: string
+          payment_method: string | null
+          project_id: string | null
+          purchase_order_id: string | null
+          quote_id: string | null
+          retencion_applicable: boolean
+          retencion_rate: number | null
+          retencion_verified: boolean
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          comprobante_type?: string | null
+          cost_type?: string | null
+          created_at?: string
+          currency: string
+          detraccion_rate?: number | null
+          direction: string
+          document_ref?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          exchange_rate?: number
+          id?: string
+          igv_rate?: number
+          invoice_date: string
+          invoice_number?: string | null
+          notes?: string | null
+          partner_company_id: string
+          payment_method?: string | null
+          project_id?: string | null
+          purchase_order_id?: string | null
+          quote_id?: string | null
+          retencion_applicable?: boolean
+          retencion_rate?: number | null
+          retencion_verified?: boolean
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comprobante_type?: string | null
+          cost_type?: string | null
+          created_at?: string
+          currency?: string
+          detraccion_rate?: number | null
+          direction?: string
+          document_ref?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          exchange_rate?: number
+          id?: string
+          igv_rate?: number
+          invoice_date?: string
+          invoice_number?: string | null
+          notes?: string | null
+          partner_company_id?: string
+          payment_method?: string | null
+          project_id?: string | null
+          purchase_order_id?: string | null
+          quote_id?: string | null
+          retencion_applicable?: boolean
+          retencion_rate?: number | null
+          retencion_verified?: boolean
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_invoices_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_ar_invoices_partner_companies"
+            foreignKeyName: "fk_invoices_partner_companies"
             columns: ["partner_company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_ar_invoices_projects"
+            foreignKeyName: "fk_invoices_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_quotes"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -209,178 +302,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      cost_items: {
-        Row: {
-          category: string
-          cost_id: string
-          created_at: string
-          id: string
-          notes: string | null
-          quantity: number | null
-          subtotal: number
-          title: string
-          unit_of_measure: string | null
-          unit_price: number | null
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          cost_id: string
-          created_at?: string
-          id?: string
-          notes?: string | null
-          quantity?: number | null
-          subtotal: number
-          title: string
-          unit_of_measure?: string | null
-          unit_price?: number | null
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          cost_id?: string
-          created_at?: string
-          id?: string
-          notes?: string | null
-          quantity?: number | null
-          subtotal?: number
-          title?: string
-          unit_of_measure?: string | null
-          unit_price?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_cost_items_category"
-            columns: ["category"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["name"]
-          },
-          {
-            foreignKeyName: "fk_cost_items_costs"
-            columns: ["cost_id"]
-            isOneToOne: false
-            referencedRelation: "costs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_cost_items_costs"
-            columns: ["cost_id"]
-            isOneToOne: false
-            referencedRelation: "v_cost_balances"
-            referencedColumns: ["cost_id"]
-          },
-          {
-            foreignKeyName: "fk_cost_items_costs"
-            columns: ["cost_id"]
-            isOneToOne: false
-            referencedRelation: "v_cost_totals"
-            referencedColumns: ["cost_id"]
-          },
-        ]
-      }
-      costs: {
-        Row: {
-          comprobante_number: string | null
-          comprobante_type: string | null
-          cost_type: string
-          created_at: string
-          currency: string
-          date: string
-          detraccion_rate: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string | null
-          exchange_rate: number
-          id: string
-          igv_rate: number
-          notes: string | null
-          partner_company_id: string
-          payment_method: string | null
-          project_id: string | null
-          purchase_order_id: string | null
-          quote_id: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          comprobante_number?: string | null
-          comprobante_type?: string | null
-          cost_type: string
-          created_at?: string
-          currency: string
-          date: string
-          detraccion_rate?: number | null
-          document_ref?: string | null
-          due_date?: string | null
-          entity_id?: string | null
-          exchange_rate?: number
-          id?: string
-          igv_rate?: number
-          notes?: string | null
-          partner_company_id: string
-          payment_method?: string | null
-          project_id?: string | null
-          purchase_order_id?: string | null
-          quote_id?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          comprobante_number?: string | null
-          comprobante_type?: string | null
-          cost_type?: string
-          created_at?: string
-          currency?: string
-          date?: string
-          detraccion_rate?: number | null
-          document_ref?: string | null
-          due_date?: string | null
-          entity_id?: string | null
-          exchange_rate?: number
-          id?: string
-          igv_rate?: number
-          notes?: string | null
-          partner_company_id?: string
-          payment_method?: string | null
-          project_id?: string | null
-          purchase_order_id?: string | null
-          quote_id?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_costs_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_quotes"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       entities: {
         Row: {
@@ -1023,7 +944,7 @@ export type Database = {
           exchange_rate: number
           id: string
           igv_amount: number | null
-          linked_cost_id: string | null
+          linked_invoice_id: string | null
           notes: string | null
           project_id: string
           quantity: number | null
@@ -1044,7 +965,7 @@ export type Database = {
           exchange_rate?: number
           id?: string
           igv_amount?: number | null
-          linked_cost_id?: string | null
+          linked_invoice_id?: string | null
           notes?: string | null
           project_id: string
           quantity?: number | null
@@ -1065,7 +986,7 @@ export type Database = {
           exchange_rate?: number
           id?: string
           igv_amount?: number | null
-          linked_cost_id?: string | null
+          linked_invoice_id?: string | null
           notes?: string | null
           project_id?: string
           quantity?: number | null
@@ -1123,22 +1044,146 @@ export type Database = {
       }
     }
     Views: {
-      v_ap_calendar: {
+      v_invoice_balances: {
         Row: {
           amount_paid: number | null
           bdn_outstanding: number | null
-          cost_id: string | null
+          comprobante_type: string | null
+          cost_type: string | null
+          currency: string | null
+          detraccion_amount: number | null
+          detraccion_paid: number | null
+          detraccion_rate: number | null
+          direction: string | null
+          document_ref: string | null
+          due_date: string | null
+          entity_id: string | null
+          exchange_rate: number | null
+          igv_amount: number | null
+          igv_rate: number | null
+          invoice_date: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          net_amount: number | null
+          notes: string | null
+          outstanding: number | null
+          partner_company_id: string | null
+          payable_or_receivable: number | null
+          payment_method: string | null
+          payment_status: string | null
+          project_id: string | null
+          retencion_amount: number | null
+          retencion_applicable: boolean | null
+          retencion_paid: number | null
+          retencion_rate: number | null
+          retencion_verified: boolean | null
+          subtotal: number | null
+          title: string | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_invoices_entities"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_projects"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_invoice_totals: {
+        Row: {
+          comprobante_type: string | null
+          cost_type: string | null
+          currency: string | null
+          detraccion_amount: number | null
+          detraccion_rate: number | null
+          direction: string | null
+          document_ref: string | null
+          due_date: string | null
+          entity_id: string | null
+          exchange_rate: number | null
+          igv_amount: number | null
+          igv_rate: number | null
+          invoice_date: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          notes: string | null
+          partner_company_id: string | null
+          payment_method: string | null
+          project_id: string | null
+          purchase_order_id: string | null
+          quote_id: string | null
+          retencion_amount: number | null
+          retencion_applicable: boolean | null
+          retencion_rate: number | null
+          retencion_verified: boolean | null
+          subtotal: number | null
+          title: string | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_invoices_entities"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_partner_companies"
+            columns: ["partner_company_id"]
+            isOneToOne: false
+            referencedRelation: "partner_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_projects"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_quotes"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_obligation_calendar: {
+        Row: {
+          amount_paid: number | null
+          bdn_outstanding: number | null
           cost_type: string | null
           currency: string | null
           date: string | null
           days_remaining: number | null
           detraccion_amount: number | null
+          direction: string | null
           document_ref: string | null
           due_date: string | null
           entity_id: string | null
           entity_name: string | null
           exchange_rate: number | null
           igv_amount: number | null
+          invoice_id: string | null
           loan_id: string | null
           outstanding: number | null
           partner_company_id: string | null
@@ -1153,63 +1198,6 @@ export type Database = {
           type: string | null
         }
         Relationships: []
-      }
-      v_ar_balances: {
-        Row: {
-          amount_paid: number | null
-          ar_invoice_id: string | null
-          bdn_outstanding: number | null
-          comprobante_type: string | null
-          currency: string | null
-          detraccion_amount: number | null
-          detraccion_paid: number | null
-          detraccion_rate: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string | null
-          exchange_rate: number | null
-          gross_total: number | null
-          igv_amount: number | null
-          igv_rate: number | null
-          invoice_date: string | null
-          invoice_number: string | null
-          net_receivable: number | null
-          notes: string | null
-          outstanding: number | null
-          partner_company_id: string | null
-          payment_status: string | null
-          project_id: string | null
-          receivable: number | null
-          retencion_amount: number | null
-          retencion_applicable: boolean | null
-          retencion_paid: number | null
-          retencion_rate: number | null
-          retencion_verified: boolean | null
-          subtotal: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_ar_invoices_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_ar_invoices_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       v_bank_balances: {
         Row: {
@@ -1264,128 +1252,6 @@ export type Database = {
           },
         ]
       }
-      v_cost_balances: {
-        Row: {
-          amount_paid: number | null
-          cost_id: string | null
-          cost_type: string | null
-          currency: string | null
-          date: string | null
-          detraccion_amount: number | null
-          detraccion_paid: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string | null
-          exchange_rate: number | null
-          igv_amount: number | null
-          outstanding: number | null
-          partner_company_id: string | null
-          payment_status: string | null
-          project_id: string | null
-          subtotal: number | null
-          title: string | null
-          total: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_costs_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_cost_totals: {
-        Row: {
-          comprobante_number: string | null
-          comprobante_type: string | null
-          cost_id: string | null
-          cost_type: string | null
-          currency: string | null
-          date: string | null
-          detraccion_amount: number | null
-          detraccion_rate: number | null
-          document_ref: string | null
-          due_date: string | null
-          entity_id: string | null
-          exchange_rate: number | null
-          igv_amount: number | null
-          igv_rate: number | null
-          notes: string | null
-          partner_company_id: string | null
-          payment_method: string | null
-          project_id: string | null
-          purchase_order_id: string | null
-          quote_id: string | null
-          subtotal: number | null
-          title: string | null
-          total: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_costs_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_partner_companies"
-            columns: ["partner_company_id"]
-            isOneToOne: false
-            referencedRelation: "partner_companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_costs_quotes"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_entity_transactions: {
-        Row: {
-          amount: number | null
-          currency: string | null
-          date: string | null
-          document_ref: string | null
-          entity_id: string | null
-          entity_name: string | null
-          invoice_number: string | null
-          project_code: string | null
-          project_id: string | null
-          project_name: string | null
-          title: string | null
-          total_with_igv: number | null
-          transaction_id: string | null
-          transaction_type: string | null
-        }
-        Relationships: []
-      }
       v_igv_position: {
         Row: {
           currency: string | null
@@ -1434,7 +1300,7 @@ export type Database = {
       }
       v_retencion_dashboard: {
         Row: {
-          ar_invoice_id: string | null
+          invoice_id: string | null
           client_name: string | null
           currency: string | null
           days_since_invoice: number | null
@@ -1450,7 +1316,7 @@ export type Database = {
       }
     }
     Functions: {
-      fn_create_cost_with_items: {
+      fn_create_invoice_with_items: {
         Args: { header_data: Json; items_data: Json }
         Returns: Json
       }

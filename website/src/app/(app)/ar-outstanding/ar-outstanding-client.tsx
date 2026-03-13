@@ -8,18 +8,18 @@ import { SummaryCard } from '@/components/ui/summary-card'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { Pagination } from '@/components/ui/pagination'
 import { Modal } from '@/components/ui/modal'
-import { fetchArInvoiceDetail } from '@/lib/actions'
+import { fetchInvoiceDetail } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
 import {
   getAgingColorClass,
   getAgingRowBorderClass,
 } from './helpers'
 import { DetailField, InvoiceDetailContent } from './ar-outstanding-detail'
+import type { ArOutstandingRow } from '@/lib/queries'
 import type {
-  ArOutstandingRow,
-  ArInvoiceDetailData,
-  ArOutstandingBucketId as BucketId,
-  ArOutstandingBucketCounts as BucketCounts,
+  InvoiceDetailData,
+  InvoiceAgingBucketId as BucketId,
+  InvoiceAgingBuckets as BucketCounts,
 } from '@/lib/types'
 
 type Totals = {
@@ -60,7 +60,7 @@ export function ArOutstandingClient({
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
   const { setFilter } = useUrlFilters()
-  const modal = useDetailModal<ArOutstandingRow, ArInvoiceDetailData>()
+  const modal = useDetailModal<ArOutstandingRow, InvoiceDetailData>()
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -85,7 +85,7 @@ export function ArOutstandingClient({
   }
 
   const handleRowClick = (row: ArOutstandingRow) => {
-    modal.open(row, () => fetchArInvoiceDetail(row.ar_invoice_id) as Promise<ArInvoiceDetailData | null>)
+    modal.open(row, () => fetchInvoiceDetail(row.invoice_id) as Promise<InvoiceDetailData | null>)
   }
 
   return (
@@ -246,7 +246,7 @@ export function ArOutstandingClient({
                 <>
                   {data.map((row) => (
                     <tr
-                      key={row.ar_invoice_id}
+                      key={row.invoice_id}
                       className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getAgingRowBorderClass(row.days_overdue)}`}
                       onClick={() => handleRowClick(row)}
                     >

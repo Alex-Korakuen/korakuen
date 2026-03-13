@@ -6,14 +6,14 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { DetailField } from '@/components/ui/detail-field'
 import { LoanScheduleForm } from './loan-schedule-form'
 import { RegisterLoanRepaymentForm } from './register-loan-repayment-form'
-import type { ApCalendarRow, LoanDetailData, Currency } from '@/lib/types'
+import type { ObligationCalendarRow, LoanDetailData, Currency } from '@/lib/types'
 
 export function LoanDetailContent({
   row,
   detail,
   onRepaymentSuccess,
 }: {
-  row: ApCalendarRow
+  row: ObligationCalendarRow
   detail: LoanDetailData
   onRepaymentSuccess?: () => void
 }) {

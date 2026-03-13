@@ -5,18 +5,16 @@ import { paginateArray, PAGE_SIZE } from './pagination'
 import { sortRows } from './sort-rows'
 import type { PaginatedResult } from './pagination'
 import type {
-  ApCalendarRow,
-  ArBalanceRow,
-  ArInvoiceDetailData,
-  ArOutstandingRow,
+  ObligationCalendarRow,
+  InvoiceBalanceRow,
+  InvoiceDetailData,
+  InvoicesPageRow,
+  InvoiceItem,
   BankAccountCard,
   BankTransaction,
   CashFlowData,
   CashFlowMonth,
   CashFlowProject,
-  CostBalanceRow,
-  CostDetailData,
-  CostItem,
   CurrencyAmount,
   EntityDetailData,
   EntityListItem,
@@ -27,8 +25,11 @@ import type {
   IgvByCurrency,
   LoanDetailData,
   LoanScheduleEntry,
-  PartnerCostDetail,
+  PartnerPayableDetail,
+  PartnerReceivableDetail,
   Payment,
+  PaymentsPageRow,
+  PaymentsSummary,
   PriceFilterOptions,
   PriceHistoryRow,
   ProjectDetailData,
@@ -39,8 +40,8 @@ import type {
   EntitySearchResult,
   PartnerCompanyOption,
   CategoryOption,
-  ApCalendarBucketCounts,
-  ArOutstandingBucketCounts,
+  CalendarBucketCounts,
+  InvoiceAgingBuckets,
   BucketValue,
 } from './types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -72,7 +73,8 @@ async function buildProjectCodeMap(
 }
 
 
-type ApCalendarFilters = {
+type ObligationCalendarFilters = {
+  direction?: 'payable' | 'receivable'
   projectId?: string
   supplier?: string
   currency?: string
@@ -83,14 +85,14 @@ type ApCalendarFilters = {
   page: number
 }
 
-type ApCalendarResult = {
-  paginated: PaginatedResult<ApCalendarRow>
-  bucketCounts: ApCalendarBucketCounts
+type ObligationCalendarResult = {
+  paginated: PaginatedResult<ObligationCalendarRow>
+  bucketCounts: CalendarBucketCounts
   uniqueSuppliers: string[]
 }
 
 
-function getApBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
+function getCalendarBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
   if (daysRemaining === null) return null
   if (daysRemaining < 0) return 'overdue'
   if (daysRemaining === 0) return 'today'
@@ -99,21 +101,26 @@ function getApBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'ov
   return null
 }
 
-export async function getApCalendar(
+export async function getObligationCalendar(
   partnerIds: string[],
-  filters: ApCalendarFilters,
+  filters: ObligationCalendarFilters,
   midRate: number | null = null,
-): Promise<ApCalendarResult> {
+): Promise<ObligationCalendarResult> {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
-    .from('v_ap_calendar')
+    .from('v_obligation_calendar')
     .select('*')
     .order('due_date', { ascending: true })
 
   if (error) throw error
-  let rows = (data ?? []) as ApCalendarRow[]
+  let rows = (data ?? []) as ObligationCalendarRow[]
 
-  // Partner filter — both costs and loans now have partner_company_id directly in the view
+  // Direction filter (AP Calendar = payable, AR Calendar = receivable)
+  if (filters.direction) {
+    rows = rows.filter(r => r.direction === filters.direction)
+  }
+
+  // Partner filter
   if (partnerIds.length > 0) {
     rows = rows.filter((row) => {
       if (row.partner_company_id) {
@@ -123,7 +130,7 @@ export async function getApCalendar(
     })
   }
 
-  // Collect unique suppliers for filter dropdown
+  // Collect unique suppliers/clients for filter dropdown
   const supplierSet = new Set<string>()
   for (const r of rows) { if (r.entity_name) supplierSet.add(r.entity_name) }
   const uniqueSuppliers = Array.from(supplierSet).sort()
@@ -131,14 +138,14 @@ export async function getApCalendar(
   // Compute bucket counts from all rows (before filters)
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
   const emptyBucket = { count: 0, pen: 0, usd: 0 }
-  const bucketCounts: ApCalendarBucketCounts = {
+  const bucketCounts: CalendarBucketCounts = {
     overdue: { ...emptyBucket },
     today: { ...emptyBucket },
     'this-week': { ...emptyBucket },
     'next-30': { ...emptyBucket },
   }
   for (const r of rows) {
-    const b = getApBucket(r.days_remaining, daysToEndOfWeek)
+    const b = getCalendarBucket(r.days_remaining, daysToEndOfWeek)
     if (!b) continue
     bucketCounts[b].count++
     const amt = r.outstanding ?? 0
@@ -151,7 +158,7 @@ export async function getApCalendar(
 
   // Apply filters
   if (filters.bucket && filters.bucket !== 'all') {
-    rows = rows.filter(r => getApBucket(r.days_remaining, daysToEndOfWeek) === filters.bucket)
+    rows = rows.filter(r => getCalendarBucket(r.days_remaining, daysToEndOfWeek) === filters.bucket)
   }
   if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
   if (filters.supplier) rows = rows.filter(r => r.entity_name === filters.supplier)
@@ -168,40 +175,32 @@ export async function getApCalendar(
   return { paginated, bucketCounts, uniqueSuppliers }
 }
 
-export async function getCostDetail(costId: string): Promise<CostDetailData> {
+export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  const [costResult, itemsResult, paymentsResult] = await Promise.all([
+  const [invoiceResult, itemsResult, paymentsResult] = await Promise.all([
     supabase
-      .from('v_cost_balances')
+      .from('v_invoice_balances')
       .select('*')
-      .eq('cost_id', costId)
+      .eq('invoice_id', invoiceId)
       .single(),
     supabase
-      .from('cost_items')
+      .from('invoice_items')
       .select('*')
-      .eq('cost_id', costId)
+      .eq('invoice_id', invoiceId)
       .order('created_at'),
     supabase
       .from('payments')
       .select('*')
-      .eq('related_id', costId)
-      .eq('related_to', 'cost')
+      .eq('related_id', invoiceId)
+      .eq('related_to', 'invoice')
       .order('payment_date'),
   ])
 
-  // Fetch cost header for comprobante info
-  const costHeaderResult = await supabase
-    .from('costs')
-    .select('comprobante_type, comprobante_number, document_ref')
-    .eq('id', costId)
-    .single()
-
   return {
-    cost: costResult.data as CostBalanceRow | null,
-    items: (itemsResult.data ?? []) as CostItem[],
+    invoice: invoiceResult.data as InvoiceBalanceRow | null,
+    items: (itemsResult.data ?? []) as InvoiceItem[],
     payments: (paymentsResult.data ?? []) as Payment[],
-    header: costHeaderResult.data,
   }
 }
 
@@ -284,11 +283,42 @@ type ArOutstandingTotals = {
   usd: { gross: number; receivable: number; bdn: number; count: number }
 }
 
+type ArOutstandingRow = {
+  invoice_id: string
+  project_id: string | null
+  project_code: string
+  entity_id: string | null
+  client_name: string
+  partner_company_id: string | null
+  partner_name: string
+  invoice_number: string | null
+  invoice_date: string | null
+  due_date: string | null
+  days_overdue: number
+  subtotal: number
+  igv_amount: number
+  gross_total: number
+  detraccion_amount: number
+  retencion_amount: number
+  retencion_applicable: boolean
+  retencion_rate: number | null
+  retencion_verified: boolean
+  net_receivable: number
+  amount_paid: number
+  outstanding: number
+  receivable: number
+  bdn_outstanding: number
+  currency: string
+  payment_status: string
+}
+
 type ArOutstandingResult = {
   paginated: PaginatedResult<ArOutstandingRow>
-  bucketCounts: ArOutstandingBucketCounts
+  bucketCounts: InvoiceAgingBuckets
   totals: ArOutstandingTotals
 }
+
+export type { ArOutstandingRow }
 
 export async function getArOutstanding(
   partnerFilter: string[],
@@ -298,8 +328,9 @@ export async function getArOutstanding(
   const supabase = await createServerSupabaseClient()
 
   let query = supabase
-    .from('v_ar_balances')
+    .from('v_invoice_balances')
     .select('*')
+    .eq('direction', 'receivable')
     .in('payment_status', ['pending', 'partial'])
     .order('due_date', { ascending: true })
 
@@ -314,7 +345,7 @@ export async function getArOutstanding(
   const emptyBucket = { count: 0, pen: 0, usd: 0 }
   const emptyResult: ArOutstandingResult = {
     paginated: { data: [], totalCount: 0, page: 1, pageSize: 25 },
-    bucketCounts: { current: { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket } },
+    bucketCounts: { current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket } },
     totals: { pen: { gross: 0, receivable: 0, bdn: 0, count: 0 }, usd: { gross: 0, receivable: 0, bdn: 0, count: 0 } },
   }
 
@@ -346,7 +377,7 @@ export async function getArOutstanding(
       : 0
 
     return {
-      ar_invoice_id: i.ar_invoice_id!,
+      invoice_id: i.invoice_id!,
       project_id: i.project_id,
       project_code: i.project_id ? projectMap.get(i.project_id) ?? '—' : '—',
       entity_id: i.entity_id,
@@ -359,13 +390,16 @@ export async function getArOutstanding(
       days_overdue: daysOverdue,
       subtotal: i.subtotal ?? 0,
       igv_amount: i.igv_amount ?? 0,
-      gross_total: i.gross_total ?? 0,
+      gross_total: i.total ?? 0,
       detraccion_amount: i.detraccion_amount ?? 0,
       retencion_amount: i.retencion_amount ?? 0,
-      net_receivable: i.net_receivable ?? 0,
+      retencion_applicable: i.retencion_applicable ?? false,
+      retencion_rate: i.retencion_rate,
+      retencion_verified: i.retencion_verified ?? false,
+      net_receivable: i.net_amount ?? 0,
       amount_paid: i.amount_paid ?? 0,
       outstanding: i.outstanding ?? 0,
-      receivable: i.receivable ?? 0,
+      receivable: i.payable_or_receivable ?? 0,
       bdn_outstanding: i.bdn_outstanding ?? 0,
       currency: i.currency ?? 'PEN',
       payment_status: i.payment_status ?? 'pending',
@@ -373,8 +407,9 @@ export async function getArOutstanding(
   })
 
   // Compute bucket counts from all rows (before any filters)
-  const bucketCounts: ArOutstandingBucketCounts = {
+  const bucketCounts: InvoiceAgingBuckets = {
     current: { ...emptyBucket },
+    '1-30': { ...emptyBucket },
     '31-60': { ...emptyBucket },
     '61-90': { ...emptyBucket },
     '90+': { ...emptyBucket },
@@ -418,65 +453,19 @@ export async function getArOutstanding(
   return { paginated, bucketCounts, totals }
 }
 
-export async function getArInvoiceDetail(arInvoiceId: string): Promise<ArInvoiceDetailData> {
-  const supabase = await createServerSupabaseClient()
-
-  const [invoiceResult, paymentsResult] = await Promise.all([
-    supabase
-      .from('v_ar_balances')
-      .select('*')
-      .eq('ar_invoice_id', arInvoiceId)
-      .single(),
-    supabase
-      .from('payments')
-      .select('*')
-      .eq('related_id', arInvoiceId)
-      .eq('related_to', 'ar_invoice')
-      .order('payment_date'),
-  ])
-
-  // Get entity and project names
-  const invoice = invoiceResult.data
-  let clientName = '—'
-  let projectCode = '—'
-  let partnerName = '—'
-
-  if (invoice) {
-    const [entityResult, projectResult, partnerResult] = await Promise.all([
-      invoice.entity_id
-        ? supabase.from('entities').select('legal_name, common_name').eq('id', invoice.entity_id).single()
-        : { data: null },
-      invoice.project_id
-        ? supabase.from('projects').select('project_code').eq('id', invoice.project_id).single()
-        : { data: null },
-      invoice.partner_company_id
-        ? supabase.from('partner_companies').select('name').eq('id', invoice.partner_company_id).single()
-        : { data: null },
-    ])
-    clientName = entityResult.data?.common_name || entityResult.data?.legal_name || '—'
-    projectCode = projectResult.data?.project_code || '—'
-    partnerName = partnerResult.data?.name || '—'
-  }
-
-  return {
-    invoice: invoice as ArBalanceRow | null,
-    payments: (paymentsResult.data ?? []) as Payment[],
-    client_name: clientName,
-    project_code: projectCode,
-    partner_name: partnerName,
-  }
-}
-
 export async function getClientsForFilter(): Promise<{ id: string; name: string }[]> {
   const supabase = await createServerSupabaseClient()
-  // Get distinct entities that have AR invoices
-  const { data: arInvoices } = await supabase
-    .from('ar_invoices')
+  // Get distinct entities that have receivable invoices
+  const { data: receivables } = await supabase
+    .from('invoices')
     .select('entity_id')
+    .eq('direction', 'receivable')
 
-  if (!arInvoices || arInvoices.length === 0) return []
+  if (!receivables || receivables.length === 0) return []
 
-  const entityIds = [...new Set(arInvoices.map(a => a.entity_id))]
+  const entityIds = [...new Set(receivables.map(a => a.entity_id).filter((id): id is string => id !== null))]
+  if (entityIds.length === 0) return []
+
   const { data } = await supabase
     .from('entities')
     .select('id, legal_name, common_name')
@@ -547,8 +536,8 @@ type MonthBucket = {
 
 type CashFlowRawData = {
   payments: { id: string; related_to: string; related_id: string; direction: string; payment_type: string; payment_date: string; amount: number; currency: string; exchange_rate: number; partner_company_id: string }[]
-  costBalances: { cost_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number | null; cost_type: string | null; partner_company_id: string | null }[]
-  arBalances: { ar_invoice_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number; partner_company_id: string | null }[]
+  payableBalances: { invoice_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number | null; cost_type: string | null; partner_company_id: string | null }[]
+  receivableBalances: { invoice_id: string; project_id: string | null; due_date: string | null; outstanding: number; currency: string; exchange_rate: number; partner_company_id: string | null }[]
   loanSchedule: { id: string; loan_id: string; scheduled_date: string; scheduled_amount: number; exchange_rate: number | null; loans: { currency: string; project_id: string | null; partner_company_id: string | null }[] }[]
   loanDisbursements: { id: string; amount: number; currency: string; exchange_rate: number | null; date_borrowed: string; project_id: string | null; partner_company_id: string }[]
   allProjects: { id: string; project_code: string; name: string }[]
@@ -556,10 +545,10 @@ type CashFlowRawData = {
 }
 
 type CashFlowMaps = {
-  costProjectMap: Map<string, string | null>
-  costTypeMap: Map<string, string>
-  arProjectMap: Map<string, string | null>
-  costCategoryMap: Map<string, { category: string; proportion: number }[]>
+  invoiceProjectMap: Map<string, string | null>
+  invoiceTypeMap: Map<string, string>
+  invoiceDirectionMap: Map<string, string>
+  invoiceCategoryMap: Map<string, { category: string; proportion: number }[]>
   loanProjectMap: Map<string, string | null>
   loanPartnerMap: Map<string, string | null>
   scheduleToLoanMap: Map<string, string>
@@ -571,8 +560,8 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
 
   const [
     paymentsResult,
-    costBalancesResult,
-    arBalancesResult,
+    payableBalancesResult,
+    receivableBalancesResult,
     loanScheduleResult,
     loansResult,
     latestRate,
@@ -584,13 +573,15 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
       .gte('payment_date', yearStart)
       .lte('payment_date', yearEnd),
     supabase
-      .from('v_cost_balances')
-      .select('cost_id, project_id, due_date, outstanding, currency, exchange_rate, cost_type, partner_company_id')
+      .from('v_invoice_balances')
+      .select('invoice_id, project_id, due_date, outstanding, currency, exchange_rate, cost_type, partner_company_id')
+      .eq('direction', 'payable')
       .in('payment_status', ['pending', 'partial'])
       .not('due_date', 'is', null),
     supabase
-      .from('v_ar_balances')
-      .select('ar_invoice_id, project_id, due_date, outstanding, currency, exchange_rate, partner_company_id')
+      .from('v_invoice_balances')
+      .select('invoice_id, project_id, due_date, outstanding, currency, exchange_rate, partner_company_id')
+      .eq('direction', 'receivable')
       .in('payment_status', ['pending', 'partial'])
       .not('due_date', 'is', null),
     supabase
@@ -616,8 +607,8 @@ async function fetchCashFlowData(supabase: SupabaseClient, year: number): Promis
 
   return {
     payments: paymentsResult.data ?? [],
-    costBalances: costBalancesResult.data ?? [],
-    arBalances: arBalancesResult.data ?? [],
+    payableBalances: payableBalancesResult.data ?? [],
+    receivableBalances: receivableBalancesResult.data ?? [],
     loanSchedule: loanScheduleResult.data ?? [],
     loanDisbursements: loansResult.data ?? [],
     allProjects: projectsResult.data ?? [],
@@ -630,82 +621,72 @@ async function buildCashFlowMaps(
   raw: CashFlowRawData,
   hasPartnerFilter: boolean,
 ): Promise<CashFlowMaps> {
-  // Collect relevant cost_ids, then fetch cost_items only for those
-  const relevantCostIds = new Set<string>()
-  for (const cb of raw.costBalances) {
-    if (cb.cost_id) relevantCostIds.add(cb.cost_id)
+  // Collect relevant invoice_ids, then fetch invoice_items only for those
+  const relevantInvoiceIds = new Set<string>()
+  for (const ib of raw.payableBalances) {
+    if (ib.invoice_id) relevantInvoiceIds.add(ib.invoice_id)
   }
   for (const p of raw.payments) {
-    if (p.related_to === 'cost' && p.related_id) relevantCostIds.add(p.related_id)
+    if (p.related_to === 'invoice' && p.related_id) relevantInvoiceIds.add(p.related_id)
   }
-  const costItems: { cost_id: string; category: string; subtotal: number }[] = []
-  if (relevantCostIds.size > 0) {
+  const invoiceItems: { invoice_id: string; category: string; subtotal: number }[] = []
+  if (relevantInvoiceIds.size > 0) {
     const { data } = await supabase
-      .from('cost_items')
-      .select('cost_id, category, subtotal')
-      .in('cost_id', [...relevantCostIds])
-    if (data) costItems.push(...data)
+      .from('invoice_items')
+      .select('invoice_id, category, subtotal')
+      .in('invoice_id', [...relevantInvoiceIds])
+    if (data) invoiceItems.push(...data)
   }
 
-  // cost_id -> project_id and cost_id -> cost_type
-  const costProjectMap = new Map<string, string | null>()
-  const costTypeMap = new Map<string, string>()
-  for (const cb of raw.costBalances) {
-    if (cb.cost_id) {
-      costProjectMap.set(cb.cost_id, cb.project_id)
-      if (cb.cost_type) costTypeMap.set(cb.cost_id, cb.cost_type)
+  // invoice_id -> project_id, cost_type, and direction from balance data
+  const invoiceProjectMap = new Map<string, string | null>()
+  const invoiceTypeMap = new Map<string, string>()
+  const invoiceDirectionMap = new Map<string, string>()
+  for (const ib of raw.payableBalances) {
+    if (ib.invoice_id) {
+      invoiceProjectMap.set(ib.invoice_id, ib.project_id)
+      if (ib.cost_type) invoiceTypeMap.set(ib.invoice_id, ib.cost_type)
+      invoiceDirectionMap.set(ib.invoice_id, 'payable')
+    }
+  }
+  for (const ib of raw.receivableBalances) {
+    if (ib.invoice_id) {
+      invoiceProjectMap.set(ib.invoice_id, ib.project_id)
+      invoiceDirectionMap.set(ib.invoice_id, 'receivable')
     }
   }
 
-  // Fetch cost project_ids/cost_types for payments referencing already-paid costs
-  const paymentCostIds = raw.payments
-    .filter(p => p.related_to === 'cost')
+  // Fetch invoice project_ids/cost_types/direction for payments referencing already-paid invoices
+  const paymentInvoiceIds = raw.payments
+    .filter(p => p.related_to === 'invoice')
     .map(p => p.related_id)
-    .filter(id => !costProjectMap.has(id))
-  if (paymentCostIds.length > 0) {
-    const { data: extraCosts } = await supabase
-      .from('costs')
-      .select('id, project_id, cost_type')
-      .in('id', paymentCostIds)
-    for (const c of extraCosts ?? []) {
-      costProjectMap.set(c.id, c.project_id)
-      if (c.cost_type) costTypeMap.set(c.id, c.cost_type)
+    .filter(id => !invoiceProjectMap.has(id))
+  if (paymentInvoiceIds.length > 0) {
+    const { data: extraInvoices } = await supabase
+      .from('invoices')
+      .select('id, project_id, cost_type, direction')
+      .in('id', paymentInvoiceIds)
+    for (const inv of extraInvoices ?? []) {
+      invoiceProjectMap.set(inv.id, inv.project_id)
+      if (inv.cost_type) invoiceTypeMap.set(inv.id, inv.cost_type)
+      invoiceDirectionMap.set(inv.id, inv.direction)
     }
   }
 
-  // AR invoice project + partner map
-  const arProjectMap = new Map<string, string | null>()
-  for (const ar of raw.arBalances) {
-    if (ar.ar_invoice_id) arProjectMap.set(ar.ar_invoice_id, ar.project_id)
+  // invoice_id -> category proportions
+  const invoiceCategoryMap = new Map<string, { category: string; proportion: number }[]>()
+  const invoiceSubtotals = new Map<string, number>()
+  for (const item of invoiceItems) {
+    invoiceSubtotals.set(item.invoice_id, (invoiceSubtotals.get(item.invoice_id) ?? 0) + (item.subtotal ?? 0))
   }
-  const paymentArIds = raw.payments
-    .filter(p => p.related_to === 'ar_invoice')
-    .map(p => p.related_id)
-    .filter(id => !arProjectMap.has(id))
-  if (paymentArIds.length > 0) {
-    const { data: extraAr } = await supabase
-      .from('ar_invoices')
-      .select('id, project_id, partner_company_id')
-      .in('id', paymentArIds)
-    for (const a of extraAr ?? []) {
-      arProjectMap.set(a.id, a.project_id)
-    }
-  }
-
-  // cost_id -> category proportions
-  const costCategoryMap = new Map<string, { category: string; proportion: number }[]>()
-  const costSubtotals = new Map<string, number>()
-  for (const item of costItems) {
-    costSubtotals.set(item.cost_id, (costSubtotals.get(item.cost_id) ?? 0) + (item.subtotal ?? 0))
-  }
-  for (const item of costItems) {
-    const total = costSubtotals.get(item.cost_id) ?? 1
-    const entries = costCategoryMap.get(item.cost_id) ?? []
+  for (const item of invoiceItems) {
+    const total = invoiceSubtotals.get(item.invoice_id) ?? 1
+    const entries = invoiceCategoryMap.get(item.invoice_id) ?? []
     entries.push({
       category: item.category,
       proportion: total > 0 ? (item.subtotal ?? 0) / total : 0,
     })
-    costCategoryMap.set(item.cost_id, entries)
+    invoiceCategoryMap.set(item.invoice_id, entries)
   }
 
   // loan_id -> project_id + partner_company_id
@@ -757,7 +738,7 @@ async function buildCashFlowMaps(
     }
   }
 
-  return { costProjectMap, costTypeMap, arProjectMap, costCategoryMap, loanProjectMap, loanPartnerMap, scheduleToLoanMap }
+  return { invoiceProjectMap, invoiceTypeMap, invoiceDirectionMap, invoiceCategoryMap, loanProjectMap, loanPartnerMap, scheduleToLoanMap }
 }
 
 function processMonthBuckets(
@@ -797,9 +778,8 @@ function processMonthBuckets(
       continue
     }
 
-    const pProjectId = p.related_to === 'cost'
-      ? maps.costProjectMap.get(p.related_id)
-      : maps.arProjectMap.get(p.related_id)
+    // Invoice payments (both payable and receivable)
+    const pProjectId = maps.invoiceProjectMap.get(p.related_id)
     if (projectId && pProjectId !== projectId) continue
 
     const monthKey = toMonthKey(p.payment_date)
@@ -811,8 +791,8 @@ function processMonthBuckets(
       const projId = pProjectId ?? '_none'
       bucket.cashInByProject[projId] = (bucket.cashInByProject[projId] ?? 0) + amount
     } else {
-      const categories = maps.costCategoryMap.get(p.related_id)
-      const costType = maps.costTypeMap.get(p.related_id) ?? null
+      const categories = maps.invoiceCategoryMap.get(p.related_id)
+      const costType = maps.invoiceTypeMap.get(p.related_id) ?? null
       if (categories && categories.length > 0) {
         for (const cat of categories) {
           const catKey = mapCategory(cat.category, costType, sgaKeys)
@@ -824,22 +804,22 @@ function processMonthBuckets(
     }
   }
 
-  // Forecast: outstanding costs by due_date
-  for (const cost of raw.costBalances) {
-    if (!cost.due_date) continue
-    const monthKey = toMonthKey(cost.due_date)
+  // Forecast: outstanding payable invoices by due_date
+  for (const inv of raw.payableBalances) {
+    if (!inv.due_date) continue
+    const monthKey = toMonthKey(inv.due_date)
     if (monthKey <= currentMonthKey || monthKey < `${year}-01` || monthKey > `${year}-12`) continue
-    if (projectId && cost.project_id !== projectId) continue
-    if (hasPartnerFilter && cost.partner_company_id) {
-      if (!partnerIds.includes(cost.partner_company_id)) continue
+    if (projectId && inv.project_id !== projectId) continue
+    if (hasPartnerFilter && inv.partner_company_id) {
+      if (!partnerIds.includes(inv.partner_company_id)) continue
     }
 
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const amount = convertAmount(cost.outstanding ?? 0, cost.currency, raw.forecastRate ?? cost.exchange_rate ?? null, reportingCurrency)
-    const categories = cost.cost_id ? maps.costCategoryMap.get(cost.cost_id) : null
-    const costType = cost.cost_id ? (maps.costTypeMap.get(cost.cost_id) ?? cost.cost_type ?? null) : null
+    const amount = convertAmount(inv.outstanding ?? 0, inv.currency, raw.forecastRate ?? inv.exchange_rate ?? null, reportingCurrency)
+    const categories = inv.invoice_id ? maps.invoiceCategoryMap.get(inv.invoice_id) : null
+    const costType = inv.invoice_id ? (maps.invoiceTypeMap.get(inv.invoice_id) ?? inv.cost_type ?? null) : null
     if (categories && categories.length > 0) {
       for (const cat of categories) {
         const catKey = mapCategory(cat.category, costType, sgaKeys)
@@ -850,19 +830,19 @@ function processMonthBuckets(
     }
   }
 
-  // Forecast: outstanding AR invoices by due_date
-  for (const ar of raw.arBalances) {
-    if (!ar.due_date) continue
-    const monthKey = toMonthKey(ar.due_date)
+  // Forecast: outstanding receivable invoices by due_date
+  for (const inv of raw.receivableBalances) {
+    if (!inv.due_date) continue
+    const monthKey = toMonthKey(inv.due_date)
     if (monthKey <= currentMonthKey || monthKey < `${year}-01` || monthKey > `${year}-12`) continue
-    if (projectId && ar.project_id !== projectId) continue
-    if (hasPartnerFilter && ar.partner_company_id && !partnerIds.includes(ar.partner_company_id)) continue
+    if (projectId && inv.project_id !== projectId) continue
+    if (hasPartnerFilter && inv.partner_company_id && !partnerIds.includes(inv.partner_company_id)) continue
 
     const bucket = monthBuckets.get(monthKey)
     if (!bucket) continue
 
-    const projId = ar.project_id ?? '_none'
-    const amount = convertAmount(ar.outstanding ?? 0, ar.currency, raw.forecastRate ?? ar.exchange_rate, reportingCurrency)
+    const projId = inv.project_id ?? '_none'
+    const amount = convertAmount(inv.outstanding ?? 0, inv.currency, raw.forecastRate ?? inv.exchange_rate, reportingCurrency)
     bucket.cashInByProject[projId] = (bucket.cashInByProject[projId] ?? 0) + amount
   }
 
@@ -986,73 +966,75 @@ export async function getCashFlow(
 
 // --- Partner detail queries (used by Project Detail settlement section) ---
 
-export async function getPartnerCostDetails(
+export async function getPartnerPayableDetails(
   projectId: string,
   partnerCompanyId: string,
-): Promise<PartnerCostDetail[]> {
+): Promise<PartnerPayableDetail[]> {
   const supabase = await createServerSupabaseClient()
 
-  // Get all costs for this project by this partner
-  const { data: costs, error } = await supabase
-    .from('v_cost_totals')
-    .select('cost_id, date, comprobante_number, currency, subtotal, exchange_rate')
+  // Get all payable invoices for this project by this partner
+  const { data: invoices, error } = await supabase
+    .from('v_invoice_totals')
+    .select('invoice_id, invoice_date, invoice_number, currency, subtotal, exchange_rate')
+    .eq('direction', 'payable')
     .eq('project_id', projectId)
     .eq('partner_company_id', partnerCompanyId)
-    .order('date', { ascending: false })
+    .order('invoice_date', { ascending: false })
 
   if (error) throw error
-  if (!costs || costs.length === 0) return []
+  if (!invoices || invoices.length === 0) return []
 
-  return costs.map(c => {
-    const subtotal = c.subtotal ?? 0
-    const rate = c.exchange_rate ? Number(c.exchange_rate) : 1
+  return invoices.map(inv => {
+    const subtotal = inv.subtotal ?? 0
+    const rate = inv.exchange_rate ? Number(inv.exchange_rate) : 1
     return {
-      cost_id: c.cost_id!,
-      date: c.date,
-      comprobante_number: c.comprobante_number,
+      invoice_id: inv.invoice_id!,
+      date: inv.invoice_date,
+      invoice_number: inv.invoice_number,
       subtotal,
-      currency: c.currency,
-      exchange_rate: c.exchange_rate ? Number(c.exchange_rate) : null,
-      subtotal_pen: c.currency === 'USD' ? Math.round(subtotal * rate * 100) / 100 : subtotal,
+      currency: inv.currency,
+      exchange_rate: inv.exchange_rate ? Number(inv.exchange_rate) : null,
+      subtotal_pen: inv.currency === 'USD' ? Math.round(subtotal * rate * 100) / 100 : subtotal,
     }
   })
 }
 
-export async function getPartnerRevenueDetails(
+export async function getPartnerReceivableDetails(
   projectId: string,
   partnerCompanyId: string,
-): Promise<import('./types').PartnerRevenueDetail[]> {
+): Promise<PartnerReceivableDetail[]> {
   const supabase = await createServerSupabaseClient()
 
-  // Get AR invoices for this project+partner
-  const { data: ars } = await supabase
-    .from('ar_invoices')
+  // Get receivable invoices for this project+partner
+  const { data: invoices } = await supabase
+    .from('invoices')
     .select('id, invoice_number, currency')
+    .eq('direction', 'receivable')
     .eq('project_id', projectId)
     .eq('partner_company_id', partnerCompanyId)
 
-  if (!ars || ars.length === 0) return []
+  if (!invoices || invoices.length === 0) return []
 
-  const arIds = ars.map(a => a.id)
-  const arMap = new Map(ars.map(a => [a.id, a]))
+  const invoiceIds = invoices.map(a => a.id)
+  const invoiceMap = new Map(invoices.map(a => [a.id, a]))
 
-  // Get payments linked to these AR invoices
+  // Get payments linked to these receivable invoices
   const { data: payments } = await supabase
     .from('payments')
     .select('id, related_id, payment_date, amount, currency, exchange_rate')
-    .in('related_id', arIds)
-    .eq('related_to', 'ar_invoice')
+    .in('related_id', invoiceIds)
+    .eq('related_to', 'invoice')
     .order('payment_date', { ascending: false })
 
   return (payments ?? []).map(p => {
-    const ar = arMap.get(p.related_id)
-    const currency = p.currency ?? ar?.currency ?? 'PEN'
+    const inv = invoiceMap.get(p.related_id)
+    const currency = p.currency ?? inv?.currency ?? 'PEN'
     const amount = p.amount ?? 0
     const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
     return {
       payment_id: p.id,
       payment_date: p.payment_date,
-      invoice_number: ar?.invoice_number ?? null,
+      invoice_number: inv?.invoice_number ?? null,
       amount,
       currency,
       exchange_rate: p.exchange_rate ? Number(p.exchange_rate) : null,
@@ -1093,8 +1075,8 @@ export async function getFinancialPosition(
     loanResult,
   ] = await Promise.all([
     supabase.from('v_bank_balances').select('*'),
-    supabase.from('v_ar_balances').select('outstanding, currency, payment_status, partner_company_id'),
-    supabase.from('v_cost_balances').select('outstanding, currency, payment_status, partner_company_id'),
+    supabase.from('v_invoice_balances').select('outstanding, currency, payment_status, partner_company_id').eq('direction', 'receivable'),
+    supabase.from('v_invoice_balances').select('outstanding, currency, payment_status, partner_company_id').eq('direction', 'payable'),
     supabase.from('v_igv_position').select('*'),
     supabase.from('v_retencion_dashboard').select('retencion_amount, currency, retencion_verified'),
     supabase.from('v_loan_balances').select('*'),
@@ -1192,71 +1174,44 @@ export async function getBankTransactions(
   if (!payments || payments.length === 0) return []
 
   // Enrich with entity names and project codes
-  const costIds = payments
-    .filter(p => p.related_to === 'cost')
+  const invoiceIds = payments
+    .filter(p => p.related_to === 'invoice')
     .map(p => p.related_id)
     .filter((id): id is string => id !== null)
 
-  const arIds = payments
-    .filter(p => p.related_to === 'ar_invoice')
-    .map(p => p.related_id)
-    .filter((id): id is string => id !== null)
-
-  const [costResult, arResult] = await Promise.all([
-    costIds.length > 0
-      ? supabase
-          .from('v_cost_totals')
-          .select('cost_id, entity_id, project_id, title')
-          .in('cost_id', costIds)
-      : { data: [] },
-    arIds.length > 0
-      ? supabase
-          .from('ar_invoices')
-          .select('id, entity_id, project_id, invoice_number')
-          .in('id', arIds)
-      : { data: [] },
-  ])
-
-  const costs = costResult.data ?? []
-  const ars = arResult.data ?? []
+  let invoiceData: { id: string; entity_id: string | null; project_id: string | null; title: string | null; invoice_number: string | null; direction: string }[] = []
+  if (invoiceIds.length > 0) {
+    const { data } = await supabase
+      .from('invoices')
+      .select('id, entity_id, project_id, title, invoice_number, direction')
+      .in('id', invoiceIds)
+    invoiceData = data ?? []
+  }
 
   // Get entity and project names
-  const entityIds = [
-    ...costs.map(c => c.entity_id),
-    ...ars.map(a => a.entity_id),
-  ].filter((id): id is string => id !== null)
-
-  const projectIds = [
-    ...costs.map(c => c.project_id),
-    ...ars.map(a => a.project_id),
-  ].filter((id): id is string => id !== null)
+  const entityIds = invoiceData.map(inv => inv.entity_id).filter((id): id is string => id !== null)
+  const projectIds = invoiceData.map(inv => inv.project_id).filter((id): id is string => id !== null)
 
   const [entityMap, projectMap] = await Promise.all([
     buildEntityNameMap(supabase, [...new Set(entityIds)]),
     buildProjectCodeMap(supabase, [...new Set(projectIds)]),
   ])
 
-  const costMap = new Map(costs.map(c => [c.cost_id, c]))
-  const arMap = new Map(ars.map(a => [a.id, a]))
+  const invoiceMap = new Map(invoiceData.map(inv => [inv.id, inv]))
 
   return payments.map(p => {
     let entityName: string | null = null
     let projectCode: string | null = null
     let description: string | null = null
 
-    if (p.related_to === 'cost' && p.related_id) {
-      const cost = costMap.get(p.related_id)
-      if (cost) {
-        entityName = cost.entity_id ? entityMap.get(cost.entity_id) ?? null : null
-        projectCode = cost.project_id ? projectMap.get(cost.project_id) ?? null : null
-        description = cost.title ?? null
-      }
-    } else if (p.related_to === 'ar_invoice' && p.related_id) {
-      const ar = arMap.get(p.related_id)
-      if (ar) {
-        entityName = ar.entity_id ? entityMap.get(ar.entity_id) ?? null : null
-        projectCode = ar.project_id ? projectMap.get(ar.project_id) ?? null : null
-        description = ar.invoice_number ? `Invoice ${ar.invoice_number}` : null
+    if (p.related_to === 'invoice' && p.related_id) {
+      const inv = invoiceMap.get(p.related_id)
+      if (inv) {
+        entityName = inv.entity_id ? entityMap.get(inv.entity_id) ?? null : null
+        projectCode = inv.project_id ? projectMap.get(inv.project_id) ?? null : null
+        description = inv.direction === 'receivable'
+          ? (inv.invoice_number ? `Invoice ${inv.invoice_number}` : null)
+          : inv.title ?? null
       }
     }
 
@@ -1300,10 +1255,11 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   if (projectResult.error) throw projectResult.error
   const project = projectResult.data
 
-  // 2. Spending by entity: query v_cost_totals for this project, group by (entity_id, currency)
+  // 2. Spending by entity: query v_invoice_totals for payable invoices, group by (entity_id, currency)
   const { data: costTotals } = await supabase
-    .from('v_cost_totals')
+    .from('v_invoice_totals')
     .select('entity_id, currency, subtotal')
+    .eq('direction', 'payable')
     .eq('project_id', projectId)
 
   const spendingMap = new Map<string, { totalSpent: number; invoiceCount: number }>()
@@ -1399,10 +1355,11 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   // 7. Partner settlements — compute cost contributions + AR payments received
   let partnerSettlements: ProjectPartnerSettlement[] = []
   if (partners.length > 0) {
-    // Fetch project costs per partner from v_cost_totals (project_cost only, SGA excluded)
+    // Fetch project costs per partner from v_invoice_totals (project_cost only, SGA excluded)
     const { data: costTotals } = await supabase
-      .from('v_cost_totals')
+      .from('v_invoice_totals')
       .select('partner_company_id, subtotal, currency, exchange_rate')
+      .eq('direction', 'payable')
       .eq('project_id', projectId)
       .eq('cost_type', 'project_cost')
 
@@ -1417,36 +1374,37 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     }
 
     // Get actual AR payments received per partner
-    const { data: projectArInvoices } = await supabase
-      .from('ar_invoices')
+    const { data: projectReceivables } = await supabase
+      .from('invoices')
       .select('id, partner_company_id, currency')
+      .eq('direction', 'receivable')
       .eq('project_id', projectId)
 
-    const arIds = (projectArInvoices ?? []).map(a => a.id)
+    const receivableIds = (projectReceivables ?? []).map(a => a.id)
     const receivedByPartner = new Map<string, number>()
 
-    if (arIds.length > 0) {
+    if (receivableIds.length > 0) {
       const { data: arPayments } = await supabase
         .from('payments')
         .select('related_id, amount, currency, exchange_rate')
-        .in('related_id', arIds)
-        .eq('related_to', 'ar_invoice')
+        .in('related_id', receivableIds)
+        .eq('related_to', 'invoice')
 
-      const arPartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
-      for (const ar of projectArInvoices ?? []) {
-        if (ar.partner_company_id) {
-          arPartnerMap.set(ar.id, { partner_company_id: ar.partner_company_id, currency: ar.currency })
+      const receivablePartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
+      for (const inv of projectReceivables ?? []) {
+        if (inv.partner_company_id) {
+          receivablePartnerMap.set(inv.id, { partner_company_id: inv.partner_company_id, currency: inv.currency })
         }
       }
 
       for (const p of arPayments ?? []) {
-        const arInfo = arPartnerMap.get(p.related_id)
-        if (!arInfo) continue
-        const paymentCurrency = p.currency ?? arInfo.currency
+        const invInfo = receivablePartnerMap.get(p.related_id)
+        if (!invInfo) continue
+        const paymentCurrency = p.currency ?? invInfo.currency
         const amount = p.amount ?? 0
         const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
         const amountPen = paymentCurrency === 'USD' ? amount * rate : amount
-        receivedByPartner.set(arInfo.partner_company_id, (receivedByPartner.get(arInfo.partner_company_id) ?? 0) + amountPen)
+        receivedByPartner.set(invInfo.partner_company_id, (receivedByPartner.get(invInfo.partner_company_id) ?? 0) + amountPen)
       }
     }
 
@@ -1581,7 +1539,7 @@ export async function getEntitiesList(
 export async function getEntityDetail(entityId: string): Promise<EntityDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  const [entityResult, tagsResult, contactsResult, costsResult, arResult] = await Promise.all([
+  const [entityResult, tagsResult, contactsResult, payablesResult, receivablesResult] = await Promise.all([
     supabase.from('entities').select('*').eq('id', entityId).single(),
     supabase.from('entity_tags').select('tag_id, tags(name)').eq('entity_id', entityId),
     supabase
@@ -1591,13 +1549,15 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
       .eq('is_active', true)
       .order('full_name'),
     supabase
-      .from('v_cost_balances')
-      .select('cost_id, project_id, date, title, currency, total, outstanding')
+      .from('v_invoice_balances')
+      .select('invoice_id, project_id, invoice_date, title, currency, total, outstanding')
+      .eq('direction', 'payable')
       .eq('entity_id', entityId)
-      .order('date', { ascending: false }),
+      .order('invoice_date', { ascending: false }),
     supabase
-      .from('v_ar_balances')
-      .select('ar_invoice_id, project_id, invoice_date, invoice_number, notes, currency, gross_total, outstanding')
+      .from('v_invoice_balances')
+      .select('invoice_id, project_id, invoice_date, invoice_number, notes, currency, total, outstanding')
+      .eq('direction', 'receivable')
       .eq('entity_id', entityId)
       .order('invoice_date', { ascending: false }),
   ])
@@ -1613,8 +1573,8 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
 
   // Collect all project IDs to fetch codes/names
   const projectIds = new Set<string>()
-  for (const c of costsResult.data ?? []) if (c.project_id) projectIds.add(c.project_id)
-  for (const a of arResult.data ?? []) if (a.project_id) projectIds.add(a.project_id)
+  for (const c of payablesResult.data ?? []) if (c.project_id) projectIds.add(c.project_id)
+  for (const a of receivablesResult.data ?? []) if (a.project_id) projectIds.add(a.project_id)
 
   const projectMap = new Map<string, { code: string; name: string }>()
   if (projectIds.size > 0) {
@@ -1629,10 +1589,10 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
 
   // Group payables by (project_id, currency)
   const payablesByProject = groupLedger(
-    (costsResult.data ?? []).map(c => ({
-      transactionId: c.cost_id,
+    (payablesResult.data ?? []).map(c => ({
+      transactionId: c.invoice_id,
       projectId: c.project_id,
-      date: c.date,
+      date: c.invoice_date,
       title: c.title,
       currency: c.currency ?? 'PEN',
       invoiceTotal: c.total ?? 0,
@@ -1643,13 +1603,13 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
 
   // Group receivables by (project_id, currency)
   const receivablesByProject = groupLedger(
-    (arResult.data ?? []).map(a => ({
-      transactionId: a.ar_invoice_id,
+    (receivablesResult.data ?? []).map(a => ({
+      transactionId: a.invoice_id,
       projectId: a.project_id,
       date: a.invoice_date,
       title: a.notes ?? (a.invoice_number ? `Invoice ${a.invoice_number}` : null),
       currency: a.currency ?? 'PEN',
-      invoiceTotal: a.gross_total ?? 0,
+      invoiceTotal: a.total ?? 0,
       outstanding: a.outstanding ?? 0,
     })),
     projectMap,
@@ -1755,28 +1715,29 @@ export async function getPriceHistory(
 ): Promise<PaginatedResult<PriceHistoryRow>> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch cost_items with their parent cost header info, and quotes in parallel
-  const [costItemsResult, costsResult, quotesResult] = await Promise.all([
-    supabase.from('cost_items').select('id, cost_id, title, category, quantity, unit_of_measure, unit_price'),
+  // Fetch invoice_items with their parent invoice header info, and quotes in parallel
+  const [invoiceItemsResult, invoicesResult, quotesResult] = await Promise.all([
+    supabase.from('invoice_items').select('id, invoice_id, title, category, quantity, unit_of_measure, unit_price'),
     supabase
-      .from('costs')
-      .select('id, entity_id, project_id, date, currency')
+      .from('invoices')
+      .select('id, entity_id, project_id, invoice_date, currency')
+      .eq('direction', 'payable')
       .eq('cost_type', 'project_cost'),
     supabase.from('quotes').select('id, entity_id, project_id, date_received, title, quantity, unit_of_measure, unit_price, currency'),
   ])
 
-  const costItems = costItemsResult.data ?? []
-  const costs = costsResult.data ?? []
+  const invoiceItems = invoiceItemsResult.data ?? []
+  const payableInvoices = invoicesResult.data ?? []
   const quotes = quotesResult.data ?? []
 
-  // Build cost_id -> cost header map
-  const costMap = new Map(costs.map(c => [c.id, c]))
+  // Build invoice_id -> invoice header map
+  const invoiceHeaderMap = new Map(payableInvoices.map(c => [c.id, c]))
 
   // Collect all entity and project IDs for lookups
   const allEntityIds = new Set<string>()
   const allProjectIds = new Set<string>()
 
-  for (const c of costs) {
+  for (const c of payableInvoices) {
     if (c.entity_id) allEntityIds.add(c.entity_id)
     if (c.project_id) allProjectIds.add(c.project_id)
   }
@@ -1805,28 +1766,28 @@ export async function getPriceHistory(
     }
   }
 
-  // Build result: cost_items
+  // Build result: invoice_items
   let rows: PriceHistoryRow[] = []
 
-  for (const item of costItems) {
-    const cost = costMap.get(item.cost_id)
-    if (!cost) continue // skip cost_items without matching project_cost header
+  for (const item of invoiceItems) {
+    const inv = invoiceHeaderMap.get(item.invoice_id)
+    if (!inv) continue // skip invoice_items without matching project_cost header
 
     rows.push({
       id: item.id,
-      date: cost.date ?? '',
-      source: 'cost',
-      entityId: cost.entity_id,
-      entityName: cost.entity_id ? entityNameMap.get(cost.entity_id) ?? '—' : '—',
-      projectId: cost.project_id,
-      projectCode: cost.project_id ? projectCodeMap.get(cost.project_id) ?? '—' : '—',
+      date: inv.invoice_date ?? '',
+      source: 'invoice',
+      entityId: inv.entity_id,
+      entityName: inv.entity_id ? entityNameMap.get(inv.entity_id) ?? '—' : '—',
+      projectId: inv.project_id,
+      projectCode: inv.project_id ? projectCodeMap.get(inv.project_id) ?? '—' : '—',
       title: item.title ?? '',
       category: item.category,
       quantity: item.quantity,
       unit_of_measure: item.unit_of_measure,
       unit_price: item.unit_price,
-      currency: cost.currency ?? 'PEN',
-      entityTags: cost.entity_id ? entityTagsMap.get(cost.entity_id) ?? [] : [],
+      currency: inv.currency ?? 'PEN',
+      entityTags: inv.entity_id ? entityTagsMap.get(inv.entity_id) ?? [] : [],
     })
   }
 
@@ -1881,7 +1842,7 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
   const [projectsResult, tagsResult, categoriesResult] = await Promise.all([
     supabase.from('projects').select('id, project_code, name').eq('is_active', true).order('project_code'),
     supabase.from('tags').select('id, name').eq('is_active', true).order('name'),
-    supabase.from('cost_items').select('category'),
+    supabase.from('invoice_items').select('category'),
   ])
 
   // Distinct categories
@@ -1889,14 +1850,14 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
     (categoriesResult.data ?? []).map(c => c.category).filter(Boolean)
   )] as string[]
 
-  // Get entities that appear in costs or quotes
-  const [costEntitiesResult, quoteEntitiesResult] = await Promise.all([
-    supabase.from('costs').select('entity_id').eq('cost_type', 'project_cost').not('entity_id', 'is', null),
+  // Get entities that appear in payable invoices or quotes
+  const [invoiceEntitiesResult, quoteEntitiesResult] = await Promise.all([
+    supabase.from('invoices').select('entity_id').eq('direction', 'payable').eq('cost_type', 'project_cost').not('entity_id', 'is', null),
     supabase.from('quotes').select('entity_id').not('entity_id', 'is', null),
   ])
 
   const entityIds = [...new Set([
-    ...(costEntitiesResult.data ?? []).map(c => c.entity_id),
+    ...(invoiceEntitiesResult.data ?? []).map(c => c.entity_id),
     ...(quoteEntitiesResult.data ?? []).map(q => q.entity_id),
   ].filter((id): id is string => id !== null))]
 

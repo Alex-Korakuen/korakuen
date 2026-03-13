@@ -1,14 +1,14 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { getRowBorderClass, formatType } from './helpers'
-import type { ApCalendarRow } from '@/lib/types'
+import type { ObligationCalendarRow } from '@/lib/types'
 
 type Props = {
-  data: ApCalendarRow[]
+  data: ObligationCalendarRow[]
   sortColumn: string
   sortDirection: 'asc' | 'desc'
   onSort: (column: string) => void
-  onRowClick: (row: ApCalendarRow) => void
+  onRowClick: (row: ObligationCalendarRow) => void
 }
 
 export function ApCalendarTable({
@@ -85,7 +85,7 @@ export function ApCalendarTable({
           ) : (
             data.map((row) => (
               <tr
-                key={row.cost_id ?? `loan-${row.entity_name}-${row.due_date}`}
+                key={row.invoice_id ?? `loan-${row.entity_name}-${row.due_date}`}
                 className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getRowBorderClass(row.days_remaining)}`}
                 onClick={() => onRowClick(row)}
               >

@@ -8,7 +8,7 @@ import { CreateBankAccountModal } from './create-bank-account-modal'
 import { CreateLoanModal } from './create-loan-modal'
 import { LoanDetailContent } from '../ap-calendar/loan-detail-content'
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
-import type { BankTransaction, FinancialPositionData, LoanDetailData, ApCalendarRow } from '@/lib/types'
+import type { BankTransaction, FinancialPositionData, LoanDetailData, ObligationCalendarRow } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -80,11 +80,12 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     }
   }
 
-  // Build a minimal ApCalendarRow stub for LoanDetailContent
-  const loanModalRow: ApCalendarRow | null = selectedLoan && loanDetail?.loan ? {
-    type: 'loan_payment',
-    cost_id: null,
+  // Build a minimal ObligationCalendarRow stub for LoanDetailContent
+  const loanModalRow: ObligationCalendarRow | null = selectedLoan && loanDetail?.loan ? {
+    type: 'loan',
+    invoice_id: null,
     loan_id: selectedLoan.loanId,
+    direction: 'payable',
     partner_company_id: loanDetail.loan.partner_company_id ?? null,
     project_id: loanDetail.loan.project_id ?? null,
     project_code: null,
@@ -108,7 +109,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     payable: loanDetail.loan.outstanding,
     bdn_outstanding: 0,
     payment_status: loanDetail.loan.status,
-  } as ApCalendarRow : null
+  } as ObligationCalendarRow : null
 
   return (
     <div className="space-y-6">

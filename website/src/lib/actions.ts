@@ -2,33 +2,29 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCostDetail, getLoanDetail, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
-import type { PartnerCostDetail, PartnerRevenueDetail, BankTransaction, Currency } from '@/lib/types'
+import { getInvoiceDetail, getLoanDetail, getPartnerPayableDetails, getPartnerReceivableDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
+import type { PartnerPayableDetail, PartnerReceivableDetail, BankTransaction, Currency } from '@/lib/types'
 
-export async function fetchCostDetail(costId: string) {
-  return getCostDetail(costId)
+export async function fetchInvoiceDetail(invoiceId: string) {
+  return getInvoiceDetail(invoiceId)
 }
 
 export async function fetchLoanDetailById(loanId: string) {
   return getLoanDetail(loanId)
 }
 
-export async function fetchArInvoiceDetail(arInvoiceId: string) {
-  return getArInvoiceDetail(arInvoiceId)
-}
-
-export async function fetchPartnerCosts(
+export async function fetchPartnerPayables(
   projectId: string,
   partnerCompanyId: string,
-): Promise<PartnerCostDetail[]> {
-  return getPartnerCostDetails(projectId, partnerCompanyId)
+): Promise<PartnerPayableDetail[]> {
+  return getPartnerPayableDetails(projectId, partnerCompanyId)
 }
 
-export async function fetchPartnerRevenue(
+export async function fetchPartnerReceivables(
   projectId: string,
   partnerCompanyId: string,
-): Promise<PartnerRevenueDetail[]> {
-  return getPartnerRevenueDetails(projectId, partnerCompanyId)
+): Promise<PartnerReceivableDetail[]> {
+  return getPartnerReceivableDetails(projectId, partnerCompanyId)
 }
 
 export async function fetchBankTransactions(
@@ -54,7 +50,7 @@ export async function fetchExchangeRateForDate(
 }
 
 export async function registerPayment(input: {
-  related_to: 'cost' | 'ar_invoice'
+  related_to: 'invoice' | 'loan_schedule'
   related_id: string
   direction: 'outbound' | 'inbound'
   payment_type: 'regular' | 'detraccion' | 'retencion'
@@ -90,57 +86,36 @@ export async function registerPayment(input: {
   }
 
   // Re-query balances and validate per payment type
-  if (input.related_to === 'cost') {
-    const { data: cost } = await supabase
-      .from('v_cost_balances')
-      .select('outstanding, detraccion_amount')
-      .eq('cost_id', input.related_id)
-      .single()
-    if (!cost) return { error: 'Cost not found' }
-    const outstanding = cost.outstanding ?? 0
-    const detraccion = cost.detraccion_amount ?? 0
-    // Query detraccion already paid to get accurate remaining
-    const { data: detraccionPayments } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('related_id', input.related_id)
-      .eq('related_to', 'cost')
-      .eq('payment_type', 'detraccion')
-    const detraccionPaid = (detraccionPayments ?? []).reduce((s, p) => s + p.amount, 0)
-    const bdnOutstanding = Math.max(0, detraccion - detraccionPaid)
-    const payable = Math.max(0, outstanding - bdnOutstanding)
-    const maxAmount = input.payment_type === 'detraccion' ? bdnOutstanding : payable
-    if (input.amount > maxAmount) {
-      return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
-    }
-  } else {
-    const { data: ar } = await supabase
-      .from('v_ar_balances')
+  if (input.related_to === 'invoice') {
+    const { data: inv } = await supabase
+      .from('v_invoice_balances')
       .select('outstanding, detraccion_amount, retencion_amount')
-      .eq('ar_invoice_id', input.related_id)
+      .eq('invoice_id', input.related_id)
       .single()
-    if (!ar) return { error: 'AR invoice not found' }
-    const arOutstanding = ar.outstanding ?? 0
+    if (!inv) return { error: 'Invoice not found' }
+    const outstanding = inv.outstanding ?? 0
+    const detraccion = inv.detraccion_amount ?? 0
+    const retencion = inv.retencion_amount ?? 0
     // Query payments by type for accurate per-type limits
     const { data: typedPayments } = await supabase
       .from('payments')
       .select('amount, payment_type')
       .eq('related_id', input.related_id)
-      .eq('related_to', 'ar_invoice')
+      .eq('related_to', 'invoice')
     const paidByType = (typedPayments ?? []).reduce((acc, p) => {
       acc[p.payment_type] = (acc[p.payment_type] ?? 0) + p.amount
       return acc
     }, {} as Record<string, number>)
-    const bdnOutstanding = Math.max(0, (ar.detraccion_amount ?? 0) - (paidByType.detraccion ?? 0))
-    const retencionOutstanding = Math.max(0, (ar.retencion_amount ?? 0) - (paidByType.retencion ?? 0))
-    const arPayable = Math.max(0, arOutstanding - bdnOutstanding - retencionOutstanding)
+    const bdnOutstanding = Math.max(0, detraccion - (paidByType.detraccion ?? 0))
+    const retencionOutstanding = Math.max(0, retencion - (paidByType.retencion ?? 0))
+    const payable = Math.max(0, outstanding - bdnOutstanding - retencionOutstanding)
     let maxAmount: number
     if (input.payment_type === 'detraccion') {
       maxAmount = bdnOutstanding
     } else if (input.payment_type === 'retencion') {
       maxAmount = retencionOutstanding
     } else {
-      maxAmount = arPayable
+      maxAmount = payable
     }
     if (input.amount > maxAmount) {
       return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
@@ -577,7 +552,7 @@ export async function registerLoanRepayment(data: {
     return { error: `Amount exceeds schedule entry outstanding (${entryOutstanding.toFixed(2)})` }
   }
 
-  // Insert into payments table (same table as cost/AR payments)
+  // Insert into payments table (same table as invoice payments)
   const { error } = await supabase.from('payments').insert({
     related_to: 'loan_schedule',
     related_id: data.schedule_entry_id,

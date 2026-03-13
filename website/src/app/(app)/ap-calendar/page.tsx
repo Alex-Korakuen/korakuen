@@ -1,4 +1,4 @@
-import { getApCalendar, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
+import { getObligationCalendar, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
 import { ApCalendarClient } from './ap-calendar-client'
@@ -28,7 +28,7 @@ export default async function ApCalendarPage({ searchParams }: Props) {
     getProjectsForFilter(),
   ])
 
-  const result = await getApCalendar(partnerIds, filters, exchangeRate?.mid_rate ?? null)
+  const result = await getObligationCalendar(partnerIds, { ...filters, direction: 'payable' }, exchangeRate?.mid_rate ?? null)
 
   return (
     <ApCalendarClient

@@ -1,60 +1,62 @@
--- View: v_ap_calendar
+-- View: v_obligation_calendar
 -- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
---          Combines supplier invoices (from costs) and loan repayment schedule (from loan_schedule).
---          Loan schedule entry status derived from SUM of payments (related_to = 'loan_schedule').
--- Source tables: v_cost_balances, projects, entities, loan_schedule, loans, payments
--- Used by: AP calendar page, payment planning dashboard
+--          Combines commercial invoices (both AP and AR) and loan repayment schedule.
+--          Calendar pages filter by direction at query time.
+-- Source tables: v_invoice_balances, projects, entities, loan_schedule, loans, payments
+-- Used by: AP Calendar page, AR Calendar page, payment planning
 
-CREATE OR REPLACE VIEW v_ap_calendar
+CREATE OR REPLACE VIEW v_obligation_calendar
 WITH (security_invoker = on)
 AS
 
--- Part 1: Supplier invoices (existing cost-based obligations)
+-- Part 1: Commercial invoices (both payable and receivable)
 SELECT
-  'supplier_invoice'::VARCHAR AS type,
-  cb.cost_id,
+  'commercial'::VARCHAR AS type,
+  ib.invoice_id,
   NULL::UUID             AS loan_id,
-  cb.partner_company_id,
-  cb.project_id,
+  ib.direction,
+  ib.partner_company_id,
+  ib.project_id,
   p.project_code,
-  p.name              AS project_name,
-  cb.entity_id,
+  p.name                AS project_name,
+  ib.entity_id,
   COALESCE(e.common_name, e.legal_name) AS entity_name,
-  cb.cost_type,
-  cb.date,
-  cb.title,
-  cb.currency,
-  cb.exchange_rate,
-  cb.document_ref,
-  cb.due_date,
-  (cb.due_date - CURRENT_DATE) AS days_remaining,
-  cb.subtotal,
-  cb.igv_amount,
-  cb.total,
-  cb.detraccion_amount,
-  cb.amount_paid,
-  cb.outstanding,
-  GREATEST(0, cb.outstanding - GREATEST(0, COALESCE(cb.detraccion_amount, 0) - cb.detraccion_paid)) AS payable,
-  GREATEST(0, COALESCE(cb.detraccion_amount, 0) - cb.detraccion_paid) AS bdn_outstanding,
-  cb.payment_status
-FROM v_cost_balances cb
-LEFT JOIN projects p ON p.id = cb.project_id
-LEFT JOIN entities e ON e.id = cb.entity_id
-WHERE cb.due_date IS NOT NULL
-  AND cb.payment_status IN ('pending', 'partial')
+  ib.cost_type,
+  ib.invoice_date       AS date,
+  ib.title,
+  ib.currency,
+  ib.exchange_rate,
+  ib.document_ref,
+  ib.due_date,
+  (ib.due_date - CURRENT_DATE) AS days_remaining,
+  ib.subtotal,
+  ib.igv_amount,
+  ib.total,
+  ib.detraccion_amount,
+  ib.amount_paid,
+  ib.outstanding,
+  ib.payable_or_receivable AS payable,
+  ib.bdn_outstanding,
+  ib.payment_status
+FROM v_invoice_balances ib
+LEFT JOIN projects p ON p.id = ib.project_id
+LEFT JOIN entities e ON e.id = ib.entity_id
+WHERE ib.due_date IS NOT NULL
+  AND ib.payment_status IN ('pending', 'partial')
 
 UNION ALL
 
--- Part 2: Loan repayment schedule (status derived from payments)
+-- Part 2: Loan repayment schedule (always payable direction)
 SELECT
-  'loan_payment'::VARCHAR AS type,
-  NULL::UUID             AS cost_id,
+  'loan'::VARCHAR        AS type,
+  NULL::UUID             AS invoice_id,
   ls.loan_id,
+  'payable'::VARCHAR     AS direction,
   l.partner_company_id,
   l.project_id,
   p.project_code,
   p.name                 AS project_name,
-  NULL::UUID             AS entity_id,
+  l.entity_id,
   l.lender_name          AS entity_name,
   NULL::VARCHAR          AS cost_type,
   l.date_borrowed        AS date,
@@ -71,7 +73,7 @@ SELECT
   COALESCE(pay.amount_paid, 0) AS amount_paid,
   ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS outstanding,
   ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS payable,
-  0::NUMERIC(15,2) AS bdn_outstanding,
+  0::NUMERIC(15,2)       AS bdn_outstanding,
   CASE
     WHEN COALESCE(pay.amount_paid, 0) >= ls.scheduled_amount THEN 'paid'
     WHEN COALESCE(pay.amount_paid, 0) > 0 THEN 'partial'

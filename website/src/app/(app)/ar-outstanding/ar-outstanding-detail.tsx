@@ -1,7 +1,8 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import type { ArOutstandingRow, ArInvoiceDetailData } from '@/lib/types'
+import type { ArOutstandingRow } from '@/lib/queries'
+import type { InvoiceDetailData } from '@/lib/types'
 import { DetailField } from '@/components/ui/detail-field'
 export { DetailField }
 
@@ -11,7 +12,7 @@ export function InvoiceDetailContent({
   onPaymentSuccess,
 }: {
   row: ArOutstandingRow
-  detail: ArInvoiceDetailData
+  detail: InvoiceDetailData
   onPaymentSuccess?: () => void
 }) {
   const invoice = detail.invoice
@@ -33,9 +34,9 @@ export function InvoiceDetailContent({
       {/* Header info */}
       <div className="grid grid-cols-2 gap-4">
         <DetailField label="Invoice#" value={row.invoice_number ?? '--'} />
-        <DetailField label="Project" value={detail.project_code} />
-        <DetailField label="Client" value={detail.client_name} />
-        <DetailField label="Partner" value={detail.partner_name} />
+        <DetailField label="Project" value={row.project_code} />
+        <DetailField label="Client" value={row.client_name} />
+        <DetailField label="Partner" value={row.partner_name} />
         <DetailField
           label="Invoice Date"
           value={row.invoice_date ? formatDate(row.invoice_date) : '--'}
@@ -61,7 +62,7 @@ export function InvoiceDetailContent({
             </span>
             <span className="text-zinc-500">Gross Total</span>
             <span className="text-right font-mono font-semibold text-zinc-900">
-              {formatCurrency(invoice.gross_total ?? 0, cur)}
+              {formatCurrency(invoice.total ?? 0, cur)}
             </span>
             {(invoice.detraccion_amount ?? 0) > 0 && (
               <>
@@ -81,7 +82,7 @@ export function InvoiceDetailContent({
             )}
             <span className="font-medium text-zinc-700">Net Receivable</span>
             <span className="text-right font-mono font-semibold text-zinc-900">
-              {formatCurrency(invoice.net_receivable ?? 0, cur)}
+              {formatCurrency(invoice.net_amount ?? 0, cur)}
             </span>
           </div>
         </div>
@@ -93,8 +94,8 @@ export function InvoiceDetailContent({
         paymentFormProps={
           row.outstanding > 0 && row.partner_company_id && onPaymentSuccess
             ? {
-                relatedTo: 'ar_invoice',
-                relatedId: row.ar_invoice_id,
+                relatedTo: 'invoice',
+                relatedId: row.invoice_id,
                 direction: 'inbound',
                 partnerCompanyId: row.partner_company_id,
                 currency: row.currency,
@@ -121,13 +122,13 @@ export function InvoiceDetailContent({
       </div>
 
       {/* Retencion status */}
-      {invoice?.retencion_applicable && (
+      {row.retencion_applicable && (
         <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-zinc-500">Retencion verification:</span>
             <StatusBadge
-              label={invoice.retencion_verified ? 'Verified' : 'Unverified'}
-              variant={invoice.retencion_verified ? 'green' : 'yellow'}
+              label={row.retencion_verified ? 'Verified' : 'Unverified'}
+              variant={row.retencion_verified ? 'green' : 'yellow'}
             />
           </div>
         </div>

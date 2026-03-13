@@ -1,6 +1,8 @@
 /**
  * Human-friendly type aliases and enums for the Korakuen database schema.
  * Generated types live in database.types.ts — these are the types used in application code.
+ *
+ * V1: Unified invoice model — costs + ar_invoices merged into invoices table.
  */
 
 import type { Database } from './database.types'
@@ -9,35 +11,28 @@ import type { Database } from './database.types'
 export type Entity = Database['public']['Tables']['entities']['Row']
 export type EntityContact = Database['public']['Tables']['entity_contacts']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
-export type Cost = Database['public']['Tables']['costs']['Row']
-export type CostItem = Database['public']['Tables']['cost_items']['Row']
-
-export type ArInvoice = Database['public']['Tables']['ar_invoices']['Row']
+export type Invoice = Database['public']['Tables']['invoices']['Row']
+export type InvoiceItem = Database['public']['Tables']['invoice_items']['Row']
 export type Payment = Database['public']['Tables']['payments']['Row']
 
 // --- View row types ---
-export type ApCalendarRow = Database['public']['Views']['v_ap_calendar']['Row']
-export type CostBalanceRow = Database['public']['Views']['v_cost_balances']['Row']
-export type ArBalanceRow = Database['public']['Views']['v_ar_balances']['Row']
+export type InvoiceBalanceRow = Database['public']['Views']['v_invoice_balances']['Row']
+export type ObligationCalendarRow = Database['public']['Views']['v_obligation_calendar']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
-
 
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
 
+export type InvoiceDirection = 'payable' | 'receivable'
+
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
 
-// --- AP Calendar component types ---
+// --- Invoice detail types ---
 
-export type CostDetailData = {
-  cost: CostBalanceRow | null
-  items: CostItem[]
+export type InvoiceDetailData = {
+  invoice: InvoiceBalanceRow | null
+  items: InvoiceItem[]
   payments: Payment[]
-  header: {
-    comprobante_type: string | null
-    comprobante_number: string | null
-    document_ref: string | null
-  } | null
 }
 
 export type LoanScheduleEntry = {
@@ -76,75 +71,95 @@ export type LoanDetailData = {
   payments: Payment[]
 }
 
-export type ApCalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
+// --- Calendar types (forward-looking urgency buckets) ---
+
+export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
 
 export type BucketValue = { count: number; pen: number; usd: number }
 
-export type ApCalendarBucketCounts = {
+export type CalendarBucketCounts = {
   overdue: BucketValue
   today: BucketValue
   'this-week': BucketValue
   'next-30': BucketValue
 }
 
-export type ArOutstandingBucketCounts = {
+// --- Invoices page types (backward-looking aging buckets) ---
+
+export type InvoiceAgingBucketId = 'all' | 'current' | '1-30' | '31-60' | '61-90' | '90+'
+
+export type InvoiceAgingBuckets = {
   current: BucketValue
+  '1-30': BucketValue
   '31-60': BucketValue
   '61-90': BucketValue
   '90+': BucketValue
 }
 
-// --- AR Outstanding component types ---
-
-export type ArOutstandingRow = {
-  ar_invoice_id: string
-  project_id: string | null
-  project_code: string
-  entity_id: string | null
-  client_name: string
+// Invoices page row — UNION of commercial invoices + loan schedule entries
+export type InvoicesPageRow = {
+  id: string                          // invoice_id or loan_schedule_id
+  type: 'commercial' | 'loan'
+  direction: 'payable' | 'receivable'
   partner_company_id: string | null
-  partner_name: string
+  project_id: string | null
+  project_code: string | null
+  entity_id: string | null
+  entity_name: string | null
+  title: string | null
   invoice_number: string | null
   invoice_date: string | null
   due_date: string | null
-  days_overdue: number
-  subtotal: number
-  igv_amount: number
-  gross_total: number
-  detraccion_amount: number
-  retencion_amount: number
-  net_receivable: number
+  currency: string
+  total: number
   amount_paid: number
   outstanding: number
-  receivable: number
-  bdn_outstanding: number
-  currency: string
   payment_status: string
+  // Loan-specific (null for commercial)
+  loan_id: string | null
 }
 
-export type ArInvoiceDetailData = {
-  invoice: ArBalanceRow | null
-  payments: Payment[]
-  client_name: string
-  project_code: string
-  partner_name: string
+// --- Payments page types ---
+
+export type PaymentsPageRow = {
+  id: string
+  payment_date: string
+  direction: string            // inbound / outbound
+  payment_type: string         // regular / detraccion / retencion
+  amount: number
+  currency: string
+  exchange_rate: number
+  entity_name: string | null
+  project_id: string | null
+  project_code: string | null
+  related_to: string           // invoice / loan_schedule
+  related_id: string | null
+  invoice_number: string | null
+  bank_account_id: string | null
+  bank_name: string | null
+  notes: string | null
+  partner_company_id: string | null
 }
 
-export type ArOutstandingBucketId = 'all' | 'current' | '31-60' | '61-90' | '90+'
+export type PaymentsSummary = {
+  inflows: { pen: number; usd: number }
+  outflows: { pen: number; usd: number }
+  net: { pen: number; usd: number }
+}
 
-// --- Partner Balances component types ---
+// --- Partner settlement types ---
 
-export type PartnerCostDetail = {
-  cost_id: string
+export type PartnerPayableDetail = {
+  invoice_id: string
   date: string | null
-  comprobante_number: string | null
+  invoice_number: string | null
   subtotal: number
   currency: string | null
   exchange_rate: number | null
   subtotal_pen: number // subtotal * exchange_rate for USD, subtotal for PEN
 }
 
-export type PartnerRevenueDetail = {
+export type PartnerReceivableDetail = {
   payment_id: string
   payment_date: string | null
   invoice_number: string | null
@@ -269,7 +284,7 @@ export type ProjectPartnerSettlement = {
   costsContributed: number   // project costs paid by this partner
   revenueReceived: number    // actual AR payments received
   profit: number             // revenueReceived - costsContributed
-  shouldReceive: number      // their profit_share_pct × total project profit
+  shouldReceive: number      // their profit_share_pct x total project profit
   balance: number            // shouldReceive - profit (positive = owed, negative = overpaid)
 }
 
@@ -352,7 +367,7 @@ export type EntitySearchResult = {
 export type PriceHistoryRow = {
   id: string
   date: string
-  source: 'cost' | 'quote'
+  source: 'invoice' | 'quote'
   entityId: string | null
   entityName: string
   projectId: string | null

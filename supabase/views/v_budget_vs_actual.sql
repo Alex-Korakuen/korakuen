@@ -1,25 +1,26 @@
 -- View: v_budget_vs_actual
 -- Purpose: Compares budgeted amounts vs actual spending per project per category.
 --          Shows variance and percentage used for budget tracking.
--- Source tables: project_budgets, cost_items, costs, projects
+-- Source tables: project_budgets, invoice_items, invoices, projects
 -- Used by: Project budget dashboard, project detail page
 
 CREATE OR REPLACE VIEW v_budget_vs_actual
 WITH (security_invoker = on)
 AS
 WITH actual_costs AS (
-  -- Actual spending per project per category from cost_items
-  -- Only project_cost type (not SG&A)
+  -- Actual spending per project per category from invoice_items
+  -- Only project_cost type (not SG&A), only payable direction
   SELECT
-    c.project_id,
-    ci.category,
-    c.currency,
-    COALESCE(SUM(ci.subtotal), 0) AS actual_amount
-  FROM cost_items ci
-  JOIN costs c ON c.id = ci.cost_id
-  WHERE c.cost_type = 'project_cost'
-    AND c.project_id IS NOT NULL
-  GROUP BY c.project_id, ci.category, c.currency
+    i.project_id,
+    ii.category,
+    i.currency,
+    COALESCE(SUM(ii.subtotal), 0) AS actual_amount
+  FROM invoice_items ii
+  JOIN invoices i ON i.id = ii.invoice_id
+  WHERE i.direction = 'payable'
+    AND i.cost_type = 'project_cost'
+    AND i.project_id IS NOT NULL
+  GROUP BY i.project_id, ii.category, i.currency
 )
 SELECT
   pb.project_id,
@@ -35,7 +36,6 @@ SELECT
   )                     AS pct_used,
   pb.notes
 FROM project_budgets pb
--- Only show active budget entries (soft-deleted rows excluded)
 -- No is_active filter on projects: budget history must remain visible
 -- even after project deactivation. Filtering handled at the application layer.
 JOIN projects p ON p.id = pb.project_id

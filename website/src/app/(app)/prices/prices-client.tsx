@@ -196,8 +196,8 @@ export function PricesClient({
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <StatusBadge
-                      label={row.source === 'cost' ? 'Cost' : 'Quote'}
-                      variant={row.source === 'cost' ? 'zinc' : 'blue'}
+                      label={row.source === 'invoice' ? 'Invoice' : 'Quote'}
+                      variant={row.source === 'invoice' ? 'zinc' : 'blue'}
                     />
                   </td>
                   <td className="px-4 py-3 text-zinc-700">

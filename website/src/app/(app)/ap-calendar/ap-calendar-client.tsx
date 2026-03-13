@@ -5,22 +5,22 @@ import { useUrlFilters } from '@/lib/use-url-filters'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Pagination } from '@/components/ui/pagination'
-import { fetchCostDetail, fetchLoanDetailById } from '@/lib/actions'
+import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
-import { CostDetailContent } from './ap-calendar-detail'
+import { InvoiceDetailContent } from './ap-calendar-detail'
 import { LoanDetailContent } from './loan-detail-content'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
 import type {
-  ApCalendarRow,
-  CostDetailData,
+  ObligationCalendarRow,
+  InvoiceDetailData,
   LoanDetailData,
-  ApCalendarBucketId as BucketId,
-  ApCalendarBucketCounts as BucketCounts,
+  CalendarBucketId as BucketId,
+  CalendarBucketCounts as BucketCounts,
 } from '@/lib/types'
 
 type Props = {
-  data: ApCalendarRow[]
+  data: ObligationCalendarRow[]
   totalCount: number
   page: number
   pageSize: number
@@ -48,7 +48,7 @@ export function ApCalendarClient({
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
   const { setFilter } = useUrlFilters()
-  const modal = useDetailModal<ApCalendarRow, CostDetailData | LoanDetailData>()
+  const modal = useDetailModal<ObligationCalendarRow, InvoiceDetailData | LoanDetailData>()
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -72,11 +72,11 @@ export function ApCalendarClient({
     window.location.search = params.toString()
   }
 
-  const handleRowClick = (row: ApCalendarRow) => {
+  const handleRowClick = (row: ObligationCalendarRow) => {
     modal.open(row, async () => {
-      if (row.type === 'supplier_invoice' && row.cost_id) {
-        return await fetchCostDetail(row.cost_id) as CostDetailData | null
-      } else if (row.type === 'loan_payment' && row.loan_id) {
+      if (row.type === 'commercial' && row.invoice_id) {
+        return await fetchInvoiceDetail(row.invoice_id) as InvoiceDetailData | null
+      } else if (row.type === 'loan' && row.loan_id) {
         return await fetchLoanDetailById(row.loan_id) as LoanDetailData | null
       }
       return null
@@ -153,9 +153,9 @@ export function ApCalendarClient({
         isOpen={modal.selectedRow !== null}
         onClose={modal.close}
         title={
-          modal.selectedRow?.type === 'loan_payment'
+          modal.selectedRow?.type === 'loan'
             ? 'Loan Payment Detail'
-            : 'Cost Detail'
+            : 'Invoice Detail'
         }
       >
         {modal.loading && (
@@ -164,15 +164,15 @@ export function ApCalendarClient({
           </div>
         )}
 
-        {!modal.loading && modal.selectedRow?.type === 'supplier_invoice' && modal.detail && (
-          <CostDetailContent
+        {!modal.loading && modal.selectedRow?.type === 'commercial' && modal.detail && (
+          <InvoiceDetailContent
             row={modal.selectedRow}
-            detail={modal.detail as CostDetailData}
+            detail={modal.detail as InvoiceDetailData}
             onPaymentSuccess={modal.refetch}
           />
         )}
 
-        {!modal.loading && modal.selectedRow?.type === 'loan_payment' && modal.detail && (
+        {!modal.loading && modal.selectedRow?.type === 'loan' && modal.detail && (
           <LoanDetailContent
             row={modal.selectedRow}
             detail={modal.detail as LoanDetailData}
