@@ -49,7 +49,6 @@ export type ArInvoiceRow = Database['public']['Tables']['ar_invoices']['Row']
 export type PaymentRow = Database['public']['Tables']['payments']['Row']
 export type LoanRow = Database['public']['Tables']['loans']['Row']
 export type LoanScheduleRow = Database['public']['Tables']['loan_schedule']['Row']
-export type LoanPaymentRow = Database['public']['Tables']['loan_payments']['Row']
 export type ProjectBudgetRow = Database['public']['Tables']['project_budgets']['Row']
 
 // === Insert types (for forms in V1) ===
@@ -61,7 +60,6 @@ export type ArInvoiceInsert = Database['public']['Tables']['ar_invoices']['Inser
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 export type LoanInsert = Database['public']['Tables']['loans']['Insert']
 export type LoanScheduleInsert = Database['public']['Tables']['loan_schedule']['Insert']
-export type LoanPaymentInsert = Database['public']['Tables']['loan_payments']['Insert']
 export type ProjectBudgetInsert = Database['public']['Tables']['project_budgets']['Insert']
 // ... add more as needed
 ```
@@ -83,13 +81,11 @@ export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 export type CostType = 'project_cost' | 'sga'
 export type ComprobanteType = 'factura' | 'boleta' | 'recibo_por_honorarios' | 'liquidacion_de_compra' | 'planilla_jornales' | 'none'
 export type PaymentMethod = 'bank_transfer' | 'cash' | 'check'
-export type PaymentRelatedTo = 'cost' | 'ar_invoice'
+export type PaymentRelatedTo = 'cost' | 'ar_invoice' | 'loan_schedule'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 export type PaymentStatus = 'pending' | 'partial' | 'paid'
 export type LoanReturnType = 'percentage' | 'fixed'
-export type LoanStatus = 'active' | 'partially_paid' | 'settled'
-export type LoanPaymentSource = 'project_settlement' | 'personal_funds' | 'other'
 
 // Cost item categories — values come from the `categories` table
 // project_cost: materials, labor, subcontractor, equipment_rental, permits_regulatory, other

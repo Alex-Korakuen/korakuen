@@ -18,7 +18,7 @@ Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, project_partners, quotes
 Layer 4: costs, cost_items, ar_invoices
 Layer 5: payments
-Layer 6: loans, loan_schedule, loan_payments
+Layer 6: loans, loan_schedule
 Layer 7: project_budgets
 ```
 
@@ -503,7 +503,7 @@ Financing arrangements — money borrowed from friends, family, or informal lend
 | agreed_return_amount | NUMERIC(15,2) | YES | if fixed amount instead of % |
 | return_type | VARCHAR | NO | percentage or fixed |
 | due_date | DATE | YES | overall repayment deadline |
-| status | VARCHAR | NO | active, partially_paid, settled |
+| entity_id | UUID | YES | references entities — the lender |
 | notes | TEXT | YES | freeform |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
@@ -522,33 +522,12 @@ Agreed repayment schedule for a loan. Optional — not all loans have a structur
 | scheduled_date | DATE | NO | agreed payment date |
 | scheduled_amount | NUMERIC(15,2) | NO | amount due on this date |
 | exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
-| paid | BOOLEAN | NO | default false |
-| actual_payment_id | UUID | YES | references loan_payments — populated when settled |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-**Feeds `v_ap_calendar`** as a second UNION source (type = 'loan_payment').
+**Feeds `v_ap_calendar`** as a second UNION source (type = 'loan_payment'). Payment status per entry is derived from `SUM(payments) WHERE related_to = 'loan_schedule'`.
 
----
-
-### `loan_payments`
-Actual repayments made against loans. Separate from business `payments` table — keeps personal finance isolated.
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| id | UUID | NO | primary key |
-| loan_id | UUID | NO | references loans |
-| payment_date | DATE | NO | |
-| amount | NUMERIC(15,2) | NO | |
-| currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
-| source | VARCHAR | YES | project_settlement, personal_funds, other |
-| settlement_ref | VARCHAR | YES | e.g. PRY001-Settlement-1 — links repayment to profit event |
-| notes | TEXT | YES | freeform |
-| created_at | TIMESTAMP | NO | auto |
-| updated_at | TIMESTAMP | NO | auto |
-
-**Traceability:** The `source` and `settlement_ref` fields answer: "I paid Friend Juan S/ 40,000 out of the PRY001 March settlement."
+**Repayments** are tracked in the universal `payments` table with `related_to = 'loan_schedule'` and `related_id = loan_schedule.id`. This follows the same pattern as cost/AR invoice payments.
 
 ---
 
@@ -575,7 +554,7 @@ Budget targets per project per category. Compared against actual costs from `v_c
 
 ## Complete Table List — Final
 
-**20 tables total:**
+**19 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -607,7 +586,6 @@ Layer 5 (child records):
 Layer 6 (loans):
   loans
   loan_schedule
-  loan_payments
 
 Layer 7 (project extensions):
   project_budgets
@@ -629,7 +607,7 @@ Layer 7 (project extensions):
 | `v_entity_transactions` | costs + ar_invoices filtered by entity | all transactions per entity per project |
 | `v_bank_balances` | payments grouped by bank_account | running balance per account |
 | `v_retencion_dashboard` | ar_invoices (retencion_applicable=true) + projects + entities | retencion tracking and verification status |
-| `v_loan_balances` | loans + loan_payments + loan_schedule | borrowed, total owed, paid, outstanding per loan |
+| `v_loan_balances` | loans + loan_schedule + payments | borrowed, total owed, paid, outstanding, derived status per loan |
 | `v_budget_vs_actual` | project_budgets + cost_items | budgeted vs actual per project per category |
 | `v_igv_position` | v_cost_totals + ar_invoices | IGV collected vs paid, net position per currency |
 

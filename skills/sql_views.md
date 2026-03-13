@@ -171,8 +171,9 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Apply `is_active = true` filter on projects and entities
 
 ### v_loan_balances
-- Source: `loans` LEFT JOIN `loan_payments` LEFT JOIN `loan_schedule`
+- Source: `loans` LEFT JOIN `loan_schedule` LEFT JOIN `payments` (where `related_to = 'loan_schedule'`)
 - Computes total_owed (principal + return), total_paid, outstanding per loan
+- Status derived: active (no payments), partially_paid, settled
 - Return amount calculated from `return_type`: percentage applies `agreed_return_rate` to `amount`, fixed uses `agreed_return_amount`
 - Exposes `partner_company_id` for partner filter
 - Loans are permanent records — no `is_active` filter

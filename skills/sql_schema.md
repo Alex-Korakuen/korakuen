@@ -45,8 +45,7 @@ Generate tables in this exact order so foreign keys never reference a table that
 14. `payments`
 15. `loans`
 16. `loan_schedule`
-17. `loan_payments`
-18. `project_budgets`
+17. `project_budgets`
 
 ---
 
@@ -99,7 +98,7 @@ Reference/master data tables only (partner_companies, bank_accounts, entities, e
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule, loan_payments) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -167,15 +166,12 @@ Known enum values per field:
 | `cost_items.category` | FK to `categories.name` — see categories table for valid values |
 | `ar_invoices.comprobante_type` | factura, boleta, recibo_por_honorarios |
 | `ar_invoices.currency` | USD, PEN |
-| `payments.related_to` | cost, ar_invoice |
+| `payments.related_to` | cost, ar_invoice, loan_schedule |
 | `payments.direction` | inbound, outbound |
 | `payments.payment_type` | regular, detraccion, retencion |
 | `payments.currency` | USD, PEN |
 | `loans.return_type` | percentage, fixed |
-| `loans.status` | active, partially_paid, settled |
 | `loans.currency` | USD, PEN |
-| `loan_payments.currency` | USD, PEN |
-| `loan_payments.source` | project_settlement, personal_funds, other |
 | `project_budgets.currency` | USD, PEN |
 
 ### What NOT to Do

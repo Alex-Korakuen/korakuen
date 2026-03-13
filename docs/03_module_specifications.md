@@ -401,18 +401,20 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Business rule: 10% return on loans — borrower keeps the spread between agreed return and what they pay the lender
 - A loan can optionally be linked to a project it funded
 - Return can be percentage-based (e.g. 8%) or a fixed agreed amount
-- Repayments are tracked separately from business payments — uses `loan_payments` table, not `payments`
+- Repayments use the universal `payments` table with `related_to = 'loan_schedule'` — same pattern as cost/AR invoice payments
+- Every repayment must be against a schedule entry (create one first for ad-hoc payments)
 - Loan schedule entries feed `v_ap_calendar` as a UNION source (type = 'loan_payment')
 - Loans are permanent financial records — no soft delete via `is_active`
 
-**Loan status:**
-- Active — loan is outstanding
+**Loan status (derived in `v_loan_balances`, not stored):**
+- Active — no payments made
 - Partially Paid — some repayments made
 - Settled — fully repaid
 
 **Key attributes — `loans` (header):**
 - Loan ID (system generated)
 - Partner company (references Partner Companies — which partner borrowed)
+- Entity ID (nullable — references Entities, the lender)
 - Lender name
 - Lender contact (nullable — phone or email)
 - Amount (principal borrowed)
@@ -425,33 +427,23 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Agreed return rate % (nullable — e.g. 8.00)
 - Agreed return amount (nullable — if fixed instead of %)
 - Due date (nullable — overall repayment deadline)
-- Status: active, partially_paid, settled
 - Notes
 
-**Key attributes — `loan_schedule` (agreed repayment schedule, optional):**
+**Key attributes — `loan_schedule` (agreed repayment schedule):**
 - Schedule entry ID
 - Loan (references Loans)
 - Scheduled date
 - Scheduled amount
 - Exchange rate
-- Paid (boolean, default false)
-- Actual payment ID (nullable — references loan_payments when settled)
 
-**Key attributes — `loan_payments` (actual repayments):**
-- Payment ID
-- Loan (references Loans)
-- Payment date
-- Amount
-- Currency: USD or PEN
-- Exchange rate
-- Source (nullable): project_settlement, personal_funds, other
-- Settlement reference (nullable — e.g. PRY001-Settlement-1, links repayment to profit event)
-- Notes
+**Repayments:** Tracked in universal `payments` table (`related_to = 'loan_schedule'`, `related_id = loan_schedule.id`, `direction = 'outbound'`, `payment_type = 'regular'`).
 
 **Derived via database views:**
 - Total owed (principal + return) — via `v_loan_balances`
-- Total paid — SUM from loan_payments
+- Total paid — SUM from payments where related_to = 'loan_schedule'
 - Outstanding balance — total owed minus total paid
+- Status — derived from payment totals (active/partially_paid/settled)
+- Per-entry outstanding — derived from SUM of payments per schedule entry
 
 **Connects to:** Projects (optional), Bank Accounts (indirectly via AP Calendar)
 

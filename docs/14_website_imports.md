@@ -393,7 +393,7 @@ The website is currently read-only. Before any writes work, INSERT (and where ne
 - costs, cost_items
 - ar_invoices
 - payments
-- loans, loan_schedule, loan_payments
+- loans, loan_schedule
 - bank_accounts
 
 ---

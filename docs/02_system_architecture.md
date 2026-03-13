@@ -165,7 +165,7 @@ Tracks loans taken by any partner to fund project contributions. Every loan has 
 
 **Business rule:** 10% return on loans. The borrower keeps the spread between the agreed return rate and what they actually pay the lender.
 
-3 tables (`loans`, `loan_schedule`, `loan_payments`) isolated from business `payments`. Loan obligations appear in `v_ap_calendar` as a second UNION source. Loan balances appear in Financial Position. All loan data is visible to everyone via the universal partner filter.
+2 tables (`loans`, `loan_schedule`) with repayments tracked in the universal `payments` table (`related_to = 'loan_schedule'`). Loan obligations appear in `v_ap_calendar` as a second UNION source. Loan balances and status are derived in `v_loan_balances`. All loan data is visible to everyone via the universal partner filter.
 
 ---
 
