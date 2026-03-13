@@ -2,19 +2,19 @@
 
 **Document version:** 5.0
 **Date:** March 2, 2026
-**Status:** Active — V0 scope (read-only)
+**Status:** Active
 
 ---
 
 ## Overview
 
-The visualization layer is a **read-only Next.js website hosted on Vercel**, connected directly to the Supabase PostgreSQL database. It displays browse pages for core data and dashboard views derived from data entered via CLI scripts.
+The visualization and data entry layer is a **Next.js website hosted on Vercel**, connected directly to the Supabase PostgreSQL database. It displays browse pages and dashboard views, and provides data entry forms for creating and managing records.
 
-**V0 scope: read-only with basic authentication.** No forms, no data entry. Supabase Auth with email/password — one login per partner company (3 accounts). All pages require authentication since the site is on the public internet and exposes real financial data.
+Supabase Auth with email/password — one login per partner company (3 accounts). All pages require authentication since the site is on the public internet and exposes real financial data. RLS policies enforce read and write access for authenticated users.
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 8 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
+**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 7 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
 
 **Reporting currency:** Consolidated views (Financial Position, Cash Flow) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
@@ -40,11 +40,10 @@ Dashboards
   AP Calendar
   AR Outstanding
   Cash Flow
-  Partner Balances
   Financial Position
 ```
 
-**8 pages total.** Each answers one distinct business question. No redundancy.
+**7 pages total.** Each answers one distinct business question. No redundancy.
 
 ---
 
@@ -193,24 +192,6 @@ Two sections:
 
 ---
 
-### Partner Contribution & Balances
-
-**Business question:** Who has contributed what to this project, and who owes whom?
-
-**Priority:** High
-
-**Always requires a project selection — no "all projects" aggregate view.** Project selector at top.
-
-**Contributions section:** Table showing each partner's contributed amount (costs paid) and contribution share percentage, with visual proportion bars. Total project costs at bottom. Clicking a partner's contribution amount expands to show the list of costs that make up that number. Note: contribution % reflects actual cost split during execution — this is independent of profit share %.
-
-**Income section:** Total invoiced, total collected, outstanding for the selected project. Only project costs included (SG&A excluded — SG&A costs belong to the individual partner who incurred them).
-
-**Profit & Settlement section:** Project profit = project income - project costs. Each partner's profit share = profit × their `profit_share_pct` from `project_partners`. Settlement = profit_share - costs_they_actually_paid (positive = they're owed, negative = they owe). Equivalently, each partner should receive from the income pool: costs_they_paid + profit × their %. Shows who owes whom and how much.
-
-**Data source:** Cost contributions from `v_cost_totals` (project_cost only, grouped by partner), AR payments from `payments` table — all computed in application layer (queries.ts)
-
----
-
 ### Financial Position
 
 **Business question:** What do we own vs what do we owe? What's our financial health?
@@ -247,7 +228,7 @@ Two sections:
 
 ### ~~Settlement Dashboard~~ (Dropped)
 
-Dropped — partner settlements are handled via the Settlement section within Partner Contribution & Balances page. No separate dashboard.
+Dropped — partner settlements are handled via the Settlement section within the Projects detail view. No separate dashboard or page.
 
 ### ~~Bank Account Balances~~ (Merged)
 

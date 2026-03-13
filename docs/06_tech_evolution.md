@@ -12,10 +12,11 @@ The system is built in versions. Each version uses the same database — only th
 
 ```
 V0 ──────────────── V1 ──────────────── V2
-CLI + read-only     Full web app        Mobile + automation
-website             with data entry
-     |                    |                    |
-     └────────────────────┴────────────────────┘
+CLI + website       Mobile + automation  Advanced features
+(visualization +         |                    |
+ data entry)             |                    |
+     |                   |                    |
+     └───────────────────┴────────────────────┘
               PostgreSQL on Supabase
               (same database throughout)
 ```
@@ -29,80 +30,47 @@ website             with data entry
 
 ### Stack
 - PostgreSQL on Supabase (database)
-- Python CLI scripts (data entry only)
-- Next.js on Vercel (read-only visualization website)
+- Python CLI scripts (bulk imports from Excel)
+- Next.js on Vercel (visualization + data entry website)
 - SharePoint (file storage, external)
 - Todoist (task management, external)
 - WhatsApp (communication, external)
 
 ### What it looks like
-Data entry happens by running Python terminal commands. The Vercel website is read-only — it displays dashboards and views but has no forms or data entry. The website is the beginning of what will become the full application in V1.
+The website provides dashboards, browse pages, and inline data entry forms. Partners create entities, projects, bank accounts, loans, and register payments directly through the website. Bulk data imports (costs, quotes, AR invoices) use Python CLI scripts with Excel files.
 
 ### Why Vercel instead of Power BI
 Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel hosting is free. Next.js is already known from the personal finance tracker project. A custom website gives full control over display and behavior with no vendor lock-in. The Supabase JavaScript client makes read queries simple and direct.
 
-### Visualization website — V0 scope (read-only)
+### Website — 7 pages
 - AP payment calendar — day-by-day upcoming payment obligations
 - AR outstanding — invoices sent and collection status
 - Cash flow — monthly actual and forecast cash movements
-- Partner contribution & settlement — who paid what, who owes whom
 - Financial position — assets vs liabilities snapshot
-- Projects — project detail with budget, costs, and AR
+- Projects — project detail with budget, costs, AR, and partner settlement
 - Entities & contacts — supplier/client directory with transaction history
 - Prices — historical unit price reference
 
+### Website data entry
+- Entity CRUD, tags, and contacts
+- Project creation and budget management
+- Bank account creation
+- Loan creation with payment schedule
+- Payment and collection registration (AP and AR)
+- Loan repayment registration
+
 ### Strengths
-- Extremely fast to build
-- Zero data entry UI complexity
+- Partners can enter and view data directly
 - Forces clean data discipline from day one
 - Free hosting and no licensing costs
-- Visualization website is the foundation of the future full app
+- RLS policies enforce authenticated access
 
 ### Limitations
-- Terminal only for data entry — not friendly for non-technical users
-- No mobile access for data entry
+- No mobile-native experience
 - No file upload integration
-- Read-only website cannot enter or modify data
+- Bulk imports still require CLI + Excel
 
 ### When to move to V1
-Move when any of the following is true:
-- A non-technical team member needs to enter data
-- Data entry volume makes CLI scripts feel slow or painful
-- You need to enter data away from a computer
-- Business revenue justifies development investment
-
----
-
-## V1 — Full Web Application
-
-**Status:** Future
-**Goal:** Add data entry to the existing website. The read-only V0 website becomes a full application.
-
-### Stack
-- PostgreSQL on Supabase (same database, no migration)
-- Next.js on Vercel (same website, adds forms and data entry)
-- Supabase JavaScript client (native integration)
-- Supabase Auth (authentication per partner company)
-- SharePoint (retained for file storage)
-
-### Why this transition is smooth
-The V0 website is already built in Next.js on Vercel connected to Supabase. Adding data entry means adding form pages to the existing application — not rebuilding anything. The database schema does not change. All historical data is retained. The CLI scripts can remain available as a fallback.
-
-### New capabilities vs V0
-- Web-based data entry — forms for costs, invoices, quotes, entities, projects
-- Mobile browser access — usable on site from a phone
-- Real-time data — multiple partners entering data simultaneously
-- Inline validation and error handling
-- Optional: file upload to SharePoint via Microsoft Graph API
-
-### What stays the same
-- Entire database schema
-- All historical data
-- All visualization dashboards from V0
-- SharePoint file storage and naming convention
-- CLI scripts (retained as fallback)
-
-### When to move to V2
 Move when any of the following is true:
 - Native mobile access needed on construction sites
 - Push notifications needed for payment reminders
@@ -110,18 +78,18 @@ Move when any of the following is true:
 
 ---
 
-## V2 — Mobile + Automation
+## V1 — Mobile + Automation
 
 **Status:** Future
 **Goal:** Native mobile experience and automated workflows.
 
 ### Stack
 - PostgreSQL on Supabase (same database)
-- Next.js on Vercel (same web app from V1)
+- Next.js on Vercel (same web app from V0)
 - React Native or native iOS app (mobile client)
 - Supabase Edge Functions (serverless automation)
 
-### New capabilities vs V1
+### New capabilities vs V0
 - Native iOS/Android app optimized for on-site use
 - Push notifications — payment due, invoice overdue, partner balance alerts
 - Camera integration — photograph a receipt on site, attach directly to a cost record

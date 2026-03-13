@@ -385,7 +385,7 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 
 ## Prerequisites — RLS Insert Policies
 
-The website is currently read-only. Before any writes work, INSERT (and where needed, UPDATE) RLS policies must be added for authenticated users on every table that receives website writes:
+RLS INSERT and UPDATE policies are already deployed for authenticated users on all writable tables (migration `20260309000001_rls_write_policies.sql`). Tables covered:
 
 - entities, entity_tags, entity_contacts
 - projects, project_partners, project_entities, project_budgets

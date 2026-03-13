@@ -20,8 +20,8 @@ A lightweight, structured management system that gives a small construction comp
 |---|---|---|
 | Database | PostgreSQL on Supabase | Free tier; production-grade; scalable |
 | Database Management | Supabase CLI | Migrations, schema changes, and SQL execution via terminal |
-| Data Entry | Python CLI scripts | Simple terminal scripts; one per operation; no UI complexity |
-| Visualization | Next.js on Vercel | Simple read-only website; free hosting; no licensing costs |
+| Data Entry | Python CLI scripts + website forms | CLI for bulk/import; website for interactive entry |
+| Website | Next.js on Vercel | Visualization + data entry; free hosting; no licensing costs |
 | File Storage | SharePoint | External; referenced by naming convention only |
 | Task Management | Todoist | External; not replicated in system |
 | Communication | WhatsApp | External; no integration needed |
@@ -42,7 +42,7 @@ A lightweight, structured management system that gives a small construction comp
 [SharePoint file storage]
 ```
 
-Schema changes (migrations, views, indexes) are applied via the Supabase CLI. The Python CLI scripts are the only write path for business data. The Vercel website is read-only — it queries the database and displays data. SharePoint is fully independent — the database holds a reference code, not a live link.
+Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Data entry happens through both Python CLI scripts and the website's inline forms. Both write paths use RLS policies for access control. SharePoint is fully independent — the database holds a reference code, not a live link.
 
 ---
 
@@ -57,16 +57,14 @@ All three partner companies share one database with a `partner_company` field on
 
 ---
 
-### 4.2 CLI for Data Entry, Vercel Website for Visualization
-Data entry happens exclusively through Python terminal scripts. Visualization happens through a simple read-only Next.js website hosted on Vercel.
+### 4.2 Dual Data Entry — CLI and Website
+Data entry happens through both Python CLI scripts and the website's inline forms and modals. The CLI is used for bulk imports (Excel); the website provides interactive forms for creating and managing individual records.
 
-**Why CLI for entry:** A UI adds enormous complexity. A CLI script per operation is 30-50 lines of Python and takes an afternoon to write. No frontend framework, no styling, no state management.
+**Why CLI for bulk entry:** A CLI script per operation is 30-50 lines of Python and takes an afternoon to write. Ideal for initial data loads and Excel imports.
 
-**Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read queries straightforward.
+**Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read and write queries straightforward.
 
-**What the website does:** Displays 8 pages — AP calendar, AR outstanding, cash flow, partner balances & settlement, financial position, projects, entities & contacts, and prices. Read only. No forms, no data entry.
-
-**Future path:** The same Next.js website naturally evolves into a full application with data entry forms in V1, without rebuilding anything. The read-only website is the foundation of the future full app.
+**What the website does:** Displays 7 pages — AP calendar, AR outstanding, cash flow, financial position, projects, entities & contacts, and prices. Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
 
 ---
 
@@ -124,10 +122,10 @@ All three partners' bank accounts are tracked in the system. Every cost and paym
 
 ---
 
-### 4.9 Partner Ledger as a View, Not a Table
-Partner contribution tracking and settlement calculations are database views derived from the costs table filtered by partner company via bank_account. No standalone ledger table.
+### 4.9 Partner Settlement — Computed in Application Layer
+Partner contribution tracking and settlement calculations are computed in the application layer (`queries.ts`) from `v_cost_totals` grouped by partner company. No standalone ledger table or view.
 
-**Why:** All the data already exists in the costs table. A separate ledger table would duplicate data and create consistency risk. The view is always up to date because it reads directly from the source. The partner ledger is displayed on the visualization website as a dashboard.
+**Why:** All the data already exists in the costs and payments tables. A separate ledger table would duplicate data and create consistency risk. Settlement is displayed within the project detail view on the website.
 
 ---
 
@@ -219,7 +217,7 @@ Two client factories, both typed against auto-generated `database.types.ts`:
 - **Server** (`lib/supabase/server.ts`): Uses `@supabase/ssr` with cookie handling for Server Components and Route Handlers. Created per-request.
 - **Client** (`lib/supabase/client.ts`): Uses `@supabase/ssr` browser client for client components (`'use client'`). Used in auth forms.
 
-Both use the anon key — the website is read-only in V0, and RLS policies control access.
+Both use the anon key. RLS policies control both read and write access for authenticated users.
 
 ---
 

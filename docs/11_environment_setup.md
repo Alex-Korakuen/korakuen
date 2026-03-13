@@ -77,24 +77,24 @@ korakuen/
 │   │   ├── 20260303000003_exchange_rate_required.sql
 │   │   ├── 20260303000004_views_exchange_rate_passthrough.sql
 │   │   ├── 20260303000005_dummy_data.sql
-│   │   ├── 20260303000006_dummy_partner_costs.sql
-│   │   └── 20260303000007_create_v_igv_position.sql
+│   │   ├── ...               → 40+ additional migrations through March 12
+│   │   └── 20260312000001_drop_v_partner_ledger.sql
 │   ├── views/              → individual view source files (combined into migration above)
 │   │   ├── v_ap_calendar.sql
 │   │   ├── v_ar_balances.sql
 │   │   ├── v_bank_balances.sql
+│   │   ├── v_budget_vs_actual.sql
 │   │   ├── v_cost_balances.sql
 │   │   ├── v_cost_totals.sql
 │   │   ├── v_entity_transactions.sql
-│   │   ├── v_retencion_dashboard.sql
+│   │   ├── v_igv_position.sql
 │   │   ├── v_loan_balances.sql
-│   │   ├── v_budget_vs_actual.sql
-│   │   └── v_igv_position.sql
+│   │   └── v_retencion_dashboard.sql
 │   └── seeds/
 │       ├── 001_tags.sql
 │       ├── 002_partner_companies.sql
 │       └── 003_bank_accounts.sql
-├── website/                → Next.js visualization website
+├── website/                → Next.js website (visualization + data entry)
 │   ├── app/
 │   ├── components/
 │   ├── lib/
@@ -121,7 +121,7 @@ korakuen/
 ### 1.2 Get Credentials
 From your Supabase project dashboard → Settings → API:
 - **Project URL:** `https://[project-ref].supabase.co`
-- **Anon key:** safe for client-side use (read-only website)
+- **Anon key:** safe for client-side use (RLS policies enforce access control)
 - **Service role key:** server-side only (CLI scripts) — never expose publicly
 
 ### 1.3 Install Supabase CLI
@@ -232,7 +232,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 ```
 
-**Use anon key for website** — read-only access, safe to expose in browser. Row Level Security on Supabase enforces read-only access.
+**Use anon key for website** — safe to expose in browser. Row Level Security on Supabase enforces read and write access for authenticated users.
 
 ### 3.3 Run Locally
 ```bash
@@ -285,7 +285,7 @@ Create `.vscode/settings.json`:
 | `SUPABASE_URL` | CLI + website | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | CLI only | Full access key — never expose |
 | `NEXT_PUBLIC_SUPABASE_URL` | Website only | Same URL, prefixed for Next.js |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Website only | Read-only key — safe for browser |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Website only | Public key — safe for browser, RLS enforced |
 | `SUPABASE_PROJECT_ID` | Supabase CLI | Project ref for linking and type generation |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI | CLI access token for migrations |
 

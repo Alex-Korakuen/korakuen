@@ -223,7 +223,7 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 - Title and notes: use `title TEXT` for a record's subject or name (required, NOT NULL). Use `notes TEXT` for optional free-form context (nullable). Never use `description` as a column name. Special identity fields (`name`, `legal_name`, `bank_name`, `invoice_number`) keep their specific names
 
 ### Migration Standards
-- Every schema change is a new numbered migration file: `001_initial_schema.sql`, `002_add_field.sql`
+- Every schema change is a new timestamped migration file: `20260301000001_initial_schema.sql`, `20260302000001_entity_location_fields.sql`
 - Migrations are never edited after being applied — always add a new migration
 - Every migration includes a rollback comment
 
@@ -293,7 +293,7 @@ const formatUSD = (amount: number) =>
 ### Data Fetching
 - All database queries happen server-side in `/app/api` routes or Server Components
 - Never expose Supabase service key to client
-- Use Supabase anon key for client-side reads (read-only website in V0)
+- Use Supabase anon key for client-side operations (RLS policies enforce access control)
 
 ---
 

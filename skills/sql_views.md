@@ -17,13 +17,12 @@
 | `v_cost_totals.sql` | `v_cost_totals` | Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items |
 | `v_cost_balances.sql` | `v_cost_balances` | amount_paid, outstanding, payment_status per cost |
 | `v_ar_balances.sql` | `v_ar_balances` | amount_paid, outstanding, payment_status per AR invoice |
-| `v_ap_calendar.sql` | `v_ap_calendar` | Unpaid/partial costs sorted by due date with days remaining |
+| `v_ap_calendar.sql` | `v_ap_calendar` | Unpaid/partial costs and loan payments sorted by due date with days remaining |
 | `v_entity_transactions.sql` | `v_entity_transactions` | All transactions per entity per project (costs + AR) |
 | `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
 | `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
-| `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding per loan |
+| `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding, derived status per loan |
 | `v_budget_vs_actual.sql` | `v_budget_vs_actual` | Budgeted vs actual per project per category |
-| `v_igv_position.sql` | `v_igv_position` | IGV collected vs paid, net position per currency |
 
 ---
 

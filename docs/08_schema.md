@@ -10,7 +10,7 @@
 
 PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes) are permanent records — never deleted or deactivated. Bridge tables (project_entities, project_partners) use soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 20 tables total across 7 layers.
+**Table count:** 19 tables total across 7 layers.
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
@@ -451,8 +451,8 @@ The unified payments table. Every actual movement of money — both inbound and 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
-| related_to | VARCHAR | NO | cost or ar_invoice |
-| related_id | UUID | NO | the specific cost or AR invoice ID |
+| related_to | VARCHAR | NO | cost, ar_invoice, or loan_schedule |
+| related_id | UUID | NO | the specific cost, AR invoice, or loan_schedule entry ID |
 | direction | VARCHAR | NO | inbound or outbound |
 | payment_type | VARCHAR | NO | regular, detraccion, retencion |
 | payment_date | DATE | NO | when payment was made or received |
@@ -478,6 +478,11 @@ Client pays your AR invoice of S/ 118,000:
 row 1: inbound | ar_invoice_id | detraccion | S/   4,720 | Banco de la Nación
 row 2: inbound | ar_invoice_id | retencion  | S/   3,540 | null — withheld by client, paid to SUNAT
 row 3: inbound | ar_invoice_id | regular    | S/ 109,740 | Interbank account
+```
+
+Repaying a loan schedule entry of S/ 5,000:
+```
+row 1: outbound | loan_schedule_id | regular | S/ 5,000 | BCP account
 ```
 
 ---
@@ -595,7 +600,7 @@ Layer 7 (project extensions):
 
 ## Database Views — Complete List
 
-**Existing views (10 — built and deployed):**
+**Existing views (9 — built and deployed):**
 
 | View | Source Tables | Purpose |
 |---|---|---|
@@ -616,6 +621,7 @@ Layer 7 (project extensions):
 |---|---|
 | `v_cash_flow` | Multi-table aggregation with category breakdown and currency conversion too complex for a single SQL view. Computed in `queries.ts`. |
 | `v_project_pl` / `v_company_pl` | P&L views existed early on but were dropped. The system operates on a cash basis — no accrual-based P&L page. |
+| `v_partner_ledger` | Settlement logic is computed in application layer (`queries.ts`) using `v_cost_totals` directly. Dropped in migration `20260312000001`. |
 
 ---
 
