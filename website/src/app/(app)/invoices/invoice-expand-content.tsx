@@ -83,29 +83,45 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
 
       {/* Totals */}
       <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
-        <div className="grid grid-cols-2 gap-1 text-sm sm:grid-cols-4">
-          <span className="text-zinc-500">Subtotal</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(invoice.subtotal ?? 0, currency)}</span>
-          <span className="text-zinc-500">IGV</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(invoice.igv_amount ?? 0, currency)}</span>
-          <span className="font-medium text-zinc-700">Total</span>
-          <span className="text-right font-mono font-semibold text-zinc-900">{formatCurrency(invoice.total ?? 0, currency)}</span>
-          {invoiceDetraccion > 0 && (
-            <>
-              <span className="text-zinc-500">Detraccion</span>
-              <span className="text-right font-mono text-zinc-700">{formatCurrency(invoiceDetraccion, currency)}</span>
-            </>
-          )}
-          {invoiceRetencion > 0 && (
-            <>
-              <span className="text-zinc-500">Retencion</span>
-              <span className="text-right font-mono text-zinc-700">{formatCurrency(invoiceRetencion, currency)}</span>
-            </>
-          )}
-          <span className="font-medium text-zinc-500">Paid</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(invoice.amount_paid ?? 0, currency)}</span>
-          <span className="font-medium text-zinc-500">Outstanding</span>
-          <span className="text-right font-mono font-semibold text-red-600">{formatCurrency(invoiceOutstanding, currency)}</span>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+          {/* Left column: Subtotal, IGV, Total */}
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Subtotal</span>
+              <span className="font-mono text-zinc-700">{formatCurrency(invoice.subtotal ?? 0, currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">IGV</span>
+              <span className="font-mono text-zinc-700">{formatCurrency(invoice.igv_amount ?? 0, currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium text-zinc-700">Total</span>
+              <span className="font-mono font-semibold text-zinc-900">{formatCurrency(invoice.total ?? 0, currency)}</span>
+            </div>
+          </div>
+          {/* Right column: Detraccion, Retencion, Paid, Outstanding */}
+          <div className="space-y-1">
+            {invoiceDetraccion > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Detraccion</span>
+                <span className="font-mono text-zinc-700">{formatCurrency(invoiceDetraccion, currency)}</span>
+              </div>
+            )}
+            {invoiceRetencion > 0 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Retencion</span>
+                <span className="font-mono text-zinc-700">{formatCurrency(invoiceRetencion, currency)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="font-medium text-zinc-500">Paid</span>
+              <span className="font-mono text-zinc-700">{formatCurrency(invoice.amount_paid ?? 0, currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium text-zinc-500">Outstanding</span>
+              <span className="font-mono font-semibold text-red-600">{formatCurrency(invoiceOutstanding, currency)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
