@@ -556,35 +556,37 @@ export async function getInvoicesPage(
   }
 
   // Only count unpaid/partial for bucket totals and summary
+  // Include BdN outstanding — invoices with outstanding=0 but bdn_outstanding>0 still need attention
   for (const r of rows) {
-    if (r.payment_status === 'paid') continue
     const outstanding = r.outstanding ?? 0
-    if (outstanding <= 0) continue
+    const bdnOutstanding = r.bdn_outstanding ?? 0
+    const effectiveOutstanding = outstanding + bdnOutstanding
+    if (effectiveOutstanding <= 0) continue
 
     const bucket = (r.aging_bucket ?? 'current') as keyof InvoiceAgingBuckets
     const buckets = r.direction === 'receivable' ? receivableBuckets : payableBuckets
     if (buckets[bucket]) {
       buckets[bucket].count++
-      if (r.currency === 'PEN') buckets[bucket].pen += outstanding
+      if (r.currency === 'PEN') buckets[bucket].pen += effectiveOutstanding
       else if (r.currency === 'USD') {
-        buckets[bucket].usd += outstanding
-        if (midRate) buckets[bucket].pen += outstanding * midRate
+        buckets[bucket].usd += effectiveOutstanding
+        if (midRate) buckets[bucket].pen += effectiveOutstanding * midRate
       }
     }
 
     // Summary totals
     if (r.direction === 'receivable') {
-      if (r.currency === 'PEN') summary.receivable.pen += outstanding
-      else if (r.currency === 'USD') summary.receivable.usd += outstanding
+      if (r.currency === 'PEN') summary.receivable.pen += effectiveOutstanding
+      else if (r.currency === 'USD') summary.receivable.usd += effectiveOutstanding
     } else {
       if (r.currency === 'PEN') {
-        summary.payable.pen += outstanding
-        if (r.type === 'loan') summary.payable.loanPen += outstanding
-        else summary.payable.commercialPen += outstanding
+        summary.payable.pen += effectiveOutstanding
+        if (r.type === 'loan') summary.payable.loanPen += effectiveOutstanding
+        else summary.payable.commercialPen += effectiveOutstanding
       } else if (r.currency === 'USD') {
-        summary.payable.usd += outstanding
-        if (r.type === 'loan') summary.payable.loanUsd += outstanding
-        else summary.payable.commercialUsd += outstanding
+        summary.payable.usd += effectiveOutstanding
+        if (r.type === 'loan') summary.payable.loanUsd += effectiveOutstanding
+        else summary.payable.commercialUsd += effectiveOutstanding
       }
     }
   }
@@ -633,7 +635,9 @@ export async function getInvoicesPage(
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,
     bdn_outstanding: r.bdn_outstanding ?? 0,
-    payment_status: r.payment_status ?? 'pending',
+    payment_status: r.payment_status === 'paid' && (r.bdn_outstanding ?? 0) > 0
+      ? 'partial'
+      : (r.payment_status ?? 'pending'),
     loan_id: r.loan_id,
   }))
 
