@@ -2,21 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getCostDetail, getLoanDetail, getLoanIdFromSchedule, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
+import { getCostDetail, getLoanDetail, getArInvoiceDetail, getPartnerCostDetails, getPartnerRevenueDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
 import type { PartnerCostDetail, PartnerRevenueDetail, BankTransaction, Currency } from '@/lib/types'
 
 export async function fetchCostDetail(costId: string) {
   return getCostDetail(costId)
-}
-
-export async function fetchLoanDetailFromSchedule(
-  lenderName: string,
-  scheduledDate: string,
-  scheduledAmount: number
-) {
-  const loanId = await getLoanIdFromSchedule(scheduledDate, scheduledAmount)
-  if (!loanId) return null
-  return getLoanDetail(loanId)
 }
 
 export async function fetchLoanDetailById(loanId: string) {

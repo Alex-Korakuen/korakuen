@@ -205,37 +205,7 @@ export async function getCostDetail(costId: string): Promise<CostDetailData> {
   }
 }
 
-export async function getLoanIdFromSchedule(
-  scheduledDate: string,
-  scheduledAmount: number
-): Promise<string | null> {
-  const supabase = await createServerSupabaseClient()
 
-  // Find schedule entries matching date+amount, then check if still outstanding
-  const { data: scheduleRows } = await supabase
-    .from('loan_schedule')
-    .select('id, loan_id, scheduled_amount')
-    .eq('scheduled_date', scheduledDate)
-    .eq('scheduled_amount', scheduledAmount)
-    .limit(5)
-
-  if (!scheduleRows || scheduleRows.length === 0) return null
-
-  // Check which ones are not fully paid
-  for (const row of scheduleRows) {
-    const { data: paidData } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('related_to', 'loan_schedule')
-      .eq('related_id', row.id)
-    const totalPaid = (paidData ?? []).reduce((s, p) => s + p.amount, 0)
-    if (totalPaid < row.scheduled_amount) {
-      return row.loan_id
-    }
-  }
-
-  return null
-}
 
 export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   const supabase = await createServerSupabaseClient()

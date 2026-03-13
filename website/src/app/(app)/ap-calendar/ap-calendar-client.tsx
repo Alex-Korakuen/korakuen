@@ -1,15 +1,13 @@
 'use client'
 
-import { formatCurrency, formatDate } from '@/lib/formatters'
 import { useUrlSort } from '@/lib/sort-utils'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Modal } from '@/components/ui/modal'
 import { Pagination } from '@/components/ui/pagination'
-import { fetchCostDetail, fetchLoanDetailFromSchedule } from '@/lib/actions'
+import { fetchCostDetail, fetchLoanDetailById } from '@/lib/actions'
 import { useDetailModal } from '@/lib/use-detail-modal'
-import { formatType } from './helpers'
-import { DetailField, CostDetailContent } from './ap-calendar-detail'
+import { CostDetailContent } from './ap-calendar-detail'
 import { LoanDetailContent } from './loan-detail-content'
 import { ApCalendarFilters } from './ap-calendar-filters'
 import { ApCalendarTable } from './ap-calendar-table'
@@ -78,12 +76,8 @@ export function ApCalendarClient({
     modal.open(row, async () => {
       if (row.type === 'supplier_invoice' && row.cost_id) {
         return await fetchCostDetail(row.cost_id) as CostDetailData | null
-      } else if (row.type === 'loan_payment' && row.due_date && row.outstanding !== null) {
-        return await fetchLoanDetailFromSchedule(
-          row.entity_name ?? '',
-          row.due_date,
-          row.outstanding
-        ) as LoanDetailData | null
+      } else if (row.type === 'loan_payment' && row.loan_id) {
+        return await fetchLoanDetailById(row.loan_id) as LoanDetailData | null
       }
       return null
     })
@@ -186,30 +180,9 @@ export function ApCalendarClient({
           />
         )}
 
-        {!modal.loading && modal.error && (
-          <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Could not load full detail. Showing summary only.
-          </div>
-        )}
-
-        {!modal.loading && modal.selectedRow && !modal.detail && (
-          <div className="space-y-3">
-            <DetailField label="Type" value={formatType(modal.selectedRow.type)} />
-            <DetailField label="Supplier" value={modal.selectedRow.entity_name ?? '--'} />
-            <DetailField label="Project" value={modal.selectedRow.project_code ?? '--'} />
-            <DetailField label="Title" value={modal.selectedRow.title ?? '--'} />
-            <DetailField
-              label="Due Date"
-              value={modal.selectedRow.due_date ? formatDate(modal.selectedRow.due_date) : '--'}
-            />
-            <DetailField
-              label="Outstanding"
-              value={
-                modal.selectedRow.outstanding !== null && modal.selectedRow.currency
-                  ? formatCurrency(modal.selectedRow.outstanding, modal.selectedRow.currency)
-                  : '--'
-              }
-            />
+        {!modal.loading && !modal.detail && modal.selectedRow && (
+          <div className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Could not load detail for this record.
           </div>
         )}
       </Modal>
