@@ -1,10 +1,9 @@
 import { formatCurrency } from '@/lib/formatters'
-import { SectionCard } from '@/components/ui/section-card'
 import type { ProjectDetailData } from '@/lib/types'
 
 export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailData['entities'] }) {
   return (
-    <SectionCard title="Entities">
+    <>
       {entities.length === 0 ? (
         <div className="px-4 py-6 text-center text-sm text-zinc-400">
           No costs recorded
@@ -78,6 +77,6 @@ export function ProjectEntitiesSection({ entities }: { entities: ProjectDetailDa
           </table>
         </div>
       )}
-    </SectionCard>
+    </>
   )
 }

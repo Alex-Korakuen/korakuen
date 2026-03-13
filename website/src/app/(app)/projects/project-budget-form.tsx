@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { formatCurrency, formatCategory } from '@/lib/formatters'
-import { SectionCard } from '@/components/ui/section-card'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow } from '@/lib/types'
 import type { CategoryOption } from '@/lib/queries'
@@ -102,7 +101,7 @@ export function ProjectBudgetForm({
   }
 
   return (
-    <SectionCard title="Costs & Budget">
+    <>
       {budgetRows.length === 0 && !showAddForm ? (
         <div className="px-4 py-6 text-center text-sm text-zinc-400">
           No cost data available
@@ -300,7 +299,7 @@ export function ProjectBudgetForm({
           </button>
         )}
       </div>
-    </SectionCard>
+    </>
   )
 }
 

@@ -1,3 +1,5 @@
+'use client'
+
 import {
   formatCurrency,
   formatDate,
@@ -6,10 +8,12 @@ import {
   formatProjectType,
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { TabBar } from '@/components/ui/tab-bar'
 import { ProjectPartnerSettlement } from './project-partner-settlement'
 import { ProjectBudgetForm } from './project-budget-form'
 import { ProjectEntitiesSection } from './project-entities-section'
 
+import type { Tab } from '@/components/ui/tab-bar'
 import type { ProjectDetailData } from '@/lib/types'
 import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
 
@@ -30,8 +34,54 @@ export function ProjectDetail({
 }: Props) {
   const { project, clientName, entities, partners, partnerSettlements } = detail
 
+  const tabs: Tab[] = [
+    {
+      key: 'partners',
+      label: 'Partners',
+      content: (
+        <ProjectPartnerSettlement
+          projectId={project.id}
+          partners={partners}
+          settlements={partnerSettlements}
+          partnerCompanies={partnerCompanies}
+        />
+      ),
+    },
+    {
+      key: 'entities',
+      label: 'Entities',
+      content: <ProjectEntitiesSection entities={entities} />,
+    },
+    {
+      key: 'budget',
+      label: 'Costs & Budget',
+      content: (
+        <ProjectBudgetForm
+          projectId={project.id}
+          budgetRows={detail.budget}
+          contractValue={contractValue}
+          contractCurrency={contractCurrency}
+          categories={categories}
+        />
+      ),
+    },
+    ...(project.notes
+      ? [
+          {
+            key: 'notes',
+            label: 'Notes',
+            content: (
+              <div className="p-4">
+                <p className="whitespace-pre-wrap text-sm text-zinc-600">{project.notes}</p>
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Project Header */}
       <div className="rounded-lg border border-zinc-200 p-4">
         <div className="flex flex-wrap items-start gap-2">
@@ -78,27 +128,10 @@ export function ProjectDetail({
         </div>
       </div>
 
-      <ProjectPartnerSettlement
-        projectId={project.id}
-        partners={partners}
-        settlements={partnerSettlements}
-        partnerCompanies={partnerCompanies}
-      />
-      <ProjectEntitiesSection entities={entities} />
-      <ProjectBudgetForm
-        projectId={project.id}
-        budgetRows={detail.budget}
-        contractValue={contractValue}
-        contractCurrency={contractCurrency}
-        categories={categories}
-      />
-
-      {project.notes && (
-        <div className="rounded-lg border border-zinc-200 p-4">
-          <h3 className="mb-2 text-sm font-medium text-zinc-700">Notes</h3>
-          <p className="whitespace-pre-wrap text-sm text-zinc-600">{project.notes}</p>
-        </div>
-      )}
+      {/* Tabbed sections */}
+      <div className="rounded-lg border border-zinc-200 bg-white">
+        <TabBar tabs={tabs} defaultTab="partners" />
+      </div>
     </div>
   )
 }

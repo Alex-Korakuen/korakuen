@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { SectionCard } from '@/components/ui/section-card'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerCosts, fetchPartnerRevenue, addProjectPartner, removeProjectPartner } from '@/lib/actions'
@@ -126,7 +125,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     : settlements.find(s => s.partnerCompanyId === expandedPartner)
 
   return (
-    <SectionCard title="Partners">
+    <>
       {partners.length === 0 && !showForm ? (
         <p className="px-4 py-6 text-center text-sm text-zinc-400">No partners assigned</p>
       ) : (
@@ -450,6 +449,6 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         )}
       </Modal>
 
-    </SectionCard>
+    </>
   )
 }
