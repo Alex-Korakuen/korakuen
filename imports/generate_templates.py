@@ -312,210 +312,80 @@ QUOTES = [
     },
 ]
 
-def build_cost_fields():
-    """Build cost template fields, loading category values from database."""
-    from modules.costs import load_categories
-    category_values = " | ".join(c["name"] for c in load_categories())
-
-    return [
-        # === HEADER SECTION — required fields first ===
-        {
-            "name": "document_ref",
-            "example": "PRY001-AP-001",
-            "description": "Required. Grouping key — rows with same value form one cost with multiple items.",
-            "allowed_values": "",
-        },
-        {
-            "name": "date",
-            "example": "2026-03-15",
-            "description": "Required. Date the expense occurred. Format: YYYY-MM-DD.",
-            "allowed_values": "",
-        },
-        {
-            "name": "title",
-            "example": "Cement purchase for foundation work",
-            "description": "Required. Overall invoice or expense title.",
-            "allowed_values": "",
-        },
-        {
-            "name": "bank_account",
-            "example": "BCP-4567",
-            "description": "Required. Bank account label. Must exist in bank_accounts table.",
-            "allowed_values": "Lookup → bank_accounts.label",
-        },
-        {
-            "name": "currency",
-            "example": "PEN",
-            "description": "Required. Currency of the cost.",
-            "allowed_values": "USD | PEN",
-        },
-        {
-            "name": "igv_rate",
-            "example": "18",
-            "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
-            "allowed_values": "Usually 18",
-        },
-        # === HEADER SECTION — optional fields ===
-        {
-            "name": "project_code",
-            "example": "PRY001",
-            "description": "Optional. Project code. Blank = SG&A. Derives cost_type automatically.",
-            "allowed_values": "Lookup → projects.project_code",
-        },
-        {
-            "name": "entity_document_number",
-            "example": "20612345678",
-            "description": "Optional. Supplier/vendor document number. Null if informal/unassigned.",
-            "allowed_values": "Lookup → entities.document_number",
-        },
-        {
-            "name": "exchange_rate",
-            "example": "3.72",
-            "description": "Optional. PEN per USD rate. Auto-looked up from exchange_rates table by date if blank.",
-            "allowed_values": "",
-        },
-        {
-            "name": "comprobante_type",
-            "example": "factura",
-            "description": "Optional. Type of payment document.",
-            "allowed_values": " | ".join(COMPROBANTE_TYPES_ALL),
-        },
-        {
-            "name": "comprobante_number",
-            "example": "F001-00234",
-            "description": "Optional. Payment document number.",
-            "allowed_values": "",
-        },
-        {
-            "name": "detraccion_rate",
-            "example": "4",
-            "description": "Optional. Detracción percentage. NUMERIC(5,2). Null if not applicable.",
-            "allowed_values": "Varies by service type",
-        },
-        {
-            "name": "payment_method",
-            "example": "bank_transfer",
-            "description": "Optional. How the payment was made.",
-            "allowed_values": "bank_transfer | cash | check",
-        },
-        {
-            "name": "quote_document_ref",
-            "example": "PRY001-QT-001",
-            "description": "Optional. Document ref of a prior accepted quote. Null if no prior quote.",
-            "allowed_values": "Lookup → quotes.document_ref",
-        },
-        {
-            "name": "due_date",
-            "example": "2026-04-15",
-            "description": "Optional. Payment due date. Feeds AP payment calendar. Format: YYYY-MM-DD.",
-            "allowed_values": "",
-        },
-        {
-            "name": "notes",
-            "example": "Urgent delivery requested",
-            "description": "Optional. Free-form context about the cost.",
-            "allowed_values": "",
-        },
-        # === DETAIL SECTION — required fields first ===
-        {
-            "name": "item_title",
-            "example": "Portland cement Type I x 42.5kg",
-            "description": "Required. Line item title.",
-            "allowed_values": "",
-        },
-        {
-            "name": "category",
-            "example": "materials",
-            "description": "Required. Cost category. Different allowed values for project costs vs SG&A.",
-            "allowed_values": category_values,
-        },
-        {
-            "name": "subtotal",
-            "example": "14250.00",
-            "description": "Required. NUMERIC(15,2). Line item total amount.",
-            "allowed_values": "",
-        },
-        # === DETAIL SECTION — optional fields ===
-        {
-            "name": "quantity",
-            "example": "500",
-            "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
-            "allowed_values": "",
-        },
-        {
-            "name": "unit_of_measure",
-            "example": "bags",
-            "description": "Optional. meters, units, hours, kg, days, bags, etc.",
-            "allowed_values": "",
-        },
-        {
-            "name": "unit_price",
-            "example": "28.50",
-            "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
-            "allowed_values": "",
-        },
-    ]
-
-AR_INVOICES = [
+INVOICES = [
+    # === HEADER SECTION — required fields first ===
     {
-        "name": "project_code",
-        "example": "PRY001",
-        "description": "Required. Project code. Must exist in projects table.",
-        "allowed_values": "Lookup → projects.project_code",
+        "name": "direction",
+        "example": "payable",
+        "description": "Required. Invoice direction.",
+        "allowed_values": "payable | receivable",
     },
     {
-        "name": "bank_account",
-        "example": "Interbank-7890",
-        "description": "Required. Bank account label. Must exist in bank_accounts table.",
-        "allowed_values": "Lookup → bank_accounts.label",
-    },
-    {
-        "name": "entity_document_number",
-        "example": "20198765432",
-        "description": "Required. Document number of the client entity.",
-        "allowed_values": "Lookup → entities.document_number",
+        "name": "document_ref",
+        "example": "PRY001-AP-001",
+        "description": "Required for payable (grouping key — rows with same value form one invoice with multiple items). Optional for receivable.",
+        "allowed_values": "",
     },
     {
         "name": "partner_company_name",
         "example": "Korakuen Ingeniería S.A.C.",
-        "description": "Required. Name of the partner company that issued the invoice.",
+        "description": "Required. Partner company that incurred (payable) or issued (receivable) the invoice.",
         "allowed_values": "Lookup → partner_companies.name",
     },
     {
-        "name": "invoice_number",
-        "example": "F001-00089",
-        "description": "Required. Own invoice numbering from Alegra/Contasis.",
-        "allowed_values": "",
-    },
-    {
-        "name": "comprobante_type",
-        "example": "factura",
-        "description": "Required. Type of payment document. Always factura for construction AR.",
-        "allowed_values": " | ".join(COMPROBANTE_TYPES_AR),
-    },
-    {
         "name": "invoice_date",
-        "example": "2026-04-01",
-        "description": "Required. Invoice issue date. Format: YYYY-MM-DD.",
+        "example": "2026-03-15",
+        "description": "Required. Invoice date. Format: YYYY-MM-DD.",
         "allowed_values": "",
     },
     {
-        "name": "due_date",
-        "example": "2026-05-01",
-        "description": "Optional. Payment due date. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "subtotal",
-        "example": "150000.00",
-        "description": "Required. NUMERIC(15,2). Invoice subtotal amount.",
-        "allowed_values": "",
+        "name": "currency",
+        "example": "PEN",
+        "description": "Required. Currency of the invoice.",
+        "allowed_values": "USD | PEN",
     },
     {
         "name": "igv_rate",
         "example": "18",
         "description": "Required. IGV percentage. NUMERIC(5,2). Default 18.",
         "allowed_values": "Usually 18",
+    },
+    # === HEADER SECTION — optional/conditional fields ===
+    {
+        "name": "project_code",
+        "example": "PRY001",
+        "description": "Required for receivable. Optional for payable (blank = SG&A).",
+        "allowed_values": "Lookup → projects.project_code",
+    },
+    {
+        "name": "entity_document_number",
+        "example": "20612345678",
+        "description": "Required for receivable (client). Optional for payable (null if informal).",
+        "allowed_values": "Lookup → entities.document_number",
+    },
+    {
+        "name": "title",
+        "example": "Cement purchase for foundation work",
+        "description": "Required for payable. Not used for receivable.",
+        "allowed_values": "",
+    },
+    {
+        "name": "invoice_number",
+        "example": "F001-00234",
+        "description": "Optional. Comprobante number (payable) or own numbering (receivable).",
+        "allowed_values": "",
+    },
+    {
+        "name": "comprobante_type",
+        "example": "factura",
+        "description": "Optional. Type of payment document.",
+        "allowed_values": " | ".join(COMPROBANTE_TYPES_ALL),
+    },
+    {
+        "name": "exchange_rate",
+        "example": "3.72",
+        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
+        "allowed_values": "",
     },
     {
         "name": "detraccion_rate",
@@ -526,43 +396,74 @@ AR_INVOICES = [
     {
         "name": "retencion_applicable",
         "example": "false",
-        "description": "Required. Whether client will withhold retención. BOOLEAN.",
+        "description": "Receivable only. Whether client will withhold retención. BOOLEAN. Default false.",
         "allowed_values": "true | false",
     },
     {
         "name": "retencion_rate",
         "example": "3",
-        "description": "Optional. Retención percentage. NUMERIC(5,2). Required if retencion_applicable is true. Default 3.",
+        "description": "Receivable only. Retención percentage. Required if retencion_applicable is true.",
         "allowed_values": "Usually 3 (if applicable)",
     },
     {
-        "name": "currency",
-        "example": "PEN",
-        "description": "Required. Currency of the invoice.",
-        "allowed_values": "USD | PEN",
+        "name": "payment_method",
+        "example": "bank_transfer",
+        "description": "Payable only. How the payment was made.",
+        "allowed_values": "bank_transfer | cash | check",
     },
     {
-        "name": "exchange_rate",
-        "example": "3.72",
-        "description": "Required. PEN per USD rate at transaction date. NUMERIC(10,4).",
+        "name": "quote_document_ref",
+        "example": "PRY001-QT-001",
+        "description": "Payable only. Document ref of a prior accepted quote.",
+        "allowed_values": "Lookup → quotes.document_ref",
+    },
+    {
+        "name": "due_date",
+        "example": "2026-04-15",
+        "description": "Optional. Payment due date. Feeds calendar. Format: YYYY-MM-DD.",
         "allowed_values": "",
-    },
-    {
-        "name": "document_ref",
-        "example": "PRY001-AR-001",
-        "description": "Optional. Document reference linking to SharePoint file.",
-        "allowed_values": "",
-    },
-    {
-        "name": "retencion_verified",
-        "example": "false",
-        "description": "Required. Manually set to true once confirmed that client paid retención to SUNAT. BOOLEAN. Default false.",
-        "allowed_values": "true | false",
     },
     {
         "name": "notes",
-        "example": "March 2026 billing",
-        "description": "Optional. Free text notes.",
+        "example": "Urgent delivery requested",
+        "description": "Optional. Free-form context.",
+        "allowed_values": "",
+    },
+    # === DETAIL SECTION (payable: multiple items per invoice; receivable: one synthetic item) ===
+    {
+        "name": "item_title",
+        "example": "Portland cement Type I x 42.5kg",
+        "description": "Required. Line item title.",
+        "allowed_values": "",
+    },
+    {
+        "name": "category",
+        "example": "materials",
+        "description": "Required for payable items. Optional for receivable.",
+        "allowed_values": "Lookup → categories.name",
+    },
+    {
+        "name": "subtotal",
+        "example": "14250.00",
+        "description": "Required. NUMERIC(15,2). Line item total amount.",
+        "allowed_values": "",
+    },
+    {
+        "name": "quantity",
+        "example": "500",
+        "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
+        "allowed_values": "",
+    },
+    {
+        "name": "unit_of_measure",
+        "example": "bags",
+        "description": "Optional. meters, units, hours, kg, days, bags, etc.",
+        "allowed_values": "",
+    },
+    {
+        "name": "unit_price",
+        "example": "28.50",
+        "description": "Optional. NUMERIC(15,4). Null for lump sum lines.",
         "allowed_values": "",
     },
 ]
@@ -575,8 +476,7 @@ def main():
         ("entities.xlsx", ENTITIES),
         ("projects.xlsx", PROJECTS),
         ("quotes.xlsx", QUOTES),
-        ("costs.xlsx", build_cost_fields()),
-        ("ar_invoices.xlsx", AR_INVOICES),
+        ("invoices.xlsx", INVOICES),
     ]
 
     for filename, columns in templates:

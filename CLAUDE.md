@@ -16,11 +16,11 @@ The system replaces spreadsheets with a structured database. It gives the partne
 
 ## Core Principle
 
-**The database is the product. The CLI is how data gets in. The website is how data gets read.**
+**The database is the product. The website is how data gets in and out.**
 
-- Data entry: Python CLI application — menu-driven, single entry point (`python main.py`)
+- Data entry: Website (primary) + Python CLI (legacy, 6 modules remaining)
 - Data storage: PostgreSQL on Supabase
-- Data visualization: Next.js website on Vercel (read-only in V0)
+- Data visualization: Next.js website on Vercel
 - File storage: SharePoint (external, referenced by naming convention only)
 
 ---
@@ -49,17 +49,15 @@ korakuen/
 │   ├── import_script.md
 │   ├── ts_types.md
 │   └── codebase_audit.md
-├── cli/                    → Python CLI application
+├── cli/                    → Python CLI application (legacy — costs/AR modules removed in V1)
 │   ├── main.py             → single entry point (python main.py)
 │   ├── modules/            → one module per entity type
 │   │   ├── projects.py
 │   │   ├── entities.py
-│   │   ├── costs.py
 │   │   ├── quotes.py
-│   │   ├── ar_invoices.py
 │   │   ├── payments.py
-│   │   ├── loans.py          → loans module (Phase 3.5)
-│   │   └── exchange_rates.py → SUNAT daily exchange rates (Phase 5)
+│   │   ├── loans.py
+│   │   └── exchange_rates.py
 │   ├── lib/
 │   │   ├── db.py           → shared Supabase client
 │   │   ├── helpers.py      → shared input helpers
@@ -81,13 +79,13 @@ korakuen/
 
 ---
 
-## Database — 19 Tables
+## Database — 17 Tables
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_entities, project_partners, quotes
-Layer 4: costs, cost_items, ar_invoices
+Layer 4: invoices, invoice_items
 Layer 5: payments
 Layer 6: loans, loan_schedule
 Layer 7: project_budgets
@@ -109,12 +107,12 @@ Key facts:
 
 ## Critical Business Rules
 
-- **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on AR only — Korakuen is NOT a retencion agent)
-- **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on costs — cash purchases and informal suppliers are valid
-- **Partner identity:** All financial tables (costs, ar_invoices, payments, loans) have explicit `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices or costs
-- **Costs have line items:** `costs` is the header, `cost_items` holds detail. Category lives on cost_items, not the header
-- **PO module hook:** `costs` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null in V0
-- **No stored totals:** subtotal, igv_amount, total on costs are derived from cost_items via `v_cost_totals`. Payment status derived from payments via `v_cost_balances` and `v_ar_balances`
+- **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on receivable only — Korakuen is NOT a retencion agent)
+- **Unified invoice model:** `invoices` table with `direction` column (`'payable'` or `'receivable'`) replaces separate costs/AR tables. `invoice_items` holds line items. Category lives on invoice_items, not the header
+- **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on invoices — cash purchases and informal suppliers are valid
+- **Partner identity:** All financial tables (invoices, payments, loans) have explicit `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices
+- **PO module hook:** `invoices` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null
+- **No stored totals:** subtotal, igv_amount, total on invoices are derived from invoice_items via `v_invoice_totals`. Payment status derived from payments via `v_invoice_balances`
 - **Tags are universal:** one `tags` table serves both entity categorization and project roles
 - **Project code drives everything:** PRY001, PRY002... — auto-sequential, used in all SharePoint filenames
 
@@ -152,6 +150,7 @@ Read these documents for context on specific tasks:
 | Understanding file/document references | `docs/07_file_storage.md` |
 | Knowing what to build next | `TODO.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
+| Understanding V1 unified invoice migration | `docs/16_v1_migration_plan.md` |
 | Writing import functions | `skills/import_script.md` + `docs/10_coding_standards.md` |
 | Understanding what skills to build and how | `skills/` directory (12_skills.md deleted — skills are the reference) |
 
@@ -208,7 +207,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** CLI application (8 modules), database (19 tables, 9 views), and visualization website (7 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`.
+**Development complete.** CLI application (6 modules), database (17 tables, 10 views), and visualization website (9 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
 
 **Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 7 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 

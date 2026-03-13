@@ -7,7 +7,9 @@
 - `docs/10_coding_standards.md` — module structure, naming, error handling
 - `docs/11_environment_setup.md` — Supabase client initialization
 
-**Output:** A module file in `cli/modules/` named by entity type (e.g., `costs.py`, `entities.py`). Each module exposes a `menu()` function and individual operation functions.
+**Output:** A module file in `cli/modules/` named by entity type (e.g., `entities.py`, `payments.py`). Each module exposes a `menu()` function and individual operation functions.
+
+**Note:** The CLI is legacy — data entry has moved to the website. Costs and AR invoice modules have been removed (V1 unified invoice model). Remaining modules: projects, entities, quotes, payments, loans, exchange_rates.
 
 ---
 
@@ -18,9 +20,9 @@ Every CLI module follows this exact structure:
 ```python
 #!/usr/bin/env python3
 """
-Module: costs.py
-Purpose: All cost operations — add single, import from Excel
-Tables: costs, cost_items
+Module: quotes.py
+Purpose: All quote operations — add single, import from Excel
+Tables: quotes
 """
 
 from lib.db import supabase
@@ -28,29 +30,26 @@ from lib.helpers import get_input, get_optional_input, confirm, list_choices, cl
 
 
 def menu():
-    """Submenu for cost operations. Called by main.py."""
+    """Submenu for quote operations. Called by main.py."""
     while True:
         clear_screen()
-        print("\n=== Costs ===\n")
-        print("1. Add cost")
-        print("2. Import costs from Excel")
-        print("3. Import cost items from Excel")
-        print("4. Back")
+        print("\n=== Quotes ===\n")
+        print("1. Add quote")
+        print("2. Import quotes from Excel")
+        print("3. Back")
         choice = get_input("\nSelect option: ")
         if choice == "1":
-            add_cost()
+            add_quote()
         elif choice == "2":
-            import_costs()
+            import_quotes()
         elif choice == "3":
-            import_cost_items()
-        elif choice == "4":
             return
 
 
-def add_cost():
-    """Register a single cost interactively."""
+def add_quote():
+    """Register a single quote interactively."""
     clear_screen()
-    print("\n=== Add Cost ===\n")
+    print("\n=== Add Quote ===\n")
 
     # --- Collect inputs ---
     # [show available options for FK fields]
@@ -63,25 +62,25 @@ def add_cost():
     # ... all fields
 
     # --- Confirm ---
-    if not confirm("Register this cost?"):
+    if not confirm("Register this quote?"):
         print("Cancelled.")
         input("\nPress Enter to continue...")
         return
 
     # --- Insert ---
     try:
-        response = supabase.table("costs").insert(data).execute()
-        print(f"\n✓ Cost registered (ID: {response.data[0]['id'][:8]}...)")
+        response = supabase.table("quotes").insert(data).execute()
+        print(f"\n✓ Quote registered (ID: {response.data[0]['id'][:8]}...)")
     except Exception as e:
         print(f"\n✗ Error: {e}")
 
     input("\nPress Enter to continue...")
 
 
-def import_costs():
-    """Import costs from an Excel spreadsheet."""
+def import_quotes():
+    """Import quotes from an Excel spreadsheet."""
     clear_screen()
-    print("\n=== Import Costs ===\n")
+    print("\n=== Import Quotes ===\n")
     file_path = get_input("Enter path to Excel file (or drag file into terminal): ").strip().strip("'\"")
     # ... read file, validate, confirm, batch insert
     # See skills/import_script.md for full import pattern
@@ -104,7 +103,7 @@ Purpose: Main menu for the Korakuen Management System
 """
 
 from lib.helpers import get_input, clear_screen
-from modules import projects, entities, costs, quotes, ar_invoices, payments, loans, exchange_rates
+from modules import projects, entities, quotes, payments, loans, exchange_rates
 
 
 def main():
@@ -113,12 +112,10 @@ def main():
         print("\n=== Korakuen Management System ===\n")
         print("1. Projects")
         print("2. Entities & Contacts")
-        print("3. Costs")
-        print("4. Quotes")
-        print("5. AR Invoices")
-        print("6. Payments")
-        print("7. Loans")
-        print("8. Exchange Rates")
+        print("3. Quotes")
+        print("4. Payments")
+        print("5. Loans")
+        print("6. Exchange Rates")
         print("0. Exit")
         choice = get_input("\nSelect option: ")
         if choice == "1":
@@ -126,16 +123,12 @@ def main():
         elif choice == "2":
             entities.menu()
         elif choice == "3":
-            costs.menu()
-        elif choice == "4":
             quotes.menu()
-        elif choice == "5":
-            ar_invoices.menu()
-        elif choice == "6":
+        elif choice == "4":
             payments.menu()
-        elif choice == "7":
+        elif choice == "5":
             loans.menu()
-        elif choice == "8":
+        elif choice == "6":
             exchange_rates.menu()
         elif choice == "0":
             print("\nGoodbye.\n")
@@ -175,9 +168,9 @@ from lib.import_helpers import (
 ```python
 #!/usr/bin/env python3
 """
-Module: costs.py
-Purpose: All cost operations — add single, import from Excel
-Tables: costs, cost_items
+Module: quotes.py
+Purpose: All quote operations — add single, import from Excel
+Tables: quotes
 """
 ```
 
@@ -208,7 +201,7 @@ print(f"  Project:  {project_code} — {project_name}")
 print(f"  Entity:   {entity_name}")
 print(f"  Amount:   {currency} {subtotal:,.2f}")
 # ... all fields
-if not confirm("Register this cost?"):
+if not confirm("Register this record?"):
     print("Cancelled.")
     input("\nPress Enter to continue...")
     return
@@ -218,8 +211,8 @@ if not confirm("Register this cost?"):
 
 ```python
 try:
-    response = supabase.table("costs").insert(data).execute()
-    print(f"\n✓ Cost registered (ID: {response.data[0]['id'][:8]}...)")
+    response = supabase.table("quotes").insert(data).execute()
+    print(f"\n✓ Quote registered (ID: {response.data[0]['id'][:8]}...)")
 except Exception as e:
     print(f"\n✗ Error: {e}")
 ```
@@ -228,8 +221,8 @@ except Exception as e:
 
 Modules collect input and insert records. Nothing else.
 
-- No IGV calculation in Python — derived in `v_cost_totals`
-- No balance calculation in Python — derived in `v_cost_balances`
+- No IGV calculation in Python — derived in `v_invoice_totals`
+- No balance calculation in Python — derived in `v_invoice_balances`
 - No payment status logic in Python — derived in views
 - If you're doing math in a module, stop and ask whether it belongs in a view
 
@@ -259,10 +252,9 @@ Build a dictionary and insert it — never construct SQL strings:
 data = {
     "project_id": project_id,
     "entity_id": entity_id,
-    "date": date_str,
+    "date_received": date_str,
     "title": title,
-    "cost_type": cost_type,
-    "igv_rate": igv_rate,
+    "subtotal": subtotal,
     "currency": currency,
 }
 # Add optional fields only if they have values

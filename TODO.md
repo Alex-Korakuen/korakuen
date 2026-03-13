@@ -4,6 +4,19 @@ Development is complete — only minor adjustments and feature additions remain.
 
 ---
 
+## V1 Migration Cleanup (Phase 6)
+
+See `docs/16_v1_migration_plan.md` for full context. Unified invoice model is live — `costs`, `cost_items`, `ar_invoices` tables replaced by `invoices` + `invoice_items`.
+
+- [x] Delete deprecated CLI modules (`costs.py`, `ar_invoices.py`) and update `main.py`
+- [x] Update `docs/08_schema.md` — new table structure (17 tables, 10 views)
+- [x] Update `CLAUDE.md` — table count, table list, module list, business rules
+- [x] Update skills (`sql_schema.md`, `cli_script.md`, `import_script.md`, `ts_types.md`)
+- [x] Update `imports/generate_templates.py` — merge cost + AR templates into invoices template
+- [x] Regenerate `database.types.ts` via Supabase CLI
+
+---
+
 ## Website Data Entry
 
 Move all data entry from CLI to website. Excel imports, inline forms, and action modals — all partners can create and manage data directly. See `docs/14_website_imports.md` for full spec.
@@ -28,15 +41,14 @@ Move all data entry from CLI to website. Excel imports, inline forms, and action
 - [ ] Implement server-side Excel parsing (SheetJS + zod validation)
 - [ ] Entities import (bulk from Excel)
 - [ ] Quotes import (Prices page)
-- [ ] Costs import (AP Calendar — single-file grouped format)
-- [ ] AR invoices import (AR Outstanding)
+- [ ] Invoices import (Invoices page — single-file grouped format)
 
 ---
 
 ## Investigate: Partner Removal Impact on Financial Data
 
-When a partner is removed from a project, their historical costs and AR payments remain in the database. Need to investigate:
-- What happens to settlement calculations when a partner is removed but still has costs/revenue linked?
+When a partner is removed from a project, their historical invoices and payments remain in the database. Need to investigate:
+- What happens to settlement calculations when a partner is removed but still has invoices linked?
 - Should removal be blocked if the partner has financial data?
 - Should removed partners still appear in the settlement view (read-only, no delete button)?
 - Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
@@ -45,9 +57,9 @@ When a partner is removed from a project, their historical costs and AR payments
 
 ## Known Issues
 
-### Cost Import — Headers Without Items Warning [LOW]
+### Invoice Import — Headers Without Items Warning [LOW]
 
-The cost import is a two-step workflow (import headers, then import items). No validation ensures imported headers get corresponding items. Orphaned headers show zero totals — not corrupt, but confusing. Fix: add a post-import warning that checks for costs with no items.
+The invoice import is a two-step workflow (import headers, then import items). No validation ensures imported headers get corresponding items. Orphaned headers show zero totals — not corrupt, but confusing. Fix: add a post-import warning that checks for invoices with no items.
 
 ---
 

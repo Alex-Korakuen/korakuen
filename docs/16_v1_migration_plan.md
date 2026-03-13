@@ -2,7 +2,7 @@
 
 **Document version:** 1.1
 **Date:** March 12, 2026
-**Status:** Phases 1-3 complete, Phase 4 skipped, Phases 5-6 pending
+**Status:** All phases complete (Phase 4 skipped — CLI deprecation)
 **Parent document:** `docs/15_v1_restructure.md`
 
 ---
@@ -351,7 +351,7 @@ Phase 1 (DB migration)  ✅ COMPLETE
                  └── Phase 6 (cleanup + docs)
 ```
 
-Phases 1-3 are complete. Phase 5 (new website pages) can proceed incrementally. Phase 6 follows everything.
+All phases complete. V1 migration is done.
 
 ---
 

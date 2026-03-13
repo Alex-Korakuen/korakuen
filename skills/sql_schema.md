@@ -39,13 +39,13 @@ Generate tables in this exact order so foreign keys never reference a table that
 8. `project_entities`
 9. `project_partners`
 10. `quotes`
-11. `costs`
-12. `cost_items`
-13. `ar_invoices`
-14. `payments`
-15. `loans`
-16. `loan_schedule`
-17. `project_budgets`
+11. `invoices`
+12. `invoice_items`
+13. `payments`
+14. `loans`
+15. `loan_schedule`
+16. `project_budgets`
+17. `categories`
 
 ---
 
@@ -92,13 +92,13 @@ CREATE TRIGGER trg_[table_name]_updated_at
 
 ### Soft Delete
 
-Reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects):
+Reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories):
 
 ```sql
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (costs, cost_items, ar_invoices, payments, loans, loan_schedule) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -112,7 +112,7 @@ CONSTRAINT fk_[table]_[referenced_table]
 ### ON DELETE Behavior
 
 - **Default:** `RESTRICT` — prevents deleting a parent if children exist
-- **CASCADE** only for: `entity_tags` (both FKs), `cost_items.cost_id`
+- **CASCADE** only for: `entity_tags` (both FKs), `invoice_items.invoice_id`
 - **Never** use `SET NULL` — nullable FK fields exist for business reasons, not cascades
 
 ### NUMERIC Types
@@ -138,7 +138,7 @@ Add a comment on every non-obvious field:
 ```sql
 igv_rate NUMERIC(5,2) DEFAULT 18.00 NOT NULL, -- Peru VAT, editable per transaction
 is_detraccion_account BOOLEAN DEFAULT false NOT NULL, -- true for Banco de la Nación detracción accounts
-purchase_order_id UUID, -- reserved for future PO module — always null in V0
+purchase_order_id UUID, -- reserved for future PO module — always null
 ```
 
 ### Enums — Use VARCHAR, Not PostgreSQL ENUM
@@ -159,14 +159,13 @@ Known enum values per field:
 | `projects.contract_currency` | USD, PEN |
 | `quotes.status` | pending, accepted, rejected |
 | `quotes.currency` | USD, PEN |
-| `costs.cost_type` | project_cost, sga |
-| `costs.currency` | USD, PEN |
-| `costs.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
-| `costs.payment_method` | bank_transfer, cash, check |
-| `cost_items.category` | FK to `categories.name` — see categories table for valid values |
-| `ar_invoices.comprobante_type` | factura, boleta, recibo_por_honorarios |
-| `ar_invoices.currency` | USD, PEN |
-| `payments.related_to` | cost, ar_invoice, loan_schedule |
+| `invoices.direction` | payable, receivable |
+| `invoices.cost_type` | project_cost, sga (payable only) |
+| `invoices.currency` | USD, PEN |
+| `invoices.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
+| `invoices.payment_method` | bank_transfer, cash, check (payable only) |
+| `invoice_items.category` | FK to `categories.name` — see categories table for valid values |
+| `payments.related_to` | invoice, loan_schedule |
 | `payments.direction` | inbound, outbound |
 | `payments.payment_type` | regular, detraccion, retencion |
 | `payments.currency` | USD, PEN |
@@ -191,6 +190,6 @@ After generating the SQL file:
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
 3. All tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 7 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories)
+4. Only the 8 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) plus bridge tables (project_entities, project_partners)
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

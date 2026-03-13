@@ -43,9 +43,8 @@ export type EntityContactRow = Database['public']['Tables']['entity_contacts']['
 export type ProjectRow = Database['public']['Tables']['projects']['Row']
 export type ProjectEntityRow = Database['public']['Tables']['project_entities']['Row']
 export type QuoteRow = Database['public']['Tables']['quotes']['Row']
-export type CostRow = Database['public']['Tables']['costs']['Row']
-export type CostItemRow = Database['public']['Tables']['cost_items']['Row']
-export type ArInvoiceRow = Database['public']['Tables']['ar_invoices']['Row']
+export type InvoiceRow = Database['public']['Tables']['invoices']['Row']
+export type InvoiceItemRow = Database['public']['Tables']['invoice_items']['Row']
 export type PaymentRow = Database['public']['Tables']['payments']['Row']
 export type LoanRow = Database['public']['Tables']['loans']['Row']
 export type LoanScheduleRow = Database['public']['Tables']['loan_schedule']['Row']
@@ -54,9 +53,8 @@ export type ProjectBudgetRow = Database['public']['Tables']['project_budgets']['
 // === Insert types (for forms in V1) ===
 
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert']
-export type CostInsert = Database['public']['Tables']['costs']['Insert']
-export type CostItemInsert = Database['public']['Tables']['cost_items']['Insert']
-export type ArInvoiceInsert = Database['public']['Tables']['ar_invoices']['Insert']
+export type InvoiceInsert = Database['public']['Tables']['invoices']['Insert']
+export type InvoiceItemInsert = Database['public']['Tables']['invoice_items']['Insert']
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 export type LoanInsert = Database['public']['Tables']['loans']['Insert']
 export type LoanScheduleInsert = Database['public']['Tables']['loan_schedule']['Insert']
@@ -81,7 +79,8 @@ export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 export type CostType = 'project_cost' | 'sga'
 export type ComprobanteType = 'factura' | 'boleta' | 'recibo_por_honorarios' | 'liquidacion_de_compra' | 'planilla_jornales' | 'none'
 export type PaymentMethod = 'bank_transfer' | 'cash' | 'check'
-export type PaymentRelatedTo = 'cost' | 'ar_invoice' | 'loan_schedule'
+export type InvoiceDirection = 'payable' | 'receivable'
+export type PaymentRelatedTo = 'invoice' | 'loan_schedule'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 export type PaymentStatus = 'pending' | 'partial' | 'paid'
@@ -98,39 +97,30 @@ export type CostCategory = string  // dynamic — managed in categories table
 ```typescript
 // === Composite types for views and joined queries ===
 
-export type CostWithItems = CostRow & {
-  cost_items: CostItemRow[]
+export type InvoiceWithItems = InvoiceRow & {
+  invoice_items: InvoiceItemRow[]
   entity: EntityRow | null
   project: ProjectRow | null
 }
 
-export type CostWithTotals = CostRow & {
+export type InvoiceWithTotals = InvoiceRow & {
   subtotal: number
   igv_amount: number
   detraccion_amount: number
+  retencion_amount: number
   total: number
 }
 
-export type CostWithBalance = CostWithTotals & {
+export type InvoiceWithBalance = InvoiceWithTotals & {
   amount_paid: number
   outstanding: number
   payment_status: PaymentStatus
 }
 
-export type ArInvoiceWithBalance = ArInvoiceRow & {
-  igv_amount: number
-  gross_total: number
-  detraccion_amount: number
-  retencion_amount: number
-  net_receivable: number
-  amount_paid: number
-  outstanding: number
-  payment_status: PaymentStatus
-}
-
-export type ApCalendarEntry = {
-  cost_id: string
-  source_type: 'cost' | 'loan_payment'
+export type ObligationCalendarEntry = {
+  invoice_id: string
+  type: 'commercial' | 'loan'
+  direction: InvoiceDirection | null
   project_code: string | null
   project_name: string | null
   entity_name: string | null

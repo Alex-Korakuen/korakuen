@@ -5,7 +5,7 @@ Run: python main.py
 """
 
 from lib.helpers import get_input, clear_screen
-from modules import projects, entities, costs, quotes, ar_invoices, payments, loans, exchange_rates
+from modules import projects, entities, quotes, payments, loans, exchange_rates
 
 
 def main():
@@ -14,12 +14,10 @@ def main():
         print("\n=== Korakuen Management System ===\n")
         print("1. Projects")
         print("2. Entities & Contacts")
-        print("3. Costs")
-        print("4. Quotes")
-        print("5. AR Invoices")
-        print("6. Payments")
-        print("7. Loans")
-        print("8. Exchange Rates")
+        print("3. Quotes")
+        print("4. Payments")
+        print("5. Loans")
+        print("6. Exchange Rates")
         print("0. Exit")
 
         choice = get_input("\nSelect option: ")
@@ -29,16 +27,12 @@ def main():
         elif choice == "2":
             entities.menu()
         elif choice == "3":
-            costs.menu()
-        elif choice == "4":
             quotes.menu()
-        elif choice == "5":
-            ar_invoices.menu()
-        elif choice == "6":
+        elif choice == "4":
             payments.menu()
-        elif choice == "7":
+        elif choice == "5":
             loans.menu()
-        elif choice == "8":
+        elif choice == "6":
             exchange_rates.menu()
         elif choice == "0":
             print("\nGoodbye.\n")
