@@ -140,6 +140,7 @@ export async function registerPayment(input: {
 
   revalidatePath('/ap-calendar')
   revalidatePath('/ar-outstanding')
+  revalidatePath('/invoices')
   revalidatePath('/financial-position')
   revalidatePath('/cash-flow')
   return {}
@@ -570,6 +571,7 @@ export async function registerLoanRepayment(data: {
   if (error) return { error: error.message }
 
   revalidatePath('/ap-calendar')
+  revalidatePath('/invoices')
   revalidatePath('/financial-position')
   revalidatePath('/cash-flow')
   return {}

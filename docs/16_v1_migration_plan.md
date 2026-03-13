@@ -266,25 +266,49 @@ The CLI's `payments.py` module also references `related_to = 'cost'` and `'ar_in
 
 ---
 
-## Phase 5: Website Pages (outline)
+## Phase 5: Website Pages
 
-### New pages
-- **Invoices** (`/invoices`) — aging summary cards, filter bar, unified table with loan entries, inline expand
+### Architecture decisions
+
+**New SQL view: `v_invoices_with_loans`** — A dedicated view that UNIONs `v_invoice_balances` (commercial invoices, all statuses) with `loan_schedule` entries (with payment aggregation). Unlike `v_obligation_calendar` which filters to unpaid-only, this view includes paid/partial/pending rows and computes aging columns (`days_overdue`, `aging_bucket`). The Invoices page queries this single view.
+
+**Why not reuse `v_obligation_calendar`?** It filters out paid items and computes urgency (forward-looking), not aging (backward-looking). Modifying it would risk breaking the calendar pages. A dedicated view is safer and keeps responsibilities clear.
+
+**View cleanup plan:** Once Phase 5 pages are stable and tested, Phase 6 will audit all SQL views and drop any that are no longer referenced by queries.ts. Candidates: `v_obligation_calendar`, `v_invoice_balances`, `v_invoice_totals` — depending on whether the new unified views fully replace them.
+
+### Phase 5.1: Invoices page
+
+**New files:**
+- `supabase/views/v_invoices_with_loans.sql` — unified view (invoices + loan schedule, all statuses, aging buckets)
+- `invoices/page.tsx` — server component (data fetch, URL filter parsing)
+- `invoices/invoices-client.tsx` — client component (summary cards, filters, table orchestration)
+- `invoices/invoices-table.tsx` — table with inline expandable rows
+- `invoices/invoices-filters.tsx` — filter bar
+- `invoices/invoice-expand-content.tsx` — inline expand for commercial invoices
+- `invoices/loan-expand-content.tsx` — inline expand for loan entries
+- `invoices/helpers.ts` — aging colors, badge helpers
+
+**Modified files:**
+- `queries.ts` — new `getInvoicesPage()` querying `v_invoices_with_loans`
+- `sidebar.tsx` — add Invoices to Browse section
+- `actions.ts` — add `/invoices` to revalidation paths
+
+### Phase 5.2: Payments page
 - **Payments** (`/payments`) — summary cards, filter bar, table, inline expand
 
-### Simplified pages
+### Phase 5.3: Calendar simplification
 - **AP Calendar** — remove detail modals, remove Taxes tab, rows link to Invoices page
 - **AR Calendar** (rename from AR Outstanding, `/ar-outstanding` → `/ar-calendar`) — same simplification
 
-### Enhanced pages
+### Phase 5.4: Drill-down links
 - **Cash Flow** — clickable cells link to Payments page
 - **Financial Position** — clickable totals link to Invoices/Payments pages
 
-### Updated components
-- Sidebar: add Invoices + Payments to Browse, rename AR Outstanding → AR Calendar
+### Phase 5.5: Navigation + detail panel updates
+- Sidebar: add Payments to Browse, rename AR Outstanding → AR Calendar
 - Project/Entity detail panels: links point to Invoices/Payments pages
 
-### Components to remove
+### Components to remove (Phase 5.3)
 - `ap-calendar-detail.tsx`
 - `loan-detail-content.tsx`
 - `loan-schedule-form.tsx`

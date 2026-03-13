@@ -18,6 +18,7 @@ export type Payment = Database['public']['Tables']['payments']['Row']
 // --- View row types ---
 export type InvoiceBalanceRow = Database['public']['Views']['v_invoice_balances']['Row']
 export type ObligationCalendarRow = Database['public']['Views']['v_obligation_calendar']['Row']
+export type InvoicesWithLoansRow = Database['public']['Views']['v_invoices_with_loans']['Row']
 export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
 
 // --- Enums matching schema VARCHAR values ---

@@ -1167,6 +1167,40 @@ export type Database = {
           },
         ]
       }
+      v_invoices_with_loans: {
+        Row: {
+          type: string | null
+          id: string | null
+          loan_id: string | null
+          direction: string | null
+          partner_company_id: string | null
+          project_id: string | null
+          project_code: string | null
+          project_name: string | null
+          entity_id: string | null
+          entity_name: string | null
+          cost_type: string | null
+          title: string | null
+          invoice_number: string | null
+          comprobante_type: string | null
+          document_ref: string | null
+          invoice_date: string | null
+          due_date: string | null
+          currency: string | null
+          exchange_rate: number | null
+          subtotal: number | null
+          igv_amount: number | null
+          total: number | null
+          detraccion_amount: number | null
+          retencion_amount: number | null
+          amount_paid: number | null
+          outstanding: number | null
+          payment_status: string | null
+          days_overdue: number | null
+          aging_bucket: string | null
+        }
+        Relationships: []
+      }
       v_obligation_calendar: {
         Row: {
           amount_paid: number | null

@@ -7,6 +7,7 @@ import type { PaginatedResult } from './pagination'
 import type {
   ObligationCalendarRow,
   InvoiceBalanceRow,
+  InvoicesWithLoansRow,
   InvoiceDetailData,
   InvoicesPageRow,
   InvoiceItem,
@@ -486,6 +487,160 @@ export async function getPartnerCompaniesForFilter(): Promise<{ id: string; name
     .eq('is_active', true)
     .order('name')
   return data ?? []
+}
+
+// --- Invoices page queries ---
+
+type InvoicesPageFilters = {
+  direction?: 'payable' | 'receivable'
+  type?: 'commercial' | 'loan'
+  status?: 'pending' | 'partial' | 'paid' | 'overdue'
+  projectId?: string
+  entity?: string
+  bucket?: string
+  sort: string
+  dir: 'asc' | 'desc'
+  page: number
+}
+
+type InvoicesPageSummary = {
+  payable: { pen: number; usd: number; commercialPen: number; commercialUsd: number; loanPen: number; loanUsd: number }
+  receivable: { pen: number; usd: number }
+}
+
+type InvoicesPageResult = {
+  paginated: PaginatedResult<InvoicesPageRow>
+  payableBuckets: InvoiceAgingBuckets
+  receivableBuckets: InvoiceAgingBuckets
+  summary: InvoicesPageSummary
+  uniqueEntities: string[]
+}
+
+export async function getInvoicesPage(
+  partnerFilter: string[],
+  filters: InvoicesPageFilters,
+  midRate: number | null = null,
+): Promise<InvoicesPageResult> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data, error } = await supabase
+    .from('v_invoices_with_loans')
+    .select('*')
+    .order('due_date', { ascending: false, nullsFirst: false })
+
+  if (error) throw error
+
+  let rows: InvoicesWithLoansRow[] = data ?? []
+
+  // Partner filter
+  if (partnerFilter.length > 0) {
+    rows = rows.filter(r => r.partner_company_id && partnerFilter.includes(r.partner_company_id))
+  }
+
+  // Collect unique entity names for filter dropdown
+  const entitySet = new Set<string>()
+  for (const r of rows) { if (r.entity_name) entitySet.add(r.entity_name) }
+  const uniqueEntities = Array.from(entitySet).sort()
+
+  // Compute bucket counts per direction (before filters)
+  const emptyBucket = { count: 0, pen: 0, usd: 0 }
+  const payableBuckets: InvoiceAgingBuckets = {
+    current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket },
+  }
+  const receivableBuckets: InvoiceAgingBuckets = {
+    current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket },
+  }
+  const summary: InvoicesPageSummary = {
+    payable: { pen: 0, usd: 0, commercialPen: 0, commercialUsd: 0, loanPen: 0, loanUsd: 0 },
+    receivable: { pen: 0, usd: 0 },
+  }
+
+  // Only count unpaid/partial for bucket totals and summary
+  for (const r of rows) {
+    if (r.payment_status === 'paid') continue
+    const outstanding = r.outstanding ?? 0
+    if (outstanding <= 0) continue
+
+    const bucket = (r.aging_bucket ?? 'current') as keyof InvoiceAgingBuckets
+    const buckets = r.direction === 'receivable' ? receivableBuckets : payableBuckets
+    if (buckets[bucket]) {
+      buckets[bucket].count++
+      if (r.currency === 'PEN') buckets[bucket].pen += outstanding
+      else if (r.currency === 'USD') {
+        buckets[bucket].usd += outstanding
+        if (midRate) buckets[bucket].pen += outstanding * midRate
+      }
+    }
+
+    // Summary totals
+    if (r.direction === 'receivable') {
+      if (r.currency === 'PEN') summary.receivable.pen += outstanding
+      else if (r.currency === 'USD') summary.receivable.usd += outstanding
+    } else {
+      if (r.currency === 'PEN') {
+        summary.payable.pen += outstanding
+        if (r.type === 'loan') summary.payable.loanPen += outstanding
+        else summary.payable.commercialPen += outstanding
+      } else if (r.currency === 'USD') {
+        summary.payable.usd += outstanding
+        if (r.type === 'loan') summary.payable.loanUsd += outstanding
+        else summary.payable.commercialUsd += outstanding
+      }
+    }
+  }
+
+  // Apply filters
+  if (filters.direction) {
+    rows = rows.filter(r => r.direction === filters.direction)
+  }
+  if (filters.type) {
+    rows = rows.filter(r => r.type === filters.type)
+  }
+  if (filters.status) {
+    if (filters.status === 'overdue') {
+      rows = rows.filter(r => r.payment_status !== 'paid' && (r.days_overdue ?? 0) > 0)
+    } else {
+      rows = rows.filter(r => r.payment_status === filters.status)
+    }
+  }
+  if (filters.projectId) {
+    rows = rows.filter(r => r.project_id === filters.projectId)
+  }
+  if (filters.entity) {
+    const search = filters.entity.toLowerCase()
+    rows = rows.filter(r => (r.entity_name ?? '').toLowerCase().includes(search))
+  }
+  if (filters.bucket && filters.bucket !== 'all') {
+    rows = rows.filter(r => r.aging_bucket === filters.bucket)
+  }
+
+  // Map to InvoicesPageRow
+  const mapped: InvoicesPageRow[] = rows.map(r => ({
+    id: r.id!,
+    type: (r.type as 'commercial' | 'loan') ?? 'commercial',
+    direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
+    partner_company_id: r.partner_company_id,
+    project_id: r.project_id,
+    project_code: r.project_code,
+    entity_id: r.entity_id,
+    entity_name: r.entity_name,
+    title: r.title,
+    invoice_number: r.invoice_number,
+    invoice_date: r.invoice_date,
+    due_date: r.due_date,
+    currency: r.currency ?? 'PEN',
+    total: r.total ?? 0,
+    amount_paid: r.amount_paid ?? 0,
+    outstanding: r.outstanding ?? 0,
+    payment_status: r.payment_status ?? 'pending',
+    loan_id: r.loan_id,
+  }))
+
+  // Sort and paginate
+  const sorted = sortRows(mapped, filters.sort, filters.dir)
+  const paginated = paginateArray(sorted, filters.page)
+
+  return { paginated, payableBuckets, receivableBuckets, summary, uniqueEntities }
 }
 
 // --- Cash Flow queries ---

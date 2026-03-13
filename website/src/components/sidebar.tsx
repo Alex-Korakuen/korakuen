@@ -15,6 +15,7 @@ const browseItems: NavItem[] = [
   { label: 'Projects', href: '/projects', shortLabel: 'P' },
   { label: 'Entities', href: '/entities', shortLabel: 'E' },
   { label: 'Prices', href: '/prices', shortLabel: '$' },
+  { label: 'Invoices', href: '/invoices', shortLabel: 'I' },
 ]
 
 const dashboardItems: NavItem[] = [
