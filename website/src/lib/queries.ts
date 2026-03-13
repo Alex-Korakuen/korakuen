@@ -42,6 +42,7 @@ import type {
   PartnerCompanyOption,
   CategoryOption,
   CalendarBucketCounts,
+  DirectionalBucketValue,
   InvoiceAgingBuckets,
   BucketValue,
 } from './types'
@@ -78,6 +79,7 @@ type ObligationCalendarFilters = {
   direction?: 'payable' | 'receivable'
   projectId?: string
   supplier?: string
+  type?: string
   currency?: string
   search?: string
   bucket?: string
@@ -136,24 +138,26 @@ export async function getObligationCalendar(
   for (const r of rows) { if (r.entity_name) supplierSet.add(r.entity_name) }
   const uniqueSuppliers = Array.from(supplierSet).sort()
 
-  // Compute bucket counts from all rows (before filters)
+  // Compute bucket counts from all rows (before filters), split by direction
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
-  const emptyBucket = { count: 0, pen: 0, usd: 0 }
+  const emptyBucket = () => ({ count: 0, pen: 0, usd: 0 })
+  const emptyDirectional = (): DirectionalBucketValue => ({ pay: emptyBucket(), collect: emptyBucket() })
   const bucketCounts: CalendarBucketCounts = {
-    overdue: { ...emptyBucket },
-    today: { ...emptyBucket },
-    'this-week': { ...emptyBucket },
-    'next-30': { ...emptyBucket },
+    overdue: emptyDirectional(),
+    today: emptyDirectional(),
+    'this-week': emptyDirectional(),
+    'next-30': emptyDirectional(),
   }
   for (const r of rows) {
     const b = getCalendarBucket(r.days_remaining, daysToEndOfWeek)
     if (!b) continue
-    bucketCounts[b].count++
+    const side = r.direction === 'receivable' ? bucketCounts[b].collect : bucketCounts[b].pay
+    side.count++
     const amt = r.outstanding ?? 0
-    if (r.currency === 'PEN') bucketCounts[b].pen += amt
+    if (r.currency === 'PEN') side.pen += amt
     else if (r.currency === 'USD') {
-      bucketCounts[b].usd += amt
-      if (midRate) bucketCounts[b].pen += amt * midRate
+      side.usd += amt
+      if (midRate) side.pen += amt * midRate
     }
   }
 
@@ -163,6 +167,7 @@ export async function getObligationCalendar(
   }
   if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
   if (filters.supplier) rows = rows.filter(r => r.entity_name === filters.supplier)
+  if (filters.type) rows = rows.filter(r => r.type === filters.type)
   if (filters.currency) rows = rows.filter(r => r.currency === filters.currency)
   if (filters.search) {
     const search = filters.search.toLowerCase()
@@ -264,219 +269,6 @@ export async function getProjectsForFilter(): Promise<{ id: string; project_code
     .eq('is_active', true)
     .order('project_code')
   return data ?? []
-}
-
-// --- AR Outstanding queries ---
-
-type ArOutstandingFilters = {
-  projectId?: string
-  client?: string
-  partnerCompanyId?: string
-  currency?: string
-  bucket?: string
-  sort: string
-  dir: 'asc' | 'desc'
-  page: number
-}
-
-type ArOutstandingTotals = {
-  pen: { gross: number; receivable: number; bdn: number; count: number }
-  usd: { gross: number; receivable: number; bdn: number; count: number }
-}
-
-type ArOutstandingRow = {
-  invoice_id: string
-  project_id: string | null
-  project_code: string
-  entity_id: string | null
-  client_name: string
-  partner_company_id: string | null
-  partner_name: string
-  invoice_number: string | null
-  invoice_date: string | null
-  due_date: string | null
-  days_overdue: number
-  subtotal: number
-  igv_amount: number
-  gross_total: number
-  detraccion_amount: number
-  retencion_amount: number
-  retencion_applicable: boolean
-  retencion_rate: number | null
-  retencion_verified: boolean
-  net_receivable: number
-  amount_paid: number
-  outstanding: number
-  receivable: number
-  bdn_outstanding: number
-  currency: string
-  payment_status: string
-}
-
-type ArOutstandingResult = {
-  paginated: PaginatedResult<ArOutstandingRow>
-  bucketCounts: InvoiceAgingBuckets
-  totals: ArOutstandingTotals
-}
-
-export type { ArOutstandingRow }
-
-export async function getArOutstanding(
-  partnerFilter: string[],
-  filters: ArOutstandingFilters,
-  midRate: number | null = null,
-): Promise<ArOutstandingResult> {
-  const supabase = await createServerSupabaseClient()
-
-  let query = supabase
-    .from('v_invoice_balances')
-    .select('*')
-    .eq('direction', 'receivable')
-    .in('payment_status', ['pending', 'partial'])
-    .order('due_date', { ascending: true })
-
-  if (partnerFilter.length > 0) {
-    query = query.in('partner_company_id', partnerFilter)
-  }
-
-  const { data: invoices, error } = await query
-
-  if (error) throw error
-
-  const emptyBucket = { count: 0, pen: 0, usd: 0 }
-  const emptyResult: ArOutstandingResult = {
-    paginated: { data: [], totalCount: 0, page: 1, pageSize: 25 },
-    bucketCounts: { current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket } },
-    totals: { pen: { gross: 0, receivable: 0, bdn: 0, count: 0 }, usd: { gross: 0, receivable: 0, bdn: 0, count: 0 } },
-  }
-
-  if (!invoices || invoices.length === 0) return emptyResult
-
-  // Collect entity IDs, project IDs, partner company IDs for lookups
-  const entityIds = [...new Set(invoices.filter(i => i.entity_id).map(i => i.entity_id!))]
-  const projectIds = [...new Set(invoices.filter(i => i.project_id).map(i => i.project_id!))]
-  const partnerIds = [...new Set(invoices.filter(i => i.partner_company_id).map(i => i.partner_company_id!))]
-
-  const [entityMap, projectMap, partnersResult] = await Promise.all([
-    buildEntityNameMap(supabase, entityIds),
-    buildProjectCodeMap(supabase, projectIds),
-    partnerIds.length > 0
-      ? supabase.from('partner_companies').select('id, name').in('id', partnerIds)
-      : { data: [] },
-  ])
-
-  const partnerMap = new Map((partnersResult.data ?? []).map(p => [p.id, p.name]))
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // Enrich all rows
-  let rows: ArOutstandingRow[] = invoices.map(i => {
-    const dueDate = i.due_date ? new Date(i.due_date + 'T00:00:00') : null
-    const daysOverdue = dueDate
-      ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
-      : 0
-
-    return {
-      invoice_id: i.invoice_id!,
-      project_id: i.project_id,
-      project_code: i.project_id ? projectMap.get(i.project_id) ?? '—' : '—',
-      entity_id: i.entity_id,
-      client_name: i.entity_id ? entityMap.get(i.entity_id) ?? '—' : '—',
-      partner_company_id: i.partner_company_id,
-      partner_name: i.partner_company_id ? partnerMap.get(i.partner_company_id) ?? '—' : '—',
-      invoice_number: i.invoice_number,
-      invoice_date: i.invoice_date,
-      due_date: i.due_date,
-      days_overdue: daysOverdue,
-      subtotal: i.subtotal ?? 0,
-      igv_amount: i.igv_amount ?? 0,
-      gross_total: i.total ?? 0,
-      detraccion_amount: i.detraccion_amount ?? 0,
-      retencion_amount: i.retencion_amount ?? 0,
-      retencion_applicable: i.retencion_applicable ?? false,
-      retencion_rate: i.retencion_rate,
-      retencion_verified: i.retencion_verified ?? false,
-      net_receivable: i.net_amount ?? 0,
-      amount_paid: i.amount_paid ?? 0,
-      outstanding: i.outstanding ?? 0,
-      receivable: i.payable_or_receivable ?? 0,
-      bdn_outstanding: i.bdn_outstanding ?? 0,
-      currency: i.currency ?? 'PEN',
-      payment_status: i.payment_status ?? 'pending',
-    }
-  })
-
-  // Compute bucket counts from all rows (before any filters)
-  const bucketCounts: InvoiceAgingBuckets = {
-    current: { ...emptyBucket },
-    '1-30': { ...emptyBucket },
-    '31-60': { ...emptyBucket },
-    '61-90': { ...emptyBucket },
-    '90+': { ...emptyBucket },
-  }
-  for (const r of rows) {
-    const b = getAgingBucket(r.days_overdue)
-    bucketCounts[b].count++
-    if (r.currency === 'PEN') bucketCounts[b].pen += r.outstanding
-    else if (r.currency === 'USD') {
-      bucketCounts[b].usd += r.outstanding
-      if (midRate) bucketCounts[b].pen += r.outstanding * midRate
-    }
-  }
-
-  // Apply filters
-  if (filters.bucket && filters.bucket !== 'all') {
-    rows = rows.filter(r => getAgingBucket(r.days_overdue) === filters.bucket)
-  }
-  if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
-  if (filters.client) rows = rows.filter(r => r.client_name === filters.client)
-  if (filters.partnerCompanyId) rows = rows.filter(r => r.partner_company_id === filters.partnerCompanyId)
-  if (filters.currency) rows = rows.filter(r => r.currency === filters.currency)
-
-  // Compute totals from full filtered set (before pagination)
-  const totals: ArOutstandingTotals = {
-    pen: { gross: 0, receivable: 0, bdn: 0, count: 0 },
-    usd: { gross: 0, receivable: 0, bdn: 0, count: 0 },
-  }
-  for (const r of rows) {
-    const t = r.currency === 'USD' ? totals.usd : totals.pen
-    t.gross += r.gross_total
-    t.receivable += r.receivable
-    t.bdn += r.bdn_outstanding
-    t.count++
-  }
-
-  // Sort and paginate
-  rows = sortRows(rows, filters.sort, filters.dir)
-  const paginated = paginateArray(rows, filters.page)
-
-  return { paginated, bucketCounts, totals }
-}
-
-export async function getClientsForFilter(): Promise<{ id: string; name: string }[]> {
-  const supabase = await createServerSupabaseClient()
-  // Get distinct entities that have receivable invoices
-  const { data: receivables } = await supabase
-    .from('invoices')
-    .select('entity_id')
-    .eq('direction', 'receivable')
-
-  if (!receivables || receivables.length === 0) return []
-
-  const entityIds = [...new Set(receivables.map(a => a.entity_id).filter((id): id is string => id !== null))]
-  if (entityIds.length === 0) return []
-
-  const { data } = await supabase
-    .from('entities')
-    .select('id, legal_name, common_name')
-    .in('id', entityIds)
-    .order('legal_name')
-
-  return (data ?? []).map(e => ({
-    id: e.id,
-    name: e.common_name || e.legal_name,
-  }))
 }
 
 export async function getPartnerCompaniesForFilter(): Promise<{ id: string; name: string }[]> {

@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   // Authenticated users trying to access /login — redirect to dashboard
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
-    url.pathname = '/ap-calendar'
+    url.pathname = '/calendar'
     return NextResponse.redirect(url)
   }
 

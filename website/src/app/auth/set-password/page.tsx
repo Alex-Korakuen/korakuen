@@ -41,7 +41,7 @@ export default function SetPasswordPage() {
       return
     }
 
-    router.push('/ap-calendar')
+    router.push('/calendar')
     router.refresh()
   }
 

@@ -149,8 +149,7 @@ export async function registerPayment(input: {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/ap-calendar')
-  revalidatePath('/ar-outstanding')
+  revalidatePath('/calendar')
   revalidatePath('/invoices')
   revalidatePath('/payments')
   revalidatePath('/financial-position')
@@ -483,7 +482,7 @@ export async function createLoan(data: {
 
   if (error) return { error: error.message }
   revalidatePath('/financial-position')
-  revalidatePath('/ap-calendar')
+  revalidatePath('/calendar')
   return {}
 }
 
@@ -524,7 +523,7 @@ export async function addLoanScheduleEntry(data: {
   })
 
   if (error) return { error: error.message }
-  revalidatePath('/ap-calendar')
+  revalidatePath('/calendar')
   revalidatePath('/financial-position')
   return {}
 }
@@ -582,7 +581,7 @@ export async function registerLoanRepayment(data: {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/ap-calendar')
+  revalidatePath('/calendar')
   revalidatePath('/invoices')
   revalidatePath('/payments')
   revalidatePath('/financial-position')

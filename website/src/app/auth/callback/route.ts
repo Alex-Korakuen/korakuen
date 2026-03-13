@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/set-password`)
       }
 
-      return NextResponse.redirect(`${origin}/ap-calendar`)
+      return NextResponse.redirect(`${origin}/calendar`)
     }
   }
 

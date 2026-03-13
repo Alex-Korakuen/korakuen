@@ -17,5 +17,3 @@ export function formatType(type: string | null): string {
   if (type === 'loan') return 'Loan'
   return type ?? '--'
 }
-
-

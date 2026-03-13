@@ -5,8 +5,8 @@ import { useUrlSort } from '@/lib/sort-utils'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Pagination } from '@/components/ui/pagination'
-import { ApCalendarFilters } from './ap-calendar-filters'
-import { ApCalendarTable } from './ap-calendar-table'
+import { CalendarFilters } from './calendar-filters'
+import { CalendarTable } from './calendar-table'
 import type {
   ObligationCalendarRow,
   CalendarBucketId as BucketId,
@@ -20,46 +20,68 @@ type Props = {
   pageSize: number
   bucketCounts: BucketCounts
   projects: { id: string; project_code: string; name: string }[]
-  uniqueSuppliers: string[]
+  uniqueEntities: string[]
   currentFilters: {
+    direction: string
+    type: string
     projectId: string
-    supplier: string
+    entity: string
     currency: string
     search: string
     bucket: string
   }
 }
 
-export function ApCalendarClient({
+type ActiveCard = { bucket: BucketId; side: 'pay' | 'collect' } | null
+
+export function CalendarClient({
   data,
   totalCount,
   page,
   pageSize,
   bucketCounts,
   projects,
-  uniqueSuppliers,
+  uniqueEntities,
   currentFilters,
 }: Props) {
   const router = useRouter()
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
-  const { setFilter } = useUrlFilters()
+  const { setFilter, setFilters } = useUrlFilters()
 
-  const activeBucket = currentFilters.bucket as BucketId
+  // Derive active card state from URL filters
+  const activeCard: ActiveCard = (() => {
+    const b = currentFilters.bucket
+    const d = currentFilters.direction
+    if (b && b !== 'all' && (d === 'payable' || d === 'receivable')) {
+      return { bucket: b as BucketId, side: d === 'payable' ? 'pay' : 'collect' }
+    }
+    return null
+  })()
 
-  function handleBucketClick(bucket: BucketId) {
-    setFilter('bucket', activeBucket === bucket ? '' : bucket)
+  function handleCardClick(bucket: BucketId, side: 'pay' | 'collect') {
+    // Toggle: if same card+side is active, clear both; otherwise set both
+    if (activeCard?.bucket === bucket && activeCard?.side === side) {
+      setFilters({ bucket: '', direction: '' })
+    } else {
+      setFilters({
+        bucket,
+        direction: side === 'pay' ? 'payable' : 'receivable',
+      })
+    }
   }
 
   const hasActiveFilters =
     currentFilters.projectId !== '' ||
-    currentFilters.supplier !== '' ||
+    currentFilters.entity !== '' ||
+    currentFilters.type !== '' ||
     currentFilters.currency !== '' ||
     currentFilters.search !== ''
 
   function clearFilters() {
     const params = new URLSearchParams(window.location.search)
     params.delete('project')
-    params.delete('supplier')
+    params.delete('entity')
+    params.delete('type')
     params.delete('currency')
     params.delete('search')
     params.delete('page')
@@ -67,68 +89,50 @@ export function ApCalendarClient({
   }
 
   const handleRowClick = (row: ObligationCalendarRow) => {
-    // Navigate to Invoices page filtered to payable direction
     const params = new URLSearchParams()
-    params.set('direction', 'payable')
+    params.set('direction', row.direction ?? 'payable')
     if (row.type === 'loan') params.set('type', 'loan')
     else params.set('type', 'commercial')
     if (row.entity_name) params.set('entity', row.entity_name)
     router.push(`/invoices?${params.toString()}`)
   }
 
+  const bucketKeys: { id: Exclude<BucketId, 'all'>; label: string; variant: 'overdue' | 'today' | 'this-week' | 'future' }[] = [
+    { id: 'overdue', label: 'Overdue', variant: 'overdue' },
+    { id: 'today', label: 'Due Today', variant: 'today' },
+    { id: 'this-week', label: 'This Week', variant: 'this-week' },
+    { id: 'next-30', label: 'Next 30 Days', variant: 'future' },
+  ]
+
   return (
     <div>
       <div className="mt-0">
         {/* Summary Cards */}
         <div className="flex flex-wrap gap-4">
-          <SummaryCard
-            title="Overdue"
-            count={bucketCounts.overdue.count}
-            totalPEN={bucketCounts.overdue.pen}
-            totalUSD={bucketCounts.overdue.usd}
-            variant="overdue"
-            isActive={activeBucket === 'overdue'}
-            onClick={() => handleBucketClick('overdue')}
-          />
-          <SummaryCard
-            title="Due Today"
-            count={bucketCounts.today.count}
-            totalPEN={bucketCounts.today.pen}
-            totalUSD={bucketCounts.today.usd}
-            variant="today"
-            isActive={activeBucket === 'today'}
-            onClick={() => handleBucketClick('today')}
-          />
-          <SummaryCard
-            title="This Week"
-            count={bucketCounts['this-week'].count}
-            totalPEN={bucketCounts['this-week'].pen}
-            totalUSD={bucketCounts['this-week'].usd}
-            variant="this-week"
-            isActive={activeBucket === 'this-week'}
-            onClick={() => handleBucketClick('this-week')}
-          />
-          <SummaryCard
-            title="Next 30 Days"
-            count={bucketCounts['next-30'].count}
-            totalPEN={bucketCounts['next-30'].pen}
-            totalUSD={bucketCounts['next-30'].usd}
-            variant="future"
-            isActive={activeBucket === 'next-30'}
-            onClick={() => handleBucketClick('next-30')}
-          />
+          {bucketKeys.map(({ id, label, variant }) => (
+            <SummaryCard
+              key={id}
+              title={label}
+              pay={bucketCounts[id].pay}
+              collect={bucketCounts[id].collect}
+              variant={variant}
+              activeSide={activeCard?.bucket === id ? activeCard.side : null}
+              onClickPay={() => handleCardClick(id, 'pay')}
+              onClickCollect={() => handleCardClick(id, 'collect')}
+            />
+          ))}
         </div>
 
-        <ApCalendarFilters
+        <CalendarFilters
           currentFilters={currentFilters}
           setFilter={setFilter}
           projects={projects}
-          uniqueSuppliers={uniqueSuppliers}
+          uniqueEntities={uniqueEntities}
           hasActiveFilters={hasActiveFilters}
           onClearFilters={clearFilters}
         />
 
-        <ApCalendarTable
+        <CalendarTable
           data={data}
           sortColumn={sortColumn}
           sortDirection={sortDirection}

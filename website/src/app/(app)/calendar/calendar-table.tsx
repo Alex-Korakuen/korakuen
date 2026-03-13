@@ -11,7 +11,22 @@ type Props = {
   onRowClick: (row: ObligationCalendarRow) => void
 }
 
-export function ApCalendarTable({
+function DirectionBadge({ direction }: { direction: string | null }) {
+  if (direction === 'receivable') {
+    return (
+      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">
+        AR
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-orange-50 text-orange-700">
+      AP
+    </span>
+  )
+}
+
+export function CalendarTable({
   data,
   sortColumn,
   sortDirection,
@@ -35,12 +50,13 @@ export function ApCalendarTable({
             >
               Days <SortIndicator column="days_remaining" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
+            <th className="px-4 py-3">Dir</th>
             <th className="px-4 py-3">Type</th>
             <th
               className="cursor-pointer px-4 py-3 hover:text-zinc-700"
               onClick={() => onSort('entity_name')}
             >
-              Supplier <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
+              Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
               className="cursor-pointer px-4 py-3 hover:text-zinc-700"
@@ -50,36 +66,24 @@ export function ApCalendarTable({
             </th>
             <th
               className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-              onClick={() => onSort('total')}
+              onClick={() => onSort('outstanding')}
             >
-              Total <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-              onClick={() => onSort('payable')}
-            >
-              Payable <SortIndicator column="payable" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-              onClick={() => onSort('bdn_outstanding')}
-            >
-              BdN <SortIndicator column="bdn_outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+              Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th className="px-4 py-3">Cur.</th>
             <th
               className="cursor-pointer px-4 py-3 hover:text-zinc-700"
               onClick={() => onSort('document_ref')}
             >
-              Invoice # <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
+              Ref <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={10} className="px-4 py-8 text-center text-zinc-400">
-                No payment obligations found
+              <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                No obligations found
               </td>
             </tr>
           ) : (
@@ -109,6 +113,9 @@ export function ApCalendarTable({
                     '--'
                   )}
                 </td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  <DirectionBadge direction={row.direction} />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                   {formatType(row.type)}
                 </td>
@@ -118,19 +125,9 @@ export function ApCalendarTable({
                 <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
                   {row.project_code ?? '--'}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
-                  {row.total !== null && row.currency
-                    ? formatCurrency(row.total, row.currency)
-                    : '--'}
-                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                  {row.payable !== null && row.currency
-                    ? formatCurrency(row.payable, row.currency)
-                    : '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-600">
-                  {row.bdn_outstanding !== null && row.bdn_outstanding > 0 && row.currency
-                    ? formatCurrency(row.bdn_outstanding, row.currency)
+                  {row.outstanding !== null && row.currency
+                    ? formatCurrency(row.outstanding, row.currency)
                     : '--'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-500">

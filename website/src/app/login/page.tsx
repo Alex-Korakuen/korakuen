@@ -30,7 +30,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/ap-calendar')
+    router.push('/calendar')
     router.refresh()
   }
 

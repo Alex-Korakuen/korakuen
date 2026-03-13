@@ -20,8 +20,7 @@ const browseItems: NavItem[] = [
 ]
 
 const dashboardItems: NavItem[] = [
-  { label: 'AP Calendar', href: '/ap-calendar', shortLabel: 'AP' },
-  { label: 'AR Outstanding', href: '/ar-outstanding', shortLabel: 'AR' },
+  { label: 'Calendar', href: '/calendar', shortLabel: 'Cal' },
   { label: 'Cash Flow', href: '/cash-flow', shortLabel: 'CF' },
   { label: 'Financial Pos.', href: '/financial-position', shortLabel: 'FP' },
 ]

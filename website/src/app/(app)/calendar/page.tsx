@@ -1,20 +1,23 @@
 import { getObligationCalendar, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
-import { ApCalendarClient } from './ap-calendar-client'
+import { CalendarClient } from './calendar-client'
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function ApCalendarPage({ searchParams }: Props) {
+export default async function CalendarPage({ searchParams }: Props) {
   const params = await searchParams
   const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'due_date' })
 
+  const direction = typeof params.direction === 'string' ? params.direction as 'payable' | 'receivable' : undefined
   const filters = {
+    direction,
     projectId: typeof params.project === 'string' ? params.project : undefined,
-    supplier: typeof params.supplier === 'string' ? params.supplier : undefined,
+    supplier: typeof params.entity === 'string' ? params.entity : undefined,
+    type: typeof params.type === 'string' ? params.type : undefined,
     currency: typeof params.currency === 'string' ? params.currency : undefined,
     search: typeof params.search === 'string' ? params.search : undefined,
     bucket: typeof params.bucket === 'string' ? params.bucket : undefined,
@@ -28,20 +31,22 @@ export default async function ApCalendarPage({ searchParams }: Props) {
     getProjectsForFilter(),
   ])
 
-  const result = await getObligationCalendar(partnerIds, { ...filters, direction: 'payable' }, exchangeRate?.mid_rate ?? null)
+  const result = await getObligationCalendar(partnerIds, filters, exchangeRate?.mid_rate ?? null)
 
   return (
-    <ApCalendarClient
+    <CalendarClient
       data={result.paginated.data}
       totalCount={result.paginated.totalCount}
       page={result.paginated.page}
       pageSize={result.paginated.pageSize}
       bucketCounts={result.bucketCounts}
       projects={projects}
-      uniqueSuppliers={result.uniqueSuppliers}
+      uniqueEntities={result.uniqueSuppliers}
       currentFilters={{
+        direction: filters.direction ?? '',
+        type: filters.type ?? '',
         projectId: filters.projectId ?? '',
-        supplier: filters.supplier ?? '',
+        entity: filters.supplier ?? '',
         currency: filters.currency ?? '',
         search: filters.search ?? '',
         bucket: filters.bucket ?? 'all',

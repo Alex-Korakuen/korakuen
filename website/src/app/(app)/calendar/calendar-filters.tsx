@@ -4,27 +4,39 @@ import { SearchInput } from '@/components/ui/search-input'
 type Props = {
   currentFilters: {
     projectId: string
-    supplier: string
+    entity: string
+    type: string
     currency: string
     search: string
   }
   setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string; name: string }[]
-  uniqueSuppliers: string[]
+  uniqueEntities: string[]
   hasActiveFilters: boolean
   onClearFilters: () => void
 }
 
-export function ApCalendarFilters({
+export function CalendarFilters({
   currentFilters,
   setFilter,
   projects,
-  uniqueSuppliers,
+  uniqueEntities,
   hasActiveFilters,
   onClearFilters,
 }: Props) {
   return (
     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <FilterSelect
+        label="Type"
+        value={currentFilters.type}
+        onChange={(v) => setFilter('type', v)}
+        options={[
+          { value: 'commercial', label: 'Commercial' },
+          { value: 'loan', label: 'Loan' },
+        ]}
+        placeholder="All types"
+      />
+
       <FilterSelect
         label="Project"
         value={currentFilters.projectId}
@@ -34,11 +46,11 @@ export function ApCalendarFilters({
       />
 
       <FilterSelect
-        label="Supplier"
-        value={currentFilters.supplier}
-        onChange={(v) => setFilter('supplier', v)}
-        options={uniqueSuppliers.map((name) => ({ value: name, label: name }))}
-        placeholder="All suppliers"
+        label="Entity"
+        value={currentFilters.entity}
+        onChange={(v) => setFilter('entity', v)}
+        options={uniqueEntities.map((name) => ({ value: name, label: name }))}
+        placeholder="All entities"
       />
 
       <FilterSelect

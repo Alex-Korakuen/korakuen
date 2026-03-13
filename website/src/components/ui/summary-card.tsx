@@ -1,15 +1,16 @@
 'use client'
 
 import { formatCurrency } from '@/lib/formatters'
+import type { BucketValue } from '@/lib/types'
 
 type SummaryCardProps = {
   title: string
-  count: number
-  totalPEN: number
-  totalUSD: number
+  pay: BucketValue
+  collect: BucketValue
   variant?: 'overdue' | 'today' | 'this-week' | 'future' | 'default'
-  isActive: boolean
-  onClick: () => void
+  activeSide: 'pay' | 'collect' | null
+  onClickPay: () => void
+  onClickCollect: () => void
 }
 
 const variantBorderColors: Record<string, string> = {
@@ -20,43 +21,67 @@ const variantBorderColors: Record<string, string> = {
   default: 'border-l-[var(--color-neutral)]',
 }
 
-export function SummaryCard({
-  title,
-  count,
-  totalPEN,
-  totalUSD,
-  variant = 'default',
+function BucketRow({
+  label,
+  bucket,
   isActive,
   onClick,
+}: {
+  label: string
+  bucket: BucketValue
+  isActive: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      className={`flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left transition-colors hover:bg-zinc-100 ${
+        isActive ? 'bg-zinc-100 ring-1 ring-zinc-300' : ''
+      }`}
+    >
+      <span className="text-xs font-medium text-zinc-500">{label}</span>
+      <span className="text-right">
+        <span className="text-sm font-semibold text-zinc-900">
+          {formatCurrency(bucket.pen, 'PEN')}
+        </span>
+        {bucket.usd !== 0 && (
+          <span className="ml-1 text-xs text-zinc-500">
+            {formatCurrency(bucket.usd, 'USD')}
+          </span>
+        )}
+        <span className="ml-1 text-xs text-zinc-400">
+          ({bucket.count})
+        </span>
+      </span>
+    </button>
+  )
+}
+
+export function SummaryCard({
+  title,
+  pay,
+  collect,
+  variant = 'default',
+  activeSide,
+  onClickPay,
+  onClickCollect,
 }: SummaryCardProps) {
   const borderColor = variantBorderColors[variant] ?? variantBorderColors.default
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={`
-        flex min-w-[160px] flex-1 flex-col gap-1 rounded-lg border border-zinc-200 border-l-4 bg-white
-        px-5 py-4 text-left transition-shadow
-        hover:shadow-md
+        flex min-w-[200px] flex-1 flex-col gap-1.5 rounded-lg border border-zinc-200 border-l-4 bg-white
+        px-4 py-3 text-left
         ${borderColor}
-        ${isActive ? 'ring-2 ring-zinc-400' : ''}
       `}
     >
       <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
         {title}
       </span>
-      <span className="text-lg font-semibold text-zinc-900">
-        {formatCurrency(totalPEN, 'PEN')}
-      </span>
-      {totalUSD !== 0 && (
-        <span className="text-sm text-zinc-600">
-          {formatCurrency(totalUSD, 'USD')}
-        </span>
-      )}
-      <span className="text-xs text-zinc-400">
-        {count} {count === 1 ? 'item' : 'items'}
-      </span>
-    </button>
+      <BucketRow label="Pay" bucket={pay} isActive={activeSide === 'pay'} onClick={onClickPay} />
+      <BucketRow label="Collect" bucket={collect} isActive={activeSide === 'collect'} onClick={onClickCollect} />
+    </div>
   )
 }
