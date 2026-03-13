@@ -76,6 +76,19 @@ export async function registerPayment(input: {
     return { error: 'Bank account is required for this payment type' }
   }
 
+  // Validate bank account currency matches payment currency
+  if (input.bank_account_id) {
+    const { data: bankAccount } = await supabase
+      .from('bank_accounts')
+      .select('currency')
+      .eq('id', input.bank_account_id)
+      .single()
+    if (!bankAccount) return { error: 'Bank account not found' }
+    if (bankAccount.currency !== input.currency) {
+      return { error: 'Bank account currency does not match payment currency' }
+    }
+  }
+
   // Re-query balances and validate per payment type
   if (input.related_to === 'cost') {
     const { data: cost } = await supabase

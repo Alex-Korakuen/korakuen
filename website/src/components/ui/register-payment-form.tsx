@@ -72,8 +72,9 @@ export function RegisterPaymentForm({
       .catch(() => setExchangeRate(null))
   }, [paymentDate])
 
-  // Filter bank accounts by payment type
+  // Filter bank accounts by currency and payment type
   const filteredAccounts = bankAccounts.filter(ba => {
+    if (ba.currency !== currency) return false
     if (paymentType === 'detraccion') return ba.is_detraccion_account
     return !ba.is_detraccion_account
   })
