@@ -4,72 +4,62 @@ import { useRouter } from 'next/navigation'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { getCalendarBucket } from '@/lib/date-utils'
 import { FK } from '@/lib/filter-keys'
-import { SummaryCard } from '@/components/ui/summary-card'
 import { CalendarFilters } from './calendar-filters'
 import { CalendarTable } from './calendar-table'
 import { getDaysUntilEndOfWeek } from './helpers'
 import type {
   ObligationCalendarRow,
   CalendarBucketId as BucketId,
-  CalendarBucketCounts as BucketCounts,
 } from '@/lib/types'
+
+export type SectionTotals = {
+  pay: { pen: number; usd: number; count: number }
+  collect: { pen: number; usd: number; count: number }
+}
 
 type Props = {
   data: ObligationCalendarRow[]
-  bucketCounts: BucketCounts
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
   currentFilters: {
-    direction: string
     type: string
     projectId: string
     entity: string
     currency: string
     search: string
-    bucket: string
   }
 }
 
-type ActiveCard = { bucket: BucketId; side: 'pay' | 'collect' } | null
-
-const BUCKET_ORDER: { id: Exclude<BucketId, 'all'>; label: string; variant: 'overdue' | 'today' | 'this-week' | 'future' }[] = [
-  { id: 'overdue', label: 'Overdue', variant: 'overdue' },
-  { id: 'today', label: 'Due Today', variant: 'today' },
-  { id: 'this-week', label: 'This Week', variant: 'this-week' },
-  { id: 'next-30', label: 'Next 30 Days', variant: 'future' },
+const BUCKET_ORDER: { id: Exclude<BucketId, 'all'>; label: string }[] = [
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'today', label: 'Due Today' },
+  { id: 'this-week', label: 'This Week' },
+  { id: 'next-30', label: 'Next 30 Days' },
 ]
+
+function computeTotals(rows: ObligationCalendarRow[]): SectionTotals {
+  const totals: SectionTotals = {
+    pay: { pen: 0, usd: 0, count: 0 },
+    collect: { pen: 0, usd: 0, count: 0 },
+  }
+  for (const r of rows) {
+    const side = r.direction === 'receivable' ? totals.collect : totals.pay
+    side.count++
+    const amt = r.outstanding ?? 0
+    if (r.currency === 'USD') side.usd += amt
+    else side.pen += amt
+  }
+  return totals
+}
 
 export function CalendarClient({
   data,
-  bucketCounts,
   projects,
   uniqueEntities,
   currentFilters,
 }: Props) {
   const router = useRouter()
-  const { setFilter, setFilters, clearFilters } = useUrlFilters()
-
-  // Derive active card state from URL filters
-  const activeCard: ActiveCard = (() => {
-    const b = currentFilters.bucket
-    const d = currentFilters.direction
-    if (b && b !== 'all' && (d === 'payable' || d === 'receivable')) {
-      return { bucket: b as BucketId, side: d === 'payable' ? 'pay' : 'collect' }
-    }
-    return null
-  })()
-
-  function handleCardClick(bucket: BucketId, side: 'pay' | 'collect') {
-    // Toggle: if same card+side is active, clear both; otherwise set both
-    if (activeCard?.bucket === bucket && activeCard?.side === side) {
-      setFilters({ bucket: '', direction: '' })
-    } else {
-      setFilters({
-        bucket,
-        direction: side === 'pay' ? 'payable' : 'receivable',
-      })
-    }
-  }
+  const { setFilter, clearFilters } = useUrlFilters()
 
   const hasActiveFilters =
     currentFilters.projectId !== '' ||
@@ -89,44 +79,25 @@ export function CalendarClient({
     router.push(`/invoices?${params.toString()}`)
   }
 
-  // Group rows by urgency bucket
+  // Group rows by urgency bucket and compute totals per section
   const daysToEndOfWeek = getDaysUntilEndOfWeek()
-  const groups = BUCKET_ORDER.map(({ id, label }) => ({
-    id,
-    label,
-    rows: data.filter(r => getCalendarBucket(r.days_remaining, daysToEndOfWeek) === id),
-  }))
+  const groups = BUCKET_ORDER.map(({ id, label }) => {
+    const rows = data.filter(r => getCalendarBucket(r.days_remaining, daysToEndOfWeek) === id)
+    return { id, label, rows, totals: computeTotals(rows) }
+  })
 
   return (
     <div>
-      <div className="mt-0">
-        {/* Summary Cards */}
-        <div className="flex flex-wrap gap-4">
-          {BUCKET_ORDER.map(({ id, label, variant }) => (
-            <SummaryCard
-              key={id}
-              title={label}
-              pay={bucketCounts[id].pay}
-              collect={bucketCounts[id].collect}
-              variant={variant}
-              activeSide={activeCard?.bucket === id ? activeCard.side : null}
-              onClickPay={() => handleCardClick(id, 'pay')}
-              onClickCollect={() => handleCardClick(id, 'collect')}
-            />
-          ))}
-        </div>
+      <CalendarFilters
+        currentFilters={currentFilters}
+        setFilter={setFilter}
+        projects={projects}
+        uniqueEntities={uniqueEntities}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={handleClearFilters}
+      />
 
-        <CalendarFilters
-          currentFilters={currentFilters}
-          setFilter={setFilter}
-          projects={projects}
-          uniqueEntities={uniqueEntities}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-        />
-
-        <CalendarTable groups={groups} onRowClick={handleRowClick} />
-      </div>
+      <CalendarTable groups={groups} onRowClick={handleRowClick} />
     </div>
   )
 }

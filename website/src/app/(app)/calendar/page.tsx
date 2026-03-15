@@ -31,17 +31,14 @@ export default async function CalendarPage({ searchParams }: Props) {
   return (
     <CalendarClient
       data={result.rows}
-      bucketCounts={result.bucketCounts}
       projects={projects}
       uniqueEntities={result.uniqueSuppliers}
       currentFilters={{
-        direction: filters.direction ?? '',
         type: filters.type ?? '',
         projectId: filters.projectId ?? '',
         entity: filters.supplier ?? '',
         currency: filters.currency ?? '',
         search: filters.search ?? '',
-        bucket: filters.bucket ?? 'all',
       }}
     />
   )

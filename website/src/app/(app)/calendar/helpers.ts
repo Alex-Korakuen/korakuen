@@ -1,5 +1,14 @@
 export { getDaysUntilEndOfWeek } from '@/lib/date-utils'
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Format date as "15/Mar" for the calendar timeline. */
+export function formatCalendarDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${day}/${SHORT_MONTHS[d.getMonth()]}`
+}
+
 /** Human-readable urgency label: "7d late", "due today", "in 3d", etc. */
 export function formatUrgency(daysRemaining: number | null): string {
   if (daysRemaining === null) return ''
