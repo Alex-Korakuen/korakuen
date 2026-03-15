@@ -240,7 +240,7 @@ export type Database = {
           mid_rate: number
           rate_date: string
           sell_rate: number
-          source?: string
+          source: string
           updated_at?: string
         }
         Update: {

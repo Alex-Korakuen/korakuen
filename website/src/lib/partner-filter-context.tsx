@@ -22,7 +22,7 @@ import { COOKIE_NAME } from './partner-filter-utils'
 
 function setCookie(ids: string[]) {
   const value = ids.length > 0 ? ids.join(',') : ''
-  document.cookie = `${COOKIE_NAME}=${value};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`
+  document.cookie = `${COOKIE_NAME}=${value};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax;secure`
 }
 
 export function PartnerFilterProvider({

@@ -6,14 +6,12 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { DetailField } from '@/components/ui/detail-field'
 import { LoanScheduleForm } from '@/components/ui/loan-schedule-form'
 import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
-import type { ObligationCalendarRow, LoanDetailData, Currency } from '@/lib/types'
+import type { LoanDetailData, Currency } from '@/lib/types'
 
 export function LoanDetailContent({
-  row,
   detail,
   onRepaymentSuccess,
 }: {
-  row: ObligationCalendarRow
   detail: LoanDetailData
   onRepaymentSuccess?: () => void
 }) {
@@ -24,9 +22,9 @@ export function LoanDetailContent({
   const loanOutstanding = loan?.outstanding ?? 0
   const loanCurrency = (loan?.currency ?? 'PEN') as Currency
 
-  // Find the current schedule entry (matching this row's due date, not fully paid)
+  // Find the first unpaid schedule entry
   const currentScheduleEntry = detail.schedule.find(
-    s => s.payment_status !== 'paid' && s.scheduled_date === row.due_date
+    s => s.payment_status !== 'paid'
   )
 
   function handleRegisterPayment(entryId: string) {
@@ -38,15 +36,15 @@ export function LoanDetailContent({
     <div className="space-y-6">
       {/* Header info */}
       <div className="grid grid-cols-2 gap-4">
-        <DetailField label="Lender" value={loan?.lender_name ?? row.entity_name ?? '--'} />
-        <DetailField label="Purpose" value={loan?.purpose ?? row.title ?? '--'} />
+        <DetailField label="Lender" value={loan?.lender_name ?? '--'} />
+        <DetailField label="Purpose" value={loan?.purpose ?? '--'} />
         <DetailField
           label="Date Borrowed"
           value={loan?.date_borrowed ? formatDate(loan.date_borrowed) : '--'}
         />
         <DetailField
           label="Due Date"
-          value={row.due_date ? formatDate(row.due_date) : '--'}
+          value={loan?.due_date ? formatDate(loan.due_date) : '--'}
         />
       </div>
 
@@ -175,7 +173,7 @@ export function LoanDetailContent({
           outstanding={
             detail.schedule.find(s => s.id === selectedEntryId)?.outstanding ?? 0
           }
-          partnerCompanyId={row.partner_company_id!}
+          partnerCompanyId={loan.partner_company_id!}
           onSuccess={() => {
             setShowRepaymentForm(false)
             setSelectedEntryId(null)

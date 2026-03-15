@@ -207,9 +207,9 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** CLI application (6 modules), database (17 tables, 10 views), and visualization website (9 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
+**Development complete.** CLI application (6 modules), database (17 tables, 10 views), and visualization website (8 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
 
-**Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 7 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
+**Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 8 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 
 **Loans are partner-owned.** Every loan has a `partner_company_id`. Business rule: 10% return on loans, borrower keeps the spread between agreed return and what they pay the lender.
 

@@ -60,7 +60,7 @@ export function PaymentsClient({
   bankAccounts,
   currentFilters,
 }: Props) {
-  const { setFilter } = useUrlFilters()
+  const { setFilter, clearFilters } = useUrlFilters()
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [expandedDetail, setExpandedDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -74,16 +74,7 @@ export function PaymentsClient({
     currentFilters.projectId !== '' ||
     currentFilters.bankAccountId !== ''
 
-  function clearFilters() {
-    const params = new URLSearchParams(window.location.search)
-    params.delete('direction')
-    params.delete('type')
-    params.delete('related')
-    params.delete('project')
-    params.delete('bank')
-    params.delete('page')
-    window.location.search = params.toString()
-  }
+  const handleClearFilters = () => clearFilters(['direction', 'type', 'related', 'project', 'bank'])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
     if (expandedId === row.id) {
@@ -153,7 +144,7 @@ export function PaymentsClient({
         projects={projects}
         bankAccounts={bankAccounts}
         hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
+        onClearFilters={handleClearFilters}
       />
 
       {/* Table */}

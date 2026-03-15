@@ -174,7 +174,7 @@ export function InvoicesClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
-  const { setFilter, setFilters } = useUrlFilters()
+  const { setFilter, setFilters, clearFilters } = useUrlFilters()
 
   // Inline expand state
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -199,17 +199,7 @@ export function InvoicesClient({
     currentFilters.projectId !== '' ||
     currentFilters.entity !== ''
 
-  function clearFilters() {
-    const params = new URLSearchParams(window.location.search)
-    params.delete('direction')
-    params.delete('type')
-    params.delete('status')
-    params.delete('project')
-    params.delete('entity')
-    params.delete('bucket')
-    params.delete('page')
-    window.location.search = params.toString()
-  }
+  const handleClearFilters = () => clearFilters(['direction', 'type', 'status', 'project', 'entity', 'bucket'])
 
   const handleRowClick = useCallback(async (row: InvoicesPageRow) => {
     if (expandedId === row.id) {
@@ -305,7 +295,7 @@ export function InvoicesClient({
         projects={projects}
         uniqueEntities={uniqueEntities}
         hasActiveFilters={hasActiveFilters}
-        onClearFilters={clearFilters}
+        onClearFilters={handleClearFilters}
       />
 
       {/* Table with inline expand */}

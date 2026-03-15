@@ -1,14 +1,14 @@
 # Module Specifications
 
-**Document version:** 2.1
-**Date:** March 3, 2026
+**Document version:** 3.0
+**Date:** March 13, 2026
 **Status:** Active — schema fully locked, see 08_schema.md
 
 ---
 
 ## Overview
 
-The system is organized around a central costs/transactions table with supporting reference tables. The diagram below shows the relationships:
+The system is organized around a central invoices table with supporting reference tables. The diagram below shows the relationships:
 
 ```
                     ENTITIES
@@ -18,15 +18,17 @@ The system is organized around a central costs/transactions table with supportin
                         |
 PROJECT ─────────────────────────────────────
    |              |              |
-COSTS          QUOTES        AR INVOICES
-+ COST_ITEMS (received)      (income)
-(expenses)        |              |
-                  └──── links to COSTS when accepted
-                                 |
-                              PAYMENTS (unified — both AP and AR)
+INVOICES       QUOTES         LOANS
++ INVOICE_ITEMS  |           + LOAN_SCHEDULE
+(payable &    links to        (repayments)
+receivable)   INVOICES           |
+   |          when accepted      |
+   └─────────────────────────────┘
+                  |
+              PAYMENTS (unified — AP, AR, and loan repayments)
 ```
 
-**Partner Ledger and AP Calendar are views, not tables.** They are derived from the Costs, AR Invoices, and Payments tables and displayed on the visualization website.
+**Calendar, Financial Position, and Cash Flow are views/queries, not tables.** They are derived from the Invoices, Payments, and Loans tables and displayed on the visualization website.
 
 ---
 
@@ -145,79 +147,70 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 
 ---
 
-## Module 3: Costs (Expense Transactions)
+## Module 3: Invoices (Unified — Payable & Receivable)
 
-**Purpose:** The central transaction table and institutional memory of the business. Every peso spent — on projects or on running the company — is registered here. Over time this becomes a historical unit price database for future estimation.
+**Purpose:** The central transaction table. Every commercial document — both expenses (payable) and income (receivable) — lives in one `invoices` table with a `direction` column. Line items live in `invoice_items`. Over time, payable invoice items become a historical unit price database for future estimation.
+
+**V1 unification:** Previously two separate tables (`costs` + `ar_invoices`). Merged in V1 into `invoices` with `direction = 'payable' | 'receivable'`, and `cost_items` became `invoice_items` serving both directions.
 
 **Business rules:**
+- `direction` column: `'payable'` (expense) or `'receivable'` (income)
 - Project field is nullable — null means SG&A (company-level expense, not tied to a project)
-- **SG&A costs belong exclusively to the individual partner who incurred them** — they are not allocated across partners and are excluded from project profit/settlement calculations
-- Every cost records who paid it (which partner company) and from which bank account
-- Quantity and unit price are required for material purchases — enables historical unit price analysis
-- IGV is tracked separately on every cost
+- **SG&A invoices belong exclusively to the individual partner who incurred them** — excluded from project profit/settlement calculations
+- Every invoice records the partner company (`partner_company_id`)
+- Quantity and unit price on line items enable historical unit price analysis
+- IGV, detraccion, and retencion tracked separately on every invoice
 - Currency must be specified (USD or PEN) — never converted at storage
 - Exchange rate mandatory (NOT NULL) — stored at transaction date for application-layer conversion
-- Detracciones tracked when applicable — rate editable per transaction
-- Entity field is nullable — supports fully informal/unassigned expenses
+- Entity field is nullable — supports informal/unassigned expenses
 - Comprobante fields are nullable — supports expenses without formal invoices
-- A cost can reference a quote (when the purchase was preceded by a quote)
+- A payable invoice can reference a quote (`quote_id`) when the purchase was preceded by a quote
+- `purchase_order_id` reserved for future PO module — always null
+- Retencion only applies on receivables (Korakuen is NOT a retencion agent)
 
-**Cost Type (Level 1):**
-- Project Cost — tagged to a specific project
-- SG&A — company-level expense, no project
+**Categories (on `invoice_items`, not header):**
 
-**Cost Category (Level 2) — Project Costs:**
-- Materials
-- Labor
-- Subcontractor
-- Equipment / Rental
-- Permits / Regulatory
-- Other
+Project Costs: Materials, Labor, Subcontractor, Equipment / Rental, Permits / Regulatory, Other
 
-**Cost Category (Level 2) — SG&A:**
-- Software & Licenses
-- Partner Compensation
-- Business Development (meals, travel, entertainment)
-- Professional Services (accountant, lawyer, legal)
-- Office & Admin
-- Other
+SG&A: Software & Licenses, Partner Compensation, Business Development, Professional Services, Office & Admin, Other
 
-**Key attributes — `costs` header:**
-- Cost ID (system generated)
-- Date
-- Cost type: Project Cost or SG&A
+**Key attributes — `invoices` header:**
+- Invoice ID (system generated)
+- Direction: payable or receivable
+- Partner company (references Partner Companies)
 - Project (nullable — null if SG&A)
-- Bank account paid from (references Bank Accounts — partner derived from this)
 - Entity (nullable — references Entities)
-- Quote reference (nullable — references Quotes if this cost originated from a quote)
-- Purchase order reference (nullable — reserved for future PO module, always null in V0)
+- Quote reference (nullable — references Quotes)
+- Purchase order reference (nullable — reserved for future PO module)
+- Invoice number (nullable)
+- Document reference code (nullable, e.g. PRY001-AP-001)
+- Comprobante type (nullable): Factura, Boleta, Recibo por Honorarios, None
+- Invoice date
+- Due date (nullable — feeds calendar)
+- Currency: USD or PEN
+- Exchange rate (mandatory NOT NULL)
 - IGV rate (default 18%, editable)
 - Detraccion rate % (nullable, editable)
-- Currency: USD or PEN
-- Exchange rate (mandatory NOT NULL — stored at historical rate per transaction, enables application-layer conversion)
-- Comprobante type (nullable): Factura, Boleta, Recibo por Honorarios, Liquidación de Compra, Planilla de Jornales, None
-- Comprobante number (nullable, e.g. F001-00234)
-- Document reference code (nullable, e.g. PRY001-AP-001)
-- Due date (nullable — feeds AP calendar)
-- Payment method (nullable): bank_transfer, cash, check — indicates payment channel
+- Retencion rate % (nullable — only on receivables)
+- Notes
 
-**Key attributes — `cost_items` (line items, one or many per cost):**
+**Key attributes — `invoice_items` (line items, one or many per invoice):**
 - Line item title
-- Category (Level 2 — see above)
-- Quantity (nullable)
+- Category (references categories table)
+- Description (nullable)
+- Quantity
 - Unit of measure (nullable)
-- Unit price (nullable)
-- Subtotal (quantity × unit price or entered directly)
-- Notes (nullable)
+- Unit price
 
-**Derived via database views (never stored on costs header):**
-- Subtotal — SUM of cost_items subtotals
+**Derived via database views (never stored on invoices header):**
+- Subtotal — SUM of invoice_items (quantity × unit_price)
 - IGV amount — subtotal × igv_rate
 - Detraccion amount — total × detraccion_rate
+- Retencion amount — total × retencion_rate (receivables only)
 - Total — subtotal + igv_amount
 - Amount paid, outstanding, payment status — from payments table
 
-**Connects to:** Projects, Entities, Bank Accounts, Quotes
+**Connects to:** Projects, Entities, Quotes
 
 ---
 
@@ -257,24 +250,15 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Document reference code (nullable, e.g. PRY001-QT-001)
 - Notes / reason for rejection
 
-**Connects to:** Projects, Entities, Costs
+**Connects to:** Projects, Entities, Invoices
 
 ---
 
 ## Module 5: AR — Accounts Receivable
 
-**Purpose:** Invoices sent to clients. Tracks the full lifecycle from invoice issuance to collection, including all Peruvian tax withholdings. Kept as a separate table from Costs because income and expenses have fundamentally different structures — separate tables enable clean cash flow reporting and unambiguous partner settlement calculations.
+**Merged into Module 3 (Invoices).** Receivable invoices are now `invoices` rows with `direction = 'receivable'`. See Module 3 for the unified schema. All AR-specific tax fields (retencion_rate) live on the same `invoices` table.
 
-**Business rules:**
-- Every AR invoice is linked to a project
-- The issuing partner company is recorded — each partner invoices independently
-- IGV, detraccion, and retencion are all tracked separately
-- Partial collections are supported — multiple collection records per invoice
-- Full payment confirmed only when total collected equals net receivable
-- Korakuen is NOT a retencion agent — retenciones only appear on the AR (income) side
-- Detraccion is deposited to Banco de la Nación — tracked as a special account
-
-**Peruvian tax fields on AR:**
+**Peruvian tax fields on receivables:**
 ```
 Invoice gross (subtotal + IGV):        S/ 118,000
 Detraccion (editable %, e.g. 4%):      S/   4,720  → Banco de la Nación
@@ -283,38 +267,7 @@ Retencion (3% if client is agent):     S/   3,540  → paid to SUNAT by client
 Net receivable to regular account:     S/ 109,740
 ```
 
-**Key attributes (stored):**
-- AR ID (system generated)
-- Project (references Projects)
-- Bank account (references Bank Accounts — regular receipt account)
-- Issuing partner company (references Partner Companies)
-- Client entity (references Entities)
-- Invoice number (own numbering from Alegra/Contasis)
-- Comprobante type: Factura
-- Invoice date
-- Due date (nullable)
-- Subtotal (invoice subtotal amount)
-- IGV rate (default 18%, editable)
-- Detraccion rate % (nullable, editable)
-- Retencion applicable: Yes/No
-- Retencion rate (default 3% if applicable)
-- Currency: USD or PEN
-- Exchange rate (mandatory NOT NULL — stored at historical rate per transaction, enables application-layer conversion)
-- Document reference code (nullable, e.g. PRY001-AR-001)
-- Notes
-
-**Derived via database views (never stored):**
-- IGV amount — subtotal × igv_rate
-- Gross total — subtotal + igv_amount
-- Detraccion amount — gross_total × detraccion_rate
-- Retencion amount — gross_total × retencion_rate
-- Net receivable — gross_total - detraccion_amount - retencion_amount
-- Amount paid, outstanding, payment status — from payments table
-
-**Payments (via unified payments table):**
-Actual money received against this AR invoice is recorded in the `payments` table with `related_to = 'ar_invoice'`. Multiple payment records per invoice are supported — regular transfer, detraccion deposit to Banco de la Nación, and retencion withheld by client. Payment status and outstanding balance are always derived dynamically from the payments table via database views.
-
-**Connects to:** Projects, Entities, Bank Accounts
+Payments against receivables use `payments` with `related_to = 'invoice'`, `direction = 'inbound'`.
 
 ---
 
@@ -355,7 +308,7 @@ Actual money received against this AR invoice is recorded in the `payments` tabl
 **Purpose:** Shows each partner's financial position per project — what they contributed, what profit they're owed, and who owes whom for settlement.
 
 **How it works:**
-This is not a database table — it is a view derived from the Costs table (via bank_account → partner_company, filtered to `cost_type = 'project_cost'` only) and AR Invoices + Payments tables per project. SG&A costs are excluded — they belong to the individual partner who incurred them. No data is stored separately. The view is always current because it reads directly from source data.
+This is not a database table — it is a view derived from the Invoices table (payable invoices with a project, grouped by partner_company_id) and receivable invoices + Payments tables per project. SG&A invoices are excluded — they belong to the individual partner who incurred them. No data is stored separately. The view is always current because it reads directly from source data.
 
 **What the view shows:**
 
@@ -388,7 +341,7 @@ Partner 3                 S/  251,000   (230,000 + 21,000)
 
 Note: contribution % reflects how costs were actually split during execution. Profit share % is the agreed split from `project_partners.profit_share_pct` — these are independent.
 
-**Connects to:** Costs (source data), AR Invoices + Payments (source data), Project Partners (profit share %)
+**Connects to:** Invoices (source data — both directions), Payments (source data), Project Partners (profit share %)
 
 ---
 
@@ -475,10 +428,10 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 
 ## Cross-Module Business Rules
 
-- A project must exist before costs, quotes, or AR invoices can be registered
+- A project must exist before invoices or quotes can be registered against it
 - An entity must exist before being referenced in any transaction — but transactions can have null entity
-- Costs with null project are SG&A — they belong to the individual partner who incurred them and are excluded from project profit/settlement calculations
-- Cost totals (subtotal, IGV, total) are always derived from cost_items via database views — never stored on the costs header. AR invoice calculated fields (igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable) are also derived via views, never stored
+- Invoices with null project are SG&A — they belong to the individual partner who incurred them and are excluded from project profit/settlement calculations
+- Invoice totals (subtotal, IGV, detraccion, retencion, total) are always derived from invoice_items via database views (`v_invoice_totals`) — never stored on the invoices header. Payment status derived via `v_invoice_balances`
 - Currency is always stored in natural currency — amounts are never converted at storage
 - Exchange rate is mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting — no conversion occurs at storage. Payment currency must match the parent document currency
 - Document reference codes follow the format `[PROJECT_CODE]-[DOCTYPE]-[NUMBER]` — see `07_file_storage.md`

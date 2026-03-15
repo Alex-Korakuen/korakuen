@@ -112,9 +112,7 @@ cli/
 │   ├── __init__.py
 │   ├── projects.py            → add single + import from Excel
 │   ├── entities.py            → add entity, contact, tag + import
-│   ├── costs.py               → add single + import costs/cost_items
 │   ├── quotes.py              → add single + import from Excel
-│   ├── ar_invoices.py         → add single + import from Excel
 │   ├── payments.py            → register payment, verify retencion
 │   ├── loans.py               → add loan, schedule, payments + import
 │   └── exchange_rates.py      → add daily SUNAT rate, list recent rates
@@ -134,40 +132,36 @@ Every module file exposes a `menu()` function called by `main.py`, plus individu
 ```python
 #!/usr/bin/env python3
 """
-Module: costs.py
-Purpose: All cost operations — add single, import from Excel
-Tables: costs, cost_items
+Module: quotes.py
+Purpose: All quote operations — add single, import from Excel
+Tables: quotes
 """
 
-import sys
 from lib.db import supabase
 from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
 
 
 def menu():
-    """Submenu for cost operations. Called by main.py."""
+    """Submenu for quote operations. Called by main.py."""
     while True:
         clear_screen()
-        print("\n=== Costs ===\n")
-        print("1. Add cost")
-        print("2. Import costs from Excel")
-        print("3. Import cost items from Excel")
-        print("4. Back")
+        print("\n=== Quotes ===\n")
+        print("1. Add quote")
+        print("2. Import quotes from Excel")
+        print("3. Back")
         choice = get_input("\nSelect option: ")
         if choice == "1":
-            add_cost()
+            add_quote()
         elif choice == "2":
-            import_costs()
+            import_quotes()
         elif choice == "3":
-            import_cost_items()
-        elif choice == "4":
             return
 
 
-def add_cost():
-    """Register a single cost interactively."""
+def add_quote():
+    """Register a single quote interactively."""
     clear_screen()
-    print("\n=== Add Cost ===\n")
+    print("\n=== Add Quote ===\n")
     # ... collect inputs, validate, show summary, confirm, insert
 ```
 
@@ -190,10 +184,10 @@ Call `clear_screen()` every time entering a new menu level AND every time return
 ### Error Handling
 ```python
 try:
-    response = supabase.table("costs").insert(data).execute()
-    print(f"\n✓ Cost registered successfully (ID: {response.data[0]['id']})")
+    response = supabase.table("quotes").insert(data).execute()
+    print(f"\n✓ Quote registered successfully (ID: {response.data[0]['id']})")
 except Exception as e:
-    print(f"\n✗ Error registering cost: {e}")
+    print(f"\n✗ Error registering quote: {e}")
 ```
 
 ### No Business Logic in Scripts
@@ -204,11 +198,11 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 ## Database Standards
 
 ### Naming Conventions
-- **Tables:** snake_case, plural nouns — `costs`, `ar_invoices`, `bank_accounts`
+- **Tables:** snake_case, plural nouns — `invoices`, `invoice_items`, `bank_accounts`
 - **Columns:** snake_case — `partner_company_id`, `is_active`, `created_at`
-- **Views:** snake_case, `v_` prefix, descriptive — `v_cost_balances`, `v_ap_calendar`, `v_loan_balances`
-- **Indexes:** `idx_[table]_[column]` — `idx_costs_project_id`
-- **Foreign keys:** `fk_[table]_[referenced_table]` — `fk_costs_projects`
+- **Views:** snake_case, `v_` prefix, descriptive — `v_invoice_totals`, `v_ap_calendar`, `v_loan_balances`
+- **Indexes:** `idx_[table]_[column]` — `idx_invoices_project_id`
+- **Foreign keys:** `fk_[table]_[referenced_table]` — `fk_invoices_projects`
 
 ### Column Conventions
 - Primary keys: always `id UUID DEFAULT gen_random_uuid()`

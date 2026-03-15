@@ -9,7 +9,7 @@ import { CreateBankAccountModal } from './create-bank-account-modal'
 import { CreateLoanModal } from './create-loan-modal'
 import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
-import type { BankTransaction, FinancialPositionData, LoanDetailData, ObligationCalendarRow } from '@/lib/types'
+import type { BankTransaction, FinancialPositionData, LoanDetailData } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
 type Props = {
@@ -81,37 +81,6 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       // keep existing detail
     }
   }
-
-  // Build a minimal ObligationCalendarRow stub for LoanDetailContent
-  const loanModalRow: ObligationCalendarRow | null = selectedLoan && loanDetail?.loan ? {
-    type: 'loan',
-    invoice_id: null,
-    loan_id: selectedLoan.loanId,
-    direction: 'payable',
-    partner_company_id: loanDetail.loan.partner_company_id ?? null,
-    project_id: loanDetail.loan.project_id ?? null,
-    project_code: null,
-    project_name: null,
-    entity_id: null,
-    entity_name: selectedLoan.lenderName,
-    cost_type: null,
-    date: loanDetail.loan.date_borrowed,
-    title: loanDetail.loan.purpose,
-    currency: loanDetail.loan.currency,
-    exchange_rate: null,
-    document_ref: null,
-    due_date: loanDetail.loan.due_date,
-    days_remaining: null,
-    subtotal: null,
-    igv_amount: null,
-    total: loanDetail.loan.total_owed,
-    detraccion_amount: null,
-    amount_paid: loanDetail.loan.total_paid,
-    outstanding: loanDetail.loan.outstanding,
-    payable: loanDetail.loan.outstanding,
-    bdn_outstanding: 0,
-    payment_status: loanDetail.loan.status,
-  } as ObligationCalendarRow : null
 
   return (
     <div className="space-y-6">
@@ -367,9 +336,8 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
         {loadingLoan && (
           <p className="py-8 text-center text-sm text-zinc-500">Loading loan detail...</p>
         )}
-        {!loadingLoan && loanDetail && loanModalRow && (
+        {!loadingLoan && loanDetail && (
           <LoanDetailContent
-            row={loanModalRow}
             detail={loanDetail}
             onRepaymentSuccess={handleLoanRefresh}
           />

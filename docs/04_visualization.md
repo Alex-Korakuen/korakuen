@@ -1,7 +1,7 @@
 # Visualization Website Specifications
 
-**Document version:** 5.0
-**Date:** March 2, 2026
+**Document version:** 5.1
+**Date:** March 13, 2026
 **Status:** Active
 
 ---
@@ -67,7 +67,7 @@ Dashboards
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
 
-**Data source:** Projects table, project_entities, costs + cost_items, ar_invoices, project_budgets
+**Data source:** Projects table, project_entities, invoices + invoice_items, project_budgets
 
 ---
 
@@ -88,7 +88,7 @@ Dashboards
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
 
-**Data source:** Entities, entity_contacts, entity_tags, tags, costs, ar_invoices (via v_entity_transactions view)
+**Data source:** Entities, entity_contacts, entity_tags, tags, invoices (via v_invoice_balances view)
 
 ---
 
@@ -98,11 +98,11 @@ Dashboards
 
 **Layout:** Single page. Search-driven reference view.
 
-Browse/search historical pricing from both cost_items and quotes. Search by item title. Results table columns: date, source (cost/quote), supplier, project, item title, quantity, unit_of_measure, unit_price, currency. Filterable by category, entity, project, date range, tag (entity's tags). Searchable by title.
+Browse/search historical pricing from both invoice_items and quotes. Search by item title. Results table columns: date, source (invoice/quote), supplier, project, item title, quantity, unit_of_measure, unit_price, currency. Filterable by category, entity, project, date range, tag (entity's tags). Searchable by title.
 
 This is the reference view for looking up historical pricing when estimating new work or negotiating with suppliers. No automatic aggregation or comparison — the user scans results and makes their own judgment.
 
-**Data source:** cost_items table (quantity and unit_price fields), quotes table, joined to entities and entity_tags for tag filtering
+**Data source:** invoice_items table (quantity and unit_price fields), quotes table, joined to entities and entity_tags for tag filtering
 
 ---
 
@@ -132,7 +132,7 @@ This is the reference view for looking up historical pricing when estimating new
 
 Detraccion deposits pending — outbound detracciones that need to be deposited to suppliers' Banco de la Nacion accounts. Table columns: supplier, invoice title, project, detraccion amount, deposit status (paid/pending). Answers: "which detraccion deposits am I behind on?"
 
-**Data source:** Costs table filtered to unpaid/partial status, sorted by due date (via v_ap_calendar, v_cost_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
+**Data source:** Invoices table filtered to unpaid/partial status, sorted by due date (via v_obligation_calendar, v_invoice_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
 
 ---
 
@@ -164,7 +164,7 @@ Two sections:
 
 2. **Detracciones:** Has the client deposited to our Banco de la Nacion? Table showing inbound detraccion payments — received vs expected. Columns: project, client, invoice_number, detraccion_amount, received/pending. Data from payments where direction = inbound, payment_type = detraccion.
 
-**Data source:** AR Invoices and Payments tables (via v_ar_balances, v_retencion_dashboard views). Detracciones from payments where direction = inbound, payment_type = detraccion.
+**Data source:** Invoices (direction = 'receivable') and Payments tables (via v_invoice_balances, v_retencion_dashboard views). Detracciones from payments where direction = inbound, payment_type = detraccion.
 
 ---
 
@@ -180,7 +180,7 @@ Two sections:
 
 **Reporting currency selector:** PEN (default) or USD. Transactions in the other currency converted at stored exchange rate.
 
-**Main table:** Monthly time series. Cash In section: one row per project + one row for loans. Cash Out section: one row per cost type + one row for loan repayments. Net row. Past months show actual cash movements (from payments table). Future months show forecast based on due_date fields on unpaid costs, AR invoices, and loan_schedule.
+**Main table:** Monthly time series. Cash In section: one row per project + one row for loans. Cash Out section: one row per cost type + one row for loan repayments. Net row. Past months show actual cash movements (from payments table). Future months show forecast based on due_date fields on unpaid invoices and loan_schedule.
 
 **Visual separator** between actual (past) and forecast (future) months — lighter styling or dashed divider for forecast rows.
 
@@ -188,7 +188,7 @@ Two sections:
 
 **Color coding:** Red for negative net months, yellow for months below a threshold, green for positive.
 
-**Data source:** Payments (actual), costs + ar_invoices + loan_schedule due dates (forecast) — computed in `queries.ts` (no SQL view). Filterable by partner via global partner filter.
+**Data source:** Payments (actual), invoices + loan_schedule due dates (forecast) — computed in `queries.ts` (no SQL view). Filterable by partner via global partner filter.
 
 ---
 
@@ -206,13 +206,13 @@ Two sections:
 
 - Cash in Bank: card per account showing bank_name, last4, account_type, currency, calculated balance. Banco de la Nacion detraccion account flagged with note that balance is for tax payments only. Click any account card to expand recent transactions below (date, direction, entity, amount). Partner accounts shown as net contribution position only.
 - Accounts Receivable: total outstanding AR invoices.
-- Tax Credits: IGV Paid (credito fiscal from costs with igv_rate > 0), Retenciones Unverified (withheld by clients, pending SUNAT verification).
+- Tax Credits: IGV Paid (credito fiscal from invoices with igv_rate > 0), Retenciones Unverified (withheld by clients, pending SUNAT verification).
 - Total Assets.
 
 **Liabilities section:**
 
-- Accounts Payable: total outstanding costs.
-- Tax Liabilities: IGV Collected (debito fiscal from AR invoices with igv_rate > 0).
+- Accounts Payable: total outstanding payable invoices.
+- Tax Liabilities: IGV Collected (debito fiscal from receivable invoices with igv_rate > 0).
 - Loans: each loan with outstanding balance from `v_loan_balances`.
 - Total Liabilities.
 
@@ -220,7 +220,7 @@ Two sections:
 
 **Disclaimer:** System-calculated balances, not bank-reconciled.
 
-**Data source:** v_bank_balances (cash), v_ar_balances (AR outstanding), v_cost_balances (AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). Filterable by partner via global partner filter.
+**Data source:** v_bank_balances (cash), v_invoice_balances (AR + AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). Filterable by partner via global partner filter.
 
 ---
 

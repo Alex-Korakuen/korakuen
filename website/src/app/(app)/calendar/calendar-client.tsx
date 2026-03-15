@@ -46,7 +46,7 @@ export function CalendarClient({
 }: Props) {
   const router = useRouter()
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
-  const { setFilter, setFilters } = useUrlFilters()
+  const { setFilter, setFilters, clearFilters } = useUrlFilters()
 
   // Derive active card state from URL filters
   const activeCard: ActiveCard = (() => {
@@ -77,16 +77,7 @@ export function CalendarClient({
     currentFilters.currency !== '' ||
     currentFilters.search !== ''
 
-  function clearFilters() {
-    const params = new URLSearchParams(window.location.search)
-    params.delete('project')
-    params.delete('entity')
-    params.delete('type')
-    params.delete('currency')
-    params.delete('search')
-    params.delete('page')
-    window.location.search = params.toString()
-  }
+  const handleClearFilters = () => clearFilters(['project', 'entity', 'type', 'currency', 'search'])
 
   const handleRowClick = (row: ObligationCalendarRow) => {
     const params = new URLSearchParams()
@@ -129,7 +120,7 @@ export function CalendarClient({
           projects={projects}
           uniqueEntities={uniqueEntities}
           hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
+          onClearFilters={handleClearFilters}
         />
 
         <CalendarTable

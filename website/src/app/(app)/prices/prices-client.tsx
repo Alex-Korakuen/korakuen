@@ -36,7 +36,7 @@ export function PricesClient({
   currentFilters,
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('date', 'desc')
-  const { setFilter } = useUrlFilters()
+  const { setFilter, clearFilters } = useUrlFilters()
 
   const hasActiveFilters =
     currentFilters.search !== '' ||
@@ -47,18 +47,7 @@ export function PricesClient({
     currentFilters.dateFrom !== '' ||
     currentFilters.dateTo !== ''
 
-  function clearFilters() {
-    const params = new URLSearchParams(window.location.search)
-    params.delete('search')
-    params.delete('category')
-    params.delete('entity')
-    params.delete('project')
-    params.delete('tag')
-    params.delete('dateFrom')
-    params.delete('dateTo')
-    params.delete('page')
-    window.location.search = params.toString()
-  }
+  const handleClearFilters = () => clearFilters(['search', 'category', 'entity', 'project', 'tag', 'dateFrom', 'dateTo'])
 
   return (
     <div>
@@ -127,7 +116,7 @@ export function PricesClient({
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={clearFilters}
+            onClick={handleClearFilters}
             className="self-end rounded px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700 hover:underline"
           >
             Clear filters
