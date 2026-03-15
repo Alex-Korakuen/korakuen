@@ -1,146 +1,116 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import { SortIndicator } from '@/components/ui/sort-indicator'
-import { getRowBorderClass, formatType } from './helpers'
-import type { ObligationCalendarRow } from '@/lib/types'
+import { formatUrgency, getUrgencyColor, getSectionColors } from './helpers'
+import type { ObligationCalendarRow, CalendarBucketId } from '@/lib/types'
+
+type BucketGroup = {
+  id: Exclude<CalendarBucketId, 'all'>
+  label: string
+  rows: ObligationCalendarRow[]
+}
 
 type Props = {
-  data: ObligationCalendarRow[]
-  sortColumn: string
-  sortDirection: 'asc' | 'desc'
-  onSort: (column: string) => void
+  groups: BucketGroup[]
   onRowClick: (row: ObligationCalendarRow) => void
 }
 
 function DirectionBadge({ direction }: { direction: string | null }) {
   if (direction === 'receivable') {
     return (
-      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">
+      <span className="inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">
         AR
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-orange-50 text-orange-700">
+    <span className="inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-orange-50 text-orange-700">
       AP
     </span>
   )
 }
 
-export function CalendarTable({
-  data,
-  sortColumn,
-  sortDirection,
-  onSort,
-  onRowClick,
-}: Props) {
+function TypeIcon({ type }: { type: string | null }) {
+  return <span className="text-sm">{type === 'loan' ? '\uD83C\uDFE6' : '\uD83D\uDCC4'}</span>
+}
+
+function SectionHeader({ bucket, label, count }: { bucket: string; label: string; count: number }) {
+  const colors = getSectionColors(bucket)
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-          <tr>
-            <th
-              className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-              onClick={() => onSort('due_date')}
-            >
-              Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-              onClick={() => onSort('days_remaining')}
-            >
-              Days <SortIndicator column="days_remaining" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th className="px-4 py-3">Dir</th>
-            <th className="px-4 py-3">Type</th>
-            <th
-              className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-              onClick={() => onSort('entity_name')}
-            >
-              Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-              onClick={() => onSort('project_code')}
-            >
-              Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
-              onClick={() => onSort('outstanding')}
-            >
-              Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th className="px-4 py-3">Cur.</th>
-            <th
-              className="cursor-pointer px-4 py-3 hover:text-zinc-700"
-              onClick={() => onSort('document_ref')}
-            >
-              Ref <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-zinc-100">
-          {data.length === 0 ? (
-            <tr>
-              <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
-                No obligations found
-              </td>
-            </tr>
-          ) : (
-            data.map((row) => (
-              <tr
-                key={row.invoice_id ?? `loan-${row.entity_name}-${row.due_date}`}
-                className={`cursor-pointer transition-colors hover:bg-zinc-50 ${getRowBorderClass(row.days_remaining)}`}
-                onClick={() => onRowClick(row)}
-              >
-                <td className="whitespace-nowrap px-4 py-3 text-zinc-700">
-                  {row.due_date ? formatDate(row.due_date) : '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  {row.days_remaining !== null ? (
-                    <span
-                      className={
-                        row.days_remaining < 0
-                          ? 'font-medium text-red-600'
-                          : row.days_remaining === 0
-                            ? 'font-medium text-orange-600'
-                            : 'text-zinc-600'
-                      }
-                    >
-                      {row.days_remaining}
+    <div className="flex items-center gap-3 pt-6 pb-2 first:pt-0">
+      <div className={`h-0.5 w-6 ${colors.border} border-t-2`} />
+      <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+        {label}
+      </span>
+      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+        {count}
+      </span>
+      <div className="h-px flex-1 bg-zinc-100" />
+    </div>
+  )
+}
+
+export function CalendarTable({ groups, onRowClick }: Props) {
+  const hasAnyRows = groups.some(g => g.rows.length > 0)
+
+  if (!hasAnyRows) {
+    return (
+      <div className="mt-6 rounded-lg border border-zinc-200 px-4 py-8 text-center text-zinc-400">
+        No obligations found
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4">
+      {groups.map(
+        (group) =>
+          group.rows.length > 0 && (
+            <div key={group.id}>
+              <SectionHeader bucket={group.id} label={group.label} count={group.rows.length} />
+              <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+                {group.rows.map((row) => (
+                  <div
+                    key={row.invoice_id ?? `loan-${row.loan_id ?? row.entity_name}-${row.due_date}`}
+                    className="grid cursor-pointer grid-cols-[80px_30px_24px_1fr_64px_auto_72px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
+                    onClick={() => onRowClick(row)}
+                  >
+                    {/* Date */}
+                    <span className="text-sm text-zinc-600">
+                      {row.due_date ? formatDate(row.due_date) : '--'}
                     </span>
-                  ) : (
-                    '--'
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  <DirectionBadge direction={row.direction} />
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                  {formatType(row.type)}
-                </td>
-                <td className="px-4 py-3 text-zinc-700">
-                  {row.entity_name ?? '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                  {row.project_code ?? '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                  {row.outstanding !== null && row.currency
-                    ? formatCurrency(row.outstanding, row.currency)
-                    : '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
-                  {row.currency ?? '--'}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
-                  {row.document_ref ?? '--'}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+
+                    {/* Direction badge */}
+                    <DirectionBadge direction={row.direction} />
+
+                    {/* Type icon */}
+                    <TypeIcon type={row.type} />
+
+                    {/* Entity name — "Loan: BCP" for loans */}
+                    <span className="truncate text-sm text-zinc-800">
+                      {row.type === 'loan' ? `Loan: ${row.entity_name ?? '--'}` : row.entity_name ?? '--'}
+                    </span>
+
+                    {/* Project code */}
+                    <span className="font-mono text-xs text-zinc-500">
+                      {row.project_code ?? '--'}
+                    </span>
+
+                    {/* Outstanding amount */}
+                    <span className="text-right font-mono text-sm font-medium text-zinc-900">
+                      {row.outstanding !== null && row.currency
+                        ? formatCurrency(row.outstanding, row.currency)
+                        : '--'}
+                    </span>
+
+                    {/* Urgency label */}
+                    <span className={`text-right text-xs ${getUrgencyColor(row.days_remaining)}`}>
+                      {formatUrgency(row.days_remaining)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ),
+      )}
     </div>
   )
 }

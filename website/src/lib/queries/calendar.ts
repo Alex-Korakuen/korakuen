@@ -1,8 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { getDaysUntilEndOfWeek } from '../date-utils'
-import { paginateArray } from '../pagination'
-import { sortRows } from '../sort-rows'
-import type { PaginatedResult } from '../pagination'
+import { getDaysUntilEndOfWeek, getCalendarBucket } from '../date-utils'
 import type {
   ObligationCalendarRow,
   CalendarBucketCounts,
@@ -17,26 +14,15 @@ type ObligationCalendarFilters = {
   currency?: string
   search?: string
   bucket?: string
-  sort: string
-  dir: 'asc' | 'desc'
-  page: number
 }
 
 type ObligationCalendarResult = {
-  paginated: PaginatedResult<ObligationCalendarRow>
+  rows: ObligationCalendarRow[]
   bucketCounts: CalendarBucketCounts
   uniqueSuppliers: string[]
 }
 
-
-export function getCalendarBucket(daysRemaining: number | null, daysToEndOfWeek: number): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
-  if (daysRemaining === null) return null
-  if (daysRemaining < 0) return 'overdue'
-  if (daysRemaining === 0) return 'today'
-  if (daysRemaining <= daysToEndOfWeek) return 'this-week'
-  if (daysRemaining <= 30) return 'next-30'
-  return null
-}
+export { getCalendarBucket }
 
 export async function getObligationCalendar(
   partnerIds: string[],
@@ -103,9 +89,5 @@ export async function getObligationCalendar(
     rows = rows.filter(r => (r.title ?? '').toLowerCase().includes(search))
   }
 
-  // Sort and paginate
-  rows = sortRows(rows, filters.sort, filters.dir)
-  const paginated = paginateArray(rows, filters.page)
-
-  return { paginated, bucketCounts, uniqueSuppliers }
+  return { rows, bucketCounts, uniqueSuppliers }
 }
