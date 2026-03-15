@@ -15,6 +15,7 @@ type BucketGroup = {
 
 type Props = {
   groups: BucketGroup[]
+  grandTotals: SectionTotals
   onRowClick: (row: ObligationCalendarRow) => void
 }
 
@@ -176,7 +177,34 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
   )
 }
 
-export function CalendarTable({ groups, onRowClick }: Props) {
+function TotalBar({ totals }: { totals: SectionTotals }) {
+  const totalCount = totals.pay.count + totals.collect.count
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-300 bg-zinc-50/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2.5">
+        <span className="text-xs font-medium text-zinc-500">
+          {totalCount} {totalCount === 1 ? 'obligation' : 'obligations'}
+        </span>
+        <div className="flex items-center gap-6">
+          {totals.pay.count > 0 && (
+            <span className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-orange-600">Total Pay</span>
+              <DualAmount pen={totals.pay.pen} usd={totals.pay.usd} />
+            </span>
+          )}
+          {totals.collect.count > 0 && (
+            <span className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-emerald-600">Total Collect</span>
+              <DualAmount pen={totals.collect.pen} usd={totals.collect.usd} />
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function CalendarTable({ groups, grandTotals, onRowClick }: Props) {
   const hasAnyRows = groups.some(g => g.rows.length > 0)
 
   if (!hasAnyRows) {
@@ -188,13 +216,16 @@ export function CalendarTable({ groups, onRowClick }: Props) {
   }
 
   return (
-    <div className="mt-4">
-      {groups.map(
-        (group) =>
-          group.rows.length > 0 && (
-            <Section key={group.id} group={group} onRowClick={onRowClick} />
-          ),
-      )}
-    </div>
+    <>
+      <div className="mt-4">
+        {groups.map(
+          (group) =>
+            group.rows.length > 0 && (
+              <Section key={group.id} group={group} onRowClick={onRowClick} />
+            ),
+        )}
+      </div>
+      <TotalBar totals={grandTotals} />
+    </>
   )
 }

@@ -85,8 +85,10 @@ export function CalendarClient({
     return { id, label, rows, totals: computeTotals(rows) }
   })
 
+  const grandTotals = computeTotals(data)
+
   return (
-    <div>
+    <div className="pb-16">
       <CalendarFilters
         currentFilters={currentFilters}
         setFilter={setFilter}
@@ -96,7 +98,7 @@ export function CalendarClient({
         onClearFilters={handleClearFilters}
       />
 
-      <CalendarTable groups={groups} onRowClick={handleRowClick} />
+      <CalendarTable groups={groups} grandTotals={grandTotals} onRowClick={handleRowClick} />
     </div>
   )
 }
