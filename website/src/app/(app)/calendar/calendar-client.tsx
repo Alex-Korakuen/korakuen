@@ -6,7 +6,6 @@ import { getCalendarBucket } from '@/lib/date-utils'
 import { FK } from '@/lib/filter-keys'
 import { CalendarFilters } from './calendar-filters'
 import { CalendarTable } from './calendar-table'
-import { getDaysUntilEndOfWeek } from './helpers'
 import type {
   ObligationCalendarRow,
   CalendarBucketId as BucketId,
@@ -32,9 +31,10 @@ type Props = {
 
 const BUCKET_ORDER: { id: Exclude<BucketId, 'all'>; label: string }[] = [
   { id: 'overdue', label: 'Overdue' },
-  { id: 'today', label: 'Due Today' },
-  { id: 'this-week', label: 'This Week' },
+  { id: 'today', label: 'Today' },
+  { id: 'next-7', label: 'Next 7 Days' },
   { id: 'next-30', label: 'Next 30 Days' },
+  { id: 'later', label: 'Later' },
 ]
 
 function computeTotals(rows: ObligationCalendarRow[]): SectionTotals {
@@ -80,9 +80,8 @@ export function CalendarClient({
   }
 
   // Group rows by urgency bucket and compute totals per section
-  const daysToEndOfWeek = getDaysUntilEndOfWeek()
   const groups = BUCKET_ORDER.map(({ id, label }) => {
-    const rows = data.filter(r => getCalendarBucket(r.days_remaining, daysToEndOfWeek) === id)
+    const rows = data.filter(r => getCalendarBucket(r.days_remaining) === id)
     return { id, label, rows, totals: computeTotals(rows) }
   })
 

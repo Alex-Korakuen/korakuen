@@ -74,7 +74,7 @@ export type LoanDetailData = {
 
 // --- Calendar types (forward-looking urgency buckets) ---
 
-export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'this-week' | 'next-30'
+export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'next-7' | 'next-30' | 'later'
 
 export type BucketValue = { count: number; pen: number; usd: number }
 
@@ -86,8 +86,9 @@ export type DirectionalBucketValue = {
 export type CalendarBucketCounts = {
   overdue: DirectionalBucketValue
   today: DirectionalBucketValue
-  'this-week': DirectionalBucketValue
+  'next-7': DirectionalBucketValue
   'next-30': DirectionalBucketValue
+  later: DirectionalBucketValue
 }
 
 // --- Invoices page types (backward-looking aging buckets) ---

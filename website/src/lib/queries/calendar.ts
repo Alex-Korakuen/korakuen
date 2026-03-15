@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { getDaysUntilEndOfWeek, getCalendarBucket } from '../date-utils'
+import { getCalendarBucket } from '../date-utils'
 import type {
   ObligationCalendarRow,
   CalendarBucketCounts,
@@ -54,18 +54,17 @@ export async function getObligationCalendar(
   const uniqueSuppliers = Array.from(supplierSet).sort()
 
   // Compute bucket counts from all rows (before filters), split by direction
-  const daysToEndOfWeek = getDaysUntilEndOfWeek()
   const emptyBucket = () => ({ count: 0, pen: 0, usd: 0 })
   const emptyDirectional = (): DirectionalBucketValue => ({ pay: emptyBucket(), collect: emptyBucket() })
   const bucketCounts: CalendarBucketCounts = {
     overdue: emptyDirectional(),
     today: emptyDirectional(),
-    'this-week': emptyDirectional(),
+    'next-7': emptyDirectional(),
     'next-30': emptyDirectional(),
+    later: emptyDirectional(),
   }
   for (const r of rows) {
-    const b = getCalendarBucket(r.days_remaining, daysToEndOfWeek)
-    if (!b) continue
+    const b = getCalendarBucket(r.days_remaining)
     const side = r.direction === 'receivable' ? bucketCounts[b].collect : bucketCounts[b].pay
     side.count++
     const amt = r.outstanding ?? 0
@@ -78,7 +77,7 @@ export async function getObligationCalendar(
 
   // Apply filters
   if (filters.bucket && filters.bucket !== 'all') {
-    rows = rows.filter(r => getCalendarBucket(r.days_remaining, daysToEndOfWeek) === filters.bucket)
+    rows = rows.filter(r => getCalendarBucket(r.days_remaining) === filters.bucket)
   }
   if (filters.projectId) rows = rows.filter(r => r.project_id === filters.projectId)
   if (filters.supplier) rows = rows.filter(r => r.entity_name === filters.supplier)

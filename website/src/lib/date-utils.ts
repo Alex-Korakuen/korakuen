@@ -8,14 +8,12 @@ export function getDaysUntilEndOfWeek(): number {
 /** Maps days remaining to a calendar urgency bucket. */
 export function getCalendarBucket(
   daysRemaining: number | null,
-  daysToEndOfWeek: number,
-): 'overdue' | 'today' | 'this-week' | 'next-30' | null {
-  if (daysRemaining === null) return null
-  if (daysRemaining < 0) return 'overdue'
+): 'overdue' | 'today' | 'next-7' | 'next-30' | 'later' {
+  if (daysRemaining === null || daysRemaining < 0) return 'overdue'
   if (daysRemaining === 0) return 'today'
-  if (daysRemaining <= daysToEndOfWeek) return 'this-week'
+  if (daysRemaining <= 7) return 'next-7'
   if (daysRemaining <= 30) return 'next-30'
-  return null
+  return 'later'
 }
 
 /** Maps days overdue to an aging bucket for AR outstanding. */
