@@ -117,25 +117,25 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
           {group.rows.map((row) => (
             <div
               key={row.invoice_id ?? `loan-${row.loan_id ?? row.entity_name}-${row.due_date}`}
-              className="grid cursor-pointer grid-cols-[56px_30px_1fr_auto_64px_auto_64px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
+              className="grid cursor-pointer grid-cols-[56px_30px_auto_1fr_64px_auto_auto_auto_64px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
               onClick={() => onRowClick(row)}
             >
-              {/* Date dd/Mmm */}
+              {/* Due Date dd/Mmm */}
               <span className="text-sm text-zinc-600">
                 {row.due_date ? formatCalendarDate(row.due_date) : '--'}
               </span>
 
-              {/* Direction badge */}
+              {/* AR/AP badge */}
               <DirectionBadge direction={row.direction} />
+
+              {/* Invoice code */}
+              <span className="truncate font-mono text-xs text-zinc-400">
+                {row.invoice_number ?? ''}
+              </span>
 
               {/* Entity name */}
               <span className="truncate text-sm text-zinc-800">
                 {row.type === 'loan' ? `Loan: ${row.entity_name ?? '--'}` : row.entity_name ?? '--'}
-              </span>
-
-              {/* Invoice number */}
-              <span className="font-mono text-xs text-zinc-400">
-                {row.invoice_number ?? ''}
               </span>
 
               {/* Project code */}
@@ -143,14 +143,28 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
                 {row.project_code ?? '--'}
               </span>
 
-              {/* Outstanding amount */}
+              {/* Regular outstanding (total minus BdN) */}
+              <span className="text-right font-mono text-sm font-medium text-zinc-900">
+                {row.outstanding !== null && row.currency
+                  ? formatCurrency((row.outstanding ?? 0) - (row.bdn_outstanding ?? 0), row.currency)
+                  : '--'}
+              </span>
+
+              {/* BdN outstanding */}
+              <span className="text-right font-mono text-sm text-zinc-500">
+                {(row.bdn_outstanding ?? 0) > 0 && row.currency
+                  ? formatCurrency(row.bdn_outstanding!, row.currency)
+                  : '--'}
+              </span>
+
+              {/* Total outstanding */}
               <span className="text-right font-mono text-sm font-medium text-zinc-900">
                 {row.outstanding !== null && row.currency
                   ? formatCurrency(row.outstanding, row.currency)
                   : '--'}
               </span>
 
-              {/* Urgency label */}
+              {/* Days due */}
               <span className={`text-right text-xs ${getUrgencyColor(row.days_remaining)}`}>
                 {formatUrgency(row.days_remaining)}
               </span>
