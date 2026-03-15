@@ -16,12 +16,13 @@ export function formatCurrency(amount: number, currency: string | null): string 
   return currency === 'USD' ? formatUSD(amount) : formatPEN(amount)
 }
 
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Format date as "15/Mar" — compact dd/Mmm used across all tables. */
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${day}/${SHORT_MONTHS[d.getMonth()]}`
 }
 
 export function formatProjectStatus(status: string | null): string {
