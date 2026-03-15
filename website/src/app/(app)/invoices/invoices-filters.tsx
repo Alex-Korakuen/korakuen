@@ -1,6 +1,7 @@
 'use client'
 
 import { FilterSelect } from '@/components/ui/filter-select'
+import { FK } from '@/lib/filter-keys'
 
 type Props = {
   currentFilters: {
@@ -30,7 +31,7 @@ export function InvoicesFilters({
       <FilterSelect
         label="Direction"
         value={currentFilters.direction}
-        onChange={(v) => setFilter('direction', v)}
+        onChange={(v) => setFilter(FK.direction, v)}
         options={[
           { value: 'payable', label: 'Payable (AP)' },
           { value: 'receivable', label: 'Receivable (AR)' },
@@ -41,7 +42,7 @@ export function InvoicesFilters({
       <FilterSelect
         label="Type"
         value={currentFilters.type}
-        onChange={(v) => setFilter('type', v)}
+        onChange={(v) => setFilter(FK.type, v)}
         options={[
           { value: 'commercial', label: 'Commercial' },
           { value: 'loan', label: 'Loan' },
@@ -52,7 +53,7 @@ export function InvoicesFilters({
       <FilterSelect
         label="Status"
         value={currentFilters.status}
-        onChange={(v) => setFilter('status', v)}
+        onChange={(v) => setFilter(FK.status, v)}
         options={[
           { value: 'pending', label: 'Pending' },
           { value: 'partial', label: 'Partial' },
@@ -65,7 +66,7 @@ export function InvoicesFilters({
       <FilterSelect
         label="Project"
         value={currentFilters.projectId}
-        onChange={(v) => setFilter('project', v)}
+        onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
       />
@@ -73,7 +74,7 @@ export function InvoicesFilters({
       <FilterSelect
         label="Entity"
         value={currentFilters.entity}
-        onChange={(v) => setFilter('entity', v)}
+        onChange={(v) => setFilter(FK.entity, v)}
         options={uniqueEntities.map((name) => ({ value: name, label: name }))}
         placeholder="All entities"
       />

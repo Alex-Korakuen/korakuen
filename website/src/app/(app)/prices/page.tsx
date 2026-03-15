@@ -1,5 +1,6 @@
 import { getPriceHistory, getPriceFilterOptions } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
+import { FK, str } from '@/lib/filter-keys'
 import { PricesClient } from './prices-client'
 
 type Props = {
@@ -11,13 +12,13 @@ export default async function PricesPage({ searchParams }: Props) {
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'date', dir: 'desc' })
 
   const filters = {
-    search: typeof params.search === 'string' ? params.search : undefined,
-    category: typeof params.category === 'string' ? params.category : undefined,
-    entityId: typeof params.entity === 'string' ? params.entity : undefined,
-    projectId: typeof params.project === 'string' ? params.project : undefined,
-    tagId: typeof params.tag === 'string' ? params.tag : undefined,
-    dateFrom: typeof params.dateFrom === 'string' ? params.dateFrom : undefined,
-    dateTo: typeof params.dateTo === 'string' ? params.dateTo : undefined,
+    search: str(params, FK.search),
+    category: str(params, FK.category),
+    entityId: str(params, FK.entity),
+    projectId: str(params, FK.project),
+    tagId: str(params, FK.tag),
+    dateFrom: str(params, FK.dateFrom),
+    dateTo: str(params, FK.dateTo),
     sort,
     dir,
     page,

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
+import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailByScheduleId } from '@/lib/actions'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
@@ -74,7 +75,7 @@ export function PaymentsClient({
     currentFilters.projectId !== '' ||
     currentFilters.bankAccountId !== ''
 
-  const handleClearFilters = () => clearFilters(['direction', 'type', 'related', 'project', 'bank'])
+  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.related, FK.project, FK.bank])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
     if (expandedId === row.id) {

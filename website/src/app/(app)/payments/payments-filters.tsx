@@ -1,6 +1,7 @@
 'use client'
 
 import { FilterSelect } from '@/components/ui/filter-select'
+import { FK } from '@/lib/filter-keys'
 
 type Props = {
   currentFilters: {
@@ -30,7 +31,7 @@ export function PaymentsFilters({
       <FilterSelect
         label="Direction"
         value={currentFilters.direction}
-        onChange={(v) => setFilter('direction', v)}
+        onChange={(v) => setFilter(FK.direction, v)}
         options={[
           { value: 'inbound', label: 'Inbound' },
           { value: 'outbound', label: 'Outbound' },
@@ -41,7 +42,7 @@ export function PaymentsFilters({
       <FilterSelect
         label="Type"
         value={currentFilters.paymentType}
-        onChange={(v) => setFilter('type', v)}
+        onChange={(v) => setFilter(FK.type, v)}
         options={[
           { value: 'regular', label: 'Regular' },
           { value: 'detraccion', label: 'Detraccion' },
@@ -53,7 +54,7 @@ export function PaymentsFilters({
       <FilterSelect
         label="Related To"
         value={currentFilters.relatedTo}
-        onChange={(v) => setFilter('related', v)}
+        onChange={(v) => setFilter(FK.related, v)}
         options={[
           { value: 'invoice', label: 'Invoice' },
           { value: 'loan_schedule', label: 'Loan' },
@@ -64,7 +65,7 @@ export function PaymentsFilters({
       <FilterSelect
         label="Project"
         value={currentFilters.projectId}
-        onChange={(v) => setFilter('project', v)}
+        onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
       />
@@ -72,7 +73,7 @@ export function PaymentsFilters({
       <FilterSelect
         label="Bank Account"
         value={currentFilters.bankAccountId}
-        onChange={(v) => setFilter('bank', v)}
+        onChange={(v) => setFilter(FK.bank, v)}
         options={bankAccounts.map((b) => ({ value: b.id, label: b.label }))}
         placeholder="All accounts"
       />

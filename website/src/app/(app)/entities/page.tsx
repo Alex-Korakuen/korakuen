@@ -1,5 +1,6 @@
 import { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
+import { FK, str } from '@/lib/filter-keys'
 import { EntitiesWrapper } from './entities-wrapper'
 
 type Props = {
@@ -8,15 +9,15 @@ type Props = {
 
 export default async function EntitiesPage({ searchParams }: Props) {
   const params = await searchParams
-  const selectedId = typeof params.selected === 'string' ? params.selected : null
+  const selectedId = str(params, FK.selected) ?? null
   const { page } = parsePaginationParams(params, { sort: 'legal_name' })
 
   const filters = {
-    search: typeof params.search === 'string' ? params.search : undefined,
-    entityType: typeof params.entityType === 'string' ? params.entityType : undefined,
-    tagId: typeof params.tagId === 'string' ? params.tagId : undefined,
-    city: typeof params.city === 'string' ? params.city : undefined,
-    region: typeof params.region === 'string' ? params.region : undefined,
+    search: str(params, FK.search),
+    entityType: str(params, FK.entityType),
+    tagId: str(params, FK.tagId),
+    city: str(params, FK.city),
+    region: str(params, FK.region),
     page,
   }
 

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
+import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
@@ -199,7 +200,7 @@ export function InvoicesClient({
     currentFilters.projectId !== '' ||
     currentFilters.entity !== ''
 
-  const handleClearFilters = () => clearFilters(['direction', 'type', 'status', 'project', 'entity', 'bucket'])
+  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.bucket])
 
   const handleRowClick = useCallback(async (row: InvoicesPageRow) => {
     if (expandedId === row.id) {

@@ -3,6 +3,7 @@ import { FilterSelect } from '@/components/ui/filter-select'
 import { SearchInput } from '@/components/ui/search-input'
 import { Pagination } from '@/components/ui/pagination'
 import { useUrlFilters } from '@/lib/use-url-filters'
+import { FK } from '@/lib/filter-keys'
 import { tagColor } from './helpers'
 
 type Props = {
@@ -61,7 +62,7 @@ export function EntitiesListPanel({
         <FilterSelect
           label="Type"
           value={currentFilters.entityType}
-          onChange={(v) => setFilter('entityType', v)}
+          onChange={(v) => setFilter(FK.entityType, v)}
           options={[
             { value: 'company', label: 'Company' },
             { value: 'individual', label: 'Individual' },
@@ -71,21 +72,21 @@ export function EntitiesListPanel({
         <FilterSelect
           label="Tag"
           value={currentFilters.tagId}
-          onChange={(v) => setFilter('tagId', v)}
+          onChange={(v) => setFilter(FK.tagId, v)}
           options={filterOptions.tags.map((t) => ({ value: t.id, label: t.name }))}
           placeholder="All Tags"
         />
         <FilterSelect
           label="City"
           value={currentFilters.city}
-          onChange={(v) => setFilter('city', v)}
+          onChange={(v) => setFilter(FK.city, v)}
           options={filterOptions.cities.map((c) => ({ value: c, label: c }))}
           placeholder="All Cities"
         />
         <FilterSelect
           label="Region"
           value={currentFilters.region}
-          onChange={(v) => setFilter('region', v)}
+          onChange={(v) => setFilter(FK.region, v)}
           options={filterOptions.regions.map((r) => ({ value: r, label: r }))}
           placeholder="All Regions"
         />

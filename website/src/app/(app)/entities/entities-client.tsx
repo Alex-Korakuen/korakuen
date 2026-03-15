@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { MobileBackButton } from '@/components/ui/mobile-back-button'
 import { EntitiesListPanel } from './entities-list-panel'
 import { EntitiesDetailPanel } from './entities-detail-panel'
-import { TransactionModal } from './entities-transaction-modal'
-import { CreateEntityModal } from './create-entity-modal'
+
+const TransactionModal = dynamic(() => import('./entities-transaction-modal').then(m => ({ default: m.TransactionModal })))
+const CreateEntityModal = dynamic(() => import('./create-entity-modal').then(m => ({ default: m.CreateEntityModal })))
 import type {
   EntityListItem,
   EntityDetailData,

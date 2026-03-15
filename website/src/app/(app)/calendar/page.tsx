@@ -1,6 +1,7 @@
 import { getObligationCalendar, getProjectsForFilter, getLatestExchangeRate } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
+import { FK, str } from '@/lib/filter-keys'
 import { CalendarClient } from './calendar-client'
 
 type Props = {
@@ -12,15 +13,14 @@ export default async function CalendarPage({ searchParams }: Props) {
   const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'due_date' })
 
-  const direction = typeof params.direction === 'string' ? params.direction as 'payable' | 'receivable' : undefined
   const filters = {
-    direction,
-    projectId: typeof params.project === 'string' ? params.project : undefined,
-    supplier: typeof params.entity === 'string' ? params.entity : undefined,
-    type: typeof params.type === 'string' ? params.type : undefined,
-    currency: typeof params.currency === 'string' ? params.currency : undefined,
-    search: typeof params.search === 'string' ? params.search : undefined,
-    bucket: typeof params.bucket === 'string' ? params.bucket : undefined,
+    direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
+    projectId: str(params, FK.project),
+    supplier: str(params, FK.entity),
+    type: str(params, FK.type),
+    currency: str(params, FK.currency),
+    search: str(params, FK.search),
+    bucket: str(params, FK.bucket),
     sort,
     dir,
     page,

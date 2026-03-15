@@ -1,6 +1,7 @@
 import { getPaymentsPage } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
+import { FK, str } from '@/lib/filter-keys'
 import { PaymentsClient } from './payments-client'
 
 type Props = {
@@ -13,11 +14,11 @@ export default async function PaymentsPage({ searchParams }: Props) {
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'payment_date', dir: 'desc' })
 
   const filters = {
-    direction: typeof params.direction === 'string' ? params.direction as 'inbound' | 'outbound' : undefined,
-    paymentType: typeof params.type === 'string' ? params.type as 'regular' | 'detraccion' | 'retencion' : undefined,
-    relatedTo: typeof params.related === 'string' ? params.related as 'invoice' | 'loan_schedule' : undefined,
-    projectId: typeof params.project === 'string' ? params.project : undefined,
-    bankAccountId: typeof params.bank === 'string' ? params.bank : undefined,
+    direction: str(params, FK.direction) as 'inbound' | 'outbound' | undefined,
+    paymentType: str(params, FK.type) as 'regular' | 'detraccion' | 'retencion' | undefined,
+    relatedTo: str(params, FK.related) as 'invoice' | 'loan_schedule' | undefined,
+    projectId: str(params, FK.project),
+    bankAccountId: str(params, FK.bank),
     sort,
     dir,
     page,

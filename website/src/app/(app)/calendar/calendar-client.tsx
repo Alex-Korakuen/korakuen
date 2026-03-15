@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useUrlSort } from '@/lib/sort-utils'
 import { useUrlFilters } from '@/lib/use-url-filters'
+import { FK } from '@/lib/filter-keys'
 import { SummaryCard } from '@/components/ui/summary-card'
 import { Pagination } from '@/components/ui/pagination'
 import { CalendarFilters } from './calendar-filters'
@@ -77,7 +78,7 @@ export function CalendarClient({
     currentFilters.currency !== '' ||
     currentFilters.search !== ''
 
-  const handleClearFilters = () => clearFilters(['project', 'entity', 'type', 'currency', 'search'])
+  const handleClearFilters = () => clearFilters([FK.project, FK.entity, FK.type, FK.currency, FK.search])
 
   const handleRowClick = (row: ObligationCalendarRow) => {
     const params = new URLSearchParams()

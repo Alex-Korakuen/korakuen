@@ -8,6 +8,7 @@ import { SortIndicator } from '@/components/ui/sort-indicator'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { SearchInput } from '@/components/ui/search-input'
 import { Pagination } from '@/components/ui/pagination'
+import { FK } from '@/lib/filter-keys'
 import type { PriceHistoryRow, PriceFilterOptions } from '@/lib/types'
 
 type Props = {
@@ -47,7 +48,7 @@ export function PricesClient({
     currentFilters.dateFrom !== '' ||
     currentFilters.dateTo !== ''
 
-  const handleClearFilters = () => clearFilters(['search', 'category', 'entity', 'project', 'tag', 'dateFrom', 'dateTo'])
+  const handleClearFilters = () => clearFilters([FK.search, FK.category, FK.entity, FK.project, FK.tag, FK.dateFrom, FK.dateTo])
 
   return (
     <div>
@@ -64,7 +65,7 @@ export function PricesClient({
         <FilterSelect
           label="Category"
           value={currentFilters.category}
-          onChange={(v) => setFilter('category', v)}
+          onChange={(v) => setFilter(FK.category, v)}
           options={filterOptions.categories.map((cat) => ({ value: cat, label: formatCategory(cat) }))}
           placeholder="All categories"
         />
@@ -72,7 +73,7 @@ export function PricesClient({
         <FilterSelect
           label="Supplier"
           value={currentFilters.entityId}
-          onChange={(v) => setFilter('entity', v)}
+          onChange={(v) => setFilter(FK.entity, v)}
           options={filterOptions.entities.map((e) => ({ value: e.id, label: e.name }))}
           placeholder="All suppliers"
         />
@@ -80,7 +81,7 @@ export function PricesClient({
         <FilterSelect
           label="Project"
           value={currentFilters.projectId}
-          onChange={(v) => setFilter('project', v)}
+          onChange={(v) => setFilter(FK.project, v)}
           options={filterOptions.projects.map((p) => ({ value: p.id, label: p.project_code }))}
           placeholder="All projects"
         />
@@ -90,7 +91,7 @@ export function PricesClient({
           <input
             type="date"
             defaultValue={currentFilters.dateFrom}
-            onChange={(e) => setFilter('dateFrom', e.target.value)}
+            onChange={(e) => setFilter(FK.dateFrom, e.target.value)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           />
         </div>
@@ -100,7 +101,7 @@ export function PricesClient({
           <input
             type="date"
             defaultValue={currentFilters.dateTo}
-            onChange={(e) => setFilter('dateTo', e.target.value)}
+            onChange={(e) => setFilter(FK.dateTo, e.target.value)}
             className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
           />
         </div>
@@ -108,7 +109,7 @@ export function PricesClient({
         <FilterSelect
           label="Tag"
           value={currentFilters.tagId}
-          onChange={(v) => setFilter('tag', v)}
+          onChange={(v) => setFilter(FK.tag, v)}
           options={filterOptions.tags.map((t) => ({ value: t.id, label: t.name }))}
           placeholder="All tags"
         />

@@ -1,5 +1,6 @@
 import { FilterSelect } from '@/components/ui/filter-select'
 import { SearchInput } from '@/components/ui/search-input'
+import { FK } from '@/lib/filter-keys'
 
 type Props = {
   currentFilters: {
@@ -29,7 +30,7 @@ export function CalendarFilters({
       <FilterSelect
         label="Type"
         value={currentFilters.type}
-        onChange={(v) => setFilter('type', v)}
+        onChange={(v) => setFilter(FK.type, v)}
         options={[
           { value: 'commercial', label: 'Commercial' },
           { value: 'loan', label: 'Loan' },
@@ -40,7 +41,7 @@ export function CalendarFilters({
       <FilterSelect
         label="Project"
         value={currentFilters.projectId}
-        onChange={(v) => setFilter('project', v)}
+        onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
       />
@@ -48,7 +49,7 @@ export function CalendarFilters({
       <FilterSelect
         label="Entity"
         value={currentFilters.entity}
-        onChange={(v) => setFilter('entity', v)}
+        onChange={(v) => setFilter(FK.entity, v)}
         options={uniqueEntities.map((name) => ({ value: name, label: name }))}
         placeholder="All entities"
       />
@@ -56,7 +57,7 @@ export function CalendarFilters({
       <FilterSelect
         label="Currency"
         value={currentFilters.currency}
-        onChange={(v) => setFilter('currency', v)}
+        onChange={(v) => setFilter(FK.currency, v)}
         options={[
           { value: 'PEN', label: 'PEN' },
           { value: 'USD', label: 'USD' },

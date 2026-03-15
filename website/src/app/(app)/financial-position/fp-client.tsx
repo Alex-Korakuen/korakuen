@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
-import { CreateBankAccountModal } from './create-bank-account-modal'
-import { CreateLoanModal } from './create-loan-modal'
 import { LoanDetailContent } from '@/components/ui/loan-detail-content'
+
+const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
+const CreateLoanModal = dynamic(() => import('./create-loan-modal').then(m => ({ default: m.CreateLoanModal })))
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
 import type { BankTransaction, FinancialPositionData, LoanDetailData } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'

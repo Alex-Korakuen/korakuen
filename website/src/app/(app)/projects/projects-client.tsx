@@ -1,14 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import {
   formatProjectStatus,
   projectStatusBadgeVariant,
 } from '@/lib/formatters'
 import { MobileBackButton } from '@/components/ui/mobile-back-button'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { CreateProjectModal } from './create-project-modal'
 import { ProjectDetail } from './project-detail'
+
+const CreateProjectModal = dynamic(() => import('./create-project-modal').then(m => ({ default: m.CreateProjectModal })))
 
 import type {
   ProjectListItem,
