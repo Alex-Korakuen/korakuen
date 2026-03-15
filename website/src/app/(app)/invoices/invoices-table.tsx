@@ -50,6 +50,12 @@ export function InvoicesTable({
               </th>
               <th
                 className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                onClick={() => handleSort('invoice_number')}
+              >
+                Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+              </th>
+              <th
+                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
                 onClick={() => handleSort('entity_name')}
               >
                 Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -59,12 +65,6 @@ export function InvoicesTable({
                 onClick={() => handleSort('project_code')}
               >
                 Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
-                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
-                onClick={() => handleSort('invoice_number')}
-              >
-                Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th
                 className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
@@ -152,14 +152,14 @@ function InvoiceRow({
         <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
           {row.due_date ? formatDate(row.due_date) : '--'}
         </td>
+        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+          {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
+        </td>
         <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
           {row.entity_name ?? '--'}
         </td>
         <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
           {row.project_code ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-700">
           {formatCurrency(row.total, row.currency)}

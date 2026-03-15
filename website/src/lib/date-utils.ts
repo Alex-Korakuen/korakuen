@@ -16,6 +16,18 @@ export function getCalendarBucket(
   return 'later'
 }
 
+/** Maps a payment date to a recency bucket (past-looking). */
+export function getPaymentBucket(dateStr: string): 'today' | 'last-7' | 'last-30' | 'previous' {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(dateStr + 'T00:00:00')
+  const daysAgo = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+  if (daysAgo <= 0) return 'today'
+  if (daysAgo <= 7) return 'last-7'
+  if (daysAgo <= 30) return 'last-30'
+  return 'previous'
+}
+
 /** Maps days overdue to an aging bucket for AR outstanding. */
 export function getAgingBucket(daysOverdue: number): 'current' | '1-30' | '31-60' | '61-90' | '90+' {
   if (daysOverdue <= 0) return 'current'

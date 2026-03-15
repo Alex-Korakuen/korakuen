@@ -49,6 +49,7 @@ export function PaymentsTable({
               >
                 Date <SortIndicator column="payment_date" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
+              <th className="px-3 py-3">Related</th>
               <th
                 className="cursor-pointer px-3 py-3 hover:text-zinc-700"
                 onClick={() => handleSort('entity_name')}
@@ -62,7 +63,6 @@ export function PaymentsTable({
                 Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th className="px-3 py-3">Type</th>
-              <th className="px-3 py-3">Related</th>
               <th
                 className="cursor-pointer px-3 py-3 hover:text-zinc-700"
                 onClick={() => handleSort('bank_name')}
@@ -133,6 +133,9 @@ function PaymentRow({
         <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
           {row.payment_date ? formatDate(row.payment_date) : '--'}
         </td>
+        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+          {getRelatedLabel(row.related_to, row.invoice_number)}
+        </td>
         <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
           {row.entity_name ?? '--'}
         </td>
@@ -144,9 +147,6 @@ function PaymentRow({
             label={getPaymentTypeLabel(row.payment_type)}
             variant={getPaymentTypeBadgeVariant(row.payment_type)}
           />
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {getRelatedLabel(row.related_to, row.invoice_number)}
         </td>
         <td className="max-w-[150px] truncate px-3 py-3 text-xs text-zinc-500">
           {row.bank_name ?? '--'}

@@ -8,7 +8,7 @@ import { fetchInvoiceDetail, fetchLoanDetailByScheduleId } from '@/lib/actions'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
-import type { PaymentsPageRow, PaymentsSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
+import type { PaymentsPageRow, PaymentsSummary, PaymentBucketId, PaymentBucketSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 
 type Props = {
   data: PaymentsPageRow[]
@@ -27,25 +27,95 @@ type Props = {
   }
 }
 
-function SummaryPanel({
-  title,
-  pen,
-  usd,
-  colorClass,
-}: {
-  title: string
-  pen: number
-  usd: number
-  colorClass: string
-}) {
+const BUCKET_ORDER: { id: PaymentBucketId; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'last-7', label: 'Last 7 Days' },
+  { id: 'last-30', label: 'Last 30 Days' },
+  { id: 'previous', label: 'Previous' },
+]
+
+function getBucketColors(id: PaymentBucketId): { border: string; text: string } {
+  switch (id) {
+    case 'today': return { border: 'border-orange-400', text: 'text-orange-700' }
+    case 'last-7': return { border: 'border-blue-400', text: 'text-blue-700' }
+    case 'last-30': return { border: 'border-violet-400', text: 'text-violet-700' }
+    case 'previous': return { border: 'border-zinc-300', text: 'text-zinc-600' }
+  }
+}
+
+function DualAmount({ pen, usd }: { pen: number; usd: number }) {
+  if (pen === 0 && usd === 0) return <span className="text-zinc-400">--</span>
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
-      <h3 className={`text-xs font-semibold uppercase tracking-wide ${colorClass}`}>{title}</h3>
-      <div className="mt-1 flex items-baseline gap-3">
-        <span className="text-lg font-semibold text-zinc-900">{formatCurrency(pen, 'PEN')}</span>
-        {usd > 0 && (
-          <span className="text-sm text-zinc-500">{formatCurrency(usd, 'USD')}</span>
-        )}
+    <span className="font-mono text-xs">
+      {pen !== 0 && formatCurrency(Math.abs(pen), 'PEN')}
+      {pen !== 0 && usd !== 0 && <span className="mx-1 text-zinc-300">|</span>}
+      {usd !== 0 && formatCurrency(Math.abs(usd), 'USD')}
+    </span>
+  )
+}
+
+function BucketHeader({ id, label, bucket }: { id: PaymentBucketId; label: string; bucket: PaymentBucketSummary }) {
+  const colors = getBucketColors(id)
+  const hasIn = bucket.inflows.pen > 0 || bucket.inflows.usd > 0
+  const hasOut = bucket.outflows.pen > 0 || bucket.outflows.usd > 0
+  return (
+    <div className="flex w-full items-center gap-x-3 py-1.5">
+      <div className={`w-0.5 self-stretch ${colors.border} border-l-2`} />
+      <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+        {label}
+      </span>
+      <div className="h-px w-3 bg-zinc-200" />
+
+      {hasIn && (
+        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="font-medium text-green-600">In</span>
+          <DualAmount pen={bucket.inflows.pen} usd={bucket.inflows.usd} />
+        </span>
+      )}
+
+      {hasOut && (
+        <>
+          <div className="h-px w-3 bg-zinc-200" />
+          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+            <span className="font-medium text-red-500">Out</span>
+            <DualAmount pen={bucket.outflows.pen} usd={bucket.outflows.usd} />
+          </span>
+        </>
+      )}
+
+      <div className="h-px w-3 bg-zinc-200" />
+      <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <span className="font-medium text-zinc-600">Net</span>
+        <DualAmount pen={bucket.net.pen} usd={bucket.net.usd} />
+      </span>
+
+      <div className="h-px w-3 bg-zinc-200" />
+      <span className="text-[10px] text-zinc-400">
+        {bucket.count} {bucket.count === 1 ? 'payment' : 'payments'}
+      </span>
+      <div className="h-px flex-1 bg-zinc-100" />
+    </div>
+  )
+}
+
+function PaymentsTotalBar({ summary }: { summary: PaymentsSummary }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-300 bg-zinc-50/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2.5">
+        <div className="flex items-center gap-6">
+          <span className="flex items-center gap-2 text-xs">
+            <span className="font-semibold text-green-600">Total In</span>
+            <DualAmount pen={summary.inflows.pen} usd={summary.inflows.usd} />
+          </span>
+          <span className="flex items-center gap-2 text-xs">
+            <span className="font-semibold text-red-500">Total Out</span>
+            <DualAmount pen={summary.outflows.pen} usd={summary.outflows.usd} />
+          </span>
+          <span className="flex items-center gap-2 text-xs">
+            <span className="font-semibold text-zinc-600">Net</span>
+            <DualAmount pen={summary.net.pen} usd={summary.net.usd} />
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -115,27 +185,14 @@ export function PaymentsClient({
   }
 
   return (
-    <div>
-      {/* Summary panels */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <SummaryPanel
-          title="Inflows"
-          pen={summary.inflows.pen}
-          usd={summary.inflows.usd}
-          colorClass="text-green-600"
-        />
-        <SummaryPanel
-          title="Outflows"
-          pen={summary.outflows.pen}
-          usd={summary.outflows.usd}
-          colorClass="text-red-500"
-        />
-        <SummaryPanel
-          title="Net"
-          pen={summary.net.pen}
-          usd={summary.net.usd}
-          colorClass="text-zinc-400"
-        />
+    <div className="pb-16">
+      {/* Bucket summary headers */}
+      <div className="space-y-1">
+        {BUCKET_ORDER.map(({ id, label }) => {
+          const bucket = summary.buckets[id]
+          if (bucket.count === 0) return null
+          return <BucketHeader key={id} id={id} label={label} bucket={bucket} />
+        })}
       </div>
 
       {/* Filters */}
@@ -159,6 +216,8 @@ export function PaymentsClient({
         onRowClick={handleRowClick}
         renderExpandContent={renderExpandContent}
       />
+
+      <PaymentsTotalBar summary={summary} />
     </div>
   )
 }

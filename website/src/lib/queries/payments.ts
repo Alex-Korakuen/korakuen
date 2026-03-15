@@ -1,10 +1,13 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
+import { getPaymentBucket } from '../date-utils'
 import type { PaginatedResult } from '../pagination'
 import type {
   PaymentsPageRow,
   PaymentsSummary,
+  PaymentBucketId,
+  PaymentBucketSummary,
 } from '../types'
 
 type PaymentsPageFilters = {
@@ -59,24 +62,43 @@ export async function getPaymentsPage(
   const uniqueBankAccounts = Array.from(bankMap, ([id, label]) => ({ id, label }))
     .sort((a, b) => a.label.localeCompare(b.label))
 
-  // Compute summary (before filters, after partner filter)
+  // Compute summary with bucket breakdowns (before filters, after partner filter)
+  const emptyBucket = (): PaymentBucketSummary => ({
+    inflows: { pen: 0, usd: 0 },
+    outflows: { pen: 0, usd: 0 },
+    net: { pen: 0, usd: 0 },
+    count: 0,
+  })
+  const buckets: Record<PaymentBucketId, PaymentBucketSummary> = {
+    'today': emptyBucket(),
+    'last-7': emptyBucket(),
+    'last-30': emptyBucket(),
+    'previous': emptyBucket(),
+  }
   const summary: PaymentsSummary = {
     inflows: { pen: 0, usd: 0 },
     outflows: { pen: 0, usd: 0 },
     net: { pen: 0, usd: 0 },
+    buckets,
   }
   for (const r of rows) {
     const amt = r.amount ?? 0
+    const bucket = r.payment_date ? buckets[getPaymentBucket(r.payment_date)] : buckets.previous
+    bucket.count++
     if (r.direction === 'inbound') {
-      if (r.currency === 'PEN') summary.inflows.pen += amt
-      else if (r.currency === 'USD') summary.inflows.usd += amt
+      if (r.currency === 'PEN') { summary.inflows.pen += amt; bucket.inflows.pen += amt }
+      else if (r.currency === 'USD') { summary.inflows.usd += amt; bucket.inflows.usd += amt }
     } else {
-      if (r.currency === 'PEN') summary.outflows.pen += amt
-      else if (r.currency === 'USD') summary.outflows.usd += amt
+      if (r.currency === 'PEN') { summary.outflows.pen += amt; bucket.outflows.pen += amt }
+      else if (r.currency === 'USD') { summary.outflows.usd += amt; bucket.outflows.usd += amt }
     }
   }
   summary.net.pen = summary.inflows.pen - summary.outflows.pen
   summary.net.usd = summary.inflows.usd - summary.outflows.usd
+  for (const b of Object.values(buckets)) {
+    b.net.pen = b.inflows.pen - b.outflows.pen
+    b.net.usd = b.inflows.usd - b.outflows.usd
+  }
 
   // Apply filters
   if (filters.direction) {

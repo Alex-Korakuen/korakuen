@@ -149,10 +149,20 @@ export type PaymentsPageRow = {
   partner_company_id: string | null
 }
 
+export type PaymentBucketId = 'today' | 'last-7' | 'last-30' | 'previous'
+
+export type PaymentBucketSummary = {
+  inflows: { pen: number; usd: number }
+  outflows: { pen: number; usd: number }
+  net: { pen: number; usd: number }
+  count: number
+}
+
 export type PaymentsSummary = {
   inflows: { pen: number; usd: number }
   outflows: { pen: number; usd: number }
   net: { pen: number; usd: number }
+  buckets: Record<PaymentBucketId, PaymentBucketSummary>
 }
 
 // --- Partner settlement types ---
