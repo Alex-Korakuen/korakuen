@@ -31,7 +31,6 @@ const BUCKET_ORDER: { id: PaymentBucketId; label: string }[] = [
   { id: 'today', label: 'Today' },
   { id: 'last-7', label: 'Last 7 Days' },
   { id: 'last-30', label: 'Last 30 Days' },
-  { id: 'previous', label: 'Previous' },
 ]
 
 function getBucketColors(id: PaymentBucketId): { border: string; text: string } {
@@ -54,47 +53,29 @@ function DualAmount({ pen, usd }: { pen: number; usd: number }) {
   )
 }
 
-function BucketHeader({ id, label, bucket }: { id: PaymentBucketId; label: string; bucket: PaymentBucketSummary }) {
+function BucketSummaryRow({ id, label, bucket }: { id: PaymentBucketId; label: string; bucket: PaymentBucketSummary }) {
   const colors = getBucketColors(id)
-  const hasIn = bucket.inflows.pen > 0 || bucket.inflows.usd > 0
-  const hasOut = bucket.outflows.pen > 0 || bucket.outflows.usd > 0
   return (
-    <div className="flex w-full items-center gap-x-3 py-1.5">
-      <div className={`w-0.5 self-stretch ${colors.border} border-l-2`} />
-      <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
-        {label}
-      </span>
-      <div className="h-px w-3 bg-zinc-200" />
-
-      {hasIn && (
-        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-          <span className="font-medium text-green-600">In</span>
-          <DualAmount pen={bucket.inflows.pen} usd={bucket.inflows.usd} />
+    <>
+      <div className="flex items-center gap-2">
+        <div className={`w-0.5 self-stretch ${colors.border} border-l-2`} />
+        <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+          {label}
         </span>
-      )}
-
-      {hasOut && (
-        <>
-          <div className="h-px w-3 bg-zinc-200" />
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-            <span className="font-medium text-red-500">Out</span>
-            <DualAmount pen={bucket.outflows.pen} usd={bucket.outflows.usd} />
-          </span>
-        </>
-      )}
-
-      <div className="h-px w-3 bg-zinc-200" />
-      <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-        <span className="font-medium text-zinc-600">Net</span>
+      </div>
+      <span className="text-right font-mono text-xs text-zinc-600">
+        <DualAmount pen={bucket.inflows.pen} usd={bucket.inflows.usd} />
+      </span>
+      <span className="text-right font-mono text-xs text-zinc-600">
+        <DualAmount pen={bucket.outflows.pen} usd={bucket.outflows.usd} />
+      </span>
+      <span className="text-right font-mono text-xs font-medium text-zinc-800">
         <DualAmount pen={bucket.net.pen} usd={bucket.net.usd} />
       </span>
-
-      <div className="h-px w-3 bg-zinc-200" />
-      <span className="text-[10px] text-zinc-400">
-        {bucket.count} {bucket.count === 1 ? 'payment' : 'payments'}
+      <span className="text-right text-[10px] text-zinc-400">
+        {bucket.count}
       </span>
-      <div className="h-px flex-1 bg-zinc-100" />
-    </div>
+    </>
   )
 }
 
@@ -186,12 +167,18 @@ export function PaymentsClient({
 
   return (
     <div className="pb-16">
-      {/* Bucket summary headers */}
-      <div className="space-y-1">
+      {/* Bucket summary grid */}
+      <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-x-6 gap-y-1.5">
+        {/* Column headers */}
+        <span />
+        <span className="text-right text-[10px] font-medium uppercase tracking-wider text-green-600">In</span>
+        <span className="text-right text-[10px] font-medium uppercase tracking-wider text-red-500">Out</span>
+        <span className="text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">Net</span>
+        <span />
         {BUCKET_ORDER.map(({ id, label }) => {
           const bucket = summary.buckets[id]
           if (bucket.count === 0) return null
-          return <BucketHeader key={id} id={id} label={label} bucket={bucket} />
+          return <BucketSummaryRow key={id} id={id} label={label} bucket={bucket} />
         })}
       </div>
 
