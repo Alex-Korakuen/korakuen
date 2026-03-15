@@ -46,8 +46,8 @@ function SectionHeader({ bucket, label, totals }: { bucket: string; label: strin
   const colors = getSectionColors(bucket)
   const totalCount = totals.pay.count + totals.collect.count
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-6 pb-2 first:pt-0">
-      <div className={`h-0.5 w-6 ${colors.border} border-t-2`} />
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-8 pb-3 first:pt-0">
+      <div className={`w-0.5 h-4 ${colors.border} border-l-2`} />
       <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
         {label}
       </span>
