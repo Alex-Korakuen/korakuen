@@ -1300,6 +1300,7 @@ export type Database = {
           exchange_rate: number | null
           igv_amount: number | null
           invoice_id: string | null
+          invoice_number: string | null
           loan_id: string | null
           outstanding: number | null
           partner_company_id: string | null

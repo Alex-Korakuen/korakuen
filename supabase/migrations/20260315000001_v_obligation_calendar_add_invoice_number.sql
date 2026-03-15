@@ -1,11 +1,10 @@
--- View: v_obligation_calendar
--- Purpose: Shows unpaid and partially paid obligations sorted by due date with days remaining.
---          Combines commercial invoices (both AP and AR) and loan repayment schedule.
---          Calendar pages filter by direction at query time.
--- Source tables: v_invoice_balances, projects, entities, loan_schedule, loans, payments
--- Used by: AP Calendar page, AR Calendar page, payment planning
+-- Migration: Add invoice_number to v_obligation_calendar
+-- Reason: Calendar timeline rows need to display the invoice/comprobante number
+-- Note: DROP + CREATE required because adding a column mid-view changes column positions
 
-CREATE OR REPLACE VIEW v_obligation_calendar
+DROP VIEW IF EXISTS v_obligation_calendar;
+
+CREATE VIEW v_obligation_calendar
 WITH (security_invoker = on)
 AS
 

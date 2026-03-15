@@ -30,10 +30,6 @@ function DirectionBadge({ direction }: { direction: string | null }) {
   )
 }
 
-function TypeIcon({ type }: { type: string | null }) {
-  return <span className="text-sm">{type === 'loan' ? '\uD83C\uDFE6' : '\uD83D\uDCC4'}</span>
-}
-
 /** Format a dual-currency total: "S/ 5,000.00  $1,200.00" or just one if the other is zero. */
 function DualAmount({ pen, usd }: { pen: number; usd: number }) {
   if (pen === 0 && usd === 0) return <span className="text-zinc-400">--</span>
@@ -107,10 +103,10 @@ export function CalendarTable({ groups, onRowClick }: Props) {
                 {group.rows.map((row) => (
                   <div
                     key={row.invoice_id ?? `loan-${row.loan_id ?? row.entity_name}-${row.due_date}`}
-                    className="grid cursor-pointer grid-cols-[80px_30px_24px_1fr_64px_auto_72px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
+                    className="grid cursor-pointer grid-cols-[56px_30px_1fr_auto_64px_auto_64px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
                     onClick={() => onRowClick(row)}
                   >
-                    {/* Date */}
+                    {/* Date dd/Mmm */}
                     <span className="text-sm text-zinc-600">
                       {row.due_date ? formatCalendarDate(row.due_date) : '--'}
                     </span>
@@ -118,12 +114,14 @@ export function CalendarTable({ groups, onRowClick }: Props) {
                     {/* Direction badge */}
                     <DirectionBadge direction={row.direction} />
 
-                    {/* Type icon */}
-                    <TypeIcon type={row.type} />
-
-                    {/* Entity name — "Loan: BCP" for loans */}
+                    {/* Entity name */}
                     <span className="truncate text-sm text-zinc-800">
                       {row.type === 'loan' ? `Loan: ${row.entity_name ?? '--'}` : row.entity_name ?? '--'}
+                    </span>
+
+                    {/* Invoice number */}
+                    <span className="font-mono text-xs text-zinc-400">
+                      {row.invoice_number ?? ''}
                     </span>
 
                     {/* Project code */}
