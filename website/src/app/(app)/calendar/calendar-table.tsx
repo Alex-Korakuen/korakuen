@@ -46,7 +46,7 @@ function SectionHeader({ bucket, label, totals }: { bucket: string; label: strin
   const colors = getSectionColors(bucket)
   const totalCount = totals.pay.count + totals.collect.count
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-8 pb-3 first:pt-0">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-3">
       <div className={`w-0.5 h-4 ${colors.border} border-l-2`} />
       <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
         {label}
@@ -97,7 +97,7 @@ export function CalendarTable({ groups, onRowClick }: Props) {
       {groups.map(
         (group) =>
           group.rows.length > 0 && (
-            <div key={group.id}>
+            <div key={group.id} className="mt-10 first:mt-0">
               <SectionHeader bucket={group.id} label={group.label} totals={group.totals} />
               <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
                 {group.rows.map((row) => (
