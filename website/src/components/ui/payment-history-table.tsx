@@ -52,6 +52,13 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
             {formOpen ? '×' : '+'}
           </button>
         )}
+        {paymentFormProps && paymentFormProps.bdnOutstanding > 0 && (
+          <div className="ml-auto flex gap-3 text-xs text-zinc-500">
+            <span>Regular: <span className="font-mono">{formatCurrency(paymentFormProps.payable, paymentFormProps.currency)}</span></span>
+            <span className="text-zinc-300">&middot;</span>
+            <span>BdN: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
+          </div>
+        )}
       </div>
 
       {/* Inline payment form */}
