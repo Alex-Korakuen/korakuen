@@ -14,9 +14,9 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 8 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
+**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 7 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
 
-**Reporting currency:** Consolidated views (Financial Position, Cash Flow) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
+**Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
 ---
 
@@ -41,11 +41,9 @@ Browse
 Dashboards
   Calendar
   Financial Position
-
-Settings
 ```
 
-**8 pages total.** Each answers one distinct business question. No redundancy.
+**7 pages total.** Each answers one distinct business question. No redundancy. Settings (password change) is accessed via the header, not the sidebar.
 
 ---
 
@@ -170,12 +168,6 @@ Two sections:
 
 ---
 
-### ~~Cash Flow~~ (Removed)
-
-Cash Flow page was removed (commit d641582, March 2026). Cash flow analysis was not providing enough value relative to the Calendar and Financial Position pages.
-
----
-
 ### Financial Position
 
 **Business question:** What do we own vs what do we owe? What's our financial health?
@@ -205,34 +197,6 @@ Cash Flow page was removed (commit d641582, March 2026). Cash flow analysis was 
 **Disclaimer:** System-calculated balances, not bank-reconciled.
 
 **Data source:** v_bank_balances (cash), v_invoice_balances (AR + AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). Filterable by partner via global partner filter.
-
----
-
-## Dropped Views
-
-### ~~Settlement Dashboard~~ (Dropped)
-
-Dropped — partner settlements are handled via the Settlement section within the Projects detail view. No separate dashboard or page.
-
-### ~~Bank Account Balances~~ (Merged)
-
-Merged into Financial Position page. Bank account cards and transaction detail now live there.
-
-### ~~Retencion Dashboard~~ (Merged)
-
-Merged into AR Outstanding > Taxes tab. Retencion tracking now lives where you'd naturally look — inside the AR module.
-
-### ~~IGV Net Position~~ (Merged)
-
-IGV data split across Financial Position page (IGV Paid as asset / IGV Collected as liability) and available as a drillable detail within that page.
-
-### ~~Unit Price History~~ (Renamed)
-
-Renamed to "Prices." Simplified to search-only reference table. Supplier comparison and price trend chart dropped.
-
-### ~~Quote vs Actual Comparison~~ (Dropped)
-
-Dropped — for this business, quotes equal actuals. The comparison view added no value.
 
 ---
 
