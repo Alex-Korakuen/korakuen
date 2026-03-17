@@ -8,14 +8,14 @@
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never deleted or deactivated. Bridge tables (project_entities, project_partners) use soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never deleted or deactivated. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 18 tables total across 7 layers.
+**Table count:** 17 tables total across 7 layers.
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_entities, project_partners, quotes
+Layer 3: project_partners, quotes
 Layer 4: invoices, invoice_items
 Layer 5: payments
 Layer 6: loans, loan_schedule
@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and bridge tables (project_entities, project_partners). Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
@@ -216,24 +216,6 @@ Every construction project. The anchor for all financial data. Project code driv
 ---
 
 ## Layer 3 — Locked
-
-### `project_entities`
-Bridge table linking entities to projects with a specific role. Answers "who participated in this project" and "which projects did this entity participate in." Role references the master `tags` table — no separate roles table needed.
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| id | UUID | NO | primary key |
-| project_id | UUID | NO | references projects |
-| entity_id | UUID | NO | references entities |
-| tag_id | UUID | NO | references tags — the role on this project |
-| start_date | DATE | YES | when entity started on this project |
-| end_date | DATE | YES | when entity finished on this project |
-| is_active | BOOLEAN | NO | default TRUE — soft delete |
-| notes | TEXT | YES | |
-| created_at | TIMESTAMP | NO | auto |
-| updated_at | TIMESTAMP | NO | auto |
-
----
 
 ### `project_partners`
 Stores the agreed profit share percentage per partner company per project. Each partner's share is set explicitly and must total 100% per project (enforced at application level). Settlement logic (profit distribution) is computed in the application layer using `v_invoice_totals` — each partner's profit = (project income - project costs) × their profit_share_pct.
@@ -523,7 +505,7 @@ Budget targets per project per category. Compared against actual invoices from `
 
 ## Complete Table List — Final
 
-**18 tables total:**
+**17 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -540,7 +522,6 @@ Layer 2 (depends on Layer 1):
   projects
 
 Layer 3 (depends on Layer 1 + 2):
-  project_entities
   project_partners
   quotes
 
@@ -591,7 +572,7 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and bridge tables (project_entities, project_partners) use `is_active` soft deletes. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on invoices.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.

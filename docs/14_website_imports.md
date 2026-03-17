@@ -15,7 +15,7 @@ Move all data entry from the CLI to the website. The CLI becomes obsolete — al
 | Pattern | When to use | Examples |
 |---|---|---|
 | **Excel import** | Bulk data, many fields, line items | Invoices + invoice items, entities, quotes |
-| **Inline UI** | Few fields, simple records, contextual actions | Payments, loan repayments, bank accounts, loans, project partners, project entities, budgets |
+| **Inline UI** | Few fields, simple records, contextual actions | Payments, loan repayments, bank accounts, loans, project partners, budgets |
 
 **Shared Excel import UX flow:**
 1. User clicks "Import" button
@@ -28,7 +28,7 @@ Move all data entry from the CLI to the website. The CLI becomes obsolete — al
 
 **Shared inline UI patterns:**
 - Small modals for standalone records (loans, bank accounts)
-- Inline forms within detail panels (project partners, project entities, budgets)
+- Inline forms within detail panels (project partners, budgets)
 - Action buttons within row modals (payments, loan repayments)
 
 ---
@@ -66,16 +66,6 @@ Within the right panel detail view, under a "Partners" section.
 | Profit share % | number | yes | Must total 100% across all partners on the project |
 
 UI: Small table with add/remove rows. Validation: profit shares must sum to 100% before save.
-
-#### Project Entities — Inline form in project detail
-Within the right panel detail view, under an "Assigned Entities" section.
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| Entity | entity picker | yes | Search existing entities |
-| Role | text | yes | Role on this specific project |
-
-UI: Small table with add/remove rows.
 
 #### Project Budgets — Inline form in project detail
 Within the right panel detail view, under the "Cost Summary & Budget" section.
@@ -339,7 +329,7 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 RLS INSERT and UPDATE policies are already deployed for authenticated users on all writable tables (migration `20260309000001_rls_write_policies.sql`). Tables covered:
 
 - entities, entity_tags, entity_contacts
-- projects, project_partners, project_entities, project_budgets
+- projects, project_partners, project_budgets
 - quotes
 - invoices, invoice_items
 - payments
@@ -365,7 +355,6 @@ RLS INSERT and UPDATE policies are already deployed for authenticated users on a
 |---|---|---|---|
 | Projects | Modal | Projects page | yes (but modal preferred) |
 | Project partners | Inline form | Projects detail panel | no (not needed) |
-| Project entities | Inline form | Projects detail panel | no (not needed) |
 | Project budgets | Inline form | Projects detail panel | no (not needed) |
 | Entities | Excel import + modal | Entities page | yes |
 | Quotes | Excel import | Prices page | yes |
@@ -398,7 +387,6 @@ Small UIs first — establish mutation patterns before tackling complex Excel im
 - Create Entity modal (8 fields, standalone)
 - Create Project modal (10 fields, entity picker for client)
 - Project partners inline form (2 fields, sum-to-100% validation)
-- Project entities inline form (2 fields, entity picker)
 - Project budgets inline form (2 fields, editable cells in existing table)
 
 ### Phase 3 — Action modals (contextual, need parent record)

@@ -745,67 +745,6 @@ export type Database = {
           },
         ]
       }
-      project_entities: {
-        Row: {
-          created_at: string
-          end_date: string | null
-          entity_id: string
-          id: string
-          is_active: boolean
-          notes: string | null
-          project_id: string
-          start_date: string | null
-          tag_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          end_date?: string | null
-          entity_id: string
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          project_id: string
-          start_date?: string | null
-          tag_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          end_date?: string | null
-          entity_id?: string
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          project_id?: string
-          start_date?: string | null
-          tag_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_project_entities_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_project_entities_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_project_entities_tags"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_partners: {
         Row: {
           created_at: string

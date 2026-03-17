@@ -36,16 +36,15 @@ Generate tables in this exact order so foreign keys never reference a table that
 5. `entity_tags`
 6. `entity_contacts`
 7. `projects`
-8. `project_entities`
-9. `project_partners`
-10. `quotes`
-11. `invoices`
-12. `invoice_items`
-13. `payments`
-14. `loans`
-15. `loan_schedule`
-16. `project_budgets`
-17. `categories`
+8. `project_partners`
+9. `quotes`
+10. `invoices`
+11. `invoice_items`
+12. `payments`
+13. `loans`
+14. `loan_schedule`
+15. `project_budgets`
+16. `categories`
 
 ---
 
@@ -98,7 +97,7 @@ Reference/master data tables only (partner_companies, bank_accounts, entities, e
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes, project_entities, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -190,6 +189,6 @@ After generating the SQL file:
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
 3. All tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 8 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) plus bridge tables (project_entities, project_partners)
+4. Only the 8 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) plus the `project_partners` bridge table
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

@@ -67,7 +67,7 @@ Dashboards
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
 
-**Data source:** Projects table, project_entities, invoices + invoice_items, project_budgets
+**Data source:** Projects table, invoices + invoice_items, project_budgets
 
 ---
 

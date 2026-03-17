@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
 Module: entities.py
-Purpose: All entity operations — add entity, contacts, tags, assign tags, assign to project, import
-Tables: entities, entity_contacts, tags, entity_tags, project_entities
+Purpose: All entity operations — add entity, contacts, tags, assign tags, import
+Tables: entities, entity_contacts, tags, entity_tags
 """
 
 import pandas as pd
 
 from lib.db import supabase
 from lib.helpers import (
-    get_input, get_optional_input, get_optional_date_input,
+    get_input, get_optional_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
-    get_enum_input, select_project, execute_insert,
+    get_enum_input, execute_insert,
     search_and_select_entity,
 )
 from lib.import_helpers import (
@@ -32,9 +32,8 @@ def menu():
         print("2. Add contact to entity")
         print("3. Add tag")
         print("4. Assign tag to entity")
-        print("5. Assign entity to project")
-        print("6. Import entities from Excel")
-        print("7. Back")
+        print("5. Import entities from Excel")
+        print("6. Back")
 
         choice = get_input("\nSelect option: ")
 
@@ -47,10 +46,8 @@ def menu():
         elif choice == "4":
             assign_tag()
         elif choice == "5":
-            assign_entity_to_project()
-        elif choice == "6":
             import_entities()
-        elif choice == "7":
+        elif choice == "6":
             return
         else:
             print("\nInvalid option.")
@@ -330,74 +327,6 @@ def _assign_tags_to_entity(entity_id):
         print(f"\n  ✓ Assigned tags: {tag_names}")
     except Exception as e:
         print(f"\n  ✗ Error: {e}")
-
-
-# ============================================================
-# Assign Entity to Project
-# ============================================================
-
-def assign_entity_to_project():
-    """Assign an entity to a project with a role."""
-    clear_screen()
-    print("\n=== Assign Entity to Project ===\n")
-
-    # Select entity
-    entity = search_and_select_entity()
-    if not entity:
-        return
-
-    # Select project
-    project = select_project()
-    if not project:
-        return
-
-    # Select role (tag)
-    tags = supabase.table("tags").select("id, name").eq("is_active", True).order("name").execute()
-    if not list_choices("Available roles (tags)", tags.data, display=["name"]):
-        input("\nPress Enter to continue...")
-        return
-    tag_num = get_input("  Select role number: ")
-    try:
-        tag = tags.data[int(tag_num) - 1]
-    except (ValueError, IndexError):
-        print("\n  ✗ Invalid selection.")
-        input("\nPress Enter to continue...")
-        return
-
-    # Optional dates and notes
-    start_date = get_optional_date_input("  Start date (YYYY-MM-DD, optional — press Enter to skip): ")
-    end_date = get_optional_date_input("  End date (YYYY-MM-DD, optional — press Enter to skip): ")
-    notes = get_optional_input("  Notes (optional — press Enter to skip): ")
-
-    # Summary
-    print("\n--- Summary ---")
-    print(f"  Entity:  {entity['legal_name']}")
-    print(f"  Project: {project['project_code']} — {project['name']}")
-    print(f"  Role:    {tag['name']}")
-    if start_date:
-        print(f"  Start:   {start_date}")
-    if end_date:
-        print(f"  End:     {end_date}")
-    if notes:
-        print(f"  Notes:   {notes}")
-
-    if not confirm("\nAssign entity to project?"):
-        cancel_and_wait()
-        return
-
-    data = {
-        "entity_id": entity["id"],
-        "project_id": project["id"],
-        "tag_id": tag["id"],
-    }
-    if start_date:
-        data["start_date"] = start_date
-    if end_date:
-        data["end_date"] = end_date
-    if notes:
-        data["notes"] = notes
-
-    execute_insert("project_entities", data, "Entity assigned to project")
 
 
 # ============================================================

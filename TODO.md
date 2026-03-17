@@ -11,7 +11,7 @@ When a partner is removed from a project, their historical invoices and payments
 - Should removal be blocked if the partner has financial data?
 - Should removed partners still appear in the settlement view (read-only, no delete button)?
 - Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
-
+Ok
 ---
 
 ## CLI-Only Capabilities (no website equivalent)
@@ -19,9 +19,8 @@ When a partner is removed from a project, their historical invoices and payments
 | # | Capability | Table | Impact |
 |---|---|---|---|
 | 1 | Create new tag | tags | Low — tags rarely created, can use Supabase Dashboard |
-| 2 | Assign entity to project | project_entities | Medium — needed when onboarding suppliers to projects |
-| 3 | Add/update exchange rate | exchange_rates | High — rates need daily entry, no website equivalent |
-| 4 | List recent rates | exchange_rates | Low — informational only |
+| 2 | Add/update exchange rate | exchange_rates | High — rates need daily entry, no website equivalent |
+| 3 | List recent rates | exchange_rates | Low — informational only |
 
 ### Resolved
 
