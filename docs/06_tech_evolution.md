@@ -37,19 +37,19 @@ CLI + website       Mobile + automation  Advanced features
 - WhatsApp (communication, external)
 
 ### What it looks like
-The website provides dashboards, browse pages, and inline data entry forms. Partners create entities, projects, bank accounts, loans, and register payments directly through the website. Bulk data imports (costs, quotes, AR invoices) use Python CLI scripts with Excel files.
+The website provides dashboards, browse pages, and inline data entry forms. Partners create entities, projects, bank accounts, loans, and register payments directly through the website.
 
 ### Why Vercel instead of Power BI
 Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel hosting is free. Next.js is already known from the personal finance tracker project. A custom website gives full control over display and behavior with no vendor lock-in. The Supabase JavaScript client makes read queries simple and direct.
 
 ### Website — 7 pages
-- AP payment calendar — day-by-day upcoming payment obligations
-- AR outstanding — invoices sent and collection status
-- Cash flow — monthly actual and forecast cash movements
-- Financial position — assets vs liabilities snapshot
-- Projects — project detail with budget, costs, AR, and partner settlement
+- Projects — project detail with budget, invoices, and partner settlement
 - Entities & contacts — supplier/client directory with transaction history
 - Prices — historical unit price reference
+- Invoices — unified AP/AR invoices with aging buckets
+- Payments — payment history with period summaries
+- Calendar — upcoming payment obligations (invoices + loan schedule)
+- Financial position — bank balances, outstanding, IGV, retenciones
 
 ### Website data entry
 - Entity CRUD, tags, and contacts
