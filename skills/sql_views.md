@@ -10,19 +10,20 @@
 
 ---
 
-## Views to Generate
+## Views — Current State (10 Views, V1)
 
 | File | View Name | Purpose |
 |---|---|---|
-| `v_cost_totals.sql` | `v_cost_totals` | Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items |
-| `v_cost_balances.sql` | `v_cost_balances` | amount_paid, outstanding, payment_status per cost |
-| `v_ar_balances.sql` | `v_ar_balances` | amount_paid, outstanding, payment_status per AR invoice |
-| `v_ap_calendar.sql` | `v_ap_calendar` | Unpaid/partial costs and loan payments sorted by due date with days remaining |
-| `v_entity_transactions.sql` | `v_entity_transactions` | All transactions per entity per project (costs + AR) |
-| `v_bank_balances.sql` | `v_bank_balances` | Running balance per bank account |
-| `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per AR invoice |
+| `v_invoice_totals.sql` | `v_invoice_totals` | Derives subtotal, igv_amount, detraccion_amount, retencion_amount, total per invoice from invoice_items (both directions) |
+| `v_invoice_balances.sql` | `v_invoice_balances` | amount_paid, outstanding, payment_status per invoice with detraccion/retencion payment splits |
+| `v_invoices_with_loans.sql` | `v_invoices_with_loans` | UNION of commercial invoices + loan schedule entries with aging buckets — all statuses (Invoices browse page) |
+| `v_obligation_calendar.sql` | `v_obligation_calendar` | Unpaid/partial invoices and loan schedule entries sorted by due date with days_remaining (Calendar page) |
+| `v_payments_enriched.sql` | `v_payments_enriched` | Payments enriched with entity name, project code, invoice number, bank name (Payments browse page) |
+| `v_bank_balances.sql` | `v_bank_balances` | Calculated balance per bank account from payment movements |
 | `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding, derived status per loan |
 | `v_budget_vs_actual.sql` | `v_budget_vs_actual` | Budgeted vs actual per project per category |
+| `v_igv_position.sql` | `v_igv_position` | IGV collected vs IGV paid, net position per currency |
+| `v_retencion_dashboard.sql` | `v_retencion_dashboard` | Retencion tracking and verification status per receivable invoice |
 
 ---
 
@@ -35,49 +36,25 @@ All views prefixed with `v_` in SQL. Referenced without the `v_` prefix in appli
 ### Header Comment — Every View
 
 ```sql
--- View: v_cost_totals
--- Purpose: Derives subtotal, igv_amount, detraccion_amount, total per cost from cost_items
--- Source tables: costs, cost_items
--- Used by: AP calendar, project P&L, cost detail pages
-CREATE OR REPLACE VIEW v_cost_totals AS
+-- View: v_invoice_totals
+-- Purpose: Derives subtotal, igv_amount, detraccion_amount, retencion_amount, total per invoice from invoice_items
+-- Source tables: invoices, invoice_items
+-- Used by: Invoices page, Calendar page, Financial Position
+CREATE OR REPLACE VIEW v_invoice_totals AS
 ```
 
 ### Never Store Derived Data
 
 Views only SELECT and compute. No INSERT, UPDATE, or materialized views.
 
-### IGV Calculation
+### SQL Functions for Tax Calculations
+
+V1 uses SQL functions (`fn_igv_amount`, `fn_detraccion_amount`, `fn_retencion_amount`) for tax computations. Views call these functions rather than duplicating formulas:
 
 ```sql
-ROUND(subtotal * (igv_rate / 100), 2) AS igv_amount
-```
-
-### Detraccion Calculation (on costs)
-
-Detraccion is applied to the total (subtotal + IGV):
-
-```sql
-ROUND((subtotal + igv_amount) * COALESCE(detraccion_rate, 0) / 100, 2) AS detraccion_amount
-```
-
-### Detraccion and Retencion Calculation (on AR invoices)
-
-PostgreSQL does not allow referencing a column alias in the same SELECT. Use CTEs to layer calculations (see `v_ar_balances.sql` for the full implementation):
-
-```sql
--- CTE 1: compute igv_amount
-ROUND(subtotal * (igv_rate / 100), 2) AS igv_amount
-
--- CTE 2: use igv_amount to compute gross_total, detraccion, retencion
-subtotal + igv_amount AS gross_total,
-ROUND((subtotal + igv_amount) * COALESCE(detraccion_rate, 0) / 100, 2) AS detraccion_amount,
-ROUND(
-  CASE WHEN retencion_applicable THEN (subtotal + igv_amount) * COALESCE(retencion_rate, 0) / 100
-  ELSE 0 END, 2
-) AS retencion_amount
-
--- Final SELECT: use all computed columns
-gross_total - detraccion_amount - retencion_amount AS net_receivable
+fn_igv_amount(subtotal, igv_rate)
+fn_detraccion_amount(subtotal, igv_amount, detraccion_rate)
+fn_retencion_amount(subtotal, igv_amount, retencion_rate, retencion_applicable)
 ```
 
 ### Payment Status Logic — Always Use This Pattern
@@ -90,10 +67,22 @@ CASE
 END AS payment_status
 ```
 
-### Days Remaining for AP Calendar
+### Days Remaining for Calendar
 
 ```sql
-(c.due_date - CURRENT_DATE) AS days_remaining
+(due_date - CURRENT_DATE) AS days_remaining
+```
+
+### Aging Buckets (Invoices Page)
+
+```sql
+CASE
+  WHEN due_date IS NULL OR due_date >= CURRENT_DATE THEN 'current'
+  WHEN (CURRENT_DATE - due_date) <= 30 THEN '1-30'
+  WHEN (CURRENT_DATE - due_date) <= 60 THEN '31-60'
+  WHEN (CURRENT_DATE - due_date) <= 90 THEN '61-90'
+  ELSE '90+'
+END AS aging_bucket
 ```
 
 ### Null Safety
@@ -106,9 +95,9 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 ### Active Records Only
 
-Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (costs, cost_items, ar_invoices, payments) and historical reference tables (quotes, project_entities) are permanent records and do not have `is_active` — never filter them.
+Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes, project_entities) are permanent records — never filter them by `is_active`.
 
-**Exception — financial/historical views:** Views that report on financial history (e.g., `v_entity_transactions`) intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
+**Exception — financial/historical views:** Views that report on financial history intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 
 ### Currency Awareness
 
@@ -121,62 +110,70 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 
 ## View-Specific Business Rules
 
-### v_cost_totals
-- Source: `costs` JOIN `cost_items`
-- Aggregates `cost_items.subtotal` per cost to get the cost subtotal
-- Computes igv_amount and total from the aggregated subtotal and the cost's igv_rate
-- Computes detraccion_amount from total and the cost's detraccion_rate
+### v_invoice_totals
+- Source: `invoices` LEFT JOIN `invoice_items`
+- Two-stage CTE: `item_sums` aggregates invoice_items per invoice, `with_igv` adds igv_amount
+- Computes subtotal (SUM of invoice_items.subtotal), igv_amount, total, detraccion_amount, retencion_amount using SQL functions
+- Works for both `direction = 'payable'` and `direction = 'receivable'`
 
-### v_cost_balances
-- Source: `v_cost_totals` LEFT JOIN `payments` (where `related_to = 'cost'`)
-- Shows amount_paid, outstanding, payment_status per cost
-- Must use LEFT JOIN — costs with zero payments must still appear
+### v_invoice_balances
+- Source: `v_invoice_totals` LEFT JOIN `payments` (where `related_to = 'invoice'`)
+- Shows amount_paid, outstanding, payment_status per invoice
+- Tracks detraccion_paid and retencion_paid separately (split by payment_type)
+- Computes `payable_or_receivable` (outstanding minus unpaid detraccion/retencion portions)
+- Computes `bdn_outstanding` (Banco de la Nación balance — detraccion amounts not yet deposited)
+- Must use LEFT JOIN — invoices with zero payments must still appear
 
-### v_ar_balances
-- Source: `ar_invoices` LEFT JOIN `payments` (where `related_to = 'ar_invoice'`)
-- Computes igv_amount, gross_total, detraccion_amount, retencion_amount, net_receivable
-- Shows amount_paid, outstanding (against gross_total), payment_status
-- Must use LEFT JOIN — AR invoices with zero payments must still appear
+### v_invoices_with_loans
+- Source: `v_invoice_balances` UNION `loan_schedule` (with LATERAL join for payment aggregation)
+- Shows ALL statuses (paid, partial, pending) — no filtering on payment status
+- Type column: `'commercial'` or `'loan'`
+- Includes aging_bucket and days_overdue for sorting and bucketing
+- Used by the Invoices browse page
 
-### v_ap_calendar
-- Source: `v_cost_balances` (or costs + cost_totals + payments)
-- Filters: only costs with `due_date IS NOT NULL` and payment_status IN ('pending', 'partial')
-- Sorted by due_date ASC
+### v_obligation_calendar
+- Source: `v_invoice_balances` UNION `loan_schedule` (with LATERAL join for payment aggregation)
+- Filters: only items with payment_status IN ('pending', 'partial') — action view
+- Sorted by due_date ASC (most urgent first)
 - Includes days_remaining calculated from due_date
+- Both directions (AP + AR) — Calendar page filters by direction at query time
 
-### v_entity_transactions
-- Source: `costs` UNION ALL `ar_invoices`, filtered by entity_id
-- Shows all transactions (both AP and AR) for a given entity across projects
+### v_payments_enriched
+- Source: `payments` UNION (invoice-related payments JOIN invoices/entities/projects, loan-related payments JOIN loan_schedule/loans/entities)
+- Two-part UNION handles different join paths for invoice vs loan payments
+- Enriches with entity_name, project_code, invoice_number, bank_name
+- Ordered by payment_date DESC
 
 ### v_bank_balances
-- Source: `payments` grouped by bank_account_id
+- Source: `payments` grouped by bank_account_id, joined to `bank_accounts` and `partner_companies`
 - Inbound payments add to balance, outbound payments subtract
-- Running balance per account
-
-### v_retencion_dashboard
-- Source: `ar_invoices` WHERE `retencion_applicable = true`, JOIN `projects`, JOIN `entities`
-- Shows project_code, client name, invoice_number, invoice_date, due_date, gross_total, retencion_amount, retencion_verified, days_since_invoice
-- Ordered by `retencion_verified ASC` (unverified first), then `days_since_invoice DESC` (oldest unverified at top)
-- Apply `is_active = true` filter on projects and entities
+- Shows active accounts OR accounts with non-zero balances
 
 ### v_loan_balances
 - Source: `loans` LEFT JOIN `loan_schedule` LEFT JOIN `payments` (where `related_to = 'loan_schedule'`)
-- Computes total_owed (principal + return), total_paid, outstanding per loan
+- Three CTEs: `loan_totals` (computes total_owed from return_type/rate), `loan_paid` (aggregates payments), `schedule_stats` (counts entries)
 - Status derived: active (no payments), partially_paid, settled
 - Return amount calculated from `return_type`: percentage applies `agreed_return_rate` to `amount`, fixed uses `agreed_return_amount`
 - Exposes `partner_company_id` for partner filter
 - Loans are permanent records — no `is_active` filter
 
 ### v_budget_vs_actual
-- Source: `project_budgets` LEFT JOIN `cost_items` + `costs` (grouped by category)
-- Compares budgeted_amount vs actual (SUM of cost_items.subtotal) per project per category
-- Category values must match between `project_budgets.category` and `cost_items.category`
-- Includes variance (budgeted - actual)
+- Source: `project_budgets` LEFT JOIN `invoice_items` + `invoices` (grouped by category)
+- Only includes payable invoices where `cost_type = 'project_cost'`
+- Compares budgeted_amount vs actual (SUM of invoice_items.subtotal) per project per category
+- Includes variance (budgeted - actual) and pct_used
 
 ### v_igv_position
-- Source: `v_cost_totals` (IGV paid on costs) and `ar_invoices` (IGV collected on income)
-- Net position = IGV collected - IGV paid, grouped by currency
-- Positive = net liability to SUNAT, negative = net credit (credito fiscal)
+- Source: `v_invoice_totals`
+- UNION approach: IGV collected (from receivable invoices) vs IGV paid (from payable invoices)
+- Net position = IGV paid - IGV collected, grouped by currency
+- Positive = net credit (credito fiscal), negative = net liability to SUNAT
+
+### v_retencion_dashboard
+- Source: `v_invoice_totals` WHERE `direction = 'receivable'` AND `retencion_applicable = true`, JOIN `projects`, JOIN `entities`
+- Two CTEs: `ar_base` filters to applicable invoices, `ar_with_totals` adds computed amounts via SQL functions
+- Shows retencion_verified status, days_since_invoice
+- Ordered by `retencion_verified ASC` (unverified first), then `days_since_invoice DESC` (oldest unverified at top)
 
 ---
 
@@ -190,3 +187,4 @@ After generating each view:
 4. LEFT JOINs are used where records without related data must still appear
 5. The view runs without errors via `supabase db execute --file`
 6. Currency is never converted — always preserved as-is
+7. SQL functions (fn_igv_amount, fn_detraccion_amount, fn_retencion_amount) are used for tax calculations — no inline formulas

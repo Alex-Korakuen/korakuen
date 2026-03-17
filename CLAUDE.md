@@ -68,9 +68,9 @@ korakuen/
 │   ├── views/              → individual SQL view definitions (combined into migration for deploy)
 │   └── seeds/              → initial data SQL
 ├── website/                → Next.js visualization website
-│   ├── app/                → pages and routes
-│   ├── components/         → reusable components
-│   └── lib/                → Supabase client, types, queries
+│   ├── src/app/            → pages and routes
+│   ├── src/components/     → reusable components
+│   └── src/lib/            → Supabase client, types, queries
 ├── imports/                → Excel templates for bulk data import
 │   ├── generate_templates.py → script to create .xlsx templates
 │   └── templates/          → one .xlsx template per entity type
@@ -79,7 +79,7 @@ korakuen/
 
 ---
 
-## Database — 17 Tables
+## Database — 18 Tables
 
 ```
 Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
@@ -207,7 +207,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** CLI application (6 modules), database (17 tables, 10 views), and visualization website (8 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
+**Development complete.** CLI application (6 modules), database (18 tables, 10 views), and visualization website (8 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
 
 **Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 8 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 

@@ -2,7 +2,7 @@
 
 **Document version:** 2.0
 **Date:** March 12, 2026
-**Status:** Proposal (not yet implemented)
+**Status:** Deployed (March 12, 2026)
 
 ---
 
@@ -563,4 +563,4 @@ This section outlines the transition — detailed migration SQL and code changes
 
 ---
 
-*This document defines the V1 target architecture. Implementation is a separate set of tasks. Do not begin migration without explicit approval.*
+*This document defines the V1 architecture. Deployed March 12, 2026.*

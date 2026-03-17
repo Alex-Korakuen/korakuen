@@ -14,7 +14,7 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 7 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
+**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 8 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
 
 **Reporting currency:** Consolidated views (Financial Position, Cash Flow) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
@@ -35,15 +35,17 @@ Browse
   Projects
   Entities & Contacts
   Prices
+  Invoices
+  Payments
 
 Dashboards
-  AP Calendar
-  AR Outstanding
-  Cash Flow
+  Calendar
   Financial Position
+
+Settings
 ```
 
-**7 pages total.** Each answers one distinct business question. No redundancy.
+**8 pages total.** Each answers one distinct business question. No redundancy.
 
 ---
 
@@ -168,27 +170,9 @@ Two sections:
 
 ---
 
-### Cash Flow
+### ~~Cash Flow~~ (Removed)
 
-**Business question:** How much cash actually moved, and what's expected in coming months?
-
-**Priority:** High
-
-**Scope selector:** All Projects (default) or single project. Loan outflows included in forecast for all users.
-
-**Period selector:** Year picker. Default: current year. Shows all 12 months.
-
-**Reporting currency selector:** PEN (default) or USD. Transactions in the other currency converted at stored exchange rate.
-
-**Main table:** Monthly time series. Cash In section: one row per project + one row for loans. Cash Out section: one row per cost type + one row for loan repayments. Net row. Past months show actual cash movements (from payments table). Future months show forecast based on due_date fields on unpaid invoices and loan_schedule.
-
-**Visual separator** between actual (past) and forecast (future) months — lighter styling or dashed divider for forecast rows.
-
-**Cash shortfall warning:** When cumulative goes negative in a future month, highlight with warning indicator. This is the primary planning value — seeing cash crunches before they happen.
-
-**Color coding:** Red for negative net months, yellow for months below a threshold, green for positive.
-
-**Data source:** Payments (actual), invoices + loan_schedule due dates (forecast) — computed in `queries.ts` (no SQL view). Filterable by partner via global partner filter.
+Cash Flow page was removed (commit d641582, March 2026). Cash flow analysis was not providing enough value relative to the Calendar and Financial Position pages.
 
 ---
 
