@@ -15,6 +15,7 @@ type Props = {
   outstanding: number
   payable: number
   bdnOutstanding: number
+  bdnOutstandingPen?: number
   retencionOutstanding?: number
   onSuccess: () => void
   onCancel: () => void
@@ -35,6 +36,7 @@ export function RegisterPaymentForm({
   outstanding,
   payable,
   bdnOutstanding,
+  bdnOutstandingPen,
   retencionOutstanding,
   onSuccess,
   onCancel,
@@ -72,9 +74,12 @@ export function RegisterPaymentForm({
       .catch(() => setExchangeRate(null))
   }, [paymentDate])
 
-  // Filter bank accounts by currency and payment type
+  // Detraccion payments are always in PEN (even for USD invoices)
+  const paymentCurrency = paymentType === 'detraccion' ? 'PEN' : currency
+
+  // Filter bank accounts by payment currency and type
   const filteredAccounts = bankAccounts.filter(ba => {
-    if (ba.currency !== currency) return false
+    if (ba.currency !== paymentCurrency) return false
     if (paymentType === 'detraccion') return ba.is_detraccion_account
     return !ba.is_detraccion_account
   })
@@ -84,10 +89,10 @@ export function RegisterPaymentForm({
     setBankAccountId('')
   }, [paymentType])
 
-  // Max amount per payment type
+  // Max amount per payment type (detraccion max is always in PEN)
   const maxAmount =
     paymentType === 'detraccion'
-      ? bdnOutstanding
+      ? (bdnOutstandingPen ?? bdnOutstanding)
       : paymentType === 'retencion'
         ? (retencionOutstanding ?? 0)
         : payable
@@ -112,7 +117,7 @@ export function RegisterPaymentForm({
       return
     }
     if (parsedAmount > maxAmount) {
-      setError(`Amount cannot exceed ${formatCurrency(maxAmount, currency)} for ${paymentType} payments`)
+      setError(`Amount cannot exceed ${formatCurrency(maxAmount, paymentCurrency)} for ${paymentType} payments`)
       return
     }
     if (!isRetencion && !bankAccountId) {
@@ -132,7 +137,7 @@ export function RegisterPaymentForm({
         payment_type: paymentType,
         payment_date: paymentDate,
         amount: parsedAmount,
-        currency,
+        currency: paymentCurrency,
         exchange_rate: exchangeRate,
         partner_company_id: partnerCompanyId,
         bank_account_id: isRetencion ? null : bankAccountId,
@@ -191,7 +196,7 @@ export function RegisterPaymentForm({
             className={`${inputCompactClass} w-full bg-white font-mono`}
           />
           <p className="mt-0.5 text-[10px] text-blue-400">
-            max {formatCurrency(maxAmount, currency)}
+            max {formatCurrency(maxAmount, paymentCurrency)}
           </p>
         </div>
 

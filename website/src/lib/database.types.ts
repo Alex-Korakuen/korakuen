@@ -240,7 +240,7 @@ export type Database = {
           mid_rate: number
           rate_date: string
           sell_rate: number
-          source: string
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -1031,6 +1031,7 @@ export type Database = {
         Row: {
           amount_paid: number | null
           bdn_outstanding: number | null
+          bdn_outstanding_pen: number | null
           comprobante_type: string | null
           cost_type: string | null
           currency: string | null
@@ -1155,6 +1156,7 @@ export type Database = {
           aging_bucket: string | null
           amount_paid: number | null
           bdn_outstanding: number | null
+          bdn_outstanding_pen: number | null
           comprobante_type: string | null
           cost_type: string | null
           currency: string | null
@@ -1226,6 +1228,7 @@ export type Database = {
         Row: {
           amount_paid: number | null
           bdn_outstanding: number | null
+          bdn_outstanding_pen: number | null
           cost_type: string | null
           currency: string | null
           date: string | null

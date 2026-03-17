@@ -38,6 +38,7 @@ SELECT
   ib.amount_paid,
   ib.outstanding,
   ib.bdn_outstanding,
+  ib.bdn_outstanding_pen,
   ib.payment_status,
   -- Aging: days past due (positive = overdue, negative/zero = current)
   CASE
@@ -87,6 +88,7 @@ SELECT
   COALESCE(pay.amount_paid, 0) AS amount_paid,
   ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS outstanding,
   0::NUMERIC(15,2)      AS bdn_outstanding,
+  0::NUMERIC(15,2)      AS bdn_outstanding_pen,
   CASE
     WHEN COALESCE(pay.amount_paid, 0) >= ls.scheduled_amount THEN 'paid'
     WHEN COALESCE(pay.amount_paid, 0) > 0 THEN 'partial'

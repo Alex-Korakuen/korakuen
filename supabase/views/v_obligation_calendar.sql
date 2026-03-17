@@ -38,6 +38,7 @@ SELECT
   ib.outstanding,
   ib.payable_or_receivable AS payable,
   ib.bdn_outstanding,
+  ib.bdn_outstanding_pen,
   ib.payment_status
 FROM v_invoice_balances ib
 LEFT JOIN projects p ON p.id = ib.project_id
@@ -76,6 +77,7 @@ SELECT
   ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS outstanding,
   ls.scheduled_amount - COALESCE(pay.amount_paid, 0) AS payable,
   0::NUMERIC(15,2)       AS bdn_outstanding,
+  0::NUMERIC(15,2)       AS bdn_outstanding_pen,
   CASE
     WHEN COALESCE(pay.amount_paid, 0) >= ls.scheduled_amount THEN 'paid'
     WHEN COALESCE(pay.amount_paid, 0) > 0 THEN 'partial'

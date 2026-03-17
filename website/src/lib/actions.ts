@@ -97,32 +97,23 @@ export async function registerPayment(input: {
   }
 
   // Re-query balances and validate per payment type
+  // View handles cross-currency detraccion conversion (PEN payments on USD invoices)
   if (input.related_to === 'invoice') {
     const { data: inv } = await supabase
       .from('v_invoice_balances')
-      .select('outstanding, detraccion_amount, retencion_amount')
+      .select('outstanding, bdn_outstanding, bdn_outstanding_pen, retencion_amount, retencion_paid')
       .eq('invoice_id', input.related_id)
       .single()
     if (!inv) return { error: 'Invoice not found' }
     const outstanding = inv.outstanding ?? 0
-    const detraccion = inv.detraccion_amount ?? 0
-    const retencion = inv.retencion_amount ?? 0
-    // Query payments by type for accurate per-type limits
-    const { data: typedPayments } = await supabase
-      .from('payments')
-      .select('amount, payment_type')
-      .eq('related_id', input.related_id)
-      .eq('related_to', 'invoice')
-    const paidByType = (typedPayments ?? []).reduce((acc, p) => {
-      acc[p.payment_type] = (acc[p.payment_type] ?? 0) + p.amount
-      return acc
-    }, {} as Record<string, number>)
-    const bdnOutstanding = Math.max(0, detraccion - (paidByType.detraccion ?? 0))
-    const retencionOutstanding = Math.max(0, retencion - (paidByType.retencion ?? 0))
+    const bdnOutstanding = inv.bdn_outstanding ?? 0
+    const bdnOutstandingPen = inv.bdn_outstanding_pen ?? 0
+    const retencionOutstanding = Math.max(0, (inv.retencion_amount ?? 0) - (inv.retencion_paid ?? 0))
     const payable = Math.max(0, outstanding - bdnOutstanding - retencionOutstanding)
     let maxAmount: number
     if (input.payment_type === 'detraccion') {
-      maxAmount = bdnOutstanding
+      // Detraccion is always paid in PEN — validate against PEN outstanding
+      maxAmount = bdnOutstandingPen
     } else if (input.payment_type === 'retencion') {
       maxAmount = retencionOutstanding
     } else {

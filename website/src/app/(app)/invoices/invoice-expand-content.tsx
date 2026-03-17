@@ -16,17 +16,16 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
 
   const currency = invoice.currency ?? 'PEN'
 
-  // Compute per-type outstanding from payment history
-  const detraccionPaid = detail.payments
-    .filter(p => p.payment_type === 'detraccion')
-    .reduce((sum, p) => sum + p.amount, 0)
-  const retencionPaid = detail.payments
-    .filter(p => p.payment_type === 'retencion')
-    .reduce((sum, p) => sum + p.amount, 0)
+  // Use view-computed values (handles cross-currency detraccion correctly)
   const invoiceDetraccion = invoice.detraccion_amount ?? 0
   const invoiceRetencion = invoice.retencion_amount ?? 0
   const invoiceOutstanding = invoice.outstanding ?? 0
-  const bdnOutstanding = Math.max(0, invoiceDetraccion - detraccionPaid)
+  const bdnOutstanding = invoice.bdn_outstanding ?? 0
+  const bdnOutstandingPen = invoice.bdn_outstanding_pen ?? 0
+  // Retencion paid: always same currency, safe to compute locally
+  const retencionPaid = detail.payments
+    .filter(p => p.payment_type === 'retencion')
+    .reduce((sum, p) => sum + p.amount, 0)
   const retencionOutstanding = Math.max(0, invoiceRetencion - retencionPaid)
   const invoicePayable = Math.max(0, invoiceOutstanding - bdnOutstanding - retencionOutstanding)
 
@@ -139,6 +138,7 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
                 outstanding: invoiceOutstanding,
                 payable: invoicePayable,
                 bdnOutstanding,
+                bdnOutstandingPen,
                 retencionOutstanding,
                 detraccionAmount: invoiceDetraccion,
                 retencionAmount: invoiceRetencion,
