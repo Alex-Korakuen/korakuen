@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { formatCurrency, formatDate, formatCategory } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { useUrlSort } from '@/lib/sort-utils'
@@ -9,7 +11,10 @@ import { FilterSelect } from '@/components/ui/filter-select'
 import { SearchInput } from '@/components/ui/search-input'
 import { Pagination } from '@/components/ui/pagination'
 import { FK } from '@/lib/filter-keys'
+import { importQuotes } from '@/lib/import-actions'
 import type { PriceHistoryRow, PriceFilterOptions } from '@/lib/types'
+
+const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 
 type Props = {
   data: PriceHistoryRow[]
@@ -36,6 +41,7 @@ export function PricesClient({
   filterOptions,
   currentFilters,
 }: Props) {
+  const [showImport, setShowImport] = useState(false)
   const { sortColumn, sortDirection, handleSort } = useUrlSort('date', 'desc')
   const { setFilter, clearFilters } = useUrlFilters()
 
@@ -52,12 +58,20 @@ export function PricesClient({
 
   return (
     <div>
-      {/* Search */}
-      <div className="mt-6">
-        <SearchInput
-          placeholder="Search by item title..."
-          defaultValue={currentFilters.search}
-        />
+      {/* Search + Import */}
+      <div className="mt-6 flex gap-2">
+        <div className="min-w-0 flex-1">
+          <SearchInput
+            placeholder="Search by item title..."
+            defaultValue={currentFilters.search}
+          />
+        </div>
+        <button
+          onClick={() => setShowImport(true)}
+          className="shrink-0 self-end rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+        >
+          Import
+        </button>
       </div>
 
       {/* Filter row */}
@@ -223,6 +237,14 @@ export function PricesClient({
       <div className="mt-3">
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
       </div>
+
+      {/* Import modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        title="Import Quotes"
+        onImport={importQuotes}
+      />
     </div>
   )
 }

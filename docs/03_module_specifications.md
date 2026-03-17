@@ -303,12 +303,12 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 
 ---
 
-## Module 7: Partner Ledger (View, Not a Table)
+## Module 7: Partner Ledger (Computed in Application Layer)
 
 **Purpose:** Shows each partner's financial position per project — what they contributed, what profit they're owed, and who owes whom for settlement.
 
 **How it works:**
-This is not a database table — it is a view derived from the Invoices table (payable invoices with a project, grouped by partner_company_id) and receivable invoices + Payments tables per project. SG&A invoices are excluded — they belong to the individual partner who incurred them. No data is stored separately. The view is always current because it reads directly from source data.
+This is not a database table or SQL view — it is computed in the application layer (`queries.ts`) from `v_invoice_totals` grouped by `partner_company_id` per project. SG&A invoices are excluded — they belong to the individual partner who incurred them. No data is stored separately. The calculation is always current because it reads directly from source data. Settlement is displayed within the project detail view on the website.
 
 **What the view shows:**
 
@@ -341,7 +341,7 @@ Partner 3                 S/  251,000   (230,000 + 21,000)
 
 Note: contribution % reflects how costs were actually split during execution. Profit share % is the agreed split from `project_partners.profit_share_pct` — these are independent.
 
-**Connects to:** Invoices (source data — both directions), Payments (source data), Project Partners (profit share %)
+**Connects to:** v_invoice_totals (source data — both directions), Payments (source data), Project Partners (profit share %)
 
 ---
 
@@ -356,7 +356,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Return can be percentage-based (e.g. 8%) or a fixed agreed amount
 - Repayments use the universal `payments` table with `related_to = 'loan_schedule'` — same pattern as cost/AR invoice payments
 - Every repayment must be against a schedule entry (create one first for ad-hoc payments)
-- Loan schedule entries feed `v_ap_calendar` as a UNION source (type = 'loan_payment')
+- Loan schedule entries feed `v_obligation_calendar` as a UNION source (type = 'loan')
 - Loans are permanent financial records — no soft delete via `is_active`
 
 **Loan status (derived in `v_loan_balances`, not stored):**

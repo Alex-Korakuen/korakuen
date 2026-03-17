@@ -43,11 +43,9 @@ korakuen/
 │   │   ├── __init__.py
 │   │   ├── projects.py     → add single + import from Excel
 │   │   ├── entities.py     → add entity, contact, tag + import
-│   │   ├── costs.py        → add single + import costs/cost_items
 │   │   ├── quotes.py       → add single + import from Excel
-│   │   ├── ar_invoices.py  → add single + import from Excel
 │   │   ├── payments.py     → register payment, verify retencion
-│   │   ├── loans.py        → add loan, schedule, register repayment
+│   │   ├── loans.py        → add loan, schedule, payments + import
 │   │   └── exchange_rates.py → add daily SUNAT rate, list recent rates
 │   ├── lib/
 │   │   ├── __init__.py
@@ -80,15 +78,15 @@ korakuen/
 │   │   ├── ...               → 40+ additional migrations through March 12
 │   │   └── 20260312000001_drop_v_partner_ledger.sql
 │   ├── views/              → individual view source files (combined into migration above)
-│   │   ├── v_ap_calendar.sql
-│   │   ├── v_ar_balances.sql
 │   │   ├── v_bank_balances.sql
 │   │   ├── v_budget_vs_actual.sql
-│   │   ├── v_cost_balances.sql
-│   │   ├── v_cost_totals.sql
-│   │   ├── v_entity_transactions.sql
 │   │   ├── v_igv_position.sql
+│   │   ├── v_invoice_balances.sql
+│   │   ├── v_invoice_totals.sql
+│   │   ├── v_invoices_with_loans.sql
 │   │   ├── v_loan_balances.sql
+│   │   ├── v_obligation_calendar.sql
+│   │   ├── v_payments_enriched.sql
 │   │   └── v_retencion_dashboard.sql
 │   └── seeds/
 │       ├── 001_tags.sql

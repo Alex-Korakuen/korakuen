@@ -1,10 +1,3 @@
-/** Returns days remaining until end of the current week (Sunday = 0). */
-export function getDaysUntilEndOfWeek(): number {
-  const dayOfWeek = new Date().getDay() // 0=Sunday
-  if (dayOfWeek === 0) return 0
-  return 7 - dayOfWeek
-}
-
 /** Maps days remaining to a calendar urgency bucket. */
 export function getCalendarBucket(
   daysRemaining: number | null,

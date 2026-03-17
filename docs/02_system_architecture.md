@@ -64,14 +64,14 @@ Data entry happens through both Python CLI scripts and the website's inline form
 
 **Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read and write queries straightforward.
 
-**What the website does:** Displays 7 pages — AP calendar, AR outstanding, cash flow, financial position, projects, entities & contacts, and prices. Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
+**What the website does:** Displays 7 pages — calendar, invoices, payments, financial position, projects, entities & contacts, and prices. Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
 
 ---
 
-### 4.3 Separate Tables for Income and Expenses
-AR invoices (income) and Costs (expenses) live in separate tables despite both being financial transactions.
+### 4.3 Unified Invoice Model
+All invoices — both payable (expenses) and receivable (income) — live in a single `invoices` table with a `direction` column (`'payable'` or `'receivable'`). Line items live in `invoice_items`, serving both directions.
 
-**Why:** They have fundamentally different fields, lifecycles, and purposes. Costs are granular daily transactions with quantity, unit price, category, and bank account. AR invoices are high-level billing documents tied to projects with collection records. Separate tables keeps the data clean, enables straightforward cash flow reporting, and makes partner settlement calculations (profit = income - project costs) unambiguous.
+**Why:** An invoice is an invoice — both directions share the same financial anatomy (entity, amount, currency, exchange rate, IGV, detraccion). One table means one set of views, symmetric queries, and simpler joins. Payments already link generically via `related_to = 'invoice'`.
 
 ---
 
@@ -123,9 +123,9 @@ All three partners' bank accounts are tracked in the system. Every cost and paym
 ---
 
 ### 4.9 Partner Settlement — Computed in Application Layer
-Partner contribution tracking and settlement calculations are computed in the application layer (`queries.ts`) from `v_cost_totals` grouped by partner company. No standalone ledger table or view.
+Partner contribution tracking and settlement calculations are computed in the application layer (`queries.ts`) from `v_invoice_totals` grouped by partner company. No standalone ledger table or view.
 
-**Why:** All the data already exists in the costs and payments tables. A separate ledger table would duplicate data and create consistency risk. Settlement is displayed within the project detail view on the website.
+**Why:** All the data already exists in the invoices and payments tables. A separate ledger table would duplicate data and create consistency risk. Settlement is displayed within the project detail view on the website.
 
 ---
 
@@ -141,16 +141,16 @@ Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Categ
 ---
 
 ### 4.11 Purchase Order Extensibility Hook
-The `costs` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null — costs reference quotes directly via `quote_id`. When POs are introduced, the flow shifts from `quote → cost` to `quote → purchase_order → cost` using the existing field. No schema migration needed on `costs` when this happens.
+The `invoices` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null — payable invoices reference quotes directly via `quote_id`. When POs are introduced, the flow shifts from `quote → invoice` to `quote → purchase_order → invoice` using the existing field. No schema migration needed on `invoices` when this happens.
 
 **Current flow:** `quote_id` filled, `purchase_order_id` null
 **Future flow:** `purchase_order_id` filled, `quote_id` null or on the PO record
-**Rule:** At most one of these fields is filled per cost record.
+**Rule:** At most one of these fields is filled per invoice record.
 
 ---
 
 ### 4.12 Universal Partner Filter
-All data is visible to all users — no role-based visibility restrictions. A global partner filter in the sidebar lets users toggle which partner companies' data to display. The filter persists across all 8 pages via a cookie (`partner_filter`).
+All data is visible to all users — no role-based visibility restrictions. A global partner filter in the sidebar lets users toggle which partner companies' data to display. The filter persists across all 7 pages via a cookie (`partner_filter`).
 
 **How it works:** Partner toggle buttons in the sidebar. Toggling partners marks the filter as dirty; clicking Apply sets the cookie and refreshes the page. Server components read the cookie to scope queries. When no filter is applied, all data is shown.
 
@@ -163,7 +163,7 @@ Tracks loans taken by any partner to fund project contributions. Every loan has 
 
 **Business rule:** 10% return on loans. The borrower keeps the spread between the agreed return rate and what they actually pay the lender.
 
-2 tables (`loans`, `loan_schedule`) with repayments tracked in the universal `payments` table (`related_to = 'loan_schedule'`). Loan obligations appear in `v_ap_calendar` as a second UNION source. Loan balances and status are derived in `v_loan_balances`. All loan data is visible to everyone via the universal partner filter.
+2 tables (`loans`, `loan_schedule`) with repayments tracked in the universal `payments` table (`related_to = 'loan_schedule'`). Loan obligations appear in `v_obligation_calendar` as a second UNION source. Loan balances and status are derived in `v_loan_balances`. All loan data is visible to everyone via the universal partner filter.
 
 ---
 
@@ -189,16 +189,20 @@ src/app/
   auth/callback/        → token exchange (route handler, no UI)
   auth/set-password/    → no sidebar, centered card layout
   (app)/                → shared sidebar + header layout
-    ap-calendar/        → default landing page after login
-    ar-outstanding/     → AR aging and collections
-    ...                 → all other dashboard and browse pages
+    calendar/           → default landing page after login (AP/AR obligations)
+    invoices/           → unified invoice ledger (payable + receivable + loans)
+    payments/           → all cash movements
+    financial-position/ → balance sheet view
+    projects/           → project browse + detail
+    entities/           → entity & contact browse + detail
+    prices/             → quote browse + price analytics
     settings/password/  → change password (within sidebar layout)
 ```
 
 ### 5.2 Authentication — Invite-Only
 No open registration. Alex invites users via the Supabase Dashboard (Authentication > Users > Invite). The invited user receives an email, clicks the link, lands on `/auth/callback` which exchanges the token, then redirects to `/auth/set-password` where they choose a password.
 
-Middleware (`src/middleware.ts`) protects all routes: unauthenticated users are redirected to `/login`. Authenticated users accessing `/login` are redirected to `/ap-calendar`. The auth callback and set-password pages are excluded from protection.
+Middleware (`src/middleware.ts`) protects all routes: unauthenticated users are redirected to `/login`. Authenticated users accessing `/login` are redirected to `/calendar`. The auth callback and set-password pages are excluded from protection.
 
 ### 5.3 User Metadata
 Identity is stored in Supabase user metadata (set via SQL after invite):

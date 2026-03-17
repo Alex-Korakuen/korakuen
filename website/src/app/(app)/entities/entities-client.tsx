@@ -8,6 +8,8 @@ import { EntitiesDetailPanel } from './entities-detail-panel'
 
 const TransactionModal = dynamic(() => import('./entities-transaction-modal').then(m => ({ default: m.TransactionModal })))
 const CreateEntityModal = dynamic(() => import('./create-entity-modal').then(m => ({ default: m.CreateEntityModal })))
+const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
+import { importEntities } from '@/lib/import-actions'
 import type {
   EntityListItem,
   EntityDetailData,
@@ -46,6 +48,7 @@ export function EntitiesClient({
 }: Props) {
   const [modalGroup, setModalGroup] = useState<EntityLedgerGroup | null>(null)
   const [showCreateEntity, setShowCreateEntity] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   const showDetailMobile = selectedId && detail
 
@@ -67,6 +70,7 @@ export function EntitiesClient({
           selectedId={selectedId}
           onSelect={onSelect}
           onCreateEntity={() => setShowCreateEntity(true)}
+          onImport={() => setShowImport(true)}
           hidden={!!showDetailMobile}
         />
 
@@ -92,6 +96,14 @@ export function EntitiesClient({
 
       {/* Create entity modal */}
       <CreateEntityModal isOpen={showCreateEntity} onClose={() => setShowCreateEntity(false)} />
+
+      {/* Import modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        title="Import Entities"
+        onImport={importEntities}
+      />
     </div>
   )
 }

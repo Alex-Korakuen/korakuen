@@ -5,23 +5,12 @@ Purpose: All project operations — add single, import from Excel, set budget, s
 Tables: projects, project_budgets, project_partners
 """
 
-import pandas as pd
-
 from lib.db import supabase
-from modules.costs import load_categories
 from lib.helpers import (
     get_input, get_optional_input, get_optional_date_input,
     confirm, list_choices, clear_screen, cancel_and_wait,
     get_enum_input, get_currency, get_nonneg_float, execute_insert,
     search_and_select_entity,
-)
-from lib.import_helpers import (
-    DATA_START_ROW,
-    validate_required, validate_enum, validate_lookup,
-    validate_date, validate_nonneg_number,
-    process_import_errors, load_entity_map,
-    load_excel_file, print_import_summary,
-    is_empty, opt_str, opt_float, opt_date,
 )
 
 
@@ -31,22 +20,19 @@ def menu():
         clear_screen()
         print("\n=== Projects ===\n")
         print("1. Add project")
-        print("2. Import projects from Excel")
-        print("3. Set project budget")
-        print("4. Set partner shares")
-        print("5. Back")
+        print("2. Set project budget")
+        print("3. Set partner shares")
+        print("4. Back")
 
         choice = get_input("\nSelect option: ")
 
         if choice == "1":
             add_project()
         elif choice == "2":
-            import_projects()
-        elif choice == "3":
             set_project_budget()
-        elif choice == "4":
+        elif choice == "3":
             set_partner_shares()
-        elif choice == "5":
+        elif choice == "4":
             return
         else:
             print("\nInvalid option.")
@@ -157,142 +143,6 @@ def add_project():
 
 
 # ============================================================
-# Import Projects
-# ============================================================
-
-def _load_project_lookups():
-    """Pre-load lookup tables for project import validation."""
-    existing = supabase.table("projects").select("project_code").execute()
-    return {
-        "entities": load_entity_map(),
-        "existing_codes": {r["project_code"] for r in existing.data},
-    }
-
-
-def _validate_project_row(row_num, row, errors, lookups):
-    """Validate a single project row."""
-    validate_required(row_num, row, "name", errors)
-    validate_required(row_num, row, "project_type", errors)
-    validate_required(row_num, row, "status", errors)
-
-    validate_enum(row_num, row, "project_type", ["subcontractor", "oxi"], errors)
-    validate_enum(row_num, row, "status", ["prospect", "active", "completed", "cancelled"], errors)
-    validate_enum(row_num, row, "contract_currency", ["USD", "PEN"], errors)
-
-    validate_lookup(row_num, row, "client_entity_document_number", lookups["entities"], errors)
-
-    validate_date(row_num, row, "start_date", errors)
-    validate_date(row_num, row, "expected_end_date", errors)
-    validate_date(row_num, row, "actual_end_date", errors)
-    validate_nonneg_number(row_num, row, "contract_value", errors)
-
-    # Validate project_code format and uniqueness if provided
-    code = row.get("project_code")
-    if code and not pd.isna(code):
-        code_str = str(code).strip()
-        if not code_str.startswith("PRY") or len(code_str) != 6:
-            errors.append((row_num, "project_code", "Must follow PRY### format"))
-        elif code_str in lookups["existing_codes"]:
-            errors.append((row_num, "project_code", "Already exists in database"))
-
-
-def _build_project_record(row, lookups, auto_code_num):
-    """Convert a spreadsheet row to a database record.
-
-    auto_code_num: the PRY### number to use if project_code is blank,
-                   or None if the row provides its own code.
-    """
-    code = row.get("project_code")
-    if not is_empty(code):
-        project_code = str(code).strip()
-    else:
-        project_code = f"PRY{auto_code_num:03d}"
-
-    data = {
-        "project_code": project_code,
-        "name": str(row["name"]).strip(),
-        "project_type": str(row["project_type"]).strip(),
-        "status": str(row["status"]).strip(),
-    }
-
-    # FK lookups
-    client_doc = opt_str(row, "client_entity_document_number")
-    if client_doc:
-        data["client_entity_id"] = lookups["entities"][client_doc]
-
-    # Optional fields
-    for field in ("contract_value",):
-        val = opt_float(row, field)
-        if val is not None:
-            data[field] = val
-
-    for field in ("contract_currency", "location", "notes"):
-        val = opt_str(row, field)
-        if val:
-            data[field] = val
-
-    for field in ("start_date", "expected_end_date", "actual_end_date"):
-        val = opt_date(row, field)
-        if val:
-            data[field] = val
-
-    return data
-
-
-def import_projects():
-    """Import projects from an Excel spreadsheet."""
-    result = load_excel_file("Import Projects")
-    if not result:
-        return
-    df, file_path = result
-
-    lookups = _load_project_lookups()
-
-    # Validate all rows
-    errors = []
-    for idx, row in df.iterrows():
-        excel_row = idx + DATA_START_ROW
-        _validate_project_row(excel_row, row, errors, lookups)
-
-    if process_import_errors(file_path, errors):
-        return
-
-    def _format_project_row(i, row):
-        code = row.get("project_code", "auto")
-        if pd.isna(code):
-            code = "auto"
-        return f"{i}. {code} — {row.get('name', '')}"
-
-    print_import_summary(file_path, df, _format_project_row)
-
-    if not confirm(f"\nImport {len(df)} projects?"):
-        cancel_and_wait()
-        return
-
-    # Determine next code number for auto-generation
-    all_codes = lookups["existing_codes"]
-    if all_codes:
-        next_code_num = max(int(c.replace("PRY", "")) for c in all_codes) + 1
-    else:
-        next_code_num = 1
-
-    try:
-        records = []
-        for _, row in df.iterrows():
-            code = row.get("project_code")
-            needs_auto = not code or pd.isna(code)
-            records.append(_build_project_record(row, lookups, next_code_num if needs_auto else None))
-            if needs_auto:
-                next_code_num += 1
-        response = supabase.table("projects").insert(records).execute()
-        print(f"\n✓ {len(response.data)} projects imported successfully.")
-    except Exception as e:
-        print(f"\n✗ Error during import: {e}")
-
-    input("\nPress Enter to continue...")
-
-
-# ============================================================
 # Set Project Budget
 # ============================================================
 
@@ -361,9 +211,16 @@ def set_project_budget():
 
     # --- Collect amounts per category ---
     print(f"\n  Enter budgeted amount for each category ({currency}):\n")
-    cat_rows = load_categories("project_cost")
+    cat_result = (
+        supabase.table("categories")
+        .select("name, label")
+        .eq("cost_type", "project_cost")
+        .eq("is_active", True)
+        .order("name")
+        .execute()
+    )
     budget_entries = []
-    for cat in cat_rows:
+    for cat in cat_result.data:
         amount = get_nonneg_float(f"    {cat['label']}: ")
         budget_entries.append({"category": cat["name"], "label": cat["label"], "amount": amount})
 

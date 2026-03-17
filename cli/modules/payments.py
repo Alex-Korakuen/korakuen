@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Module: payments.py
-Purpose: All payment operations — register payment, verify retencion
-Tables: payments, ar_invoices (update retencion_verified)
+Purpose: All payment operations — register payment
+Tables: payments
 """
 
 from lib.db import supabase
@@ -20,16 +20,13 @@ def menu():
         clear_screen()
         print("\n=== Payments ===\n")
         print("1. Register payment")
-        print("2. Verify retencion")
-        print("3. Back")
+        print("2. Back")
 
         choice = get_input("\nSelect option: ")
 
         if choice == "1":
             register_payment()
         elif choice == "2":
-            verify_retencion()
-        elif choice == "3":
             return
         else:
             print("\nInvalid option.")
@@ -258,67 +255,3 @@ def _select_ar_invoice():
     )
 
 
-# ============================================================
-# Verify Retencion
-# ============================================================
-
-def verify_retencion():
-    """Mark retencion as verified on an AR invoice."""
-    clear_screen()
-    print("\n=== Verify Retencion ===\n")
-
-    # Query AR invoices with retencion_applicable=true and retencion_verified=false
-    invoices = (
-        supabase.table("ar_invoices")
-        .select("id, invoice_number, invoice_date, subtotal, igv_rate, retencion_rate, currency, document_ref, projects(project_code), entities(legal_name)")
-        .eq("retencion_applicable", True)
-        .eq("retencion_verified", False)
-        .execute()
-    )
-
-    if not invoices.data:
-        print("  No unverified retencion invoices found.")
-        input("\nPress Enter to continue...")
-        return
-
-    print("  Unverified retencion invoices:")
-    for i, inv in enumerate(invoices.data, start=1):
-        proj = inv.get("projects", {}).get("project_code", "")
-        client = inv.get("entities", {}).get("legal_name", "")
-        print(f"    {i}. {proj} — {inv['invoice_number']} — {client}")
-    print()
-
-    selection = get_input("  Select invoice number: ")
-    try:
-        invoice = invoices.data[int(selection) - 1]
-    except (ValueError, IndexError):
-        print("\n✗ Invalid selection.")
-        input("\nPress Enter to continue...")
-        return
-
-    # Calculate retencion amount for display
-    subtotal = float(invoice["subtotal"])
-    igv_rate = float(invoice["igv_rate"])
-    retencion_rate = float(invoice.get("retencion_rate") or 3)
-    gross_total = subtotal * (1 + igv_rate / 100)
-    retencion_amount = gross_total * (retencion_rate / 100)
-
-    print(f"\n--- Invoice Details ---")
-    print(f"  Invoice:        {invoice['invoice_number']}")
-    print(f"  Project:        {invoice.get('projects', {}).get('project_code', '')}")
-    print(f"  Client:         {invoice.get('entities', {}).get('legal_name', '')}")
-    print(f"  Gross Total:    {invoice['currency']} {gross_total:,.2f}")
-    print(f"  Retencion ({retencion_rate}%): {invoice['currency']} {retencion_amount:,.2f}")
-    print(f"  Current status: NOT VERIFIED")
-
-    if not confirm("\nMark retencion as verified?"):
-        cancel_and_wait()
-        return
-
-    try:
-        supabase.table("ar_invoices").update({"retencion_verified": True}).eq("id", invoice["id"]).execute()
-        print(f"\n✓ Retencion verified for invoice {invoice['invoice_number']}.")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-
-    input("\nPress Enter to continue...")

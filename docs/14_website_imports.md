@@ -14,7 +14,7 @@ Move all data entry from the CLI to the website. The CLI becomes obsolete — al
 
 | Pattern | When to use | Examples |
 |---|---|---|
-| **Excel import** | Bulk data, many fields, line items | Costs + cost items, entities, quotes, AR invoices |
+| **Excel import** | Bulk data, many fields, line items | Invoices + invoice items, entities, quotes |
 | **Inline UI** | Few fields, simple records, contextual actions | Payments, loan repayments, bank accounts, loans, project partners, project entities, budgets |
 
 **Shared Excel import UX flow:**
@@ -176,38 +176,41 @@ Bulk creation of quotes received from suppliers. Matches existing `quotes.xlsx` 
 
 ---
 
-### 4. AP Calendar (Dashboard)
+### 4. Calendar (Dashboard)
 
 **Location:** Top-right area, next to filters.
 
-#### Import Costs — Excel import (two-step)
-The most complex import. Costs have headers + line items.
+#### Import Invoices — Excel import (two-step)
+The most complex import. Invoices have headers + line items.
 
 **Current approach (CLI):** Two separate imports — headers first, then items matched by a temporary reference. This is fragile and confusing.
 
-**New approach:** Single Excel file with denormalized rows. Each row is a cost item. Header fields repeat on every row — the system groups rows by a `group_key` column to create one cost header with multiple items.
+**New approach:** Single Excel file with denormalized rows. Each row is an invoice item. Header fields repeat on every row — the system groups rows by a `group_key` column to create one invoice header with multiple items.
 
 **Template columns:**
 
 | Column | Scope | Required | Notes |
 |---|---|---|---|
-| group_key | grouping | yes | User-defined key to group items into one cost (e.g., 1, 2, 3 or "A", "B") |
-| date | header | yes | Transaction date |
-| cost_type | header | yes | project_cost or sga |
+| group_key | grouping | yes | User-defined key to group items into one invoice (e.g., 1, 2, 3 or "A", "B") |
+| direction | header | yes | payable or receivable |
+| date | header | yes | Invoice date |
+| cost_type | header | conditional | project_cost or sga — payable only, null for receivable |
 | project_code | header | conditional | Required if cost_type = project_cost. Null if SGA |
-| bank_account_label | header | yes | Matches bank_accounts.label (e.g., "BCP-1234") |
-| entity_document_number | header | no | RUC/DNI — nullable for informal purchases |
+| partner_company_ruc | header | yes | Which partner incurred/issued the invoice |
+| entity_document_number | header | no | RUC/DNI — nullable for informal purchases (payable) |
 | igv_rate | header | yes | Default 0.18 |
 | detraccion_rate | header | no | |
+| retencion_applicable | header | no | true/false — receivable only |
+| retencion_rate | header | conditional | Required if retencion_applicable = true — receivable only |
 | currency | header | yes | USD or PEN |
 | exchange_rate | header | yes | |
 | comprobante_type | header | no | factura, boleta, recibo_por_honorarios, etc. |
-| comprobante_number | header | no | e.g., F001-00234 |
+| invoice_number | header | no | e.g., F001-00234 |
 | document_ref | header | no | e.g., PRY001-AP-001 |
-| due_date | header | no | Feeds AP calendar |
-| payment_method | header | no | bank_transfer, cash, check |
+| due_date | header | no | Feeds calendar |
+| payment_method | header | no | bank_transfer, cash, check — payable only |
 | item_title | item | yes | Line item description |
-| category | item | yes | Cost category |
+| category | item | conditional | Required for payable items |
 | quantity | item | no | |
 | unit_of_measure | item | no | |
 | unit_price | item | no | |
@@ -215,17 +218,17 @@ The most complex import. Costs have headers + line items.
 | item_notes | item | no | |
 
 **Validation:**
-- group_key groups must have consistent header fields (same date, project, bank account, etc.)
+- group_key groups must have consistent header fields (same date, project, partner, etc.)
 - project_code must exist (when provided)
-- bank_account_label must match an existing bank account
+- partner_company_ruc must match one of the 3 partner companies
 - entity_document_number must match an existing entity (when provided)
-- category must be a valid cost category for the cost_type
+- category must be a valid category for the cost_type
 - Each group must have at least one item row
 
-**Grouping logic:** All rows with the same `group_key` value become one cost header + N cost items. Header fields are taken from the first row of each group (validated as consistent across the group).
+**Grouping logic:** All rows with the same `group_key` value become one invoice header + N invoice items. Header fields are taken from the first row of each group (validated as consistent across the group).
 
 #### Register Payment — Action within row modal
-When a user clicks a cost row and opens the detail modal, an action button "Register Payment" appears.
+When a user clicks an invoice row and opens the detail modal, an action button "Register Payment" appears.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -240,58 +243,6 @@ When a user clicks a cost row and opens the detail modal, an action button "Regi
 Payment currency matches the parent cost's currency — not selectable.
 
 ---
-
-### 5. AR Outstanding (Dashboard)
-
-**Location:** Top-right area, next to filters.
-
-#### Import AR Invoices — Excel import
-Bulk creation of AR invoices issued to clients. Matches existing `ar_invoices.xlsx` template.
-
-**Template columns:**
-
-| Column | Required | Notes |
-|---|---|---|
-| project_code | yes | Must match existing project |
-| partner_company_ruc | yes | Which partner issued the invoice |
-| bank_account_label | yes | Regular receipt account |
-| client_document_number | yes | Client entity RUC — must exist in entities |
-| invoice_number | yes | Own numbering (from Alegra/Contasis) |
-| comprobante_type | yes | factura |
-| invoice_date | yes | |
-| due_date | no | |
-| subtotal | yes | Invoice subtotal |
-| igv_rate | yes | Default 0.18 |
-| detraccion_rate | no | |
-| retencion_applicable | yes | true/false |
-| retencion_rate | conditional | Required if retencion_applicable = true. Default 0.03 |
-| currency | yes | USD or PEN |
-| exchange_rate | yes | |
-| document_ref | no | e.g., PRY001-AR-001 |
-| notes | no | |
-
-**Validation:**
-- project_code must exist
-- partner_company_ruc must match one of the 3 partner companies
-- bank_account_label must match an existing bank account owned by the specified partner
-- client_document_number must match an existing entity
-- invoice_number uniqueness check
-- If retencion_applicable = true, retencion_rate must be provided
-
-#### Register Collection — Action within row modal
-When a user clicks an AR invoice row and opens the detail modal, an action button "Register Collection" appears.
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| Payment date | date | yes | |
-| Amount | number | yes | Cannot exceed outstanding balance |
-| Bank account | select | yes | Receiving account |
-| Payment type | select | yes | regular, detraccion, retencion |
-| Exchange rate | number | yes | Auto-suggest for today |
-| Reference | text | no | |
-| Notes | textarea | no | |
-
-Payment currency matches the parent AR invoice's currency.
 
 ---
 
@@ -365,8 +316,8 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 
 | Page | Reason |
 |---|---|
-| Cash Flow | Pure derived view — reads from costs, AR invoices, payments, loan_schedule |
-| Partner Balances | Pure derived view — reads from costs, AR invoices, payments, project_partners |
+| Cash Flow | Removed — previously a pure derived view |
+| Partner Balances | Removed — settlement now lives in project detail |
 
 ---
 
@@ -378,7 +329,7 @@ Loan schedule entries appear in AP Calendar as `type = 'loan_payment'`. Clicking
 | Mutation pattern | Next.js Server Actions | Matches existing server-side data fetching pattern |
 | Template delivery | Static files in `public/templates/` | Simple, cacheable, no generation |
 | Upload size limit | 5MB | Covers thousands of rows in .xlsx |
-| Cost insert | Reuse `fn_create_cost_with_items()` RPC | Already atomic (header + items in one call) |
+| Invoice insert | Reuse `fn_create_invoice_with_items()` RPC | Already atomic (header + items in one call) |
 | Form validation | zod schemas | Type-safe, composable, works on server |
 
 ---
@@ -390,8 +341,7 @@ RLS INSERT and UPDATE policies are already deployed for authenticated users on a
 - entities, entity_tags, entity_contacts
 - projects, project_partners, project_entities, project_budgets
 - quotes
-- costs, cost_items
-- ar_invoices
+- invoices, invoice_items
 - payments
 - loans, loan_schedule
 - bank_accounts
@@ -419,14 +369,13 @@ RLS INSERT and UPDATE policies are already deployed for authenticated users on a
 | Project budgets | Inline form | Projects detail panel | no (not needed) |
 | Entities | Excel import + modal | Entities page | yes |
 | Quotes | Excel import | Prices page | yes |
-| Costs + items | Excel import (single file) | AP Calendar | yes (will be redesigned) |
-| AR invoices | Excel import | AR Outstanding | yes |
-| Payments (AP) | Modal action | AP Calendar row detail | no (not needed) |
-| Collections (AR) | Modal action | AR Outstanding row detail | no (not needed) |
+| Invoices + items | Excel import (single file) | Calendar | yes (will be redesigned) |
+| Payments (AP) | Modal action | Calendar row detail | no (not needed) |
+| Collections (AR) | Modal action | Invoices row detail | no (not needed) |
 | Bank accounts | Modal | Financial Position | no (not needed) |
 | Loans | Modal | Financial Position | no (not needed) |
 | Loan schedule | Inline form | Loan detail | no (not needed) |
-| Loan repayments | Modal action | AP Calendar row detail | no (not needed) |
+| Loan repayments | Modal action | Calendar row detail | no (not needed) |
 | Entity tags | Dropdown (inline) | Entities detail panel | no (not needed) |
 | Entity contacts | Inline form | Entities detail panel | no (not needed) |
 
@@ -453,17 +402,16 @@ Small UIs first — establish mutation patterns before tackling complex Excel im
 - Project budgets inline form (2 fields, editable cells in existing table)
 
 ### Phase 3 — Action modals (contextual, need parent record)
-- Register Payment (AP Calendar cost detail modal)
-- Register Collection (AR Outstanding invoice detail modal)
+- Register Payment (Calendar invoice detail modal)
+- Register Collection (Invoices receivable detail modal)
 - Create Loan modal + loan schedule inline form
-- Register Loan Repayment (AP Calendar loan detail modal)
+- Register Loan Repayment (Calendar loan detail modal)
 
 ### Phase 4 — Excel imports (shared upload/preview infrastructure first)
 - Shared import UI: file upload component, preview table, error display, confirm flow
 - Entities import
 - Quotes import
-- AR invoices import
-- Costs import (most complex — grouped rows)
+- Invoices import (most complex — grouped rows, both directions)
 
 ---
 

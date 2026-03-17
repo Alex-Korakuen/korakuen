@@ -198,46 +198,6 @@ def validate_exchange_rate(row_num, row, field, errors):
         pass  # already caught by validate_nonneg_number
 
 
-def parse_bool(val):
-    """Parse a boolean value from Excel (handles Python bool, string, NaN).
-    Returns False for empty/NaN values."""
-    if isinstance(val, bool):
-        return val
-    if pd.isna(val):
-        return False
-    return str(val).strip().lower() == "true"
-
-
-def validate_boolean(row_num, row, field, errors):
-    """Check that a field value is a boolean (true/false). Skip if empty."""
-    val = row.get(field)
-    if is_empty(val):
-        return
-    # Pandas may read Excel booleans as Python bool
-    if isinstance(val, bool):
-        return
-    if str(val).strip().lower() not in ("true", "false"):
-        errors.append((row_num, field, "Must be true or false"))
-
-
-def validate_bank_account(row_num, row, lookups, errors):
-    """Check that bank_account label matches a known bank account. Skip if empty."""
-    val = row.get("bank_account")
-    if not is_empty(val):
-        label = cell_str(val)
-        if label not in lookups["bank_accounts"]:
-            errors.append((row_num, "bank_account", f"Bank account '{label}' not found"))
-
-
-def validate_partner_company(row_num, row, lookups, errors):
-    """Check that partner_company name matches a known partner. Skip if empty."""
-    val = row.get("partner_company")
-    if not is_empty(val):
-        name = cell_str(val)
-        if name not in lookups["partners"]:
-            errors.append((row_num, "partner_company", f"Partner company '{name}' not found"))
-
-
 def print_errors(errors, file_path):
     """Print a formatted error table to the terminal."""
     print(f"\n✗ {len(errors)} validation error(s) found:\n")
@@ -302,7 +262,3 @@ def load_partner_map():
     return {r["name"]: r["id"] for r in result.data}
 
 
-def load_quote_map():
-    """Return {document_ref: id} for all quotes with a document_ref."""
-    result = supabase.table("quotes").select("id, document_ref").execute()
-    return {r["document_ref"]: r["id"] for r in result.data if r.get("document_ref")}

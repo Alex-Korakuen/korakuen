@@ -150,7 +150,6 @@ Read these documents for context on specific tasks:
 | Understanding file/document references | `docs/07_file_storage.md` |
 | Knowing what to build next | `TODO.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
-| Understanding V1 unified invoice migration | `docs/16_v1_migration_plan.md` |
 | Writing import functions | `skills/import_script.md` + `docs/10_coding_standards.md` |
 | Understanding what skills to build and how | `skills/` directory (12_skills.md deleted — skills are the reference) |
 

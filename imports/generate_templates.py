@@ -144,81 +144,6 @@ ENTITIES = [
     },
 ]
 
-PROJECTS = [
-    {
-        "name": "project_code",
-        "example": "PRY001",
-        "description": "Optional. If blank, auto-generated as next sequential PRY###. If provided, must be unique and follow PRY### format.",
-        "allowed_values": "PRY### format",
-    },
-    {
-        "name": "name",
-        "example": "Pavimentación Av. Los Héroes",
-        "description": "Required. Project name.",
-        "allowed_values": "",
-    },
-    {
-        "name": "project_type",
-        "example": "subcontractor",
-        "description": "Required. Type of project.",
-        "allowed_values": "subcontractor | oxi",
-    },
-    {
-        "name": "status",
-        "example": "active",
-        "description": "Required. Current project status.",
-        "allowed_values": "prospect | active | completed | cancelled",
-    },
-    {
-        "name": "client_entity_document_number",
-        "example": "20612345678",
-        "description": "Optional. Document number of the client entity. Must exist in entities table. Nullable for prospects.",
-        "allowed_values": "Lookup → entities.document_number",
-    },
-    {
-        "name": "contract_value",
-        "example": "500000.00",
-        "description": "Optional. Total contract value. NUMERIC(15,2).",
-        "allowed_values": "",
-    },
-    {
-        "name": "contract_currency",
-        "example": "PEN",
-        "description": "Optional. Currency of contract value.",
-        "allowed_values": "USD | PEN",
-    },
-    {
-        "name": "start_date",
-        "example": "2026-03-15",
-        "description": "Optional. Project start date. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "expected_end_date",
-        "example": "2026-09-15",
-        "description": "Optional. Expected completion date. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "actual_end_date",
-        "example": "",
-        "description": "Optional. Actual completion date. Populated on completion. Format: YYYY-MM-DD.",
-        "allowed_values": "",
-    },
-    {
-        "name": "location",
-        "example": "Lima",
-        "description": "Optional. Region or city in Peru.",
-        "allowed_values": "",
-    },
-    {
-        "name": "notes",
-        "example": "Subcontract under Consorcio Vial",
-        "description": "Optional. Free text notes.",
-        "allowed_values": "",
-    },
-]
-
 QUOTES = [
     {
         "name": "project_code",
@@ -474,7 +399,6 @@ def main():
 
     templates = [
         ("entities.xlsx", ENTITIES),
-        ("projects.xlsx", PROJECTS),
         ("quotes.xlsx", QUOTES),
         ("invoices.xlsx", INVOICES),
     ]

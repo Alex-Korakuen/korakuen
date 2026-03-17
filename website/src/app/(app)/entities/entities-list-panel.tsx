@@ -22,6 +22,7 @@ type Props = {
   selectedId: string | null
   onSelect: (id: string | null) => void
   onCreateEntity: () => void
+  onImport: () => void
   hidden: boolean
 }
 
@@ -35,6 +36,7 @@ export function EntitiesListPanel({
   selectedId,
   onSelect,
   onCreateEntity,
+  onImport,
   hidden,
 }: Props) {
   const { setFilter } = useUrlFilters()
@@ -49,6 +51,12 @@ export function EntitiesListPanel({
             defaultValue={currentFilters.search}
           />
         </div>
+        <button
+          onClick={onImport}
+          className="shrink-0 self-end rounded border border-zinc-300 px-2 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
+        >
+          Import
+        </button>
         <button
           onClick={onCreateEntity}
           className="size-8 shrink-0 self-end rounded bg-blue-600 text-sm font-medium text-white transition-colors hover:bg-blue-700"

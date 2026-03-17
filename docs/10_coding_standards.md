@@ -66,17 +66,17 @@ The database schema in `docs/08_schema.md` is the single source of truth for all
 ### No Business Logic in Scripts
 Python CLI scripts collect input and call Supabase. Nothing else. All calculations belong in the database.
 
-- No IGV calculation in Python — derived in `v_cost_totals`
-- No balance calculation in Python — derived in `v_cost_balances`
+- No IGV calculation in Python — derived in `v_invoice_totals`
+- No balance calculation in Python — derived in `v_invoice_balances`
 - No payment status logic in Python — derived in views
 - If you're doing math in a CLI script, stop and ask whether it belongs in a view
 
 ### One Responsibility Per File
 Each file does one thing.
 
-- One CLI module per entity type (`costs.py` handles all cost operations — add single, import from Excel)
-- One view per derived concept (`v_cost_totals` computes cost totals, nothing else)
-- One query function per query (`getProjectCosts`, not `getProjectData`)
+- One CLI module per entity type (`quotes.py` handles all quote operations — add single, import from Excel)
+- One view per derived concept (`v_invoice_totals` computes invoice totals, nothing else)
+- One query function per query (`getPaymentsPage`, not `getPaymentsData`)
 
 ### No Dead Code
 Every file in the repository must be actively used. Files that no longer serve a purpose are deleted, not commented out or left "just in case."
@@ -239,10 +239,10 @@ src/
       callback/         → invite email token exchange
       set-password/     → invited users set initial password
     (app)/              → route group — all authenticated pages (sidebar + header)
-      page.tsx          → redirects / to /ap-calendar
-      ap-calendar/      → AP payment calendar (default landing)
-      ar-outstanding/   → AR outstanding & collections
-      cash-flow/        → cash flow dashboard
+      page.tsx          → redirects / to /calendar
+      calendar/         → obligation calendar — AP + AR (default landing)
+      invoices/         → invoice browse and detail
+      payments/         → payment browse and detail
       financial-position/ → balance sheet
       projects/         → project list and detail (includes partner settlement)
       entities/         → entity/contact directory
@@ -321,7 +321,7 @@ All destructive actions (soft-delete, remove from list) use a **trash bin icon**
 
 ### Commit Messages
 ```
-feat: add costs.py CLI module
+feat: add quotes.py CLI module
 fix: correct IGV calculation in cost_totals view
 docs: update schema with cost_items table
 chore: add .env.example file

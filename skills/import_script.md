@@ -339,10 +339,9 @@ Import 47 records? (y/n):
 Import functions must be run in dependency order matching the database schema layers:
 
 1. `entities.import_entities()` — no dependencies (Layer 1)
-2. `projects.import_projects()` — depends on entities for client lookup (Layer 2)
-3. `quotes.import_quotes()` — depends on projects and entities (Layer 3)
-4. Invoices import — depends on projects, entities, partner_companies (Layer 4)
-5. Invoice items import — depends on invoices (Layer 4)
+2. `quotes.import_quotes()` — depends on projects and entities (Layer 3)
+3. Invoices import — depends on projects, entities, partner_companies (Layer 4)
+4. Invoice items import — depends on invoices (Layer 4)
 
 ---
 

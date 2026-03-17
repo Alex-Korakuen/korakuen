@@ -149,6 +149,14 @@ export async function registerPayment(input: {
 
   if (error) return { error: error.message }
 
+  // Auto-verify retencion on the invoice when a retencion payment is registered
+  if (input.payment_type === 'retencion' && input.related_to === 'invoice') {
+    await supabase
+      .from('invoices')
+      .update({ retencion_verified: true })
+      .eq('id', input.related_id)
+  }
+
   revalidatePath('/calendar')
   revalidatePath('/invoices')
   revalidatePath('/payments')

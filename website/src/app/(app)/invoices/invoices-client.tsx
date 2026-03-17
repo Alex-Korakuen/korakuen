@@ -1,12 +1,16 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
+import { importInvoices } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
+
+const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
@@ -178,6 +182,9 @@ export function InvoicesClient({
   const router = useRouter()
   const { setFilter, setFilters, clearFilters } = useUrlFilters()
 
+  // Import state
+  const [showImport, setShowImport] = useState(false)
+
   // Modal state
   const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -308,6 +315,16 @@ export function InvoicesClient({
         />
       </div>
 
+      {/* Import button */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={() => setShowImport(true)}
+          className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+        >
+          Import
+        </button>
+      </div>
+
       {/* Filters */}
       <InvoicesFilters
         currentFilters={currentFilters}
@@ -335,6 +352,14 @@ export function InvoicesClient({
       >
         {renderModalContent()}
       </Modal>
+
+      {/* Import modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        title="Import Invoices"
+        onImport={importInvoices}
+      />
     </div>
   )
 }
