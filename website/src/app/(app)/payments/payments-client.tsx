@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailByScheduleId } from '@/lib/actions'
+import { Modal } from '@/components/ui/modal'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
@@ -28,17 +29,13 @@ type Props = {
 }
 
 const BUCKET_ORDER: { id: PaymentBucketId; label: string }[] = [
-  { id: 'today', label: 'Today' },
-  { id: 'last-7', label: 'Last 7 Days' },
   { id: 'last-30', label: 'Last 30 Days' },
 ]
 
-function getBucketColors(id: PaymentBucketId): { border: string; text: string } {
+function getBucketColors(id: PaymentBucketId): { text: string } {
   switch (id) {
-    case 'today': return { border: 'border-orange-400', text: 'text-orange-700' }
-    case 'last-7': return { border: 'border-blue-400', text: 'text-blue-700' }
-    case 'last-30': return { border: 'border-violet-400', text: 'text-violet-700' }
-    case 'previous': return { border: 'border-zinc-300', text: 'text-zinc-600' }
+    case 'last-30': return { text: 'text-violet-700' }
+    default: return { text: 'text-zinc-600' }
   }
 }
 
@@ -90,10 +87,9 @@ export function PaymentsClient({
 }: Props) {
   const { setFilter, clearFilters } = useUrlFilters()
 
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [expandedDetail, setExpandedDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
-  const [expandLoading, setExpandLoading] = useState(false)
-  const [expandedRow, setExpandedRow] = useState<PaymentsPageRow | null>(null)
+  const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
+  const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
+  const [modalLoading, setModalLoading] = useState(false)
 
   const hasActiveFilters =
     currentFilters.direction !== '' ||
@@ -105,40 +101,28 @@ export function PaymentsClient({
   const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.related, FK.project, FK.bank])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
-    if (expandedId === row.id) {
-      setExpandedId(null)
-      setExpandedDetail(null)
-      setExpandedRow(null)
-      return
-    }
-
-    setExpandedId(row.id)
-    setExpandedRow(row)
-    setExpandedDetail(null)
-    setExpandLoading(true)
+    setModalRow(row)
+    setModalDetail(null)
+    setModalLoading(true)
 
     try {
       if (row.related_to === 'loan_schedule' && row.related_id) {
         const detail = await fetchLoanDetailByScheduleId(row.related_id)
-        setExpandedDetail(detail)
+        setModalDetail(detail)
       } else if (row.related_id) {
         const detail = await fetchInvoiceDetail(row.related_id)
-        setExpandedDetail(detail)
+        setModalDetail(detail)
       }
     } catch {
-      setExpandedDetail(null)
+      setModalDetail(null)
     } finally {
-      setExpandLoading(false)
+      setModalLoading(false)
     }
-  }, [expandedId])
+  }, [])
 
-  function renderExpandContent(row: PaymentsPageRow) {
-    return (
-      <PaymentExpandContent
-        row={row}
-        relatedDetail={expandedDetail}
-      />
-    )
+  const handleCloseModal = () => {
+    setModalRow(null)
+    setModalDetail(null)
   }
 
   return (
@@ -168,11 +152,26 @@ export function PaymentsClient({
         totalCount={totalCount}
         page={page}
         pageSize={pageSize}
-        expandedId={expandedId}
-        expandLoading={expandLoading}
         onRowClick={handleRowClick}
-        renderExpandContent={renderExpandContent}
       />
+
+      {/* Detail modal */}
+      <Modal
+        isOpen={modalRow !== null}
+        onClose={handleCloseModal}
+        title="Payment Detail"
+      >
+        {modalLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <span className="text-sm text-zinc-400">Loading detail...</span>
+          </div>
+        ) : modalRow ? (
+          <PaymentExpandContent
+            row={modalRow}
+            relatedDetail={modalDetail}
+          />
+        ) : null}
+      </Modal>
     </div>
   )
 }

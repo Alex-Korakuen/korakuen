@@ -70,8 +70,8 @@ export async function getPaymentsPage(
     count: 0,
   })
   const buckets: Record<PaymentBucketId, PaymentBucketSummary> = {
-    'today': emptyBucket(),
-    'last-7': emptyBucket(),
+    'today': emptyBucket(),    // unused — folded into last-30
+    'last-7': emptyBucket(),   // unused — folded into last-30
     'last-30': emptyBucket(),
     'previous': emptyBucket(),
   }
@@ -83,7 +83,10 @@ export async function getPaymentsPage(
   }
   for (const r of rows) {
     const amt = r.amount ?? 0
-    const bucket = r.payment_date ? buckets[getPaymentBucket(r.payment_date)] : buckets.previous
+    const rawBucket = r.payment_date ? getPaymentBucket(r.payment_date) : 'previous'
+    // Fold today and last-7 into last-30 for the single-bucket summary
+    const bucketId: PaymentBucketId = (rawBucket === 'today' || rawBucket === 'last-7') ? 'last-30' : rawBucket
+    const bucket = buckets[bucketId]
     bucket.count++
     if (r.direction === 'inbound') {
       if (r.currency === 'PEN') { summary.inflows.pen += amt; bucket.inflows.pen += amt }

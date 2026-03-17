@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
+import { Modal } from '@/components/ui/modal'
 import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
@@ -177,11 +178,10 @@ export function InvoicesClient({
   const router = useRouter()
   const { setFilter, setFilters, clearFilters } = useUrlFilters()
 
-  // Inline expand state
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [expandedDetail, setExpandedDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
-  const [expandLoading, setExpandLoading] = useState(false)
-  const [expandedRow, setExpandedRow] = useState<InvoicesPageRow | null>(null)
+  // Modal state
+  const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
+  const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
+  const [modalLoading, setModalLoading] = useState(false)
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -202,50 +202,60 @@ export function InvoicesClient({
 
   const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.bucket])
 
-  const handleRowClick = useCallback(async (row: InvoicesPageRow) => {
-    if (expandedId === row.id) {
-      setExpandedId(null)
-      setExpandedDetail(null)
-      setExpandedRow(null)
-      return
-    }
-
-    setExpandedId(row.id)
-    setExpandedRow(row)
-    setExpandedDetail(null)
-    setExpandLoading(true)
-
+  const fetchDetail = useCallback(async (row: InvoicesPageRow) => {
+    setModalDetail(null)
+    setModalLoading(true)
     try {
       if (row.type === 'loan' && row.loan_id) {
         const detail = await fetchLoanDetailById(row.loan_id)
-        setExpandedDetail(detail)
+        setModalDetail(detail)
       } else {
         const detail = await fetchInvoiceDetail(row.id)
-        setExpandedDetail(detail)
+        setModalDetail(detail)
       }
     } catch {
-      setExpandedDetail(null)
+      setModalDetail(null)
     } finally {
-      setExpandLoading(false)
+      setModalLoading(false)
     }
-  }, [expandedId])
+  }, [])
+
+  const handleRowClick = useCallback(async (row: InvoicesPageRow) => {
+    setModalRow(row)
+    await fetchDetail(row)
+  }, [fetchDetail])
+
+  const handleCloseModal = () => {
+    setModalRow(null)
+    setModalDetail(null)
+  }
 
   const handlePaymentSuccess = useCallback(() => {
-    if (expandedRow) {
-      handleRowClick(expandedRow)
+    if (modalRow) {
+      fetchDetail(modalRow)
     }
     router.refresh()
-  }, [expandedRow, handleRowClick, router])
+  }, [modalRow, fetchDetail, router])
 
-  function renderExpandContent(row: InvoicesPageRow) {
-    if (!expandedDetail) {
+  function renderModalContent() {
+    if (!modalRow) return null
+
+    if (modalLoading) {
+      return (
+        <div className="flex items-center justify-center py-6">
+          <span className="text-sm text-zinc-400">Loading detail...</span>
+        </div>
+      )
+    }
+
+    if (!modalDetail) {
       return <p className="px-4 py-3 text-sm text-zinc-400">Could not load detail.</p>
     }
 
-    if (row.type === 'loan') {
+    if (modalRow.type === 'loan') {
       return (
         <LoanExpandContent
-          detail={expandedDetail as LoanDetailData}
+          detail={modalDetail as LoanDetailData}
           onRepaymentSuccess={handlePaymentSuccess}
         />
       )
@@ -253,11 +263,20 @@ export function InvoicesClient({
 
     return (
       <InvoiceExpandContent
-        detail={expandedDetail as InvoiceDetailData}
+        detail={modalDetail as InvoiceDetailData}
         onPaymentSuccess={handlePaymentSuccess}
       />
     )
   }
+
+  // Modal title based on row type
+  const modalTitle = modalRow
+    ? modalRow.type === 'loan'
+      ? 'Loan Detail'
+      : modalRow.invoice_number
+        ? `Invoice ${modalRow.invoice_number}`
+        : 'Invoice Detail'
+    : ''
 
   return (
     <div>
@@ -299,18 +318,23 @@ export function InvoicesClient({
         onClearFilters={handleClearFilters}
       />
 
-      {/* Table with inline expand */}
+      {/* Table */}
       <InvoicesTable
         data={data}
         totalCount={totalCount}
         page={page}
         pageSize={pageSize}
-        expandedId={expandedId}
-        expandLoading={expandLoading}
-        expandedDetail={expandedDetail}
         onRowClick={handleRowClick}
-        renderExpandContent={renderExpandContent}
       />
+
+      {/* Detail modal */}
+      <Modal
+        isOpen={modalRow !== null}
+        onClose={handleCloseModal}
+        title={modalTitle}
+      >
+        {renderModalContent()}
+      </Modal>
     </div>
   )
 }

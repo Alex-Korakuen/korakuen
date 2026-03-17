@@ -19,10 +19,7 @@ type Props = {
   totalCount: number
   page: number
   pageSize: number
-  expandedId: string | null
-  expandLoading: boolean
   onRowClick: (row: PaymentsPageRow) => void
-  renderExpandContent: (row: PaymentsPageRow) => React.ReactNode
 }
 
 export function PaymentsTable({
@@ -30,10 +27,7 @@ export function PaymentsTable({
   totalCount,
   page,
   pageSize,
-  expandedId,
-  expandLoading,
   onRowClick,
-  renderExpandContent,
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('payment_date')
 
@@ -86,19 +80,43 @@ export function PaymentsTable({
                 </td>
               </tr>
             ) : (
-              data.map((row) => {
-                const isExpanded = expandedId === row.id
-                return (
-                  <PaymentRow
-                    key={row.id}
-                    row={row}
-                    isExpanded={isExpanded}
-                    expandLoading={expandLoading}
-                    onRowClick={onRowClick}
-                    renderExpandContent={renderExpandContent}
-                  />
-                )
-              })
+              data.map((row) => (
+                <tr
+                  key={row.id}
+                  className="cursor-pointer transition-colors hover:bg-zinc-50"
+                  onClick={() => onRowClick(row)}
+                >
+                  <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                    {row.payment_date ? formatDate(row.payment_date) : '--'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+                    {getRelatedLabel(row.related_to, row.invoice_number)}
+                  </td>
+                  <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
+                    {row.entity_name ?? '--'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+                    {row.project_code ?? '--'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <StatusBadge
+                      label={getPaymentTypeLabel(row.payment_type)}
+                      variant={getPaymentTypeBadgeVariant(row.payment_type)}
+                    />
+                  </td>
+                  <td className="max-w-[150px] truncate px-3 py-3 text-xs text-zinc-500">
+                    {row.bank_name ?? '--'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
+                    {formatCurrency(row.amount, row.currency)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getDirectionColorClass(row.direction)}`}>
+                      {getDirectionLabel(row.direction)}
+                    </span>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -107,72 +125,6 @@ export function PaymentsTable({
       <div className="mt-3">
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
       </div>
-    </>
-  )
-}
-
-function PaymentRow({
-  row,
-  isExpanded,
-  expandLoading,
-  onRowClick,
-  renderExpandContent,
-}: {
-  row: PaymentsPageRow
-  isExpanded: boolean
-  expandLoading: boolean
-  onRowClick: (row: PaymentsPageRow) => void
-  renderExpandContent: (row: PaymentsPageRow) => React.ReactNode
-}) {
-  return (
-    <>
-      <tr
-        className={`cursor-pointer transition-colors hover:bg-zinc-50 ${isExpanded ? 'bg-zinc-50' : ''}`}
-        onClick={() => onRowClick(row)}
-      >
-        <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
-          {row.payment_date ? formatDate(row.payment_date) : '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {getRelatedLabel(row.related_to, row.invoice_number)}
-        </td>
-        <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
-          {row.entity_name ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {row.project_code ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3">
-          <StatusBadge
-            label={getPaymentTypeLabel(row.payment_type)}
-            variant={getPaymentTypeBadgeVariant(row.payment_type)}
-          />
-        </td>
-        <td className="max-w-[150px] truncate px-3 py-3 text-xs text-zinc-500">
-          {row.bank_name ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
-          {formatCurrency(row.amount, row.currency)}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getDirectionColorClass(row.direction)}`}>
-            {getDirectionLabel(row.direction)}
-          </span>
-        </td>
-      </tr>
-      {isExpanded && (
-        <tr>
-          <td colSpan={8} className="border-t border-zinc-200 bg-zinc-50/50">
-            {expandLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <span className="text-sm text-zinc-400">Loading detail...</span>
-              </div>
-            ) : (
-              renderExpandContent(row)
-            )}
-          </td>
-        </tr>
-      )}
     </>
   )
 }

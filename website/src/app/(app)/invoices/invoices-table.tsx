@@ -10,18 +10,14 @@ import {
   getStatusLabel,
   getStatusVariant,
 } from './helpers'
-import type { InvoicesPageRow, InvoiceDetailData, LoanDetailData } from '@/lib/types'
+import type { InvoicesPageRow } from '@/lib/types'
 
 type Props = {
   data: InvoicesPageRow[]
   totalCount: number
   page: number
   pageSize: number
-  expandedId: string | null
-  expandLoading: boolean
-  expandedDetail: InvoiceDetailData | LoanDetailData | null
   onRowClick: (row: InvoicesPageRow) => void
-  renderExpandContent: (row: InvoicesPageRow) => React.ReactNode
 }
 
 export function InvoicesTable({
@@ -29,10 +25,7 @@ export function InvoicesTable({
   totalCount,
   page,
   pageSize,
-  expandedId,
-  expandLoading,
   onRowClick,
-  renderExpandContent,
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
 
@@ -96,20 +89,47 @@ export function InvoicesTable({
               </tr>
             ) : (
               data.map((row) => {
-                const isExpanded = expandedId === row.id
                 const daysOverdue = row.due_date
                   ? Math.floor((Date.now() - new Date(row.due_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
                   : 0
+                const borderClass = row.payment_status !== 'paid' && daysOverdue > 0
+                  ? getAgingRowBorderClass(daysOverdue)
+                  : ''
+
                 return (
-                  <InvoiceRow
+                  <tr
                     key={row.id}
-                    row={row}
-                    daysOverdue={daysOverdue}
-                    isExpanded={isExpanded}
-                    expandLoading={expandLoading}
-                    onRowClick={onRowClick}
-                    renderExpandContent={renderExpandContent}
-                  />
+                    className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass}`}
+                    onClick={() => onRowClick(row)}
+                  >
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                      {row.due_date ? formatDate(row.due_date) : '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+                      {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
+                    </td>
+                    <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
+                      {row.entity_name ?? '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+                      {row.project_code ?? '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-700">
+                      {formatCurrency(row.total, row.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
+                      {row.outstanding > 0 ? formatCurrency(row.outstanding, row.currency) : '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-600">
+                      {row.bdn_outstanding > 0 ? formatCurrency(row.bdn_outstanding, row.currency) : '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <StatusBadge
+                        label={getStatusLabel(row.payment_status)}
+                        variant={getStatusVariant(row.payment_status)}
+                      />
+                    </td>
+                  </tr>
                 )
               })
             )}
@@ -120,76 +140,6 @@ export function InvoicesTable({
       <div className="mt-3">
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
       </div>
-    </>
-  )
-}
-
-function InvoiceRow({
-  row,
-  daysOverdue,
-  isExpanded,
-  expandLoading,
-  onRowClick,
-  renderExpandContent,
-}: {
-  row: InvoicesPageRow
-  daysOverdue: number
-  isExpanded: boolean
-  expandLoading: boolean
-  onRowClick: (row: InvoicesPageRow) => void
-  renderExpandContent: (row: InvoicesPageRow) => React.ReactNode
-}) {
-  const borderClass = row.payment_status !== 'paid' && daysOverdue > 0
-    ? getAgingRowBorderClass(daysOverdue)
-    : ''
-
-  return (
-    <>
-      <tr
-        className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass} ${isExpanded ? 'bg-zinc-50' : ''}`}
-        onClick={() => onRowClick(row)}
-      >
-        <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
-          {row.due_date ? formatDate(row.due_date) : '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
-        </td>
-        <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
-          {row.entity_name ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-          {row.project_code ?? '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-700">
-          {formatCurrency(row.total, row.currency)}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
-          {row.outstanding > 0 ? formatCurrency(row.outstanding, row.currency) : '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-600">
-          {row.bdn_outstanding > 0 ? formatCurrency(row.bdn_outstanding, row.currency) : '--'}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3">
-          <StatusBadge
-            label={getStatusLabel(row.payment_status)}
-            variant={getStatusVariant(row.payment_status)}
-          />
-        </td>
-      </tr>
-      {isExpanded && (
-        <tr>
-          <td colSpan={8} className="border-t border-zinc-200 bg-zinc-50/50">
-            {expandLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <span className="text-sm text-zinc-400">Loading detail...</span>
-              </div>
-            ) : (
-              renderExpandContent(row)
-            )}
-          </td>
-        </tr>
-      )}
     </>
   )
 }
