@@ -60,7 +60,7 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
             {paymentFormProps.detraccionAmount > 0 && (
               <>
                 <span className="text-zinc-300">&middot;</span>
-                <span>BdN: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
+                <span>Banco de la Nación: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
               </>
             )}
             {paymentFormProps.retencionAmount > 0 && (
