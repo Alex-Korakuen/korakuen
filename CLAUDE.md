@@ -18,7 +18,7 @@ The system replaces spreadsheets with a structured database. It gives the partne
 
 **The database is the product. The website is how data gets in and out.**
 
-- Data entry: Website (primary) + Python CLI (legacy, 6 modules remaining)
+- Data entry: Website
 - Data storage: PostgreSQL on Supabase
 - Data visualization: Next.js website on Vercel
 - File storage: SharePoint (external, referenced by naming convention only)
@@ -31,10 +31,8 @@ The system replaces spreadsheets with a structured database. It gives the partne
 |---|---|
 | Database | PostgreSQL on Supabase |
 | Database management | Supabase CLI (migrations, views, SQL execution) |
-| CLI application | Python 3.11+ |
 | Website | Next.js + TypeScript on Vercel |
-| Package manager (Python) | pip + virtualenv |
-| Package manager (JS) | npm |
+| Package manager | npm |
 
 ---
 
@@ -45,35 +43,16 @@ korakuen/
 ├── skills/                 → Claude Code skill files (read before performing each task)
 │   ├── sql_schema.md
 │   ├── sql_views.md
-│   ├── cli_script.md
-│   ├── import_script.md
 │   ├── ts_types.md
 │   └── codebase_audit.md
-├── cli/                    → Python CLI application (legacy — costs/AR modules removed in V1)
-│   ├── main.py             → single entry point (python main.py)
-│   ├── modules/            → one module per entity type
-│   │   ├── projects.py
-│   │   ├── entities.py
-│   │   ├── quotes.py
-│   │   ├── payments.py
-│   │   ├── loans.py
-│   │   └── exchange_rates.py
-│   ├── lib/
-│   │   ├── db.py           → shared Supabase client
-│   │   ├── helpers.py      → shared input helpers
-│   │   └── import_helpers.py → shared import validation
-│   └── requirements.txt
 ├── supabase/
 │   ├── migrations/         → timestamped SQL migration files (Supabase CLI format)
 │   ├── views/              → individual SQL view definitions (combined into migration for deploy)
 │   └── seeds/              → initial data SQL
-├── website/                → Next.js visualization website
+├── website/                → Next.js website (data entry + visualization)
 │   ├── src/app/            → pages and routes
 │   ├── src/components/     → reusable components
 │   └── src/lib/            → Supabase client, types, queries
-├── imports/                → Excel templates for bulk data import
-│   ├── generate_templates.py → script to create .xlsx templates
-│   └── templates/          → one .xlsx template per entity type
 └── docs/                   → all documentation
 ```
 
@@ -126,8 +105,6 @@ Before performing any of these tasks, read the corresponding skill file first.
 |---|---|
 | Write CREATE TABLE SQL | `skills/sql_schema.md` |
 | Write database view SQL | `skills/sql_views.md` |
-| Write a Python CLI module | `skills/cli_script.md` |
-| Write import functions within a CLI module | `skills/import_script.md` |
 | Generate or update TypeScript types | `skills/ts_types.md` |
 | Audit the codebase | `skills/codebase_audit.md` |
 
@@ -142,7 +119,6 @@ Read these documents for context on specific tasks:
 | Task | Read First |
 |---|---|
 | Any database work | `docs/08_schema.md` |
-| Writing CLI modules | `docs/10_coding_standards.md` + `docs/11_environment_setup.md` |
 | Understanding business context | `docs/01_business_context.md` |
 | Understanding architecture decisions | `docs/02_system_architecture.md` |
 | Understanding module behavior | `docs/03_module_specifications.md` |
@@ -150,8 +126,6 @@ Read these documents for context on specific tasks:
 | Understanding file/document references | `docs/07_file_storage.md` |
 | Knowing what to build next | `TODO.md` |
 | Understanding tech evolution (V0→V1→V2) | `docs/06_tech_evolution.md` |
-| Writing import functions | `skills/import_script.md` + `docs/10_coding_standards.md` |
-| Understanding what skills to build and how | `skills/` directory (12_skills.md deleted — skills are the reference) |
 
 ---
 
@@ -206,7 +180,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** CLI application (6 modules), database (17 tables, 10 views), and visualization website (7 pages) are all built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`.
+**Development complete.** Database (17 tables, 10 views) and website (7 pages) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
 
 **Key architecture:** Universal partner filter (cookie-based, sidebar toggle) applied across all 7 pages. All data is visible to everyone — loans, financial position, everything. Partners are toggled freely via the sidebar filter; Apply button refreshes data. No role-based visibility restrictions.
 

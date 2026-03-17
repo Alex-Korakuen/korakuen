@@ -200,7 +200,7 @@ CLI scripts only collect input and call the database. All calculations (subtotal
 ### Naming Conventions
 - **Tables:** snake_case, plural nouns — `invoices`, `invoice_items`, `bank_accounts`
 - **Columns:** snake_case — `partner_company_id`, `is_active`, `created_at`
-- **Views:** snake_case, `v_` prefix, descriptive — `v_invoice_totals`, `v_ap_calendar`, `v_loan_balances`
+- **Views:** snake_case, `v_` prefix, descriptive — `v_invoice_totals`, `v_obligation_calendar`, `v_loan_balances`
 - **Indexes:** `idx_[table]_[column]` — `idx_invoices_project_id`
 - **Foreign keys:** `fk_[table]_[referenced_table]` — `fk_invoices_projects`
 

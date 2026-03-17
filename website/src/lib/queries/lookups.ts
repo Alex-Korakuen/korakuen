@@ -134,13 +134,3 @@ export async function getProjectCategories(): Promise<CategoryOption[]> {
   return data ?? []
 }
 
-export async function getTags(): Promise<{ id: string; name: string }[]> {
-  const supabase = await createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('tags')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name')
-  if (error) throw error
-  return data ?? []
-}

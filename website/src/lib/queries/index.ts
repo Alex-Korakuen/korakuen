@@ -17,7 +17,6 @@ export {
   searchEntities,
   getNextProjectCode,
   getProjectCategories,
-  getTags,
 } from './lookups'
 export type { BankAccountOption } from './lookups'
 export type { PartnerCompanyOption, CategoryOption } from './lookups'

@@ -14,19 +14,12 @@ When a partner is removed from a project, their historical invoices and payments
 Ok
 ---
 
-## CLI-Only Capabilities (no website equivalent)
+## Website Features Needed
 
-| # | Capability | Table | Impact |
-|---|---|---|---|
-| 1 | Create new tag | tags | Low — tags rarely created, can use Supabase Dashboard |
-| 2 | Add/update exchange rate | exchange_rates | High — rates need daily entry, no website equivalent |
-| 3 | List recent rates | exchange_rates | Low — informational only |
-
-### Resolved
-
-- ~~Import projects (Excel)~~ — Removed. Create Project modal on website is sufficient.
-- ~~Add single quote~~ — Bulk import covers single quotes. No gap.
-- ~~Verify retencion~~ — Now automatic. Registering a `payment_type = 'retencion'` payment auto-sets `retencion_verified = true` on the invoice.
+| # | Capability | Notes |
+|---|---|---|
+| 1 | Add/update exchange rate | Rates need daily entry — previously CLI-only, needs website form |
+| 2 | Create new tag | Low priority — tags rarely created, can use Supabase Dashboard |
 
 ---
 

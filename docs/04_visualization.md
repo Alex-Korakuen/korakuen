@@ -126,7 +126,7 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Row click:** Opens modal showing full cost details — cost items, payment history, document_ref, bank account, comprobante info.
 
-**Loan obligations:** `v_ap_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. Filterable by partner via the global partner filter.
+**Loan obligations:** `v_obligation_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. Filterable by partner via the global partner filter.
 
 **Taxes tab:**
 

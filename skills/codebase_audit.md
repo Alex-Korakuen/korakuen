@@ -3,7 +3,6 @@
 **Trigger:** Run periodically, before any major phase transition, or when inconsistencies are suspected.
 
 **Input:**
-- All files in `cli/`
 - All files in `supabase/`
 - All files in `website/lib/` and `website/app/`
 - `docs/08_schema.md` — the source of truth
@@ -25,23 +24,15 @@
 - [ ] The 6 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). All tables have `created_at`. All tables have `updated_at` except `entity_tags`
 - [ ] TypeScript types in `database.types.ts` match current schema — regenerate if schema changed
 - [ ] Enum values in `types.ts` match VARCHAR values in schema exactly
-- [ ] CLI scripts reference field names that exist in the current schema
 
 ### Category 2 — Coding Standards
 
-- [ ] All CLI scripts use `from lib.db import supabase` — never direct import
-- [ ] All CLI scripts use `from lib.helpers import ...` for input/confirm/list
-- [ ] All CLI scripts show confirmation summary before inserting
-- [ ] All CLI scripts have success/error messages with try/except
-- [ ] No business logic (calculations) in CLI scripts — only in database
 - [ ] All view SQL files have header comments
 - [ ] All TypeScript files use no `any` types
 - [ ] All query functions in `website/lib/queries.ts` — not inline in components
 
 ### Category 3 — DRY Violations
 
-- [ ] No duplicated input helper code across CLI scripts — all in `lib/helpers.py`
-- [ ] No duplicated Supabase client initialization — all in `lib/db.py`
 - [ ] No duplicated query logic across website pages — all in `lib/queries.ts`
 - [ ] No duplicated currency formatting — all in `lib/formatters.ts`
 - [ ] No duplicated TypeScript types — all in `lib/types.ts`
@@ -52,19 +43,17 @@
 - [ ] No Supabase keys hardcoded anywhere in code
 - [ ] Service role key not referenced in website code — only anon key
 - [ ] `.env.example` exists and has all required variable names with empty values
-- [ ] `.gitignore` includes `.env`, `.env.local`, `venv/`, `node_modules/`
+- [ ] `.gitignore` includes `.env`, `.env.local`, `node_modules/`
 
 ### Category 5 — Documentation Drift
 
 - [ ] `TODO.md` task statuses reflect actual completion state
 - [ ] Any new architectural decision made during development is recorded in `02_system_architecture.md`
-- [ ] Any new CLI script is listed in `10_coding_standards.md` file naming section
 - [ ] `CLAUDE.md` current status section reflects actual phase
 
 ### Category 6 — Dead Files
 
 - [ ] No commented-out code blocks anywhere in the codebase
-- [ ] No unused functions in `cli/lib/helpers.py` or `cli/lib/db.py`
 - [ ] No unused query functions in `website/lib/queries.ts`
 - [ ] No unused TypeScript types in `website/lib/types.ts`
 - [ ] No unused React components in `website/components/`

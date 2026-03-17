@@ -21,11 +21,3 @@ export function getPaymentBucket(dateStr: string): 'today' | 'last-7' | 'last-30
   return 'previous'
 }
 
-/** Maps days overdue to an aging bucket for AR outstanding. */
-export function getAgingBucket(daysOverdue: number): 'current' | '1-30' | '31-60' | '61-90' | '90+' {
-  if (daysOverdue <= 0) return 'current'
-  if (daysOverdue <= 30) return '1-30'
-  if (daysOverdue <= 60) return '31-60'
-  if (daysOverdue <= 90) return '61-90'
-  return '90+'
-}
