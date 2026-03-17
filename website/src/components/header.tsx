@@ -12,7 +12,6 @@ const pageTitles: Record<string, string> = {
   '/invoices': 'Invoices',
   '/payments': 'Payments',
   '/calendar': 'Calendar',
-  '/cash-flow': 'Cash Flow',
   '/financial-position': 'Financial Position',
   '/settings/password': 'Change Password',
 }

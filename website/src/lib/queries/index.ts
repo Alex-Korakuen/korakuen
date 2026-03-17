@@ -3,7 +3,6 @@
 export { getObligationCalendar, getCalendarBucket } from './calendar'
 export { getInvoicesPage, getInvoiceDetail, getLoanDetail } from './invoices'
 export { getPaymentsPage } from './payments'
-export { getCashFlow } from './cash-flow'
 export { getFinancialPosition, getBankTransactions } from './financial-position'
 export { getProjectsList, getProjectDetail, getPartnerPayableDetails, getPartnerReceivableDetails } from './projects'
 export { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from './entities'

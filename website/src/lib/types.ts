@@ -187,39 +187,6 @@ export type PartnerReceivableDetail = {
   amount_pen: number
 }
 
-// --- Cash Flow component types ---
-
-export type CashFlowMonth = {
-  month: string // YYYY-MM format
-  label: string // "Jan 2026"
-  isActual: boolean // true for past months, false for forecast
-  isCurrentMonth: boolean // true for the current month only
-  cashIn: number // sum of all project cash in + loans
-  cashInByProject: Record<string, number> // project_id -> amount
-  loansCashIn: number // loan disbursements received
-  materials: number
-  labor: number
-  subcontractor: number
-  equipment: number
-  other: number
-  projectCosts: number // sum of material/labor/subcontractor/equipment/other
-  sga: number // SG&A overhead costs
-  loanRepayment: number
-  cashOut: number // projectCosts + sga + loanRepayment
-  net: number // cashIn - cashOut
-}
-
-export type CashFlowProject = {
-  id: string
-  code: string
-  name: string
-}
-
-export type CashFlowData = {
-  months: CashFlowMonth[]
-  projects: CashFlowProject[] // projects that have cash in during the period
-}
-
 // --- Financial Position component types ---
 
 export type BankAccountCard = {

@@ -153,7 +153,6 @@ export async function registerPayment(input: {
   revalidatePath('/invoices')
   revalidatePath('/payments')
   revalidatePath('/financial-position')
-  revalidatePath('/cash-flow')
   return {}
 }
 
@@ -585,6 +584,5 @@ export async function registerLoanRepayment(data: {
   revalidatePath('/invoices')
   revalidatePath('/payments')
   revalidatePath('/financial-position')
-  revalidatePath('/cash-flow')
   return {}
 }
