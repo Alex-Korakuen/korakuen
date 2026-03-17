@@ -127,15 +127,6 @@ export function PaymentsClient({
 
   return (
     <div>
-      {/* Bucket summary bars */}
-      <div className="mb-4">
-        {BUCKET_ORDER.map(({ id, label }) => {
-          const bucket = summary.buckets[id]
-          if (bucket.count === 0) return null
-          return <BucketBar key={id} id={id} label={label} bucket={bucket} />
-        })}
-      </div>
-
       {/* Filters */}
       <PaymentsFilters
         currentFilters={currentFilters}
@@ -154,6 +145,17 @@ export function PaymentsClient({
         pageSize={pageSize}
         onRowClick={handleRowClick}
       />
+
+      {/* Bucket summary bar — sticky at bottom of scroll area */}
+      {BUCKET_ORDER.map(({ id, label }) => {
+        const bucket = summary.buckets[id]
+        if (bucket.count === 0) return null
+        return (
+          <div key={id} className="sticky bottom-0 -mx-6 -mb-6 z-30">
+            <BucketBar id={id} label={label} bucket={bucket} />
+          </div>
+        )
+      })}
 
       {/* Detail modal */}
       <Modal

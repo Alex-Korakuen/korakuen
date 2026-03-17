@@ -71,19 +71,13 @@ export function InvoicesTable({
               >
                 Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th
-                className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
-                onClick={() => handleSort('bdn_outstanding')}
-              >
-                BdN <SortIndicator column="bdn_outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
               <th className="px-3 py-3">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
                   No invoices found
                 </td>
               </tr>
@@ -118,10 +112,7 @@ export function InvoicesTable({
                       {formatCurrency(row.total, row.currency)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
-                      {row.outstanding > 0 ? formatCurrency(row.outstanding, row.currency) : '--'}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-600">
-                      {row.bdn_outstanding > 0 ? formatCurrency(row.bdn_outstanding, row.currency) : '--'}
+                      {row.outstanding + row.bdn_outstanding > 0 ? formatCurrency(row.outstanding + row.bdn_outstanding, row.currency) : '--'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <StatusBadge
