@@ -22,6 +22,8 @@ type PaymentFormProps = {
   payable: number
   bdnOutstanding: number
   retencionOutstanding?: number
+  detraccionAmount: number
+  retencionAmount: number
   onSuccess: () => void
 }
 
@@ -52,11 +54,21 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
             {formOpen ? '×' : '+'}
           </button>
         )}
-        {paymentFormProps && paymentFormProps.bdnOutstanding > 0 && (
+        {paymentFormProps && (paymentFormProps.detraccionAmount > 0 || paymentFormProps.retencionAmount > 0) && (
           <div className="ml-auto flex gap-3 text-xs text-zinc-500">
             <span>Regular: <span className="font-mono">{formatCurrency(paymentFormProps.payable, paymentFormProps.currency)}</span></span>
-            <span className="text-zinc-300">&middot;</span>
-            <span>BdN: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
+            {paymentFormProps.detraccionAmount > 0 && (
+              <>
+                <span className="text-zinc-300">&middot;</span>
+                <span>BdN: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
+              </>
+            )}
+            {paymentFormProps.retencionAmount > 0 && (
+              <>
+                <span className="text-zinc-300">&middot;</span>
+                <span>Ret: <span className="font-mono">{formatCurrency(paymentFormProps.retencionOutstanding ?? 0, paymentFormProps.currency)}</span></span>
+              </>
+            )}
           </div>
         )}
       </div>

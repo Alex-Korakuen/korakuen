@@ -140,6 +140,8 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
                 payable: invoicePayable,
                 bdnOutstanding,
                 retencionOutstanding,
+                detraccionAmount: invoiceDetraccion,
+                retencionAmount: invoiceRetencion,
                 onSuccess: onPaymentSuccess,
               }
             : undefined
