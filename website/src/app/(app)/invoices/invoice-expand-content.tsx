@@ -16,16 +16,14 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
 
   const currency = invoice.currency ?? 'PEN'
 
-  // Use view-computed values (handles cross-currency detraccion correctly)
+  // All derived values pre-computed by v_invoice_balances
   const invoiceDetraccion = invoice.detraccion_amount ?? 0
   const invoiceRetencion = invoice.retencion_amount ?? 0
   const invoiceOutstanding = invoice.outstanding ?? 0
   const bdnOutstanding = invoice.bdn_outstanding ?? 0
   const bdnOutstandingPen = invoice.bdn_outstanding_pen ?? 0
-  // retencion_paid is pre-computed by v_invoice_balances
-  const retencionPaid = invoice.retencion_paid ?? 0
-  const retencionOutstanding = Math.max(0, invoiceRetencion - retencionPaid)
-  const invoicePayable = Math.max(0, invoiceOutstanding - bdnOutstanding - retencionOutstanding)
+  const retencionOutstanding = invoice.retencion_outstanding ?? 0
+  const invoicePayable = invoice.payable_or_receivable ?? 0
 
   const direction = invoice.direction === 'receivable' ? 'inbound' : 'outbound'
 

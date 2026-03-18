@@ -1,10 +1,7 @@
--- View: v_invoice_balances
--- Purpose: Shows amount_paid, outstanding balance, and payment_status per invoice.
---          Tracks detraccion_paid and retencion_paid separately for accurate splits.
---          Handles cross-currency detraccion payments (always PEN, even for USD invoices).
---          Works for both payable and receivable directions (replaces v_cost_balances + v_ar_balances).
--- Source tables: v_invoice_totals, payments
--- Used by: v_obligation_calendar, invoice detail pages, payment tracking, entity detail, financial position
+-- Migration: Add retencion_outstanding column to v_invoice_balances
+-- Purpose: Centralizes retencion outstanding calculation in the view,
+--          eliminating duplicated business logic in TS (component + server action).
+-- New column appended at end — CREATE OR REPLACE is safe (no dependent view changes needed).
 
 CREATE OR REPLACE VIEW v_invoice_balances
 WITH (security_invoker = on)

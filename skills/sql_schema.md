@@ -189,6 +189,6 @@ After generating the SQL file:
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
 3. All tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 8 reference/master tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) plus the `project_partners` bridge table
+4. Only the 9 soft-delete tables have `is_active` — reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

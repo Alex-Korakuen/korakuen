@@ -1058,6 +1058,7 @@ export type Database = {
           project_id: string | null
           retencion_amount: number | null
           retencion_applicable: boolean | null
+          retencion_outstanding: number | null
           retencion_paid: number | null
           retencion_rate: number | null
           retencion_verified: boolean | null

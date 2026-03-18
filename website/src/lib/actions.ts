@@ -101,15 +101,13 @@ export async function registerPayment(input: {
   if (input.related_to === 'invoice') {
     const { data: inv } = await supabase
       .from('v_invoice_balances')
-      .select('outstanding, bdn_outstanding, bdn_outstanding_pen, retencion_amount, retencion_paid')
+      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable')
       .eq('invoice_id', input.related_id)
       .single()
     if (!inv) return { error: 'Invoice not found' }
-    const outstanding = inv.outstanding ?? 0
-    const bdnOutstanding = inv.bdn_outstanding ?? 0
     const bdnOutstandingPen = inv.bdn_outstanding_pen ?? 0
-    const retencionOutstanding = Math.max(0, (inv.retencion_amount ?? 0) - (inv.retencion_paid ?? 0))
-    const payable = Math.max(0, outstanding - bdnOutstanding - retencionOutstanding)
+    const retencionOutstanding = inv.retencion_outstanding ?? 0
+    const payable = inv.payable_or_receivable ?? 0
     let maxAmount: number
     if (input.payment_type === 'detraccion') {
       // Detraccion is always paid in PEN — validate against PEN outstanding
