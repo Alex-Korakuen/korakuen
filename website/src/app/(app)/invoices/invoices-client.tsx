@@ -23,11 +23,7 @@ import type {
   InvoiceAgingBuckets as BucketCounts,
   BucketValue,
 } from '@/lib/types'
-
-type Summary = {
-  payable: { pen: number; usd: number; commercialPen: number; commercialUsd: number; loanPen: number; loanUsd: number }
-  receivable: { pen: number; usd: number }
-}
+import type { InvoicesPageSummary as Summary } from '@/lib/queries'
 
 type Props = {
   data: InvoicesPageRow[]
@@ -315,16 +311,6 @@ export function InvoicesClient({
         />
       </div>
 
-      {/* Import button */}
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={() => setShowImport(true)}
-          className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
-        >
-          Import
-        </button>
-      </div>
-
       {/* Filters */}
       <InvoicesFilters
         currentFilters={currentFilters}
@@ -333,6 +319,7 @@ export function InvoicesClient({
         uniqueEntities={uniqueEntities}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
+        onImportClick={() => setShowImport(true)}
       />
 
       {/* Table */}

@@ -26,7 +26,7 @@ type InvoicesPageFilters = {
   page: number
 }
 
-type InvoicesPageSummary = {
+export type InvoicesPageSummary = {
   payable: { pen: number; usd: number; commercialPen: number; commercialUsd: number; loanPen: number; loanUsd: number }
   receivable: { pen: number; usd: number }
 }

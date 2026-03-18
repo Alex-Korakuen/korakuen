@@ -132,16 +132,6 @@ export function PaymentsClient({
 
   return (
     <div>
-      {/* Import button + Filters */}
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => setShowImport(true)}
-          className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
-        >
-          Import
-        </button>
-      </div>
-
       <PaymentsFilters
         currentFilters={currentFilters}
         setFilter={setFilter}
@@ -149,6 +139,7 @@ export function PaymentsClient({
         bankAccounts={bankAccounts}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
+        onImportClick={() => setShowImport(true)}
       />
 
       {/* Table */}

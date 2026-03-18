@@ -16,6 +16,7 @@ type Props = {
   uniqueEntities: string[]
   hasActiveFilters: boolean
   onClearFilters: () => void
+  onImportClick: () => void
 }
 
 export function InvoicesFilters({
@@ -25,6 +26,7 @@ export function InvoicesFilters({
   uniqueEntities,
   hasActiveFilters,
   onClearFilters,
+  onImportClick,
 }: Props) {
   return (
     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -88,6 +90,15 @@ export function InvoicesFilters({
           Clear filters
         </button>
       )}
+
+      <div className="sm:ml-auto self-end">
+        <button
+          onClick={onImportClick}
+          className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+        >
+          Import
+        </button>
+      </div>
     </div>
   )
 }
