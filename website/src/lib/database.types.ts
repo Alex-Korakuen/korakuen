@@ -630,6 +630,7 @@ export type Database = {
           direction: string
           exchange_rate: number
           id: string
+          is_active: boolean
           notes: string | null
           partner_company_id: string
           payment_date: string
@@ -646,6 +647,7 @@ export type Database = {
           direction: string
           exchange_rate?: number
           id?: string
+          is_active?: boolean
           notes?: string | null
           partner_company_id: string
           payment_date: string
@@ -662,6 +664,7 @@ export type Database = {
           direction?: string
           exchange_rate?: number
           id?: string
+          is_active?: boolean
           notes?: string | null
           partner_company_id?: string
           payment_date?: string

@@ -35,6 +35,7 @@ LEFT JOIN projects pr ON pr.id = i.project_id
 LEFT JOIN entities e ON e.id = i.entity_id
 LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id
 WHERE p.related_to = 'invoice'
+  AND p.is_active = true
 
 UNION ALL
 
@@ -65,5 +66,6 @@ JOIN loans l ON l.id = ls.loan_id
 LEFT JOIN projects pr ON pr.id = l.project_id
 LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id
 WHERE p.related_to = 'loan_schedule'
+  AND p.is_active = true
 
 ORDER BY payment_date DESC;

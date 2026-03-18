@@ -28,7 +28,7 @@ SELECT
   COUNT(p.id)           AS transaction_count
 FROM bank_accounts ba
 JOIN partner_companies pc ON pc.id = ba.partner_company_id
-LEFT JOIN payments p ON p.bank_account_id = ba.id
+LEFT JOIN payments p ON p.bank_account_id = ba.id AND p.is_active = true
 GROUP BY
   ba.id,
   ba.partner_company_id,

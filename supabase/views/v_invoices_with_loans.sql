@@ -113,6 +113,7 @@ LEFT JOIN LATERAL (
   FROM payments pm
   WHERE pm.related_to = 'loan_schedule'
     AND pm.related_id = ls.id
+    AND pm.is_active = true
 ) pay ON true
 LEFT JOIN projects p ON p.id = l.project_id
 

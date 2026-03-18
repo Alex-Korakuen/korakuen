@@ -37,7 +37,7 @@ loan_paid AS (
     ls.loan_id,
     COALESCE(SUM(p.amount), 0) AS total_paid
   FROM loan_schedule ls
-  JOIN payments p ON p.related_to = 'loan_schedule' AND p.related_id = ls.id
+  JOIN payments p ON p.related_to = 'loan_schedule' AND p.related_id = ls.id AND p.is_active = true
   GROUP BY ls.loan_id
 ),
 schedule_stats AS (
@@ -53,6 +53,7 @@ schedule_stats AS (
     FROM payments p
     WHERE p.related_to = 'loan_schedule'
       AND p.related_id = ls.id
+      AND p.is_active = true
   ) ps ON true
   GROUP BY ls.loan_id
 )

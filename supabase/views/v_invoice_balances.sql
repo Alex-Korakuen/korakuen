@@ -116,6 +116,7 @@ FROM v_invoice_totals it
 LEFT JOIN payments p
   ON p.related_id = it.invoice_id
   AND p.related_to = 'invoice'
+  AND p.is_active = true
 GROUP BY
   it.invoice_id, it.direction, it.project_id, it.entity_id,
   it.partner_company_id, it.cost_type, it.title, it.invoice_number,

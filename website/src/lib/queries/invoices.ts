@@ -198,6 +198,7 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
       .select('*')
       .eq('related_id', invoiceId)
       .eq('related_to', 'invoice')
+      .eq('is_active', true)
       .order('payment_date'),
   ])
 
@@ -244,6 +245,7 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
       .select('*')
       .eq('related_to', 'loan_schedule')
       .in('related_id', scheduleIds)
+      .eq('is_active', true)
       .order('payment_date')
     if (error) throw error
     payments = (data ?? []) as Payment[]

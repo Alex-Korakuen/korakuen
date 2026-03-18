@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityNameMap } from './shared'
+import { buildEntityNameMap, buildEntityTagsMap } from './shared'
 import type {
   ProjectListItem,
   ProjectDetailData,
@@ -67,28 +67,8 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   )]
   const entityMap = await buildEntityNameMap(supabase, spendingEntityIds)
 
-  // Fetch tags for these entities via entity_tags → tags
-  const entityTagMap = new Map<string, string[]>()
-  if (spendingEntityIds.length > 0) {
-    const { data: entityTags, error: etError } = await supabase
-      .from('entity_tags')
-      .select('entity_id, tag_id')
-      .in('entity_id', spendingEntityIds)
-    if (etError) throw etError
-    const tagIds = [...new Set((entityTags ?? []).map(et => et.tag_id))]
-    if (tagIds.length > 0) {
-      const { data: tags, error: tagsError } = await supabase.from('tags').select('id, name').in('id', tagIds)
-      if (tagsError) throw tagsError
-      const tagNameMap = new Map((tags ?? []).map(t => [t.id, t.name]))
-      for (const et of entityTags ?? []) {
-        const name = tagNameMap.get(et.tag_id)
-        if (!name) continue
-        const existing = entityTagMap.get(et.entity_id) ?? []
-        existing.push(name)
-        entityTagMap.set(et.entity_id, existing)
-      }
-    }
-  }
+  // Fetch tags for these entities
+  const entityTagMap = await buildEntityTagsMap(supabase, spendingEntityIds)
 
   const entities: ProjectEntitySummary[] = []
   for (const [key, spending] of spendingMap) {
@@ -179,6 +159,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
         .select('related_id, amount, currency, exchange_rate')
         .in('related_id', receivableIds)
         .eq('related_to', 'invoice')
+        .eq('is_active', true)
       if (arPmtError) throw arPmtError
 
       const receivablePartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
@@ -293,6 +274,7 @@ export async function getPartnerReceivableDetails(
     .select('id, related_id, payment_date, amount, currency, exchange_rate')
     .in('related_id', invoiceIds)
     .eq('related_to', 'invoice')
+    .eq('is_active', true)
     .order('payment_date', { ascending: false })
   if (pmtError) throw pmtError
 

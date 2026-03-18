@@ -38,7 +38,7 @@ export async function getFinancialPosition(
   if (hasPartnerFilter) {
     bankQuery = bankQuery.in('partner_company_id', partnerIds)
     arQuery = arQuery.in('partner_company_id', partnerIds)
-    costQuery = costQuery.or(`partner_company_id.in.(${partnerIds.join(',')}),partner_company_id.is.null`)
+    costQuery = costQuery.in('partner_company_id', partnerIds)
     loanQuery = loanQuery.in('partner_company_id', partnerIds)
   }
 
@@ -132,6 +132,7 @@ export async function getBankTransactions(
     .from('payments')
     .select('id, payment_date, direction, amount, currency, related_id, related_to')
     .eq('bank_account_id', bankAccountId)
+    .eq('is_active', true)
     .order('payment_date', { ascending: false })
     .limit(50)
 

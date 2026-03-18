@@ -544,6 +544,7 @@ export async function registerLoanRepayment(data: {
     .select('amount')
     .eq('related_to', 'loan_schedule')
     .eq('related_id', data.schedule_entry_id)
+    .eq('is_active', true)
 
   const { data: scheduleEntry } = await supabase
     .from('loan_schedule')
@@ -576,6 +577,155 @@ export async function registerLoanRepayment(data: {
   })
 
   if (error) return { error: error.message }
+
+  revalidatePath('/calendar')
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/financial-position')
+  return {}
+}
+
+// --- Update & Deactivate Payment ---
+
+export async function updatePayment(input: {
+  id: string
+  payment_date: string
+  amount: number
+  exchange_rate: number
+  bank_account_id: string | null
+  notes: string | null
+}): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  if (input.amount <= 0) return { error: 'Amount must be greater than 0' }
+
+  // Fetch existing payment to get locked fields
+  const { data: existing } = await supabase
+    .from('payments')
+    .select('id, related_to, related_id, direction, payment_type, currency, amount')
+    .eq('id', input.id)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: 'Payment not found' }
+
+  // Validate bank account currency matches
+  if (input.bank_account_id) {
+    const { data: bankAccount } = await supabase
+      .from('bank_accounts')
+      .select('currency')
+      .eq('id', input.bank_account_id)
+      .single()
+    if (!bankAccount) return { error: 'Bank account not found' }
+    if (bankAccount.currency !== existing.currency) {
+      return { error: 'Bank account currency does not match payment currency' }
+    }
+  }
+
+  // Validate bank account required unless retencion
+  if (existing.payment_type !== 'retencion' && !input.bank_account_id) {
+    return { error: 'Bank account is required for this payment type' }
+  }
+
+  // Validate amount ceiling — max = current outstanding + this payment's original amount
+  if (existing.related_to === 'invoice') {
+    const { data: inv } = await supabase
+      .from('v_invoice_balances')
+      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable')
+      .eq('invoice_id', existing.related_id)
+      .single()
+    if (!inv) return { error: 'Related invoice not found' }
+
+    let maxAmount: number
+    if (existing.payment_type === 'detraccion') {
+      maxAmount = (inv.bdn_outstanding_pen ?? 0) + existing.amount
+    } else if (existing.payment_type === 'retencion') {
+      maxAmount = (inv.retencion_outstanding ?? 0) + existing.amount
+    } else {
+      maxAmount = (inv.payable_or_receivable ?? 0) + existing.amount
+    }
+    if (input.amount > maxAmount) {
+      return { error: `Amount exceeds ${existing.payment_type} limit (${maxAmount.toFixed(2)})` }
+    }
+  } else if (existing.related_to === 'loan_schedule') {
+    const { data: otherPayments } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('related_to', 'loan_schedule')
+      .eq('related_id', existing.related_id)
+      .eq('is_active', true)
+      .neq('id', input.id)
+    const { data: scheduleEntry } = await supabase
+      .from('loan_schedule')
+      .select('scheduled_amount')
+      .eq('id', existing.related_id)
+      .single()
+    if (!scheduleEntry) return { error: 'Schedule entry not found' }
+    const otherPaid = (otherPayments ?? []).reduce((s, p) => s + p.amount, 0)
+    const maxAmount = scheduleEntry.scheduled_amount - otherPaid
+    if (input.amount > maxAmount) {
+      return { error: `Amount exceeds schedule entry outstanding (${maxAmount.toFixed(2)})` }
+    }
+  }
+
+  const { error } = await supabase
+    .from('payments')
+    .update({
+      payment_date: input.payment_date,
+      amount: input.amount,
+      exchange_rate: input.exchange_rate,
+      bank_account_id: input.bank_account_id,
+      notes: input.notes,
+    })
+    .eq('id', input.id)
+    .eq('is_active', true)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/calendar')
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/financial-position')
+  return {}
+}
+
+export async function deactivatePayment(
+  paymentId: string
+): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  // Verify payment exists and is active
+  const { data: existing } = await supabase
+    .from('payments')
+    .select('id, payment_type, related_to, related_id')
+    .eq('id', paymentId)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: 'Payment not found or already deactivated' }
+
+  const { error } = await supabase
+    .from('payments')
+    .update({ is_active: false })
+    .eq('id', paymentId)
+
+  if (error) return { error: error.message }
+
+  // If this was the only retencion payment on the invoice, un-verify retencion
+  if (existing.payment_type === 'retencion' && existing.related_to === 'invoice') {
+    const { data: otherRetencion } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('related_to', 'invoice')
+      .eq('related_id', existing.related_id)
+      .eq('payment_type', 'retencion')
+      .eq('is_active', true)
+      .limit(1)
+    if (!otherRetencion || otherRetencion.length === 0) {
+      await supabase
+        .from('invoices')
+        .update({ retencion_verified: false })
+        .eq('id', existing.related_id)
+    }
+  }
 
   revalidatePath('/calendar')
   revalidatePath('/invoices')

@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
-import { fetchInvoiceDetail, fetchLoanDetailByScheduleId } from '@/lib/actions'
+import { fetchInvoiceDetail, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
+import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
@@ -91,12 +93,15 @@ export function PaymentsClient({
   bankAccounts,
   currentFilters,
 }: Props) {
+  const router = useRouter()
   const { setFilter, clearFilters } = useUrlFilters()
 
   const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
+  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [modalBankAccounts, setModalBankAccounts] = useState<BankAccountOption[]>([])
 
   const hasActiveFilters =
     currentFilters.direction !== '' ||
@@ -112,15 +117,24 @@ export function PaymentsClient({
     setModalRow(row)
     setModalDetail(null)
     setModalLoading(true)
+    setModalMode('view')
+    setModalBankAccounts([])
 
     try {
-      if (row.related_to === 'loan_schedule' && row.related_id) {
-        const detail = await fetchLoanDetailByScheduleId(row.related_id)
-        setModalDetail(detail)
-      } else if (row.related_id) {
-        const detail = await fetchInvoiceDetail(row.related_id)
-        setModalDetail(detail)
-      }
+      // Load related detail and bank accounts in parallel
+      const detailPromise = row.related_to === 'loan_schedule' && row.related_id
+        ? fetchLoanDetailByScheduleId(row.related_id)
+        : row.related_id
+          ? fetchInvoiceDetail(row.related_id)
+          : Promise.resolve(null)
+
+      const bankPromise = row.partner_company_id
+        ? fetchBankAccountsForPayment(row.partner_company_id)
+        : Promise.resolve([])
+
+      const [detail, banks] = await Promise.all([detailPromise, bankPromise])
+      setModalDetail(detail)
+      setModalBankAccounts(banks)
     } catch {
       setModalDetail(null)
     } finally {
@@ -131,7 +145,19 @@ export function PaymentsClient({
   const handleCloseModal = () => {
     setModalRow(null)
     setModalDetail(null)
+    setModalMode('view')
   }
+
+  const handleMutationSuccess = () => {
+    setModalRow(null)
+    setModalDetail(null)
+    setModalMode('view')
+    router.refresh()
+  }
+
+  const modalTitle = modalMode === 'edit' ? 'Edit Payment'
+    : modalMode === 'delete' ? 'Payment Detail'
+    : 'Payment Detail'
 
   return (
     <div>
@@ -182,7 +208,7 @@ export function PaymentsClient({
       <Modal
         isOpen={modalRow !== null}
         onClose={handleCloseModal}
-        title="Payment Detail"
+        title={modalTitle}
       >
         {modalLoading ? (
           <div className="flex items-center justify-center py-6">
@@ -192,6 +218,10 @@ export function PaymentsClient({
           <PaymentExpandContent
             row={modalRow}
             relatedDetail={modalDetail}
+            mode={modalMode}
+            onSetMode={setModalMode}
+            onMutationSuccess={handleMutationSuccess}
+            bankAccounts={modalBankAccounts}
           />
         ) : null}
       </Modal>
