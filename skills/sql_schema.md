@@ -91,13 +91,13 @@ CREATE TRIGGER trg_[table_name]_updated_at
 
 ### Soft Delete
 
-Reference/master data tables only (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories):
+Reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table:
 
 ```sql
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes, project_partners, project_budgets) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 

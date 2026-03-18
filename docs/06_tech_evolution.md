@@ -11,26 +11,25 @@
 The system is built in versions. Each version uses the same database — only the interface and tooling evolve. No data migration, no rebuilding from scratch, no throwaway work. Every hour invested in V0 carries forward permanently.
 
 ```
-V0 ──────────────── V1 ──────────────── V2
-CLI + website       Mobile + automation  Advanced features
-(visualization +         |                    |
- data entry)             |                    |
-     |                   |                    |
-     └───────────────────┴────────────────────┘
+V0 ────────── V1 (Current) ────────── V2
+Foundation    Website                   Mobile + automation
+(data model)  (visualization +               |
+     |         data entry)                   |
+     |              |                        |
+     └──────────────┴────────────────────────┘
               PostgreSQL on Supabase
               (same database throughout)
 ```
 
 ---
 
-## V0 — Foundation (Current)
+## V0 — Foundation
 
 **Status:** Complete
-**Goal:** Get clean, structured data flowing from day one. Prove the data model works in practice. Build the visualization foundation.
+**Goal:** Get clean, structured data flowing from day one. Prove the data model works in practice.
 
 ### Stack
 - PostgreSQL on Supabase (database)
-- Python CLI scripts (bulk imports from Excel)
 - Next.js on Vercel (visualization + data entry website)
 - SharePoint (file storage, external)
 - Todoist (task management, external)
@@ -68,9 +67,29 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 ### Limitations
 - No mobile-native experience
 - No file upload integration
-- Bulk imports still require CLI + Excel
+- No bulk import from Excel (data entry is record-by-record via website forms)
 
-### When to move to V1
+---
+
+## V1 — Website (Current)
+
+**Status:** Complete — production live at `https://korakuen.vercel.app`
+**Goal:** Full visualization and data entry website. Unified invoice model. All partner data visible with global filter.
+
+### Stack
+- PostgreSQL on Supabase (database — 17 tables, 10 views)
+- Next.js on Vercel (visualization + data entry website)
+- SharePoint (file storage, external)
+
+### What changed from V0
+- Website replaces CLI as the sole data entry interface
+- Unified invoice model — `costs`, `cost_items`, `ar_invoices` merged into `invoices` + `invoice_items` with `direction` column
+- Loan simplification — `loan_payments` table dropped, repayments go through universal `payments` table
+- `project_entities` table dropped — entity-project relationships inferred from invoices/quotes
+- Universal partner filter (cookie-based) replaces dual-view model
+- 7 sidebar pages + settings page
+
+### When to move to V2
 Move when any of the following is true:
 - Native mobile access needed on construction sites
 - Push notifications needed for payment reminders
@@ -78,21 +97,21 @@ Move when any of the following is true:
 
 ---
 
-## V1 — Mobile + Automation
+## V2 — Mobile + Automation
 
 **Status:** Future
 **Goal:** Native mobile experience and automated workflows.
 
 ### Stack
 - PostgreSQL on Supabase (same database)
-- Next.js on Vercel (same web app from V0)
+- Next.js on Vercel (same web app from V1)
 - React Native or native iOS app (mobile client)
 - Supabase Edge Functions (serverless automation)
 
-### New capabilities vs V0
+### New capabilities vs V1
 - Native iOS/Android app optimized for on-site use
-- Push notifications — payment due, invoice overdue, partner balance alerts
-- Camera integration — photograph a receipt on site, attach directly to a cost record
+- Push notifications — payment due, invoice overdue
+- Camera integration — photograph a receipt on site, attach directly to an invoice record
 - Automated AP due date reminders
 - Potential WhatsApp integration for alerts
 

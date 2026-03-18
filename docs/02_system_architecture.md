@@ -10,7 +10,7 @@
 
 A lightweight, structured management system that gives a small construction company real operational visibility from day one — without the overhead of a full ERP or CRM. The system prioritizes data quality and queryability over interface sophistication.
 
-**Core principle:** The database is the product. The CLI is the data entry mechanism. The visualization website is where the value is consumed — free, controlled, and built on technology we already know.
+**Core principle:** The database is the product. The website is how data gets in and out — free, controlled, and built on technology we already know.
 
 ---
 
@@ -20,7 +20,7 @@ A lightweight, structured management system that gives a small construction comp
 |---|---|---|
 | Database | PostgreSQL on Supabase | Free tier; production-grade; scalable |
 | Database Management | Supabase CLI | Migrations, schema changes, and SQL execution via terminal |
-| Data Entry | Python CLI scripts + website forms | CLI for bulk/import; website for interactive entry |
+| Data Entry | Website forms and modals | Interactive entry with RLS-enforced access |
 | Website | Next.js on Vercel | Visualization + data entry; free hosting; no licensing costs |
 | File Storage | SharePoint | External; referenced by naming convention only |
 | Task Management | Todoist | External; not replicated in system |
@@ -31,18 +31,18 @@ A lightweight, structured management system that gives a small construction comp
 ## 3. How the Tools Connect
 
 ```
-[Supabase CLI]                [Python CLI Scripts]
-       |                              |
-       | manages schema               | writes data
-       v                              v
-[PostgreSQL on Supabase] ——— read by ———> [Next.js Visualization Website]
-       |                                         (hosted on Vercel)
+[Supabase CLI]
+       |
+       | manages schema
+       v
+[PostgreSQL on Supabase] ←——— reads & writes ———→ [Next.js Website]
+       |                                            (hosted on Vercel)
        | references via code
        v
 [SharePoint file storage]
 ```
 
-Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Data entry happens through both Python CLI scripts and the website's inline forms. Both write paths use RLS policies for access control. SharePoint is fully independent — the database holds a reference code, not a live link.
+Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Data entry and visualization happen through the website. RLS policies enforce access control. SharePoint is fully independent — the database holds a reference code, not a live link.
 
 ---
 
@@ -51,20 +51,18 @@ Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Da
 ### 4.1 Single Shared Database
 All three partner companies share one database with a `partner_company` field on every relevant financial record.
 
-**Why single:** Shared projects are registered once. Partner balance calculations happen naturally from the data. The visualization website can show both consolidated and per-company views. One source of truth for a collaborative operation.
+**Why single:** Shared projects are registered once. Partner balance calculations happen naturally from the data. The website scopes data by partner using the global filter. One source of truth for a collaborative operation.
 
 **Tradeoff:** All partners see each other's data. Accepted — transparency is appropriate and desired given the collaboration structure.
 
 ---
 
-### 4.2 Dual Data Entry — CLI and Website
-Data entry happens through both Python CLI scripts and the website's inline forms and modals. The CLI is used for bulk imports (Excel); the website provides interactive forms for creating and managing individual records.
-
-**Why CLI for bulk entry:** A CLI script per operation is 30-50 lines of Python and takes an afternoon to write. Ideal for initial data loads and Excel imports.
+### 4.2 Data Entry — Website
+All data entry happens through the website's inline forms and modals. The website provides interactive forms for creating and managing records — entities, projects, bank accounts, invoices, payments, loans, and collections.
 
 **Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read and write queries straightforward.
 
-**What the website does:** Displays 7 pages — calendar, invoices, payments, financial position, projects, entities & contacts, and prices. Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
+**What the website does:** Displays 7 sidebar pages — calendar, invoices, payments, financial position, projects, entities & contacts, and prices (plus a settings page for password change). Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
 
 ---
 
@@ -93,7 +91,7 @@ All nullable. No transaction is blocked from being registered due to missing for
 
 **Comprobante types** cover the full spectrum of Peruvian document reality: `factura`, `boleta`, `recibo_por_honorarios`, `liquidacion_de_compra`, `planilla_jornales`, `none`. The type tells the accountant why IGV is zero — no special boolean flag needed. `igv_rate = 0` naturally excludes informal costs from IGV tax credits.
 
-**Payment method** (`bank_transfer`, `cash`, `check`) on costs indicates the payment channel. Cash payments are the informal economy indicator — useful for the accountant to understand what portion of costs have no banking trail.
+**Payment method** (`bank_transfer`, `cash`, `check`) on payments indicates the payment channel. Cash payments are the informal economy indicator — useful for the accountant to understand what portion of transactions have no banking trail.
 
 ---
 
@@ -107,7 +105,7 @@ Files stored in SharePoint are referenced in the database by a standardized code
 ### 4.7 Peruvian Tax Compliance Fields
 Every transaction captures the full Peruvian tax reality from day one:
 
-- **IGV (18%):** tracked separately on all costs and invoices
+- **IGV (18%):** tracked separately on all invoices
 - **Detracciones:** tracked on AR and AP, rate editable per transaction, Banco de la Nación as a special account type
 - **Retenciones:** tracked on AR only — Korakuen is not a retention agent
 - **Comprobante type:** Factura, Boleta, Recibo por Honorarios, Liquidación de Compra, Planilla de Jornales, or None — stored per transaction
@@ -116,7 +114,7 @@ Every transaction captures the full Peruvian tax reality from day one:
 ---
 
 ### 4.8 Bank Account Tracking
-All three partners' bank accounts are tracked in the system. Every cost and payment references a bank account, so all project-related transactions are visible for all partners.
+All three partners' bank accounts are tracked in the system. Every payment references a bank account, so all project-related cash movements are visible for all partners.
 
 **Key distinction:** Partner account balances reflect only project transactions recorded in the system — not full personal banking activity. Partners use personal accounts for mixed personal and business expenses. The `bank_tracking_full` flag on `partner_companies` (true for Alex, false for others) indicates whether full reconciliation against bank statements is expected. Alex's accounts can be fully reconciled; partner accounts show project-level activity only.
 
@@ -170,7 +168,7 @@ Tracks loans taken by any partner to fund project contributions. Every loan has 
 ### 4.14 Cash-Basis Financial Reporting
 The system operates on a cash basis. There is no accrual-based P&L.
 
-**Cash Flow:** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on costs, AR invoices, and loan schedule.
+**Cash Flow:** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on invoices and loan schedule.
 
 **Financial Position:** Point-in-time balance sheet showing assets (cash, AR, tax credits) vs liabilities (AP, tax liabilities, loans).
 

@@ -18,18 +18,14 @@
 
 ## Core Coding Principles
 
-These principles apply to every file in this project — Python, SQL, and TypeScript.
+These principles apply to every file in this project — SQL and TypeScript.
 
 ### DRY — Don't Repeat Yourself
 Every piece of logic exists in exactly one place. If you find yourself writing the same code in two places, extract it.
 
-- Input helpers → `cli/lib/helpers.py`
-- Supabase client → `cli/lib/db.py`
 - Database query functions → `website/lib/queries.ts`
 - Currency formatters → `website/lib/formatters.ts`
 - TypeScript types → `website/lib/types.ts`
-
-If a CLI script has more than one function that formats currency or validates input, it's a DRY violation. Move it to the shared lib.
 
 ### KISS — Keep It Simple, Stupid
 Write the simplest code that correctly solves the problem. No clever abstractions, no premature optimization, no unnecessary layers.
@@ -50,9 +46,7 @@ Don't build for imagined future requirements. Build for what's in the current ph
 ### Fail Loudly
 Errors must never be silent. Every failure must produce a clear, human-readable message.
 
-- CLI scripts: always print `✗ Error: [message]` and exit with code 1 on failure
-- Never swallow exceptions with empty except blocks
-- Never return None where an error occurred — raise or exit
+- Never swallow exceptions with empty catch blocks
 - Validate inputs before inserting, not after
 
 ### Schema Is the Source of Truth
@@ -63,18 +57,17 @@ The database schema in `docs/08_schema.md` is the single source of truth for all
 - TypeScript types must be regenerated after any schema change
 - Never work around the schema — change the schema properly if needed
 
-### No Business Logic in Scripts
-Python CLI scripts collect input and call Supabase. Nothing else. All calculations belong in the database.
+### No Business Logic in UI Code
+Website components collect input and call Supabase. All calculations belong in the database.
 
-- No IGV calculation in Python — derived in `v_invoice_totals`
-- No balance calculation in Python — derived in `v_invoice_balances`
-- No payment status logic in Python — derived in views
-- If you're doing math in a CLI script, stop and ask whether it belongs in a view
+- No IGV calculation in TypeScript — derived in `v_invoice_totals`
+- No balance calculation in TypeScript — derived in `v_invoice_balances`
+- No payment status logic in TypeScript — derived in views
+- If you're doing math in a component, stop and ask whether it belongs in a view
 
 ### One Responsibility Per File
 Each file does one thing.
 
-- One CLI module per entity type (`quotes.py` handles all quote operations — add single, import from Excel)
 - One view per derived concept (`v_invoice_totals` computes invoice totals, nothing else)
 - One query function per query (`getPaymentsPage`, not `getPaymentsData`)
 
@@ -93,105 +86,9 @@ When retiring a file: delete it, commit with a clear message explaining why, and
 
 ## Language & Runtime
 
-- **Python 3.11+** for all CLI scripts
 - **TypeScript** for all Next.js website code
 - **SQL** for schema, migrations, and views
 - **No JavaScript** — TypeScript only on the frontend
-
----
-
-## Python CLI Standards
-
-### File Organization
-The CLI uses a module-based structure with a single entry point:
-
-```
-cli/
-├── main.py                    → single entry point (python main.py)
-├── modules/
-│   ├── __init__.py
-│   ├── projects.py            → add single + import from Excel
-│   ├── entities.py            → add entity, contact, tag + import
-│   ├── quotes.py              → add single + import from Excel
-│   ├── payments.py            → register payment, verify retencion
-│   ├── loans.py               → add loan, schedule, payments + import
-│   └── exchange_rates.py      → add daily SUNAT rate, list recent rates
-├── lib/
-│   ├── __init__.py
-│   ├── db.py                  → shared Supabase client
-│   ├── helpers.py             → shared input helpers + clear_screen
-│   └── import_helpers.py      → shared import validation/highlighting
-└── requirements.txt
-```
-
-Module files use snake_case entity names. No verb prefix — the module contains all operations for that entity.
-
-### Module Structure
-Every module file exposes a `menu()` function called by `main.py`, plus individual operation functions:
-
-```python
-#!/usr/bin/env python3
-"""
-Module: quotes.py
-Purpose: All quote operations — add single, import from Excel
-Tables: quotes
-"""
-
-from lib.db import supabase
-from lib.helpers import get_input, get_optional_input, confirm, list_choices, clear_screen
-
-
-def menu():
-    """Submenu for quote operations. Called by main.py."""
-    while True:
-        clear_screen()
-        print("\n=== Quotes ===\n")
-        print("1. Add quote")
-        print("2. Import quotes from Excel")
-        print("3. Back")
-        choice = get_input("\nSelect option: ")
-        if choice == "1":
-            add_quote()
-        elif choice == "2":
-            import_quotes()
-        elif choice == "3":
-            return
-
-
-def add_quote():
-    """Register a single quote interactively."""
-    clear_screen()
-    print("\n=== Add Quote ===\n")
-    # ... collect inputs, validate, show summary, confirm, insert
-```
-
-The `if __name__ == "__main__"` pattern is NOT used in module files. Only `main.py` is executed directly.
-
-### Screen Clearing
-Call `clear_screen()` every time entering a new menu level AND every time returning to a parent menu. This prevents terminal clutter for non-technical users.
-
-- `menu()` calls `clear_screen()` at the top of its loop (before printing the submenu)
-- Each operation function calls `clear_screen()` before printing its title
-- After an operation completes, show `Press Enter to continue...` before returning to the submenu loop
-
-### Input Handling
-- Always strip whitespace from inputs
-- Always confirm before inserting: show a summary and ask "Confirm? (y/n)"
-- Never silently fail — always print a clear error message
-- Optional fields show "(optional, press Enter to skip)"
-- Display available options for foreign key fields (e.g. list all projects before asking for project)
-
-### Error Handling
-```python
-try:
-    response = supabase.table("quotes").insert(data).execute()
-    print(f"\n✓ Quote registered successfully (ID: {response.data[0]['id']})")
-except Exception as e:
-    print(f"\n✗ Error registering quote: {e}")
-```
-
-### No Business Logic in Scripts
-CLI scripts only collect input and call the database. All calculations (subtotals, IGV, detraccion) happen in the database via views, not in Python.
 
 ---
 
@@ -321,9 +218,9 @@ All destructive actions (soft-delete, remove from list) use a **trash bin icon**
 
 ### Commit Messages
 ```
-feat: add quotes.py CLI module
-fix: correct IGV calculation in cost_totals view
-docs: update schema with cost_items table
+feat: add exchange rate form to settings page
+fix: correct IGV calculation in v_invoice_totals view
+docs: update schema with invoice_items table
 chore: add .env.example file
 ```
 
@@ -339,10 +236,6 @@ chore: add .env.example file
 All sensitive configuration lives in `.env` (never committed):
 
 ```
-# CLI
-SUPABASE_URL=https://[project].supabase.co
-SUPABASE_SERVICE_ROLE_KEY=[service key — CLI scripts only]
-
 # Website
 NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon key]

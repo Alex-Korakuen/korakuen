@@ -28,18 +28,18 @@ receivable)   INVOICES           |
               PAYMENTS (unified — AP, AR, and loan repayments)
 ```
 
-**Calendar, Financial Position, and Cash Flow are views/queries, not tables.** They are derived from the Invoices, Payments, and Loans tables and displayed on the visualization website.
+**Calendar and Financial Position are views/queries, not tables.** They are derived from the Invoices, Payments, and Loans tables and displayed on the visualization website.
 
 ---
 
 ## Module 1: Projects
 
-**Purpose:** The anchor for all other data. Every cost, invoice, and quote belongs to a project. The project code drives the document naming convention throughout SharePoint.
+**Purpose:** The anchor for all other data. Every invoice and quote belongs to a project. The project code drives the document naming convention throughout SharePoint.
 
 **Business rules:**
 - Every project gets a unique sequential code: PRY001, PRY002, PRY003...
 - This code is used in all document filenames: `PRY001-AP-001.pdf`
-- A project must exist before costs, quotes, or AR invoices can be registered against it
+- A project must exist before invoices or quotes can be registered against it
 - Projects are never deleted — set to Cancelled if abandoned
 - Contract value (what the client will pay total) is stored here — this is the revenue ceiling
 - Contract value is editable as scope changes during execution
@@ -126,17 +126,7 @@ Contact details (phone, email, address) are stored in `entity_contacts`, not on 
 - Tags are user-defined and can be extended as needed
 - Filtering: "show me all entities tagged as cement suppliers"
 
-### 2.4 Project-Entity Relationships
-**Purpose:** Tracks which entities participated in which projects and in what role on that specific project.
-
-**Example:** Pepe's Iron Company may be a general materials supplier (entity tag) but on PRY001 specifically they acted as the main steel subcontractor (project role).
-
-**Key attributes:**
-- Project (references Projects)
-- Entity (references Entities)
-- Role on this project (free text or predefined)
-
-### 2.5 Informality Support
+### 2.4 Informality Support
 Transactions do not require an entity to be assigned. An unassigned transaction has a null entity_id. This supports:
 - Informal suppliers with no RUC
 - Small cash purchases
@@ -216,19 +206,19 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 
 ## Module 4: Quotes Received
 
-**Purpose:** Price references gathered from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the resulting cost record. Rejected quotes remain permanently as market reference data.
+**Purpose:** Price references gathered from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the resulting invoice. Rejected quotes remain permanently as market reference data.
 
 **Business rules:**
 - Every quote is linked to a project and an entity
 - A quote can be accepted, rejected, or pending
-- When accepted, the quote links to the cost record it generated
-- The difference between quoted price and actual cost is visible by joining the two records
+- When accepted, the quote links to the invoice it generated
+- The difference between quoted price and actual invoice is visible by joining the two records
 - Multiple competing quotes for the same scope should all be registered
 - Quotes are never deleted — even rejected ones are valuable reference data
 
 **Quote status:**
 - Pending — received, decision not yet made
-- Accepted — purchase proceeded, linked to a cost record
+- Accepted — purchase proceeded, linked to an invoice
 - Rejected — not used, kept as reference
 
 **Key attributes:**
@@ -246,7 +236,7 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 - Currency: USD or PEN
 - Exchange rate (reference)
 - Status: Pending, Accepted, Rejected
-- Linked cost ID (nullable — populated when accepted)
+- Linked invoice ID (nullable — populated when accepted)
 - Document reference code (nullable, e.g. PRY001-QT-001)
 - Notes / reason for rejection
 
@@ -273,14 +263,14 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 
 ## Module 6: Bank Accounts
 
-**Purpose:** Tracks bank accounts used by all three partners for project transactions. All accounts are fully tracked in the system — every cost and payment references a bank account.
+**Purpose:** Tracks bank accounts used by all three partners for project transactions. All accounts are fully tracked in the system — every payment references a bank account.
 
 **Business rules:**
-- Every cost payment references a bank account
-- Every AR collection references a bank account
+- Every payment references a bank account
+- Every collection references a bank account
 - Banco de la Nación detraccion account is a special account type
 - Balance is calculated dynamically from transactions — never stored as a static field
-- All partner accounts are tracked for project-related transactions (costs, AR payments, loan payments)
+- All partner accounts are tracked for project-related transactions (invoice payments, collections, loan repayments)
 - Partner account balances reflect only project transactions visible in the system — not full personal banking activity
 - `bank_tracking_full` on `partner_companies` indicates whether full reconciliation against bank statements is expected (true for Alex, false for other partners)
 
@@ -299,7 +289,7 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 - Is detraccion account: Yes / No
 - Active: Yes / No
 
-**Connects to:** Costs (paid from), Payments (received into)
+**Connects to:** Payments (all cash movements reference a bank account)
 
 ---
 
@@ -354,7 +344,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Business rule: 10% return on loans — borrower keeps the spread between agreed return and what they pay the lender
 - A loan can optionally be linked to a project it funded
 - Return can be percentage-based (e.g. 8%) or a fixed agreed amount
-- Repayments use the universal `payments` table with `related_to = 'loan_schedule'` — same pattern as cost/AR invoice payments
+- Repayments use the universal `payments` table with `related_to = 'loan_schedule'` — same pattern as invoice payments
 - Every repayment must be against a schedule entry (create one first for ad-hoc payments)
 - Loan schedule entries feed `v_obligation_calendar` as a UNION source (type = 'loan')
 - Loans are permanent financial records — no soft delete via `is_active`
@@ -445,7 +435,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Formal chart of accounts (handled by external accountant)
 - Task management (handled by Todoist)
 - File storage (handled by SharePoint)
-- Purchase orders (quotes link directly to costs via reference field)
+- Purchase orders (quotes link directly to invoices via reference field)
 
 ---
 

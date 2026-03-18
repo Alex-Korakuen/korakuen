@@ -60,9 +60,9 @@ Dashboards
 **Right panel — detail** (loads on row click):
 - Project header info (code, name, type, status, client, contract value, dates, location)
 - Assigned entities section: table of entities and their roles on this project. Each entity row links to that entity's detail in the Entities page
-- Spending by entity section: table of all entities with costs on this project, showing total spent per entity and invoice count. Answers "who did we spend money with and how much?" Data from costs grouped by entity_id where project_id matches
+- Spending by entity section: table of all entities with payable invoices on this project, showing total spent per entity and invoice count. Answers "who did we spend money with and how much?" Data from invoices (direction = 'payable') grouped by entity_id where project_id matches
 - Cost summary & budget section (merged): single table showing category, budgeted amount (if budget exists), actual amount, % used (if budget exists), % of contract (if contract_value exists). When no budget data exists, shows only actual amounts and % of contract. Color coded when budget exists: red >100%, yellow >90%, green ≤90%
-- AR invoices issued for this project
+- Receivable invoices issued for this project
 - Project notes at the bottom (from projects.notes field) — displayed when not null
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
@@ -84,7 +84,7 @@ Dashboards
 **Right panel — detail** (loads on row click):
 - Entity header (legal_name, common_name, document_type, document_number, tags)
 - Contacts list (name, role, phone, email, primary flag)
-- Transaction history per project: table showing each project this entity is linked to, with total AP, total AR, net amount, transaction count, and "last transaction" date. Each project row links to that project's detail in the Projects page. Click a project row to expand and see individual cost/AR records for that entity on that project
+- Transaction history per project: table showing each project this entity is linked to, with total AP, total AR, net amount, transaction count, and "last transaction" date. Each project row links to that project's detail in the Projects page. Click a project row to expand and see individual invoice records for that entity on that project
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.
 
@@ -124,7 +124,7 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Filters:** project, supplier, currency, title search.
 
-**Row click:** Opens modal showing full cost details — cost items, payment history, document_ref, bank account, comprobante info.
+**Row click:** Opens modal showing full invoice details — invoice items, payment history, document_ref, bank account, comprobante info.
 
 **Loan obligations:** `v_obligation_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. Filterable by partner via the global partner filter.
 
