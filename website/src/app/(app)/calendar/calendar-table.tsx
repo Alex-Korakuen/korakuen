@@ -34,7 +34,6 @@ function DirectionBadge({ direction }: { direction: string | null }) {
   )
 }
 
-/** Format a dual-currency total: "S/ 5,000.00  $1,200.00" or just one if the other is zero. */
 function DualAmount({ pen, usd }: { pen: number; usd: number }) {
   if (pen === 0 && usd === 0) return <span className="text-zinc-400">--</span>
   return (
@@ -46,126 +45,95 @@ function DualAmount({ pen, usd }: { pen: number; usd: number }) {
   )
 }
 
-function SectionHeader({
-  bucket, label, totals, open, onToggle,
-}: {
-  bucket: string; label: string; totals: SectionTotals; open: boolean; onToggle: () => void
-}) {
-  const colors = getSectionColors(bucket)
-  const totalCount = totals.pay.count + totals.collect.count
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full cursor-pointer items-center gap-x-3 pb-3"
-    >
-      <div className={`w-0.5 self-stretch ${colors.border} border-l-2`} />
-      <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
-        {label}
-      </span>
-      <div className="h-px w-3 bg-zinc-200" />
-
-      {/* Pay total */}
-      {totals.pay.count > 0 && (
-        <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-          <span className="font-medium text-orange-600">Pay</span>
-          <DualAmount pen={totals.pay.pen} usd={totals.pay.usd} />
-        </span>
-      )}
-
-      {/* Collect total */}
-      {totals.collect.count > 0 && (
-        <>
-          <div className="h-px w-3 bg-zinc-200" />
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-            <span className="font-medium text-emerald-600">Collect</span>
-            <DualAmount pen={totals.collect.pen} usd={totals.collect.usd} />
-          </span>
-        </>
-      )}
-
-      <div className="h-px w-3 bg-zinc-200" />
-      <span className="text-[10px] text-zinc-400">
-        {totalCount} {totalCount === 1 ? 'item' : 'items'}
-      </span>
-      <div className="h-px flex-1 bg-zinc-100" />
-
-      {/* Chevron */}
-      <svg
-        className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? '' : '-rotate-90'}`}
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
-  )
-}
+/** Buckets that should be expanded by default (operational horizon) */
+const EXPANDED_BY_DEFAULT = new Set(['overdue', 'today', 'next-7'])
 
 function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: ObligationCalendarRow) => void }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(EXPANDED_BY_DEFAULT.has(group.id))
+  const colors = getSectionColors(group.id)
+  const totalCount = group.totals.pay.count + group.totals.collect.count
 
   return (
-    <div className="mt-6 first:mt-0">
-      <SectionHeader
-        bucket={group.id}
-        label={group.label}
-        totals={group.totals}
-        open={open}
-        onToggle={() => setOpen(o => !o)}
-      />
+    <div className={`mt-4 first:mt-0 overflow-hidden rounded-lg border border-zinc-200 bg-white border-t-[3px] ${colors.border}`}>
+      {/* Header zone — clickable */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className={`flex w-full cursor-pointer flex-col px-4 py-3 text-left transition-colors ${open ? `${colors.bg} border-b border-zinc-100` : 'hover:bg-zinc-50'}`}
+      >
+        {/* Top row: label + item count + chevron */}
+        <div className="flex items-center justify-between">
+          <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
+            {group.label}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-zinc-400">
+              {totalCount} {totalCount === 1 ? 'item' : 'items'}
+            </span>
+            <svg
+              className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? '' : '-rotate-90'}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Bottom row: Pay + Collect totals */}
+        <div className="mt-1.5 flex items-center gap-x-6">
+          {group.totals.pay.count > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-600">
+              <span className="font-medium text-orange-600">Pay</span>
+              <DualAmount pen={group.totals.pay.pen} usd={group.totals.pay.usd} />
+            </span>
+          )}
+          {group.totals.collect.count > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-600">
+              <span className="font-medium text-emerald-600">Collect</span>
+              <DualAmount pen={group.totals.collect.pen} usd={group.totals.collect.usd} />
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Data rows */}
       {open && (
-        <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+        <div className="divide-y divide-zinc-100">
           {group.rows.map((row) => (
             <div
               key={row.invoice_id ?? `loan-${row.loan_id ?? row.entity_name}-${row.due_date}`}
               className="grid cursor-pointer grid-cols-[56px_30px_auto_1fr_64px_auto_auto_auto_64px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
               onClick={() => onRowClick(row)}
             >
-              {/* Due Date dd/Mmm */}
               <span className="text-sm text-zinc-600">
                 {row.due_date ? formatCalendarDate(row.due_date) : '--'}
               </span>
-
-              {/* AR/AP badge */}
               <DirectionBadge direction={row.direction} />
-
-              {/* Invoice code */}
               <span className="truncate font-mono text-xs text-zinc-400">
                 {row.invoice_number ?? ''}
               </span>
-
-              {/* Entity name */}
               <span className="truncate text-sm text-zinc-800">
                 {row.type === 'loan' ? `Loan: ${row.entity_name ?? '--'}` : row.entity_name ?? '--'}
               </span>
-
-              {/* Project code */}
               <span className="font-mono text-xs text-zinc-500">
                 {row.project_code ?? '--'}
               </span>
-
-              {/* Regular outstanding (total minus BdN) */}
               <span className="text-right font-mono text-sm font-medium text-zinc-900">
                 {row.outstanding !== null && row.currency
                   ? formatCurrency((row.outstanding ?? 0) - (row.bdn_outstanding ?? 0), row.currency)
                   : '--'}
               </span>
-
-              {/* BdN outstanding */}
               <span className="text-right font-mono text-sm text-zinc-500">
                 {(row.bdn_outstanding ?? 0) > 0 && row.currency
                   ? formatCurrency(row.bdn_outstanding!, row.currency)
                   : '--'}
               </span>
-
-              {/* Total outstanding */}
               <span className="text-right font-mono text-sm font-medium text-zinc-900">
                 {row.outstanding !== null && row.currency
                   ? formatCurrency(row.outstanding, row.currency)
                   : '--'}
               </span>
-
-              {/* Days due */}
               <span className={`text-right text-xs ${getUrgencyColor(row.days_remaining)}`}>
                 {formatUrgency(row.days_remaining)}
               </span>
