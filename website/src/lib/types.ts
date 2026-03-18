@@ -76,19 +76,6 @@ export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'next-7' | 'next-30
 
 export type BucketValue = { count: number; pen: number; usd: number }
 
-export type DirectionalBucketValue = {
-  pay: BucketValue
-  collect: BucketValue
-}
-
-export type CalendarBucketCounts = {
-  overdue: DirectionalBucketValue
-  today: DirectionalBucketValue
-  'next-7': DirectionalBucketValue
-  'next-30': DirectionalBucketValue
-  later: DirectionalBucketValue
-}
-
 // --- Invoices page types (backward-looking aging buckets) ---
 
 export type InvoiceAgingBucketId = 'all' | 'current' | '1-30' | '31-60' | '61-90' | '90+'

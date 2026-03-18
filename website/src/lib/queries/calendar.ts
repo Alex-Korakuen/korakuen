@@ -1,10 +1,6 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { getCalendarBucket } from '../date-utils'
-import type {
-  ObligationCalendarRow,
-  CalendarBucketCounts,
-  DirectionalBucketValue,
-} from '../types'
+import type { ObligationCalendarRow } from '../types'
 
 type ObligationCalendarFilters = {
   direction?: 'payable' | 'receivable'
@@ -18,7 +14,6 @@ type ObligationCalendarFilters = {
 
 type ObligationCalendarResult = {
   rows: ObligationCalendarRow[]
-  bucketCounts: CalendarBucketCounts
   uniqueSuppliers: string[]
 }
 
@@ -27,7 +22,6 @@ export { getCalendarBucket }
 export async function getObligationCalendar(
   partnerIds: string[],
   filters: ObligationCalendarFilters,
-  midRate: number | null = null,
 ): Promise<ObligationCalendarResult> {
   const supabase = await createServerSupabaseClient()
   let query = supabase
@@ -53,28 +47,6 @@ export async function getObligationCalendar(
   for (const r of rows) { if (r.entity_name) supplierSet.add(r.entity_name) }
   const uniqueSuppliers = Array.from(supplierSet).sort()
 
-  // Compute bucket counts from all rows (before filters), split by direction
-  const emptyBucket = () => ({ count: 0, pen: 0, usd: 0 })
-  const emptyDirectional = (): DirectionalBucketValue => ({ pay: emptyBucket(), collect: emptyBucket() })
-  const bucketCounts: CalendarBucketCounts = {
-    overdue: emptyDirectional(),
-    today: emptyDirectional(),
-    'next-7': emptyDirectional(),
-    'next-30': emptyDirectional(),
-    later: emptyDirectional(),
-  }
-  for (const r of rows) {
-    const b = getCalendarBucket(r.days_remaining)
-    const side = r.direction === 'receivable' ? bucketCounts[b].collect : bucketCounts[b].pay
-    side.count++
-    const amt = r.outstanding ?? 0
-    if (r.currency === 'PEN') side.pen += amt
-    else if (r.currency === 'USD') {
-      side.usd += amt
-      if (midRate) side.pen += amt * midRate
-    }
-  }
-
   // Apply filters
   if (filters.bucket && filters.bucket !== 'all') {
     rows = rows.filter(r => getCalendarBucket(r.days_remaining) === filters.bucket)
@@ -88,5 +60,5 @@ export async function getObligationCalendar(
     rows = rows.filter(r => (r.title ?? '').toLowerCase().includes(search))
   }
 
-  return { rows, bucketCounts, uniqueSuppliers }
+  return { rows, uniqueSuppliers }
 }

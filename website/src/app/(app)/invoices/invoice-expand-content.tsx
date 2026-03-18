@@ -22,10 +22,8 @@ export function InvoiceExpandContent({ detail, onPaymentSuccess }: Props) {
   const invoiceOutstanding = invoice.outstanding ?? 0
   const bdnOutstanding = invoice.bdn_outstanding ?? 0
   const bdnOutstandingPen = invoice.bdn_outstanding_pen ?? 0
-  // Retencion paid: always same currency, safe to compute locally
-  const retencionPaid = detail.payments
-    .filter(p => p.payment_type === 'retencion')
-    .reduce((sum, p) => sum + p.amount, 0)
+  // retencion_paid is pre-computed by v_invoice_balances
+  const retencionPaid = invoice.retencion_paid ?? 0
   const retencionOutstanding = Math.max(0, invoiceRetencion - retencionPaid)
   const invoicePayable = Math.max(0, invoiceOutstanding - bdnOutstanding - retencionOutstanding)
 
