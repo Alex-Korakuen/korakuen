@@ -23,95 +23,6 @@ function num(val: unknown): number | null {
 }
 
 // ============================================================
-// Entities Import
-// ============================================================
-
-export async function importEntities(
-  rows: Record<string, unknown>[]
-): Promise<ImportResult> {
-  const supabase = await createServerSupabaseClient()
-  const errors: ImportError[] = []
-
-  // Load existing document_numbers for uniqueness check
-  const { data: existing } = await supabase
-    .from('entities')
-    .select('document_number')
-    .eq('is_active', true)
-  const existingDocs = new Set((existing ?? []).map(e => e.document_number))
-  const seenDocs = new Set<string>()
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i]
-    const r = i + 5 // Excel row number (data starts at row 5)
-
-    const entityType = str(row.entity_type)
-    const docType = str(row.document_type)
-    const docNum = str(row.document_number)
-    const legalName = str(row.legal_name)
-
-    // Required
-    if (!entityType) errors.push({ row: r, column: 'entity_type', message: 'Required' })
-    if (!docType) errors.push({ row: r, column: 'document_type', message: 'Required' })
-    if (!docNum) errors.push({ row: r, column: 'document_number', message: 'Required' })
-    if (!legalName) errors.push({ row: r, column: 'legal_name', message: 'Required' })
-
-    // Enums
-    if (entityType && !['company', 'individual'].includes(entityType)) {
-      errors.push({ row: r, column: 'entity_type', message: 'Must be: company, individual' })
-    }
-    if (docType && !['RUC', 'DNI', 'CE', 'Pasaporte'].includes(docType)) {
-      errors.push({ row: r, column: 'document_type', message: 'Must be: RUC, DNI, CE, Pasaporte' })
-    }
-
-    // Cross-field: type consistency
-    if (entityType === 'company' && docType && docType !== 'RUC') {
-      errors.push({ row: r, column: 'document_type', message: 'Company must use RUC' })
-    }
-    if (entityType === 'individual' && docType === 'RUC') {
-      errors.push({ row: r, column: 'document_type', message: 'Individual cannot use RUC' })
-    }
-
-    // Format
-    if (docNum && docType === 'RUC' && !/^\d{11}$/.test(docNum)) {
-      errors.push({ row: r, column: 'document_number', message: 'RUC must be 11 digits' })
-    }
-    if (docNum && docType === 'DNI' && !/^\d{8}$/.test(docNum)) {
-      errors.push({ row: r, column: 'document_number', message: 'DNI must be 8 digits' })
-    }
-
-    // Uniqueness
-    if (docNum) {
-      if (existingDocs.has(docNum)) {
-        errors.push({ row: r, column: 'document_number', message: 'Already exists in database' })
-      }
-      if (seenDocs.has(docNum)) {
-        errors.push({ row: r, column: 'document_number', message: 'Duplicate in file' })
-      }
-      seenDocs.add(docNum)
-    }
-  }
-
-  if (errors.length > 0) return { errors }
-
-  const records = rows.map(row => ({
-    entity_type: str(row.entity_type)!,
-    document_type: str(row.document_type)!,
-    document_number: str(row.document_number)!,
-    legal_name: str(row.legal_name)!,
-    common_name: str(row.common_name),
-    city: str(row.city),
-    region: str(row.region),
-    notes: str(row.notes),
-  }))
-
-  const { error, data } = await supabase.from('entities').insert(records).select('id')
-  if (error) return { error: error.message }
-
-  revalidatePath('/entities')
-  return { success: data.length }
-}
-
-// ============================================================
 // Quotes Import
 // ============================================================
 
@@ -404,4 +315,140 @@ export async function importInvoices(
   revalidatePath('/prices')
 
   return { success: totalInvoices }
+}
+
+// ============================================================
+// Payments Import
+// ============================================================
+
+export async function importPayments(
+  rows: Record<string, unknown>[]
+): Promise<ImportResult> {
+  const supabase = await createServerSupabaseClient()
+  const errors: ImportError[] = []
+
+  // Load lookups
+  const { data: partners } = await supabase
+    .from('partner_companies').select('id, name').eq('is_active', true)
+  const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
+
+  const { data: invoices } = await supabase
+    .from('invoices').select('id, document_ref')
+  const invoiceMap = new Map(
+    (invoices ?? []).filter(i => i.document_ref).map(i => [i.document_ref!, i.id])
+  )
+
+  const { data: bankAccounts } = await supabase
+    .from('bank_accounts').select('id, bank_name, account_number_last4, currency, is_detraccion_account').eq('is_active', true)
+  // Key: "BCP-1234" → bank account
+  const bankMap = new Map(
+    (bankAccounts ?? []).map(ba => [`${ba.bank_name}-${ba.account_number_last4}`, ba])
+  )
+
+  const DIRECTIONS = ['inbound', 'outbound']
+  const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion']
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const r = i + 5
+
+    const invoiceDocRef = str(row.invoice_document_ref)
+    const direction = str(row.direction)
+    const paymentType = str(row.payment_type)
+    const paymentDate = str(row.payment_date)
+    const amount = num(row.amount)
+    const currency = str(row.currency)
+    const exchangeRate = num(row.exchange_rate)
+    const bankAccount = str(row.bank_account)
+    const partnerName = str(row.partner_company_name)
+
+    // Required
+    if (!invoiceDocRef) errors.push({ row: r, column: 'invoice_document_ref', message: 'Required' })
+    if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
+    if (!paymentType) errors.push({ row: r, column: 'payment_type', message: 'Required' })
+    if (!paymentDate) errors.push({ row: r, column: 'payment_date', message: 'Required' })
+    if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
+    if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (!partnerName) errors.push({ row: r, column: 'partner_company_name', message: 'Required' })
+
+    // Enums
+    if (direction && !DIRECTIONS.includes(direction)) {
+      errors.push({ row: r, column: 'direction', message: 'Must be: inbound, outbound' })
+    }
+    if (paymentType && !PAYMENT_TYPES.includes(paymentType)) {
+      errors.push({ row: r, column: 'payment_type', message: 'Must be: regular, detraccion, retencion' })
+    }
+    if (currency && !['USD', 'PEN'].includes(currency)) {
+      errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
+    }
+
+    // FK lookups
+    if (invoiceDocRef && !invoiceMap.has(invoiceDocRef)) {
+      errors.push({ row: r, column: 'invoice_document_ref', message: 'Not found in database' })
+    }
+    if (partnerName && !partnerMap.has(partnerName)) {
+      errors.push({ row: r, column: 'partner_company_name', message: 'Not found in database' })
+    }
+
+    // Bank account: required for non-retencion
+    if (paymentType !== 'retencion') {
+      if (!bankAccount) {
+        errors.push({ row: r, column: 'bank_account', message: 'Required for regular and detraccion payments' })
+      } else if (!bankMap.has(bankAccount)) {
+        errors.push({ row: r, column: 'bank_account', message: 'Not found — use format: BankName-Last4 (e.g. BCP-1234)' })
+      } else {
+        const ba = bankMap.get(bankAccount)!
+        if (ba.currency !== currency) {
+          errors.push({ row: r, column: 'bank_account', message: `Currency mismatch — account is ${ba.currency}, payment is ${currency}` })
+        }
+        if (paymentType === 'detraccion' && !ba.is_detraccion_account) {
+          errors.push({ row: r, column: 'bank_account', message: 'Must be a Banco de la Nación detracción account' })
+        }
+        if (paymentType === 'regular' && ba.is_detraccion_account) {
+          errors.push({ row: r, column: 'bank_account', message: 'Cannot use detracción account for regular payments' })
+        }
+      }
+    }
+
+    // Amount positive
+    if (amount !== null && amount <= 0) {
+      errors.push({ row: r, column: 'amount', message: 'Must be greater than 0' })
+    }
+
+    // Exchange rate range
+    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
+      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
+    }
+  }
+
+  if (errors.length > 0) return { errors }
+
+  const records = rows.map(row => {
+    const paymentType = str(row.payment_type)!
+    const bankRef = str(row.bank_account)
+    return {
+      related_to: 'invoice' as const,
+      related_id: invoiceMap.get(str(row.invoice_document_ref)!)!,
+      direction: str(row.direction)!,
+      payment_type: paymentType,
+      payment_date: str(row.payment_date)!,
+      amount: num(row.amount)!,
+      currency: str(row.currency)!,
+      exchange_rate: num(row.exchange_rate)!,
+      bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
+      partner_company_id: partnerMap.get(str(row.partner_company_name)!)!,
+      notes: str(row.notes) ?? null,
+    }
+  })
+
+  const { error, data } = await supabase.from('payments').insert(records).select('id')
+  if (error) return { error: error.message }
+
+  revalidatePath('/payments')
+  revalidatePath('/invoices')
+  revalidatePath('/calendar')
+  revalidatePath('/financial-position')
+
+  return { success: data.length }
 }

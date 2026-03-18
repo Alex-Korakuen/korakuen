@@ -1,15 +1,19 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailByScheduleId } from '@/lib/actions'
+import { importPayments } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
 import type { PaymentsPageRow, PaymentsSummary, PaymentBucketId, PaymentBucketSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
+
+const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 
 type Props = {
   data: PaymentsPageRow[]
@@ -87,6 +91,7 @@ export function PaymentsClient({
 }: Props) {
   const { setFilter, clearFilters } = useUrlFilters()
 
+  const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
@@ -127,7 +132,16 @@ export function PaymentsClient({
 
   return (
     <div>
-      {/* Filters */}
+      {/* Import button + Filters */}
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={() => setShowImport(true)}
+          className="rounded border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+        >
+          Import
+        </button>
+      </div>
+
       <PaymentsFilters
         currentFilters={currentFilters}
         setFilter={setFilter}
@@ -174,6 +188,14 @@ export function PaymentsClient({
           />
         ) : null}
       </Modal>
+
+      {/* Import modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        title="Import Payments"
+        onImport={importPayments}
+      />
     </div>
   )
 }
