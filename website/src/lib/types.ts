@@ -23,8 +23,18 @@ export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual'
 
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
-
+export type InvoiceDirection = 'payable' | 'receivable'
+export type CostType = 'project_cost' | 'sga'
+export type ComprobanteType = 'factura' | 'boleta' | 'recibo_por_honorarios' | 'liquidacion_de_compra' | 'planilla_jornales' | 'none'
+export type PaymentType = 'regular' | 'detraccion' | 'retencion'
+export type PaymentRelatedTo = 'invoice' | 'loan_schedule'
+export type PaymentMethod = 'bank_transfer' | 'cash' | 'check'
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
+export type ProjectType = 'subcontractor' | 'oxi'
+export type EntityType = 'company' | 'individual'
+export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
+export type AccountType = 'checking' | 'savings' | 'detraccion'
+export type ReturnType = 'percentage' | 'fixed'
 
 // --- Invoice detail types ---
 

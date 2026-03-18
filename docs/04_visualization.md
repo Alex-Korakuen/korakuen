@@ -16,7 +16,7 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 7 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
 
-**Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Transactions missing an exchange rate are flagged for the user to correct via CLI. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
+**Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
 ---
 
@@ -206,7 +206,7 @@ Two sections:
 - Reads from Supabase PostgreSQL via Supabase JavaScript client
 - Authentication — Supabase Auth with email/password, invite-only (3 accounts)
 - Universal partner filter (cookie-based) controls data scope across all pages — no role-based visibility
-- Reporting currency: consolidated views include a currency selector (PEN default). Transactions in the other currency converted at display time using stored exchange_rate. Converted amounts visually marked. Missing exchange rates flagged as warnings
+- Reporting currency: consolidated views include a currency selector (PEN default). Transactions in the other currency converted at display time using stored exchange_rate. Converted amounts visually marked
 - All views are filterable and sortable
 - Consistent interaction patterns: split-panel for browse pages, summary cards + table for dashboards, tabs for sub-sections, modals for row detail
 - Design principles: minimalist, clean, functional — inspired by Todoist and Notion

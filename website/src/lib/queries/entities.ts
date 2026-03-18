@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
+import { buildEntityTagsMap } from './shared'
 import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
@@ -63,24 +64,7 @@ export async function getEntitiesList(
 
   // Fetch tags for the returned entities
   const entityIds = (entities ?? []).map(e => e.id)
-  const tagsByEntity = new Map<string, string[]>()
-
-  if (entityIds.length > 0) {
-    const { data: entityTagsData, error: tagsError } = await supabase
-      .from('entity_tags')
-      .select('entity_id, tags(name)')
-      .in('entity_id', entityIds)
-    if (tagsError) throw tagsError
-
-    for (const et of entityTagsData ?? []) {
-      const tagName = (et.tags as unknown as { name: string } | null)?.name
-      if (tagName) {
-        const existing = tagsByEntity.get(et.entity_id) ?? []
-        existing.push(tagName)
-        tagsByEntity.set(et.entity_id, existing)
-      }
-    }
-  }
+  const tagsByEntity = await buildEntityTagsMap(supabase, entityIds)
 
   const items: EntityListItem[] = (entities ?? []).map(e => ({
     id: e.id,

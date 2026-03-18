@@ -153,7 +153,7 @@ src/
       client.ts         → browser-side Supabase client
     database.types.ts   → auto-generated from supabase gen types
     types.ts            → human-friendly type aliases and enums
-    queries.ts          → reusable server-side query functions
+    queries/            → reusable server-side query functions (barrel export via index.ts)
     formatters.ts       → currency and date formatting
     auth.ts             → getCurrentUser, getPartnerName
   middleware.ts         → redirects unauthenticated users to /login

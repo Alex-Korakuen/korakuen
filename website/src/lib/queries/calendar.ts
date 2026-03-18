@@ -34,7 +34,7 @@ export async function getObligationCalendar(
     query = query.eq('direction', filters.direction)
   }
   if (partnerIds.length > 0) {
-    query = query.or(`partner_company_id.in.(${partnerIds.join(',')}),partner_company_id.is.null`)
+    query = query.in('partner_company_id', partnerIds)
   }
 
   const { data, error } = await query

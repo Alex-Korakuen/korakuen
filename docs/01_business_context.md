@@ -276,13 +276,13 @@ Day-to-day tasks during project execution are managed in **Todoist**. The manage
 
 ## 10. Internal Systems
 
-Korakuen maintains a custom internal management system for operational visibility. It is not an ERP or CRM — it is a structured PostgreSQL database with a Next.js website on Vercel for visualization and data entry, plus Python CLI scripts for bulk imports, built specifically for Korakuen's operational reality.
+Korakuen maintains a custom internal management system for operational visibility. It is not an ERP or CRM — it is a structured PostgreSQL database with a Next.js website on Vercel for visualization and data entry (including Excel-based bulk imports), built specifically for Korakuen's operational reality.
 
 For full technical detail, refer to:
 - `02_system_architecture.md` — technology stack and key design decisions
 - `03_module_specifications.md` — what the system tracks and how each module works
 - `04_visualization.md` — dashboards and views available on the website
-- `06_tech_evolution.md` — how the system will evolve from V0 (CLI + website) to V1 (mobile + automation)
+- `06_tech_evolution.md` — how the system will evolve from V0 (foundation) through V1 (website) to V2 (mobile + automation)
 
 ---
 

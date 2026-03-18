@@ -1,14 +1,14 @@
 # Environment Setup
 
-**Document version:** 1.0
-**Date:** February 28, 2026
+**Document version:** 2.0
+**Date:** March 18, 2026
 **Status:** Active
 
 ---
 
 ## Overview
 
-This document describes how to set up a local development environment for the Korakuen management system. The system has two components that need separate setup: the Python CLI scripts and the Next.js visualization website.
+This document describes how to set up a local development environment for the Korakuen management system website and database tooling.
 
 ---
 
@@ -16,8 +16,6 @@ This document describes how to set up a local development environment for the Ko
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Python | 3.11+ | CLI scripts |
-| pip | latest | Python package manager |
 | Node.js | 18+ | Next.js website |
 | npm | latest | Node package manager |
 | Supabase CLI | latest | Database migrations and schema management |
@@ -33,51 +31,14 @@ korakuen/
 ├── skills/                 → Claude Code skill files
 │   ├── sql_schema.md
 │   ├── sql_views.md
-│   ├── cli_script.md
-│   ├── import_script.md
 │   ├── ts_types.md
 │   └── codebase_audit.md
-├── cli/                    → Python CLI application
-│   ├── main.py             → single entry point (python main.py)
-│   ├── modules/
-│   │   ├── __init__.py
-│   │   ├── projects.py     → add single + import from Excel
-│   │   ├── entities.py     → add entity, contact, tag + import
-│   │   ├── quotes.py       → add single + import from Excel
-│   │   ├── payments.py     → register payment, verify retencion
-│   │   ├── loans.py        → add loan, schedule, payments + import
-│   │   └── exchange_rates.py → add daily SUNAT rate, list recent rates
-│   ├── lib/
-│   │   ├── __init__.py
-│   │   ├── db.py           → shared Supabase client
-│   │   ├── helpers.py      → shared input helpers + clear_screen
-│   │   └── import_helpers.py → shared import validation/highlighting
-│   └── requirements.txt
 ├── supabase/               → SQL schema, migrations, and seeds
 │   ├── migrations/
 │   │   ├── 20260301000001_initial_schema.sql
-│   │   ├── 20260301000002_indexes.sql
-│   │   ├── 20260301000003_add_is_active.sql
-│   │   ├── 20260301000004_views.sql
-│   │   ├── 20260301000005_seed_data.sql
-│   │   ├── 20260301000007_views_security_invoker.sql
-│   │   ├── 20260301000008_fix_function_search_path.sql
-│   │   ├── 20260301000009_v_cost_totals_add_notes.sql
-│   │   ├── 20260302000001_entity_location_fields.sql
-│   │   ├── 20260302000002_informal_payment_support.sql
-│   │   ├── 20260302000003_loans_tables.sql
-│   │   ├── 20260302000004_project_budgets.sql
-│   │   ├── 20260302000005_phase35_views.sql
-│   │   ├── 20260302000006_phase35_indexes.sql
-│   │   ├── 20260302000007_fix_payments_index.sql
-│   │   ├── 20260303000001_fix_v_bank_balances_is_active.sql
-│   │   ├── 20260303000002_rls_authenticated_read.sql
-│   │   ├── 20260303000003_exchange_rate_required.sql
-│   │   ├── 20260303000004_views_exchange_rate_passthrough.sql
-│   │   ├── 20260303000005_dummy_data.sql
-│   │   ├── ...               → 40+ additional migrations through March 12
-│   │   └── 20260312000001_drop_v_partner_ledger.sql
-│   ├── views/              → individual view source files (combined into migration above)
+│   │   ├── ...               → 60+ migrations through March 18
+│   │   └── 20260318000004_...
+│   ├── views/              → individual view source files (combined into migration for deploy)
 │   │   ├── v_bank_balances.sql
 │   │   ├── v_budget_vs_actual.sql
 │   │   ├── v_igv_position.sql
@@ -93,13 +54,11 @@ korakuen/
 │       ├── 002_partner_companies.sql
 │       └── 003_bank_accounts.sql
 ├── website/                → Next.js website (visualization + data entry)
-│   ├── app/
-│   ├── components/
-│   ├── lib/
+│   ├── src/app/
+│   ├── src/components/
+│   ├── src/lib/
 │   ├── package.json
 │   └── .env.local          → never committed
-├── imports/                → Excel templates for bulk data import
-│   └── templates/          → one .xlsx template per entity type
 ├── docs/                   → all documentation
 │   └── ...
 ├── .env.example            → template, committed
@@ -120,7 +79,7 @@ korakuen/
 From your Supabase project dashboard → Settings → API:
 - **Project URL:** `https://[project-ref].supabase.co`
 - **Anon key:** safe for client-side use (RLS policies enforce access control)
-- **Service role key:** server-side only (CLI scripts) — never expose publicly
+- **Service role key:** server-side only — never expose publicly
 
 ### 1.3 Install Supabase CLI
 ```bash
@@ -159,67 +118,15 @@ Alternatively, paste the seed SQL files directly into the Supabase SQL Editor (D
 
 ---
 
-## 2. CLI Setup
+## 2. Website Setup
 
-### 2.1 Clone Repository
-```bash
-git clone [repo-url]
-cd korakuen/cli
-```
-
-### 2.2 Create Virtual Environment
-```bash
-python -m venv venv
-source venv/bin/activate        # macOS/Linux
-# or
-venv\Scripts\activate           # Windows
-```
-
-### 2.3 Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-**requirements.txt contents:**
-```
-supabase==2.x.x
-python-dotenv==1.x.x
-rich==13.x.x          # for nice terminal output
-pandas==2.x.x         # for reading Excel files (import scripts)
-openpyxl==3.x.x       # Excel engine for pandas + cell formatting
-```
-
-### 2.4 Configure Environment
-```bash
-cp ../.env.example .env
-```
-
-Edit `.env`:
-```
-SUPABASE_URL=https://[project-ref].supabase.co
-SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
-```
-
-**Use service role key for CLI** — it bypasses Row Level Security, which is appropriate since CLI scripts are used directly by partners, not by end users.
-
-### 2.5 Test Connection
-```bash
-python main.py
-```
-
-If Supabase connects correctly, you will see the main menu. Select any option to verify database connectivity.
-
----
-
-## 3. Website Setup
-
-### 3.1 Install Dependencies
+### 2.1 Install Dependencies
 ```bash
 cd korakuen/website
 npm install
 ```
 
-### 3.2 Configure Environment
+### 2.2 Configure Environment
 ```bash
 cp ../.env.example .env.local
 ```
@@ -232,14 +139,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 
 **Use anon key for website** — safe to expose in browser. Row Level Security on Supabase enforces read and write access for authenticated users.
 
-### 3.3 Run Locally
+### 2.3 Run Locally
 ```bash
 npm run dev
 ```
 
 Website available at `http://localhost:3000`
 
-### 3.4 Deploy to Vercel
+### 2.4 Deploy to Vercel
 1. Push repository to GitHub
 2. Go to [vercel.com](https://vercel.com) → New Project
 3. Import the GitHub repository
@@ -251,11 +158,9 @@ Vercel auto-deploys on every push to `main`.
 
 ---
 
-## 4. VS Code Setup
+## 3. VS Code Setup
 
 ### Recommended Extensions
-- **Python** (Microsoft) — Python language support
-- **Pylance** — Python type checking
 - **ESLint** — TypeScript linting
 - **Prettier** — code formatting
 - **Supabase** — Supabase integration (optional)
@@ -265,32 +170,24 @@ Vercel auto-deploys on every push to `main`.
 Create `.vscode/settings.json`:
 ```json
 {
-  "python.defaultInterpreterPath": "./cli/venv/bin/python",
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
-  }
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
 ```
 
 ---
 
-## 5. Environment Variables Reference
+## 4. Environment Variables Reference
 
 | Variable | Used By | Description |
 |---|---|---|
-| `SUPABASE_URL` | CLI + website | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | CLI only | Full access key — never expose |
-| `NEXT_PUBLIC_SUPABASE_URL` | Website only | Same URL, prefixed for Next.js |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Website only | Public key — safe for browser, RLS enforced |
+| `NEXT_PUBLIC_SUPABASE_URL` | Website | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Website | Public key — safe for browser, RLS enforced |
 | `SUPABASE_PROJECT_ID` | Supabase CLI | Project ref for linking and type generation |
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI | CLI access token for migrations |
 
 **.env.example** (committed to repo):
 ```
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_PROJECT_ID=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -299,12 +196,10 @@ SUPABASE_ACCESS_TOKEN=
 
 ---
 
-## 6. Common Issues
+## 5. Common Issues
 
 | Issue | Solution |
 |---|---|
-| `ModuleNotFoundError: supabase` | Virtual environment not activated — run `source venv/bin/activate` |
-| `Invalid API key` | Check `.env` file has correct service key, not anon key |
 | `relation does not exist` | Schema not applied — run `supabase db push` or execute migration files via Supabase CLI |
 | Website shows no data | Check `.env.local` has correct anon key and URL |
 | Vercel deploy fails | Check environment variables are set in Vercel dashboard |

@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityNameMap, buildProjectCodeMap } from './shared'
+import { buildEntityNameMap, buildEntityTagsMap, buildProjectCodeMap } from './shared'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -62,26 +62,11 @@ export async function getPriceHistory(
   }
 
   // Fetch entity names, project codes, and entity tags in parallel
-  const [entityNameMap, projectCodeMap, entityTagsResult] = await Promise.all([
+  const [entityNameMap, projectCodeMap, entityTagsMap] = await Promise.all([
     buildEntityNameMap(supabase, [...allEntityIds]),
     buildProjectCodeMap(supabase, [...allProjectIds]),
-    allEntityIds.size > 0
-      ? supabase.from('entity_tags').select('entity_id, tags(name)').in('entity_id', [...allEntityIds])
-      : { data: [], error: null },
+    buildEntityTagsMap(supabase, [...allEntityIds]),
   ])
-
-  if ('error' in entityTagsResult && entityTagsResult.error) throw entityTagsResult.error
-
-  // Build entity -> tags map
-  const entityTagsMap = new Map<string, string[]>()
-  for (const et of entityTagsResult.data ?? []) {
-    const tagName = (et.tags as unknown as { name: string } | null)?.name
-    if (tagName) {
-      const existing = entityTagsMap.get(et.entity_id) ?? []
-      existing.push(tagName)
-      entityTagsMap.set(et.entity_id, existing)
-    }
-  }
 
   // Build result: invoice_items
   let rows: PriceHistoryRow[] = []

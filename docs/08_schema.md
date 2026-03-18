@@ -300,7 +300,7 @@ The `tags` table serves as a single master list for all categorization needs —
 - Client
 - General Supplier
 
-*Tags are addable anytime via CLI. Nothing is locked — the list grows with operational experience.*
+*Tags are addable anytime via Supabase Dashboard. Nothing is locked — the list grows with operational experience.*
 
 ---
 
