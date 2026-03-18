@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { usePartnerFilter } from '@/lib/partner-filter-context'
+import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
   label: string
@@ -247,7 +248,77 @@ function PartnerFilter({ collapsed }: { collapsed: boolean }) {
   )
 }
 
-export function Sidebar() {
+function UserMenu({ collapsed, partnerName }: { collapsed: boolean; partnerName: string }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  const initials = partnerName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  return (
+    <div className="relative border-t border-zinc-200 p-2" ref={menuRef}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 ${collapsed ? 'justify-center' : ''}`}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-medium text-zinc-600">
+          {initials}
+        </span>
+        {!collapsed && <span className="truncate">{partnerName}</span>}
+      </button>
+
+      {open && (
+        <div className={`absolute z-50 w-48 rounded-md border border-zinc-200 bg-white py-1 shadow-lg ${
+          collapsed ? 'bottom-0 left-full ml-1' : 'bottom-full left-2 right-2 mb-1 w-auto'
+        }`}>
+          <Link
+            href="/settings/password"
+            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+            onClick={() => setOpen(false)}
+          >
+            Change Password
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="block w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface SidebarProps {
+  partnerName: string
+}
+
+export function Sidebar({ partnerName }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -332,6 +403,9 @@ export function Sidebar() {
             collapsed={collapsed}
           />
         </div>
+
+        {/* User menu */}
+        <UserMenu collapsed={collapsed} partnerName={partnerName} />
 
         {/* Collapse toggle (desktop only) */}
         <div className="hidden border-t border-zinc-200 p-2 md:block">

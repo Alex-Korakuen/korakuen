@@ -19,9 +19,9 @@ export default async function AppLayout({
   return (
     <PartnerFilterProvider partners={partners} initialSelection={initialSelection}>
       <div className="flex h-screen">
-        <Sidebar />
+        <Sidebar partnerName={partnerName} />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <Header partnerName={partnerName} />
+          <Header />
           <main className="flex-1 overflow-auto bg-zinc-50 p-6">
             {children}
           </main>
