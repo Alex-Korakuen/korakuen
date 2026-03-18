@@ -21,6 +21,7 @@ type InvoicesPageFilters = {
   projectId?: string
   entity?: string
   bucket?: string
+  search?: string
   sort: string
   dir: 'asc' | 'desc'
   page: number
@@ -139,6 +140,10 @@ export async function getInvoicesPage(
   }
   if (filters.bucket && filters.bucket !== 'all') {
     rows = rows.filter(r => r.aging_bucket === filters.bucket)
+  }
+  if (filters.search) {
+    const term = filters.search.toLowerCase()
+    rows = rows.filter(r => (r.invoice_number ?? '').toLowerCase().includes(term))
   }
 
   // Map to InvoicesPageRow

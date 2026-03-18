@@ -16,6 +16,7 @@ type PaymentsPageFilters = {
   relatedTo?: 'invoice' | 'loan_schedule'
   projectId?: string
   bankAccountId?: string
+  search?: string
   sort: string
   dir: 'asc' | 'desc'
   page: number
@@ -118,6 +119,13 @@ export async function getPaymentsPage(
   }
   if (filters.bankAccountId) {
     rows = rows.filter(r => r.bank_account_id === filters.bankAccountId)
+  }
+  if (filters.search) {
+    const term = filters.search.toLowerCase()
+    rows = rows.filter(r =>
+      (r.invoice_number ?? '').toLowerCase().includes(term) ||
+      (r.entity_name ?? '').toLowerCase().includes(term)
+    )
   }
 
   // Map to PaymentsPageRow

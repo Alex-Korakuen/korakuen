@@ -24,6 +24,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
     projectId: str(params, FK.project),
     entity: str(params, FK.entity),
     bucket: str(params, FK.bucket),
+    search: str(params, FK.search),
     sort,
     dir,
     page,
@@ -54,6 +55,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
         projectId: filters.projectId ?? '',
         entity: filters.entity ?? '',
         bucket: filters.bucket ?? 'all',
+        search: filters.search ?? '',
       }}
     />
   )

@@ -30,6 +30,7 @@ type Props = {
     relatedTo: string
     projectId: string
     bankAccountId: string
+    search: string
   }
 }
 
@@ -102,9 +103,10 @@ export function PaymentsClient({
     currentFilters.paymentType !== '' ||
     currentFilters.relatedTo !== '' ||
     currentFilters.projectId !== '' ||
-    currentFilters.bankAccountId !== ''
+    currentFilters.bankAccountId !== '' ||
+    currentFilters.search !== ''
 
-  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.related, FK.project, FK.bank])
+  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.search])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
     setModalRow(row)

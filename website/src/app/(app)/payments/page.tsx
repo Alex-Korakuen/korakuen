@@ -19,6 +19,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
     relatedTo: str(params, FK.related) as 'invoice' | 'loan_schedule' | undefined,
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
+    search: str(params, FK.search),
     sort,
     dir,
     page,
@@ -41,6 +42,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
         relatedTo: filters.relatedTo ?? '',
         projectId: filters.projectId ?? '',
         bankAccountId: filters.bankAccountId ?? '',
+        search: filters.search ?? '',
       }}
     />
   )

@@ -43,6 +43,7 @@ type Props = {
     projectId: string
     entity: string
     bucket: string
+    search: string
   }
 }
 
@@ -202,9 +203,10 @@ export function InvoicesClient({
     currentFilters.type !== '' ||
     currentFilters.status !== '' ||
     currentFilters.projectId !== '' ||
-    currentFilters.entity !== ''
+    currentFilters.entity !== '' ||
+    currentFilters.search !== ''
 
-  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.bucket])
+  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.bucket, FK.search])
 
   const fetchDetail = useCallback(async (row: InvoicesPageRow) => {
     setModalDetail(null)
@@ -329,11 +331,11 @@ export function InvoicesClient({
       {/* Filters */}
       <InvoicesFilters
         currentFilters={currentFilters}
-        setFilter={setFilter}
         projects={projects}
         uniqueEntities={uniqueEntities}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
+        setFilter={setFilter}
       />
 
       {/* Table */}
