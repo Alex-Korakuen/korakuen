@@ -4,6 +4,7 @@ import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
 import { PartnerFilterProvider } from '@/lib/partner-filter-context'
+import { SidebarProvider } from '@/lib/sidebar-context'
 
 export default async function AppLayout({
   children,
@@ -18,15 +19,17 @@ export default async function AppLayout({
 
   return (
     <PartnerFilterProvider partners={partners} initialSelection={initialSelection}>
-      <div className="flex h-screen">
-        <Sidebar partnerName={partnerName} />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-auto bg-zinc-50 p-6">
-            {children}
-          </main>
+      <SidebarProvider>
+        <div className="flex h-screen">
+          <Sidebar partnerName={partnerName} />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <Header />
+            <main className="flex-1 overflow-auto bg-zinc-50 p-6">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     </PartnerFilterProvider>
   )
 }

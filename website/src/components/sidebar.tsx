@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { usePartnerFilter } from '@/lib/partner-filter-context'
+import { useSidebar } from '@/lib/sidebar-context'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
@@ -320,7 +321,7 @@ interface SidebarProps {
 
 export function Sidebar({ partnerName }: SidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const { collapsed, toggleSidebar } = useSidebar()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -366,25 +367,48 @@ export function Sidebar({ partnerName }: SidebarProps) {
           <span className="text-lg font-bold tracking-widest text-zinc-800">
             {collapsed ? 'K' : 'KORAKUEN'}
           </span>
-          {/* Mobile close button */}
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="rounded-md p-1 text-zinc-400 hover:text-zinc-600 md:hidden"
-            aria-label="Close navigation"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+          <div className="flex items-center gap-1">
+            {/* Collapse toggle (desktop only, visible when expanded) */}
+            {!collapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="hidden rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-50 hover:text-zinc-600 md:block"
+                aria-label="Collapse sidebar"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="10 3 5 8 10 13" />
+                </svg>
+              </button>
+            )}
+            {/* Mobile close button */}
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="rounded-md p-1 text-zinc-400 hover:text-zinc-600 md:hidden"
+              aria-label="Close navigation"
             >
-              <line x1="4" y1="4" x2="14" y2="14" />
-              <line x1="14" y1="4" x2="4" y2="14" />
-            </svg>
-          </button>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <line x1="4" y1="4" x2="14" y2="14" />
+                <line x1="14" y1="4" x2="4" y2="14" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -406,30 +430,6 @@ export function Sidebar({ partnerName }: SidebarProps) {
 
         {/* User menu */}
         <UserMenu collapsed={collapsed} partnerName={partnerName} />
-
-        {/* Collapse toggle (desktop only) */}
-        <div className="hidden border-t border-zinc-200 p-2 md:block">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex w-full items-center justify-center rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-50 hover:text-zinc-600"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
-            >
-              <polyline points="10 3 5 8 10 13" />
-            </svg>
-          </button>
-        </div>
       </aside>
     </>
   )
