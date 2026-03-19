@@ -35,6 +35,7 @@ WITH item_sums AS (
     COALESCE(SUM(ii.subtotal), 0) AS subtotal
   FROM invoices i
   LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+  WHERE i.is_active = true
   GROUP BY
     i.id, i.direction, i.project_id, i.partner_company_id,
     i.entity_id, i.quote_id, i.purchase_order_id, i.cost_type,

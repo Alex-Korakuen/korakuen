@@ -2,6 +2,7 @@ import {
   getInvoicesPage,
   getProjectsForFilter,
   getLatestExchangeRate,
+  getProjectCategories,
 } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
@@ -30,9 +31,10 @@ export default async function InvoicesPage({ searchParams }: Props) {
     page,
   }
 
-  const [exchangeRate, projects] = await Promise.all([
+  const [exchangeRate, projects, categories] = await Promise.all([
     getLatestExchangeRate(),
     getProjectsForFilter(),
+    getProjectCategories(),
   ])
 
   const result = await getInvoicesPage(partnerIds, filters, exchangeRate?.mid_rate ?? null)
@@ -48,6 +50,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
       summary={result.summary}
       projects={projects}
       uniqueEntities={result.uniqueEntities}
+      categories={categories}
       currentFilters={{
         direction: filters.direction ?? '',
         type: filters.type ?? '',

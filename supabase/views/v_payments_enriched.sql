@@ -30,7 +30,7 @@ SELECT
   -- Enriched from bank account
   ba.bank_name
 FROM payments p
-JOIN invoices i ON i.id = p.related_id
+JOIN invoices i ON i.id = p.related_id AND i.is_active = true
 LEFT JOIN projects pr ON pr.id = i.project_id
 LEFT JOIN entities e ON e.id = i.entity_id
 LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id

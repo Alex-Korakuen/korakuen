@@ -899,3 +899,176 @@ export async function deactivatePayment(
   revalidatePath('/financial-position')
   return {}
 }
+
+// --- Update & Deactivate Invoice ---
+
+export async function updateInvoice(input: {
+  id: string
+  title: string | null
+  entity_id: string | null
+  invoice_date: string
+  due_date: string | null
+  comprobante_type: string | null
+  invoice_number: string | null
+  document_ref: string | null
+  payment_method: string | null
+  exchange_rate: number
+  detraccion_rate: number | null
+  retencion_rate: number | null
+  notes: string | null
+  items: Array<{
+    title: string
+    category: string | null
+    quantity: number | null
+    unit_of_measure: string | null
+    unit_price: number | null
+    subtotal: number
+  }>
+}): Promise<{ error?: string }> {
+  if (!input.items.length) return { error: 'At least one line item is required' }
+  if (input.exchange_rate <= 0) return { error: 'Exchange rate must be greater than 0' }
+
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch existing invoice (locked fields + payment check)
+  const { data: existing } = await supabase
+    .from('invoices')
+    .select('id, direction, partner_company_id, currency, project_id, cost_type, igv_rate, retencion_applicable')
+    .eq('id', input.id)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: 'Invoice not found or already deactivated' }
+
+  // Compute new total from items
+  const newSubtotal = input.items.reduce((sum, item) => sum + item.subtotal, 0)
+  if (newSubtotal <= 0) return { error: 'Total must be greater than 0' }
+
+  // Check if invoice has payments — validate new total >= amount_paid
+  const { data: paymentAgg } = await supabase
+    .from('payments')
+    .select('amount, currency')
+    .eq('related_to', 'invoice')
+    .eq('related_id', input.id)
+    .eq('is_active', true)
+
+  if (paymentAgg && paymentAgg.length > 0) {
+    const amountPaid = paymentAgg.reduce((sum, p) => {
+      if (p.currency === existing.currency) return sum + p.amount
+      return sum + p.amount / (input.exchange_rate || 1)
+    }, 0)
+    const igvAmount = Math.round(newSubtotal * (existing.igv_rate / 100) * 100) / 100
+    const newTotal = newSubtotal + igvAmount
+    if (newTotal < amountPaid) {
+      return { error: `New total (${newTotal.toFixed(2)}) cannot be less than amount already paid (${amountPaid.toFixed(2)})` }
+    }
+  }
+
+  // Update invoice header (editable fields only)
+  const { error: updateError } = await supabase
+    .from('invoices')
+    .update({
+      title: input.title?.trim() || null,
+      entity_id: input.entity_id || null,
+      invoice_date: input.invoice_date,
+      due_date: input.due_date || null,
+      comprobante_type: input.comprobante_type || null,
+      invoice_number: input.invoice_number?.trim() || null,
+      document_ref: input.document_ref?.trim() || null,
+      payment_method: input.payment_method || null,
+      exchange_rate: input.exchange_rate,
+      detraccion_rate: input.detraccion_rate ?? null,
+      retencion_rate: existing.retencion_applicable ? (input.retencion_rate ?? null) : null,
+      notes: input.notes?.trim() || null,
+    })
+    .eq('id', input.id)
+    .eq('is_active', true)
+
+  if (updateError) return { error: updateError.message }
+
+  // Delete all existing invoice_items and reinsert
+  const { error: deleteError } = await supabase
+    .from('invoice_items')
+    .delete()
+    .eq('invoice_id', input.id)
+
+  if (deleteError) return { error: deleteError.message }
+
+  const { error: insertError } = await supabase
+    .from('invoice_items')
+    .insert(
+      input.items.map(item => ({
+        invoice_id: input.id,
+        title: item.title.trim(),
+        category: item.category || null,
+        quantity: item.quantity ?? null,
+        unit_of_measure: item.unit_of_measure?.trim() || null,
+        unit_price: item.unit_price ?? null,
+        subtotal: item.subtotal,
+      }))
+    )
+
+  if (insertError) return { error: insertError.message }
+
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/calendar')
+  revalidatePath('/financial-position')
+  revalidatePath('/projects')
+  revalidatePath('/prices')
+  return {}
+}
+
+export async function deactivateInvoice(
+  invoiceId: string
+): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data: existing } = await supabase
+    .from('invoices')
+    .select('id')
+    .eq('id', invoiceId)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: 'Invoice not found or already deactivated' }
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({ is_active: false })
+    .eq('id', invoiceId)
+
+  if (error) return { error: error.message }
+
+  // Cascade: deactivate all related payments
+  const { data: relatedPayments } = await supabase
+    .from('payments')
+    .select('id, payment_type')
+    .eq('related_to', 'invoice')
+    .eq('related_id', invoiceId)
+    .eq('is_active', true)
+
+  if (relatedPayments && relatedPayments.length > 0) {
+    await supabase
+      .from('payments')
+      .update({ is_active: false })
+      .eq('related_to', 'invoice')
+      .eq('related_id', invoiceId)
+      .eq('is_active', true)
+  }
+
+  // Un-verify retencion if applicable
+  const hadRetencion = relatedPayments?.some(p => p.payment_type === 'retencion')
+  if (hadRetencion) {
+    await supabase
+      .from('invoices')
+      .update({ retencion_verified: false })
+      .eq('id', invoiceId)
+  }
+
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/calendar')
+  revalidatePath('/financial-position')
+  revalidatePath('/projects')
+  revalidatePath('/prices')
+  return {}
+}

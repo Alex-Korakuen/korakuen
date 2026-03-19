@@ -20,6 +20,7 @@ WITH actual_costs AS (
   WHERE i.direction = 'payable'
     AND i.cost_type = 'project_cost'
     AND i.project_id IS NOT NULL
+    AND i.is_active = true
   GROUP BY i.project_id, ii.category, i.currency
 )
 SELECT

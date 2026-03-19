@@ -349,6 +349,7 @@ export type Database = {
           igv_rate: number
           invoice_date: string
           invoice_number: string | null
+          is_active: boolean
           notes: string | null
           partner_company_id: string
           payment_method: string | null
@@ -376,6 +377,7 @@ export type Database = {
           igv_rate?: number
           invoice_date: string
           invoice_number?: string | null
+          is_active?: boolean
           notes?: string | null
           partner_company_id: string
           payment_method?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           igv_rate?: number
           invoice_date?: string
           invoice_number?: string | null
+          is_active?: boolean
           notes?: string | null
           partner_company_id?: string
           payment_method?: string | null

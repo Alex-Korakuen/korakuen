@@ -24,7 +24,7 @@ import type {
   InvoiceAgingBuckets as BucketCounts,
   BucketValue,
 } from '@/lib/types'
-import type { InvoicesPageSummary as Summary } from '@/lib/queries'
+import type { InvoicesPageSummary as Summary, CategoryOption } from '@/lib/queries'
 
 type Props = {
   data: InvoicesPageRow[]
@@ -36,6 +36,7 @@ type Props = {
   summary: Summary
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
+  categories: CategoryOption[]
   currentFilters: {
     direction: string
     type: string
@@ -175,6 +176,7 @@ export function InvoicesClient({
   summary,
   projects,
   uniqueEntities,
+  categories,
   currentFilters,
 }: Props) {
   const router = useRouter()
@@ -187,6 +189,7 @@ export function InvoicesClient({
   const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
+  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
 
   const activeBucket = currentFilters.bucket as BucketId
 
@@ -234,7 +237,13 @@ export function InvoicesClient({
   const handleCloseModal = () => {
     setModalRow(null)
     setModalDetail(null)
+    setModalMode('view')
   }
+
+  const handleMutationSuccess = useCallback(() => {
+    handleCloseModal()
+    router.refresh()
+  }, [router])
 
   const handlePaymentSuccess = useCallback(() => {
     if (modalRow) {
@@ -270,18 +279,25 @@ export function InvoicesClient({
     return (
       <InvoiceExpandContent
         detail={modalDetail as InvoiceDetailData}
+        row={modalRow}
+        mode={modalMode}
+        onSetMode={setModalMode}
+        onMutationSuccess={handleMutationSuccess}
         onPaymentSuccess={handlePaymentSuccess}
+        categories={categories}
       />
     )
   }
 
-  // Modal title based on row type
+  // Modal title based on row type and mode
   const modalTitle = modalRow
     ? modalRow.type === 'loan'
       ? 'Loan Detail'
-      : modalRow.invoice_number
-        ? `Invoice ${modalRow.invoice_number}`
-        : 'Invoice Detail'
+      : modalMode === 'edit'
+        ? 'Edit Invoice'
+        : modalRow.invoice_number
+          ? `Invoice ${modalRow.invoice_number}`
+          : 'Invoice Detail'
     : ''
 
   return (
