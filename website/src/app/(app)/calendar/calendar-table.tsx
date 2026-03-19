@@ -103,7 +103,7 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
           {group.rows.map((row) => (
             <div
               key={row.invoice_id ?? `loan-${row.loan_id ?? row.entity_name}-${row.due_date}`}
-              className="grid cursor-pointer grid-cols-[56px_30px_auto_1fr_64px_auto_auto_auto_64px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
+              className="grid cursor-pointer grid-cols-[60px_30px_100px_1fr_60px_120px_56px] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-zinc-50"
               onClick={() => onRowClick(row)}
             >
               <span className="text-sm text-zinc-600">
@@ -118,16 +118,6 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
               </span>
               <span className="font-mono text-xs text-zinc-500">
                 {row.project_code ?? '--'}
-              </span>
-              <span className="text-right font-mono text-sm font-medium text-zinc-900">
-                {row.outstanding !== null && row.currency
-                  ? formatCurrency((row.outstanding ?? 0) - (row.bdn_outstanding ?? 0), row.currency)
-                  : '--'}
-              </span>
-              <span className="text-right font-mono text-sm text-zinc-500">
-                {(row.bdn_outstanding ?? 0) > 0 && row.currency
-                  ? formatCurrency(row.bdn_outstanding!, row.currency)
-                  : '--'}
               </span>
               <span className="text-right font-mono text-sm font-medium text-zinc-900">
                 {row.outstanding !== null && row.currency

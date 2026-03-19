@@ -1,15 +1,24 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { getCalendarBucket } from '@/lib/date-utils'
 import { FK } from '@/lib/filter-keys'
+import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
+import { Modal } from '@/components/ui/modal'
+import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
+import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarFilters } from './calendar-filters'
 import { CalendarTable } from './calendar-table'
 import type {
   ObligationCalendarRow,
+  InvoicesPageRow,
+  InvoiceDetailData,
+  LoanDetailData,
   CalendarBucketId as BucketId,
 } from '@/lib/types'
+import type { CategoryOption } from '@/lib/queries'
 
 export type SectionTotals = {
   pay: { pen: number; usd: number; count: number }
@@ -20,6 +29,7 @@ type Props = {
   data: ObligationCalendarRow[]
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
+  categories: CategoryOption[]
   currentFilters: {
     type: string
     projectId: string
@@ -52,14 +62,48 @@ function computeTotals(rows: ObligationCalendarRow[]): SectionTotals {
   return totals
 }
 
+/** Map a calendar row to the shape InvoiceExpandContent expects for its `row` prop */
+function toInvoicesPageRow(r: ObligationCalendarRow): InvoicesPageRow {
+  return {
+    id: r.invoice_id ?? '',
+    type: (r.type as 'commercial' | 'loan') ?? 'commercial',
+    direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
+    partner_company_id: r.partner_company_id ?? null,
+    project_id: r.project_id ?? null,
+    project_code: r.project_code ?? null,
+    entity_id: r.entity_id ?? null,
+    entity_name: r.entity_name ?? null,
+    title: r.title ?? null,
+    invoice_number: r.invoice_number ?? null,
+    invoice_date: r.date ?? null,
+    due_date: r.due_date ?? null,
+    currency: r.currency ?? 'PEN',
+    total: r.total ?? 0,
+    amount_paid: r.amount_paid ?? 0,
+    outstanding: r.outstanding ?? 0,
+    bdn_outstanding: r.bdn_outstanding ?? 0,
+    bdn_outstanding_pen: r.bdn_outstanding_pen ?? 0,
+    payment_status: r.payment_status ?? 'pending',
+    loan_id: r.loan_id ?? null,
+  }
+}
+
 export function CalendarClient({
   data,
   projects,
   uniqueEntities,
+  categories,
   currentFilters,
 }: Props) {
   const router = useRouter()
   const { setFilter, clearFilters } = useUrlFilters()
+
+  // Modal state
+  const [modalRow, setModalRow] = useState<ObligationCalendarRow | null>(null)
+  const [modalPageRow, setModalPageRow] = useState<InvoicesPageRow | null>(null)
+  const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
 
   const hasActiveFilters =
     currentFilters.projectId !== '' ||
@@ -70,14 +114,49 @@ export function CalendarClient({
 
   const handleClearFilters = () => clearFilters([FK.project, FK.entity, FK.type, FK.currency, FK.search])
 
-  const handleRowClick = (row: ObligationCalendarRow) => {
-    const params = new URLSearchParams()
-    params.set('direction', row.direction ?? 'payable')
-    if (row.type === 'loan') params.set('type', 'loan')
-    else params.set('type', 'commercial')
-    if (row.entity_name) params.set('entity', row.entity_name)
-    router.push(`/invoices?${params.toString()}`)
+  const fetchDetail = useCallback(async (row: ObligationCalendarRow) => {
+    setModalDetail(null)
+    setModalLoading(true)
+    try {
+      if (row.type === 'loan' && row.loan_id) {
+        const detail = await fetchLoanDetailById(row.loan_id)
+        setModalDetail(detail)
+      } else if (row.invoice_id) {
+        const detail = await fetchInvoiceDetail(row.invoice_id)
+        setModalDetail(detail)
+      }
+    } catch {
+      setModalDetail(null)
+    } finally {
+      setModalLoading(false)
+    }
+  }, [])
+
+  const handleRowClick = useCallback(async (row: ObligationCalendarRow) => {
+    setModalRow(row)
+    setModalPageRow(toInvoicesPageRow(row))
+    setModalMode('view')
+    await fetchDetail(row)
+  }, [fetchDetail])
+
+  const handleCloseModal = () => {
+    setModalRow(null)
+    setModalPageRow(null)
+    setModalDetail(null)
+    setModalMode('view')
   }
+
+  const handleMutationSuccess = useCallback(() => {
+    handleCloseModal()
+    router.refresh()
+  }, [router])
+
+  const handlePaymentSuccess = useCallback(() => {
+    if (modalRow) {
+      fetchDetail(modalRow)
+    }
+    router.refresh()
+  }, [modalRow, fetchDetail, router])
 
   // Group rows by urgency bucket and compute totals per section
   const groups = BUCKET_ORDER.map(({ id, label }) => {
@@ -86,6 +165,56 @@ export function CalendarClient({
   })
 
   const grandTotals = computeTotals(data)
+
+  // Modal title
+  const modalTitle = modalRow
+    ? modalRow.type === 'loan'
+      ? 'Loan Detail'
+      : modalMode === 'edit'
+        ? 'Edit Invoice'
+        : modalRow.invoice_number
+          ? `Invoice ${modalRow.invoice_number}`
+          : 'Invoice Detail'
+    : ''
+
+  function renderModalContent() {
+    if (!modalRow) return null
+
+    if (modalLoading) {
+      return (
+        <div className="flex items-center justify-center py-6">
+          <span className="text-sm text-zinc-400">Loading detail...</span>
+        </div>
+      )
+    }
+
+    if (!modalDetail) {
+      return <p className="px-4 py-3 text-sm text-zinc-400">Could not load detail.</p>
+    }
+
+    if (modalRow.type === 'loan') {
+      return (
+        <LoanExpandContent
+          detail={modalDetail as LoanDetailData}
+          onRepaymentSuccess={handlePaymentSuccess}
+        />
+      )
+    }
+
+    if (!modalPageRow) return null
+
+    return (
+      <InvoiceExpandContent
+        detail={modalDetail as InvoiceDetailData}
+        row={modalPageRow}
+        mode={modalMode}
+        onSetMode={setModalMode}
+        onMutationSuccess={handleMutationSuccess}
+        onPaymentSuccess={handlePaymentSuccess}
+        categories={categories}
+      />
+    )
+  }
 
   return (
     <div className="pb-16">
@@ -99,6 +228,10 @@ export function CalendarClient({
       />
 
       <CalendarTable groups={groups} grandTotals={grandTotals} onRowClick={handleRowClick} />
+
+      <Modal isOpen={!!modalRow} onClose={handleCloseModal} title={modalTitle}>
+        {renderModalContent()}
+      </Modal>
     </div>
   )
 }
