@@ -111,16 +111,16 @@ export function ProjectBudgetForm({
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
-                <th className="px-4 py-2 text-left font-medium">Category</th>
-                <th className="px-4 py-2 text-right font-medium">Budgeted</th>
-                <th className="px-4 py-2 text-right font-medium">Actual</th>
+                <th className="px-3 py-2 text-left font-medium">Category</th>
+                <th className="px-2 py-2 text-right font-medium">Budgeted</th>
+                <th className="px-2 py-2 text-right font-medium">Actual</th>
                 {hasBudget && (
-                  <th className="px-4 py-2 text-right font-medium">% Used</th>
+                  <th className="px-2 py-2 text-right font-medium">% Used</th>
                 )}
                 {contractValue !== null && (
-                  <th className="px-4 py-2 text-right font-medium">% of Contract</th>
+                  <th className="px-2 py-2 text-right font-medium">% Contract</th>
                 )}
-                <th className="px-4 py-2 text-right font-medium w-16"></th>
+                <th className="px-2 py-2 text-right font-medium w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -136,10 +136,10 @@ export function ProjectBudgetForm({
 
                 return (
                   <tr key={`${category}-${i}`}>
-                    <td className="px-4 py-2 font-medium text-zinc-800">
+                    <td className="px-3 py-2 font-medium text-zinc-800 truncate max-w-[120px]">
                       {formatCategory(b.category)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-700">
                       {isEditing ? (
                         <input
                           type="number"
@@ -174,12 +174,12 @@ export function ProjectBudgetForm({
                         </button>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(actual, contractCurrency)}
                     </td>
                     {hasBudget && (
                       <td
-                        className={`whitespace-nowrap px-4 py-2 text-right font-mono font-medium ${pctUsedColor(
+                        className={`whitespace-nowrap px-2 py-2 text-right font-mono font-medium ${pctUsedColor(
                           pctUsed,
                           b.budgeted_amount
                         )}`}
@@ -190,11 +190,11 @@ export function ProjectBudgetForm({
                       </td>
                     )}
                     {contractValue !== null && (
-                      <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-600">
+                      <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-600">
                         {pctOfContract !== null ? `${pctOfContract.toFixed(1)}%` : '--'}
                       </td>
                     )}
-                    <td className="px-4 py-2 text-right">
+                    <td className="px-2 py-2 text-right">
                       {b.budgeted_amount !== null && (
                         <button
                           onClick={() => handleRemove(category)}
@@ -214,18 +214,18 @@ export function ProjectBudgetForm({
             </tbody>
             <tfoot>
               <tr className="border-t border-zinc-200 bg-zinc-50">
-                <td className="px-4 py-2 font-medium text-zinc-700">Total</td>
-                <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
+                <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-800">
                   {totalBudgeted !== null
                     ? formatCurrency(totalBudgeted, contractCurrency)
                     : '--'}
                 </td>
-                <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-800">
                   {formatCurrency(totalActual, contractCurrency)}
                 </td>
                 {hasBudget && (
                   <td
-                    className={`whitespace-nowrap px-4 py-2 text-right font-mono font-semibold ${
+                    className={`whitespace-nowrap px-2 py-2 text-right font-mono font-semibold ${
                       totalBudgeted !== null && totalBudgeted > 0
                         ? pctUsedColor((totalActual / totalBudgeted) * 100, totalBudgeted)
                         : 'text-zinc-700'
@@ -237,13 +237,13 @@ export function ProjectBudgetForm({
                   </td>
                 )}
                 {contractValue !== null && (
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-700">
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-700">
                     {contractValue > 0
                       ? `${((totalActual / contractValue) * 100).toFixed(1)}%`
                       : '--'}
                   </td>
                 )}
-                <td className="px-4 py-2"></td>
+                <td className="px-2 py-2"></td>
               </tr>
             </tfoot>
           </table>

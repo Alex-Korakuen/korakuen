@@ -161,12 +161,12 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs text-zinc-500">
               <tr>
-                <th className="px-4 py-2 text-left font-medium">Partner</th>
-                <th className="px-4 py-2 text-right font-medium">Share</th>
-                <th className="px-4 py-2 text-right font-medium">Profit</th>
-                <th className="px-4 py-2 text-right font-medium">Should Receive</th>
-                <th className="px-4 py-2 text-right font-medium">Balance</th>
-                <th className="w-16 px-4 py-2"></th>
+                <th className="px-3 py-2 text-left font-medium">Partner</th>
+                <th className="px-2 py-2 text-right font-medium">Share</th>
+                <th className="px-2 py-2 text-right font-medium">Profit</th>
+                <th className="px-2 py-2 text-right font-medium">Owed</th>
+                <th className="px-2 py-2 text-right font-medium">Balance</th>
+                <th className="w-10 px-2 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -179,10 +179,10 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                     onClick={() => !isEditingShare && handlePartnerClick(p.partnerCompanyId)}
                     className={`cursor-pointer transition-colors ${isEditingShare ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
                   >
-                    <td className="px-4 py-2 font-medium text-zinc-800">{p.partnerName}</td>
-                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 py-2 font-medium text-zinc-800 truncate max-w-[120px]">{p.partnerName}</td>
+                    <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                       {isEditingShare ? (
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"
                             value={editShareValue}
@@ -190,7 +190,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                             min="0"
                             max="100"
                             step="0.01"
-                            className={`${inputCompactClass} w-16 bg-white font-mono text-right`}
+                            className={`${inputCompactClass} w-14 bg-white font-mono text-right`}
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleSaveShare(p.id)
@@ -201,7 +201,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                           <button
                             onClick={() => handleSaveShare(p.id)}
                             disabled={isPending}
-                            className="rounded bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="rounded bg-blue-600 px-1.5 py-0.5 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                           >
                             {isPending ? '...' : 'Save'}
                           </button>
@@ -209,7 +209,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                       ) : (
                         <button
                           onClick={() => startShareEdit(p.id, p.profitSharePct)}
-                          className="rounded border border-dashed border-zinc-300 px-2 py-0.5 font-mono text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-50"
+                          className="rounded border border-dashed border-zinc-300 px-1.5 py-0.5 font-mono text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-50"
                           title="Click to edit share"
                         >
                           {p.profitSharePct}%
@@ -219,15 +219,15 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                         <p className="mt-1 text-[10px] text-red-600">{editShareError}</p>
                       )}
                     </td>
-                    <td className={`px-4 py-2 text-right font-mono font-medium ${
+                    <td className={`px-2 py-2 text-right font-mono font-medium ${
                       (s?.profit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
                     }`}>
                       {formatCurrency(s?.profit ?? 0, 'PEN')}
                     </td>
-                    <td className="px-4 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-2 py-2 text-right font-mono text-zinc-700">
                       {formatCurrency(s?.shouldReceive ?? 0, 'PEN')}
                     </td>
-                    <td className={`px-4 py-2 text-right font-mono font-medium ${
+                    <td className={`px-2 py-2 text-right font-mono font-medium ${
                       (s?.balance ?? 0) > 0
                         ? 'text-amber-600'
                         : (s?.balance ?? 0) < 0
@@ -236,7 +236,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                     }`}>
                       {(s?.balance ?? 0) === 0 ? 'Settled' : formatCurrency(s?.balance ?? 0, 'PEN')}
                     </td>
-                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleRemove(p.id)}
                         disabled={isPending}
@@ -258,26 +258,26 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 onClick={() => handlePartnerClick('__all__')}
                 title="Click to view all costs and revenue"
               >
-                <td className="px-4 py-2 font-medium text-zinc-700">Total</td>
-                <td className={`px-4 py-2 text-right font-mono font-semibold ${
+                <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
+                <td className={`px-2 py-2 text-right font-mono font-semibold ${
                   totalShare === 100 ? 'text-green-600' : 'text-amber-600'
                 }`}>
                   {totalShare}%
                 </td>
-                <td className={`px-4 py-2 text-right font-mono font-semibold ${
+                <td className={`px-2 py-2 text-right font-mono font-semibold ${
                   totalProfit >= 0 ? 'text-green-700' : 'text-red-600'
                 }`}>
                   {formatCurrency(totalProfit, 'PEN')}
                 </td>
-                <td className="px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                <td className="px-2 py-2 text-right font-mono font-semibold text-zinc-800">
                   {formatCurrency(totalShouldReceive, 'PEN')}
                 </td>
-                <td className={`px-4 py-2 text-right font-mono font-semibold ${
+                <td className={`px-2 py-2 text-right font-mono font-semibold ${
                   totalBalance > 0 ? 'text-amber-600' : totalBalance < 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
                   {totalBalance === 0 ? 'Settled' : formatCurrency(totalBalance, 'PEN')}
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-2 py-2 text-right">
                   {totalShare === 100 ? (
                     <span className="text-xs text-green-600">OK</span>
                   ) : (
@@ -348,7 +348,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         )}
       </div>
 
-      <div className="border-t border-zinc-200 px-4 py-2">
+      <div className="border-t border-zinc-200 px-3 py-2">
         <p className="text-xs text-zinc-400">
           All amounts in PEN at transaction-date rates. Positive balance = partner is owed. Click a row for details.
         </p>
