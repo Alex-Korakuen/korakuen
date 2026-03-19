@@ -227,6 +227,62 @@ export async function updateEntityContact(
   return {}
 }
 
+// --- Update & Deactivate Entity ---
+
+export async function updateEntity(
+  entityId: string,
+  data: {
+    legal_name: string
+    common_name?: string
+    city?: string
+    region?: string
+    notes?: string
+  }
+): Promise<{ error?: string }> {
+  if (!data.legal_name.trim()) return { error: 'Legal name is required' }
+
+  const supabase = await createServerSupabaseClient()
+  const { error } = await supabase
+    .from('entities')
+    .update({
+      legal_name: data.legal_name.trim(),
+      common_name: data.common_name?.trim() || null,
+      city: data.city?.trim() || null,
+      region: data.region?.trim() || null,
+      notes: data.notes?.trim() || null,
+    })
+    .eq('id', entityId)
+    .eq('is_active', true)
+
+  if (error) return { error: error.message }
+  revalidatePath('/entities')
+  return {}
+}
+
+export async function deactivateEntity(
+  entityId: string
+): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data: existing } = await supabase
+    .from('entities')
+    .select('id')
+    .eq('id', entityId)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: 'Entity not found or already deactivated' }
+
+  const { error } = await supabase
+    .from('entities')
+    .update({ is_active: false })
+    .eq('id', entityId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/entities')
+  revalidatePath('/invoices')
+  return {}
+}
+
 export async function createBankAccount(data: {
   partner_company_id: string
   bank_name: string
@@ -313,6 +369,48 @@ export async function createEntity(data: {
   })
   if (error) return { error: error.message }
   revalidatePath('/entities')
+}
+
+// --- Update Project ---
+
+export async function updateProject(
+  projectId: string,
+  data: {
+    name: string
+    status: string
+    contract_value?: number
+    start_date?: string
+    expected_end_date?: string
+    actual_end_date?: string
+    client_entity_id?: string
+    location?: string
+    notes?: string
+  }
+): Promise<{ error?: string }> {
+  if (!data.name.trim()) return { error: 'Project name is required' }
+
+  const supabase = await createServerSupabaseClient()
+  const { error } = await supabase
+    .from('projects')
+    .update({
+      name: data.name.trim(),
+      status: data.status,
+      contract_value: data.contract_value ?? null,
+      start_date: data.start_date || null,
+      expected_end_date: data.expected_end_date || null,
+      actual_end_date: data.actual_end_date || null,
+      client_entity_id: data.client_entity_id || null,
+      location: data.location?.trim() || null,
+      notes: data.notes?.trim() || null,
+    })
+    .eq('id', projectId)
+    .eq('is_active', true)
+
+  if (error) return { error: error.message }
+  revalidatePath('/projects')
+  revalidatePath('/invoices')
+  revalidatePath('/calendar')
+  return {}
 }
 
 // --- Create Project ---

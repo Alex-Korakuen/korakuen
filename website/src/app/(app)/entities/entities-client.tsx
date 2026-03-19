@@ -82,6 +82,7 @@ export function EntitiesClient({
             detail={detail}
             availableTags={filterOptions.tags}
             onLedgerClick={setModalGroup}
+            onDeactivated={() => onSelect(null)}
             hidden={!showDetailMobile}
           />
         )}
