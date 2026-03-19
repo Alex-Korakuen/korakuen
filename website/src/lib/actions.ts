@@ -83,6 +83,11 @@ export async function registerPayment(input: {
     return { error: 'Bank account is required for this payment type' }
   }
 
+  // Detraccion payments must be in PEN (Banco de la Nación requirement)
+  if (input.payment_type === 'detraccion' && input.currency !== 'PEN') {
+    return { error: 'Detraccion payments must be in PEN' }
+  }
+
   // Validate bank account currency matches payment currency
   if (input.bank_account_id) {
     const { data: bankAccount } = await supabase
@@ -124,6 +129,20 @@ export async function registerPayment(input: {
     }
     if (input.amount > maxAmount) {
       return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
+    }
+  }
+
+  // Validate loan schedule overpayment
+  if (input.related_to === 'loan_schedule') {
+    const [{ data: existingPayments }, { data: scheduleEntry }] = await Promise.all([
+      supabase.from('payments').select('amount').eq('related_to', 'loan_schedule').eq('related_id', input.related_id).eq('is_active', true),
+      supabase.from('loan_schedule').select('scheduled_amount').eq('id', input.related_id).single(),
+    ])
+    if (!scheduleEntry) return { error: 'Schedule entry not found' }
+    const totalPaid = (existingPayments ?? []).reduce((s, p) => s + p.amount, 0)
+    const outstanding = scheduleEntry.scheduled_amount - totalPaid
+    if (input.amount > outstanding) {
+      return { error: `Amount exceeds schedule entry outstanding (${outstanding.toFixed(2)})` }
     }
   }
 

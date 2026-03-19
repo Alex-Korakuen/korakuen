@@ -27,7 +27,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
   // 1. Fetch project, project_partners, budget, AR invoices in parallel
   const [projectResult, ppResult, budgetResult] = await Promise.all([
-    supabase.from('projects').select('*').eq('id', projectId).single(),
+    supabase.from('projects').select('*').eq('id', projectId).eq('is_active', true).single(),
     supabase.from('project_partners').select('id, partner_company_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
     supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
   ])
