@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Korakuen — Edit Modals Wireframe</title>
+<style>
+  /* Reset & base */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f4f5;
+    color: #27272a;
+    padding: 32px;
+    line-height: 1.5;
+  }
+
+  /* Page layout */
+  .page-header {
+    max-width: 960px;
+    margin: 0 auto 40px;
+    text-align: center;
+  }
+  .page-header h1 { font-size: 24px; font-weight: 700; color: #18181b; }
+  .page-header p { font-size: 14px; color: #71717a; margin-top: 8px; }
+  .page-header .legend {
+    display: flex; gap: 24px; justify-content: center; margin-top: 16px; font-size: 12px; color: #71717a;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-dot.locked { background: #e4e4e7; border: 1px solid #d4d4d8; }
+  .legend-dot.editable { background: #fff; border: 1.5px solid #3b82f6; }
+  .legend-dot.delete { background: #fef2f2; border: 1.5px solid #fca5a5; }
+
+  /* Section wrapper */
+  .section {
+    max-width: 960px;
+    margin: 0 auto 48px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #18181b;
+    margin-bottom: 4px;
+  }
+  .section-subtitle {
+    font-size: 13px;
+    color: #71717a;
+    margin-bottom: 20px;
+  }
+  .section-source {
+    font-size: 11px;
+    color: #a1a1aa;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+
+  /* Modal shell */
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e4e4e7;
+  }
+  .modal-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #18181b;
+  }
+  .modal-close {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    border: none; background: none;
+    color: #a1a1aa;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .modal-body { padding: 20px 24px; }
+
+  /* Grid system */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  .grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 16px; }
+
+  /* Locked field */
+  .field-locked {
+    margin-bottom: 0;
+  }
+  .field-locked .label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500; color: #a1a1aa;
+    margin-bottom: 4px;
+  }
+  .field-locked .label .lock {
+    font-size: 10px; color: #d4d4d8;
+  }
+  .field-locked .value {
+    font-size: 13px; color: #71717a;
+  }
+
+  /* Editable field */
+  .field-edit {
+    margin-bottom: 0;
+  }
+  .field-edit .label {
+    font-size: 11px; font-weight: 500; color: #71717a;
+    margin-bottom: 4px;
+  }
+  .field-edit input,
+  .field-edit select,
+  .field-edit textarea {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #d4d4d8;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #27272a;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+  }
+  .field-edit input:focus,
+  .field-edit select:focus,
+  .field-edit textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+  .field-edit .hint {
+    font-size: 10px; color: #a1a1aa; margin-top: 3px;
+  }
+  .field-edit textarea { resize: none; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+  .text-right { text-align: right; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-dark { background: #27272a; color: #fff; }
+  .btn-dark:hover { background: #3f3f46; }
+  .btn-cancel { background: #fff; color: #52525b; border: 1px solid #d4d4d8; }
+  .btn-cancel:hover { background: #f4f4f5; }
+  .btn-danger-outline {
+    background: #fff; color: #dc2626; border: 1px solid #fecaca;
+    padding: 6px 12px;
+  }
+  .btn-danger-outline:hover { background: #fef2f2; }
+  .btn-danger { background: #dc2626; color: #fff; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-success:hover { background: #15803d; }
+  .btn-amber { background: #d97706; color: #fff; }
+  .btn-amber:hover { background: #b45309; }
+
+  /* Footer */
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #e4e4e7;
+    padding-top: 16px;
+    margin-top: 20px;
+  }
+  .modal-footer-right {
+    display: flex; gap: 10px;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: #e4e4e7;
+    margin: 16px 0;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-zinc { background: #f4f4f5; color: #52525b; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  /* Deactivate confirmation box */
+  .confirm-box {
+    border: 2px solid #fecaca;
+    background: #fef2f2;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .confirm-box .confirm-inner {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .confirm-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #fee2e2;
+    color: #ef4444;
+    font-size: 16px;
+    margin-top: 2px;
+  }
+  .confirm-body h4 { font-size: 14px; font-weight: 600; color: #991b1b; }
+  .confirm-body p { font-size: 13px; color: #b91c1c; margin-top: 6px; }
+  .confirm-body .small { font-size: 11px; color: #ef4444; margin-top: 10px; }
+  .confirm-actions {
+    display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;
+  }
+
+  /* Dimmed overlay */
+  .dimmed { opacity: 0.35; pointer-events: none; }
+
+  /* Info box */
+  .info-box {
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    font-size: 13px;
+  }
+  .info-row .info-label { color: #71717a; }
+  .info-row .info-value { color: #27272a; }
+  .info-row .info-value.bold { font-weight: 600; }
+  .info-row .info-value.mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+  .info-row .info-value.red { color: #dc2626; font-weight: 600; }
+
+  /* Tab nav */
+  .mode-tabs {
+    display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e4e4e7;
+  }
+  .mode-tab {
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #71717a;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .mode-tab.active {
+    color: #18181b;
+    border-bottom-color: #18181b;
+  }
+  .mode-tab.active-blue {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .mode-tab.active-red {
+    color: #dc2626;
+    border-bottom-color: #dc2626;
+  }
+
+  /* Mini table */
+  .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mini-table th {
+    text-align: left; padding: 6px 10px; font-weight: 500; color: #71717a;
+    background: #f4f4f5; border-bottom: 1px solid #e4e4e7;
+  }
+  .mini-table th.text-right { text-align: right; }
+  .mini-table td {
+    padding: 8px 10px; border-bottom: 1px solid #f4f4f5; color: #3f3f46;
+  }
+  .mini-table td.mono { font-family: 'SF Mono', monospace; }
+  .mini-table td.text-right { text-align: right; }
+
+  /* Inline edit row */
+  .inline-edit-row {
+    display: flex; gap: 10px; align-items: flex-end;
+    padding: 12px 0;
+    border-top: 1px solid #e4e4e7;
+    margin-top: 8px;
+  }
+  .inline-edit-row .field-edit { flex: 1; }
+
+  /* Note callout */
+  .note {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #92400e;
+    margin-top: 12px;
+  }
+
+  /* Layout helpers */
+  .space-y > * + * { margin-top: 16px; }
+  .space-y-sm > * + * { margin-top: 12px; }
+  .mt-4 { margin-top: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-4 { margin-bottom: 16px; }
+  .text-xs { font-size: 12px; }
+  .text-zinc-400 { color: #a1a1aa; }
+  .text-zinc-500 { color: #71717a; }
+  .text-red-600 { color: #dc2626; }
+  .text-green-600 { color: #16a34a; }
+  .font-semibold { font-weight: 600; }
+  .font-medium { font-weight: 500; }
+
+  /* Two-up comparison */
+  .two-up {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 900px) {
+    .two-up { grid-template-columns: 1fr; }
+    .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Section number pill */
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #18181b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Contact row */
+  .contact-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 40px;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f4f4f5;
+    font-size: 12px;
+    align-items: center;
+  }
+  .contact-row .name { font-weight: 500; color: #27272a; }
+  .contact-row .meta { color: #71717a; }
+  .contact-row .edit-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; border: 1px solid #e4e4e7;
+    background: #fff; cursor: pointer; color: #71717a; font-size: 12px;
+  }
+
+  /* Action icon buttons — used everywhere for edit/delete */
+  .action-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .icon-btn {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    border: 1px solid #e4e4e7;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: #f4f4f5; }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .icon-btn.icon-edit { color: #52525b; }
+  .icon-btn.icon-edit:hover { color: #18181b; background: #f4f4f5; }
+  .icon-btn.icon-delete { color: #ef4444; border-color: #fecaca; }
+  .icon-btn.icon-delete:hover { background: #fef2f2; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE HEADER                                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>Edit Modals — Wireframe Sketches</h1>
+  <p>All editing UIs follow the payment edit pattern: <strong>View → Edit → Deactivate</strong> (three-mode modal)</p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot locked"></div> Locked field (not editable)</div>
+    <div class="legend-item"><div class="legend-dot editable"></div> Editable field</div>
+    <div class="legend-item"><div class="legend-dot delete"></div> Deactivate confirmation</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 1. INVOICE EDIT                                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">1</span>Invoice Edit</div>
+  <div class="section-subtitle">Gap: "No invoice editing after creation" — adds Edit/Deactivate buttons to existing invoice detail modal</div>
+  <div class="section-source">Trigger: Edit + Delete buttons added to footer of InvoiceExpandContent</div>
+
+  <div class="two-up">
+    <!-- EDIT MODE -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit Invoice</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <!-- Locked fields -->
+        <div class="grid-4">
+          <div class="field-locked">
+            <div class="label">Direction <span class="lock">&#128274;</span></div>
+            <div class="value"><span class="badge badge-blue">Payable</span></div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Partner <span class="lock">&#128274;</span></div>
+            <div class="value">KRC Ingenieros</div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Currency <span class="lock">&#128274;</span></div>
+            <div class="value">PEN</div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Project <span class="lock">&#128274;</span></div>
+            <div class="value">PRY001</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Editable header fields -->
+        <div class="grid-2">
+          <div class="field-edit">
+            <div class="label">Title</div>
+            <input type="text" value="Cemento Portland Tipo I">
+          </div>
+          <div class="field-edit">
+            <div class="label">Entity</div>
+            <select>
+              <option>DINO SRL</option>
+              <option>Ferretería López</option>
+              <option>(Informal — no entity)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="field-edit">
+            <div class="label">Invoice Date</div>
+            <input type="date" value="2026-03-10">
+          </div>
+          <div class="field-edit">
+            <div class="label">Due Date</div>
+            <input type="date" value="2026-04-10">
+          </div>
+          <div class="field-edit">
+            <div class="label">Comprobante</div>
+            <select>
+              <option selected>Factura</option>
+              <option>Boleta</option>
+              <option>Recibo por Honorarios</option>
+              <option>Liquidación de Compra</option>
+              <option>None</option>
+            </select>
+          </div>
+          <div class="field-edit">
+            <div class="label">Invoice #</div>
+            <input type="text" value="F001-00234">
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="field-edit">
+            <div class="label">Document Ref</div>
+            <input type="text" value="PRY001-AP-012">
+          </div>
+          <div class="field-edit">
+            <div class="label">Payment Method</div>
+            <select>
+              <option selected>Transferencia</option>
+              <option>Efectivo</option>
+              <option>Cheque</option>
+            </select>
+          </div>
+          <div class="field-edit">
+            <div class="label">Exchange Rate</div>
+            <input type="text" value="3.742" class="mono text-right">
+            <div class="hint">Auto-fetched from invoice date</div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="field-edit">
+            <div class="label">Detraccion %</div>
+            <input type="text" value="12" class="mono text-right">
+          </div>
+          <div class="field-edit">
+            <div class="label">Retencion %</div>
+            <input type="text" value="0" class="mono text-right">
+          </div>
+          <div class="field-edit">
+            <div class="label">Notes</div>
+            <input type="text" value="" placeholder="Optional notes...">
+          </div>
+        </div>
+
+        <!-- Line items (mini table — editable) -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center;" class="mb-2">
+            <span style="font-size:13px; font-weight:600; color:#3f3f46;">Line Items</span>
+            <button class="btn btn-cancel" style="padding:3px 10px; font-size:11px;">+ Add item</button>
+          </div>
+          <div style="border:1px solid #e4e4e7; border-radius:8px; overflow:hidden;">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th class="text-right">Qty</th>
+                  <th>Unit</th>
+                  <th class="text-right">Unit Price</th>
+                  <th class="text-right">Subtotal</th>
+                  <th style="width:36px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="text" value="Cemento Portland Tipo I" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:100%;"></td>
+                  <td>
+                    <select style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:100%;">
+                      <option selected>materials</option>
+                      <option>labor</option>
+                      <option>equipment</option>
+                    </select>
+                  </td>
+                  <td class="text-right"><input type="number" value="50" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:60px; text-align:right; font-family:monospace;"></td>
+                  <td><input type="text" value="bag" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:60px;"></td>
+                  <td class="text-right"><input type="number" value="28.50" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:80px; text-align:right; font-family:monospace;"></td>
+                  <td class="text-right mono" style="font-weight:600;">S/ 1,425.00</td>
+                  <td style="text-align:center;"><span class="icon-btn icon-delete" style="width:24px;height:24px;border:none;" title="Remove"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span></td>
+                </tr>
+                <tr>
+                  <td><input type="text" value="Fierro corrugado 1/2&quot;" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:100%;"></td>
+                  <td>
+                    <select style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:100%;">
+                      <option selected>materials</option>
+                    </select>
+                  </td>
+                  <td class="text-right"><input type="number" value="200" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:60px; text-align:right; font-family:monospace;"></td>
+                  <td><input type="text" value="bar" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:60px;"></td>
+                  <td class="text-right"><input type="number" value="18.90" style="border:1px solid #e4e4e7; border-radius:4px; padding:3px 6px; font-size:12px; width:80px; text-align:right; font-family:monospace;"></td>
+                  <td class="text-right mono" style="font-weight:600;">S/ 3,780.00</td>
+                  <td style="text-align:center;"><span class="icon-btn icon-delete" style="width:24px;height:24px;border:none;" title="Remove"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Derived totals (read-only) -->
+        <div class="info-box" style="background:#f9fafb;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+            <div>
+              <div class="info-row"><span class="info-label">Subtotal</span><span class="info-value mono">S/ 5,205.00</span></div>
+              <div class="info-row"><span class="info-label">IGV (18%)</span><span class="info-value mono">S/ 936.90</span></div>
+              <div class="info-row"><span class="info-label" style="font-weight:600;">Total</span><span class="info-value mono bold">S/ 6,141.90</span></div>
+            </div>
+            <div>
+              <div class="info-row"><span class="info-label">Detraccion (12%)</span><span class="info-value mono">S/ 737.03</span></div>
+              <div class="info-row"><span class="info-label">Paid</span><span class="info-value mono">S/ 0.00</span></div>
+              <div class="info-row"><span class="info-label" style="font-weight:600;">Outstanding</span><span class="info-value mono red">S/ 6,141.90</span></div>
+            </div>
+          </div>
+          <div style="font-size:10px; color:#a1a1aa; margin-top:6px;">Totals auto-calculated from line items. Cannot be edited directly.</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button class="btn btn-cancel">Cancel</button>
+          <button class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEACTIVATE MODE -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Invoice Detail</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <!-- Dimmed invoice info -->
+        <div class="dimmed">
+          <div class="grid-4">
+            <div class="field-locked"><div class="label">Direction</div><div class="value"><span class="badge badge-blue">Payable</span></div></div>
+            <div class="field-locked"><div class="label">Entity</div><div class="value">DINO SRL</div></div>
+            <div class="field-locked"><div class="label">Invoice #</div><div class="value">F001-00234</div></div>
+            <div class="field-locked"><div class="label">Total</div><div class="value" style="font-family:monospace;">S/ 6,141.90</div></div>
+          </div>
+        </div>
+
+        <!-- Red confirmation box -->
+        <div class="confirm-box">
+          <div class="confirm-inner">
+            <div class="confirm-icon">&#9888;</div>
+            <div class="confirm-body">
+              <h4>Deactivate this invoice?</h4>
+              <p>This will also deactivate <strong>2 related payments</strong> totaling <strong style="font-family:monospace;">S/ 3,200.00</strong>. The entity's balance will be adjusted.</p>
+              <div class="small">This action can be reversed by an administrator.</div>
+              <div class="confirm-actions">
+                <button class="btn btn-cancel">Cancel</button>
+                <button class="btn btn-danger">Yes, deactivate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Design note — locked fields:</strong> Direction, partner, currency, and project are locked because changing them would invalidate payment linkages and settlement calculations. Line items are fully editable; totals recompute live. If the invoice has payments, a warning shows that changing amounts may create overpayment states.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 2. ENTITY EDIT                                         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">2</span>Entity Edit</div>
+  <div class="section-subtitle">Gap: "No entity editing after creation" + "No soft-delete/deactivate via UI"</div>
+  <div class="section-source">Trigger: Edit + Deactivate buttons added to entity detail panel header</div>
+
+  <div class="two-up">
+    <!-- EDIT MODE -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit Entity</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <!-- Locked fields -->
+        <div class="grid-3">
+          <div class="field-locked">
+            <div class="label">Type <span class="lock">&#128274;</span></div>
+            <div class="value"><span class="badge badge-zinc">Company</span></div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Doc Type <span class="lock">&#128274;</span></div>
+            <div class="value">RUC</div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Doc Number <span class="lock">&#128274;</span></div>
+            <div class="value" style="font-family:monospace;">20456789012</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Editable fields -->
+        <div class="grid-2">
+          <div class="field-edit">
+            <div class="label">Legal Name</div>
+            <input type="text" value="DINO Selva Iquitos S.R.L.">
+          </div>
+          <div class="field-edit">
+            <div class="label">Common Name</div>
+            <input type="text" value="DINO SRL">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field-edit">
+            <div class="label">City</div>
+            <input type="text" value="Iquitos">
+          </div>
+          <div class="field-edit">
+            <div class="label">Region</div>
+            <input type="text" value="Loreto">
+          </div>
+        </div>
+
+        <div class="field-edit">
+          <div class="label">Notes</div>
+          <textarea rows="2" placeholder="Optional notes...">Main cement supplier for the region</textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-cancel">Cancel</button>
+          <button class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEACTIVATE MODE -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Entity Detail</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <div class="dimmed">
+          <div class="grid-4">
+            <div class="field-locked"><div class="label">Type</div><div class="value"><span class="badge badge-zinc">Company</span></div></div>
+            <div class="field-locked"><div class="label">RUC</div><div class="value" style="font-family:monospace;">20456789012</div></div>
+            <div class="field-locked"><div class="label">Name</div><div class="value">DINO SRL</div></div>
+            <div class="field-locked"><div class="label">Location</div><div class="value">Iquitos, Loreto</div></div>
+          </div>
+        </div>
+
+        <div class="confirm-box">
+          <div class="confirm-inner">
+            <div class="confirm-icon">&#9888;</div>
+            <div class="confirm-body">
+              <h4>Deactivate this entity?</h4>
+              <p>DINO SRL has <strong>4 linked invoices</strong> across 2 projects. The entity will be hidden from search and dropdowns but all financial history is preserved.</p>
+              <div class="small">This action can be reversed by an administrator.</div>
+              <div class="confirm-actions">
+                <button class="btn btn-cancel">Cancel</button>
+                <button class="btn btn-danger">Yes, deactivate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Design note — locked fields:</strong> Entity type, document type, and document number are locked because they are the entity's legal identity and are used for SUNAT validation. Changing them would effectively create a different entity. Common name, location, and notes are freely editable.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 3. CONTACT EDIT                                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">3</span>Contact Edit</div>
+  <div class="section-subtitle">Gap: "No contact editing (must remove and re-add)" — adds inline edit to contacts tab</div>
+  <div class="section-source">Trigger: Pencil icon on each contact row in entity detail Contacts tab</div>
+
+  <div class="modal" style="max-width: 640px;">
+    <div class="modal-header">
+      <h2>DINO SRL — Contacts</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Contacts table with inline edit -->
+      <div style="border:1px solid #e4e4e7; border-radius:8px; overflow:hidden;">
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <th>Role</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th style="width:68px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Normal row -->
+            <tr>
+              <td style="font-weight:500;">Carlos Reátegui</td>
+              <td>Gerente General</td>
+              <td>+51 965 432 100</td>
+              <td style="color:#2563eb;">carlos@dino.pe</td>
+              <td>
+                <div class="action-icons">
+                  <span class="icon-btn icon-edit" title="Edit"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"/></svg></span>
+                  <span class="icon-btn icon-delete" title="Delete"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span>
+                </div>
+              </td>
+            </tr>
+            <!-- EDITING ROW (expanded inline) -->
+            <tr style="background: #f0f9ff;">
+              <td><input type="text" value="María López Sánchez" style="border:1px solid #93c5fd; border-radius:4px; padding:3px 6px; font-size:12px; width:100%; background:#fff;"></td>
+              <td><input type="text" value="Contadora" style="border:1px solid #93c5fd; border-radius:4px; padding:3px 6px; font-size:12px; width:100%; background:#fff;"></td>
+              <td><input type="text" value="+51 944 321 876" style="border:1px solid #93c5fd; border-radius:4px; padding:3px 6px; font-size:12px; width:100%; background:#fff;"></td>
+              <td><input type="text" value="maria@dino.pe" style="border:1px solid #93c5fd; border-radius:4px; padding:3px 6px; font-size:12px; width:100%; background:#fff;"></td>
+              <td style="text-align:right; white-space:nowrap;">
+                <span style="cursor:pointer; color:#2563eb; font-size:11px; font-weight:600; padding:4px 8px; background:#dbeafe; border-radius:4px; display:inline-block;">Save</span>
+              </td>
+            </tr>
+            <!-- Another normal row -->
+            <tr>
+              <td style="font-weight:500;">Jorge Huamán</td>
+              <td>Ventas</td>
+              <td>+51 912 876 543</td>
+              <td style="color:#2563eb;">jorge@dino.pe</td>
+              <td>
+                <div class="action-icons">
+                  <span class="icon-btn icon-edit" title="Edit"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"/></svg></span>
+                  <span class="icon-btn icon-delete" title="Delete"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:16px;">
+        <strong>Pattern:</strong> Click pencil icon → row transforms to inline edit (blue-tinted background). Save commits the change. No modal needed — keeps the same flow as add-contact. Only one row editable at a time.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 4. PROJECT EDIT                                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">4</span>Project Edit</div>
+  <div class="section-subtitle">Gap: "No project detail editing after creation (name, status, contract value, dates all locked)"</div>
+  <div class="section-source">Trigger: Edit button in project detail header (top-right, next to project code)</div>
+
+  <div class="two-up">
+    <!-- EDIT MODE -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit Project — PRY001</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <!-- Locked -->
+        <div class="grid-3">
+          <div class="field-locked">
+            <div class="label">Code <span class="lock">&#128274;</span></div>
+            <div class="value" style="font-family:monospace; font-weight:600;">PRY001</div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Type <span class="lock">&#128274;</span></div>
+            <div class="value"><span class="badge badge-purple">OxI</span></div>
+          </div>
+          <div class="field-locked">
+            <div class="label">Currency <span class="lock">&#128274;</span></div>
+            <div class="value">PEN</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Editable -->
+        <div class="field-edit">
+          <div class="label">Project Name</div>
+          <input type="text" value="Mejoramiento de vías en Jr. Putumayo">
+        </div>
+
+        <div class="grid-2">
+          <div class="field-edit">
+            <div class="label">Status</div>
+            <select>
+              <option>prospect</option>
+              <option selected>active</option>
+              <option>completed</option>
+              <option>cancelled</option>
+            </select>
+          </div>
+          <div class="field-edit">
+            <div class="label">Contract Value</div>
+            <input type="number" value="1250000" class="mono text-right">
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="field-edit">
+            <div class="label">Start Date</div>
+            <input type="date" value="2026-02-15">
+          </div>
+          <div class="field-edit">
+            <div class="label">Expected End Date</div>
+            <input type="date" value="2026-08-15">
+          </div>
+          <div class="field-edit">
+            <div class="label">Actual End Date</div>
+            <input type="date" value="">
+            <div class="hint">Set when project completes</div>
+          </div>
+        </div>
+
+        <div class="field-edit">
+          <div class="label">Client</div>
+          <select>
+            <option>Municipalidad Provincial de Maynas</option>
+            <option>Gobierno Regional de Loreto</option>
+          </select>
+          <div class="hint">Entity tagged as client</div>
+        </div>
+
+        <div class="field-edit">
+          <div class="label">Location</div>
+          <input type="text" value="Iquitos, Loreto">
+        </div>
+
+        <div class="field-edit">
+          <div class="label">Notes</div>
+          <textarea rows="2" placeholder="Optional notes...">OxI framework — CIPRL pending</textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-cancel">Cancel</button>
+          <button class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW MODE (showing where Edit/Delete buttons go) -->
+    <div class="modal">
+      <div class="modal-header">
+        <h2>PRY001 — Project Detail</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body space-y">
+        <div class="grid-4">
+          <div class="field-locked"><div class="label">Status</div><div class="value"><span class="badge badge-green">Active</span></div></div>
+          <div class="field-locked"><div class="label">Type</div><div class="value"><span class="badge badge-purple">OxI</span></div></div>
+          <div class="field-locked"><div class="label">Contract</div><div class="value" style="font-family:monospace;">S/ 1,250,000</div></div>
+          <div class="field-locked"><div class="label">Start</div><div class="value">15 Feb 2026</div></div>
+        </div>
+        <div class="grid-4">
+          <div class="field-locked"><div class="label">Client</div><div class="value">Muni. Maynas</div></div>
+          <div class="field-locked"><div class="label">Location</div><div class="value">Iquitos, Loreto</div></div>
+          <div class="field-locked"><div class="label">Expected End</div><div class="value">15 Aug 2026</div></div>
+          <div class="field-locked"><div class="label">Actual End</div><div class="value" style="color:#a1a1aa;">Not set</div></div>
+        </div>
+
+        <div style="font-size:12px; color:#52525b; background:#f9fafb; border:1px solid #e4e4e7; border-radius:6px; padding:10px 14px;">
+          OxI framework — CIPRL pending
+        </div>
+
+        <!-- Footer with Edit button -->
+        <div class="modal-footer">
+          <div></div>
+          <button class="btn btn-dark"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z"/></svg> Edit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Design note:</strong> Project code, type, and currency are locked — code is the universal identifier (SharePoint filenames, document refs), type determines tax framework, and currency is referenced by all linked invoices. Actual end date field is the primary addition here (gap: "No actual_end_date capture UI"). The edit button lives in the project detail header, not in a separate modal — it transforms the existing detail view.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 5. PARTNER PROFIT SHARE EDIT                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title"><span class="section-num">5</span>Partner Profit Share Edit</div>
+  <div class="section-subtitle">Gap: "Partner profit share not editable (must remove and re-add)" — inline edit on partner row</div>
+  <div class="section-source">Trigger: Click on share percentage cell in project Partners tab</div>
+
+  <div class="modal" style="max-width: 700px;">
+    <div class="modal-header">
+      <h2>PRY001 — Partners</h2>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="border:1px solid #e4e4e7; border-radius:8px; overflow:hidden;">
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>Partner</th>
+              <th class="text-right">Share %</th>
+              <th class="text-right">Profit (PEN)</th>
+              <th class="text-right">Should Receive</th>
+              <th class="text-right">Balance</th>
+              <th style="width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Normal row -->
+            <tr>
+              <td style="font-weight:500;">KRC Ingenieros</td>
+              <td class="text-right">
+                <span style="font-family:monospace; cursor:pointer; padding:2px 8px; border:1px dashed #d4d4d8; border-radius:4px; color:#2563eb;">40%</span>
+              </td>
+              <td class="text-right mono" style="color:#16a34a;">S/ 82,400</td>
+              <td class="text-right mono">S/ 32,960</td>
+              <td class="text-right"><span class="badge badge-amber">S/ -5,200</span></td>
+              <td style="text-align:center;"><span class="icon-btn icon-delete" style="width:24px;height:24px;border:none;" title="Remove"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span></td>
+            </tr>
+            <!-- EDITING ROW -->
+            <tr style="background:#f0f9ff;">
+              <td style="font-weight:500;">Tahuampa Const.</td>
+              <td class="text-right">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                  <input type="number" value="35" min="0" max="100" style="border:1px solid #93c5fd; border-radius:4px; padding:3px 6px; font-size:12px; width:60px; text-align:right; font-family:monospace; background:#fff;">
+                  <span style="font-size:12px; color:#71717a;">%</span>
+                  <span style="cursor:pointer; color:#2563eb; font-size:11px; font-weight:600; padding:3px 8px; background:#dbeafe; border-radius:4px;">Save</span>
+                </div>
+              </td>
+              <td class="text-right mono" style="color:#16a34a;">S/ 72,100</td>
+              <td class="text-right mono">S/ 25,235</td>
+              <td class="text-right"><span class="badge badge-green">Settled</span></td>
+              <td style="text-align:center;"><span class="icon-btn icon-delete" style="width:24px;height:24px;border:none;" title="Remove"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span></td>
+            </tr>
+            <!-- Normal row -->
+            <tr>
+              <td style="font-weight:500;">Loreto Pacific</td>
+              <td class="text-right">
+                <span style="font-family:monospace; cursor:pointer; padding:2px 8px; border:1px dashed #d4d4d8; border-radius:4px; color:#2563eb;">25%</span>
+              </td>
+              <td class="text-right mono" style="color:#16a34a;">S/ 51,500</td>
+              <td class="text-right mono">S/ 12,875</td>
+              <td class="text-right"><span class="badge badge-green">Settled</span></td>
+              <td style="text-align:center;"><span class="icon-btn icon-delete" style="width:24px;height:24px;border:none;" title="Remove"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/></svg></span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:#f4f4f5; font-weight:600;">
+              <td>Total</td>
+              <td class="text-right" style="font-family:monospace;">
+                <span style="color:#16a34a;">100%</span> <span style="font-size:10px; color:#16a34a;">&#10003; OK</span>
+              </td>
+              <td class="text-right mono" style="color:#16a34a;">S/ 206,000</td>
+              <td class="text-right mono">S/ 71,070</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:16px;">
+        <strong>Pattern:</strong> Click the dashed-border percentage → inline edit with number input + Save button. Same pattern as budget inline editing. Validates total ≤ 100%. Shows live validation in footer (&#10003; OK / &#9888; Over 100%).
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- DESIGN PATTERN SUMMARY                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title" style="text-align:center;">Design Pattern Summary</div>
+  <div class="modal" style="max-width:800px; margin:20px auto;">
+    <div class="modal-body">
+      <table class="mini-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Edit Trigger</th>
+            <th>Edit Style</th>
+            <th>Deactivate</th>
+            <th>Locked Fields</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;">1. Invoice</td>
+            <td>Edit/Delete buttons in detail modal footer</td>
+            <td>Three-mode modal (view → edit → delete)</td>
+            <td>Cascades to payments</td>
+            <td>Direction, partner, currency, project</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">2. Entity</td>
+            <td>Edit/Deactivate in detail panel header</td>
+            <td>Three-mode modal</td>
+            <td>Hidden from dropdowns</td>
+            <td>Type, doc type, doc number</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">3. Contact</td>
+            <td>Pencil icon on contact row</td>
+            <td>Inline row edit (blue background)</td>
+            <td>Existing trash icon</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">4. Project</td>
+            <td>Edit button in project header</td>
+            <td>Three-mode modal</td>
+            <td>N/A (use status → cancelled)</td>
+            <td>Code, type, currency</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">5. Partner Share</td>
+            <td>Click on % cell</td>
+            <td>Inline cell edit (like budget)</td>
+            <td>Existing trash icon</td>
+            <td>Partner name (edit share only)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:20px; font-size:12px; color:#52525b; line-height:1.6;">
+        <strong>Shared patterns across all modals:</strong>
+        <ul style="margin-top:6px; padding-left:20px;">
+          <li><strong>Action icons</strong> — Always pencil (&#9998;) for edit + red trash can for delete, side by side. Used consistently everywhere: table rows, modal footers, inline actions</li>
+          <li><strong>Three-mode modal</strong> — View (detail + pencil/trash buttons) → Edit (locked + editable fields) → Delete (dimmed content + red confirmation box)</li>
+          <li><strong>Locked fields</strong> — Fields that would break referential integrity. Shown with &#128274; lock icon and zinc-400 text</li>
+          <li><strong>Inline edit</strong> — Used for simple single-field edits (contacts, profit share, budget). No modal needed — edit in place with Save button</li>
+          <li><strong>Soft delete language</strong> — Always "Deactivate" not "Delete". Confirmation shows impact (related records affected). "Can be reversed by admin."</li>
+          <li><strong>Server actions</strong> — Each modal calls a dedicated server action (updateInvoice, updateEntity, updateProject, etc.) matching the existing updatePayment/deactivatePayment pattern</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

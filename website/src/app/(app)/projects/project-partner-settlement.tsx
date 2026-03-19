@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
-import { fetchPartnerPayables, fetchPartnerReceivables, addProjectPartner, removeProjectPartner } from '@/lib/actions'
+import { fetchPartnerPayables, fetchPartnerReceivables, addProjectPartner, removeProjectPartner, updatePartnerProfitShare } from '@/lib/actions'
 import { inputCompactClass } from '@/lib/styles'
 import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerPayableDetail, PartnerReceivableDetail } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
@@ -29,6 +29,11 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
   const [formError, setFormError] = useState<string | null>(null)
   const [selectedPartner, setSelectedPartner] = useState('')
   const [profitShare, setProfitShare] = useState('')
+
+  // Inline share edit state
+  const [editingShareId, setEditingShareId] = useState<string | null>(null)
+  const [editShareValue, setEditShareValue] = useState('')
+  const [editShareError, setEditShareError] = useState<string | null>(null)
 
   const totalShare = partners.reduce((sum, p) => sum + p.profitSharePct, 0)
   const assignedIds = new Set(partners.map(p => p.partnerCompanyId))
@@ -111,6 +116,29 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     })
   }
 
+  function startShareEdit(partnerId: string, currentPct: number) {
+    setEditingShareId(partnerId)
+    setEditShareValue(currentPct.toString())
+    setEditShareError(null)
+  }
+
+  function handleSaveShare(projectPartnerId: string) {
+    const pct = parseFloat(editShareValue)
+    if (isNaN(pct) || pct <= 0 || pct > 100) {
+      setEditShareError('Must be 0–100%')
+      return
+    }
+    setEditShareError(null)
+    startTransition(async () => {
+      const result = await updatePartnerProfitShare(projectPartnerId, pct)
+      if (result.error) {
+        setEditShareError(result.error)
+      } else {
+        setEditingShareId(null)
+      }
+    })
+  }
+
   const selectedSettlement = expandedPartner === '__all__'
     ? {
         partnerCompanyId: '__all__',
@@ -144,14 +172,53 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             <tbody className="divide-y divide-zinc-100">
               {partners.map((p) => {
                 const s = settlements.find(s => s.partnerCompanyId === p.partnerCompanyId)
+                const isEditingShare = editingShareId === p.id
                 return (
                   <tr
                     key={p.id}
-                    onClick={() => handlePartnerClick(p.partnerCompanyId)}
-                    className="cursor-pointer transition-colors hover:bg-blue-50"
+                    onClick={() => !isEditingShare && handlePartnerClick(p.partnerCompanyId)}
+                    className={`cursor-pointer transition-colors ${isEditingShare ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
                   >
                     <td className="px-4 py-2 font-medium text-zinc-800">{p.partnerName}</td>
-                    <td className="px-4 py-2 text-right font-mono text-zinc-600">{p.profitSharePct}%</td>
+                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      {isEditingShare ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <input
+                            type="number"
+                            value={editShareValue}
+                            onChange={(e) => setEditShareValue(e.target.value)}
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            className={`${inputCompactClass} w-16 bg-white font-mono text-right`}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveShare(p.id)
+                              if (e.key === 'Escape') { setEditingShareId(null); setEditShareError(null) }
+                            }}
+                          />
+                          <span className="text-xs text-zinc-500">%</span>
+                          <button
+                            onClick={() => handleSaveShare(p.id)}
+                            disabled={isPending}
+                            className="rounded bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {isPending ? '...' : 'Save'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startShareEdit(p.id, p.profitSharePct)}
+                          className="rounded border border-dashed border-zinc-300 px-2 py-0.5 font-mono text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-50"
+                          title="Click to edit share"
+                        >
+                          {p.profitSharePct}%
+                        </button>
+                      )}
+                      {isEditingShare && editShareError && (
+                        <p className="mt-1 text-[10px] text-red-600">{editShareError}</p>
+                      )}
+                    </td>
                     <td className={`px-4 py-2 text-right font-mono font-medium ${
                       (s?.profit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
                     }`}>
@@ -173,10 +240,10 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                       <button
                         onClick={() => handleRemove(p.id)}
                         disabled={isPending}
-                        className="text-red-400 hover:text-red-600 disabled:opacity-50"
+                        className="rounded border border-red-200 p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                         title="Remove partner"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
                           <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
                         </svg>
                       </button>

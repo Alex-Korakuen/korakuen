@@ -204,6 +204,29 @@ export async function removeEntityContact(contactId: string) {
   revalidatePath('/entities')
 }
 
+export async function updateEntityContact(
+  contactId: string,
+  data: { full_name: string; phone?: string; email?: string; role?: string }
+): Promise<{ error?: string }> {
+  if (!data.full_name.trim()) return { error: 'Name is required' }
+
+  const supabase = await createServerSupabaseClient()
+  const { error } = await supabase
+    .from('entity_contacts')
+    .update({
+      full_name: data.full_name.trim(),
+      phone: data.phone?.trim() || null,
+      email: data.email?.trim() || null,
+      role: data.role?.trim() || null,
+    })
+    .eq('id', contactId)
+    .eq('is_active', true)
+
+  if (error) return { error: error.message }
+  revalidatePath('/entities')
+  return {}
+}
+
 export async function createBankAccount(data: {
   partner_company_id: string
   bank_name: string
@@ -380,6 +403,51 @@ export async function removeProjectPartner(id: string) {
     .eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/projects')
+}
+
+export async function updatePartnerProfitShare(
+  projectPartnerId: string,
+  profitSharePct: number
+): Promise<{ error?: string }> {
+  if (profitSharePct <= 0 || profitSharePct > 100) {
+    return { error: 'Share must be between 0 and 100%' }
+  }
+
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch this partner's project to validate total
+  const { data: thisPP } = await supabase
+    .from('project_partners')
+    .select('project_id')
+    .eq('id', projectPartnerId)
+    .eq('is_active', true)
+    .single()
+  if (!thisPP) return { error: 'Partner assignment not found' }
+
+  // Sum other active partners' shares (excluding this one)
+  const { data: otherPartners } = await supabase
+    .from('project_partners')
+    .select('profit_share_pct')
+    .eq('project_id', thisPP.project_id)
+    .eq('is_active', true)
+    .neq('id', projectPartnerId)
+  const othersTotal = (otherPartners ?? []).reduce(
+    (sum, p) => sum + Number(p.profit_share_pct), 0
+  )
+
+  if (othersTotal + profitSharePct > 100) {
+    return { error: `Total would be ${othersTotal + profitSharePct}%. Must not exceed 100% (other partners: ${othersTotal}%)` }
+  }
+
+  const { error } = await supabase
+    .from('project_partners')
+    .update({ profit_share_pct: profitSharePct })
+    .eq('id', projectPartnerId)
+    .eq('is_active', true)
+
+  if (error) return { error: error.message }
+  revalidatePath('/projects')
+  return {}
 }
 
 // --- Project Budgets ---
