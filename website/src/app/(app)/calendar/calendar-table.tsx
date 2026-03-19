@@ -80,10 +80,10 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
           </div>
         </div>
 
-        {/* Bottom row: Pay + Collect totals */}
+        {/* Bottom row: Pay + Collect totals — min-width keeps Collect aligned across sections */}
         <div className="mt-1.5 flex items-center gap-x-6">
           {group.totals.pay.count > 0 && (
-            <span className="flex items-center gap-1.5 text-xs text-zinc-600">
+            <span className="flex min-w-[300px] items-center gap-1.5 text-xs text-zinc-600">
               <span className="font-medium text-orange-600">Pay</span>
               <DualAmount pen={group.totals.pay.pen} usd={group.totals.pay.usd} />
             </span>
