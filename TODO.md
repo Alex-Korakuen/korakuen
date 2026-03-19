@@ -11,34 +11,33 @@ When a partner is removed from a project, their historical invoices and payments
 - Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
 ---
 
-## Requirements Coverage Assessment (March 19, 2026)
+## Requirements Coverage Assessment (updated March 19, 2026)
 
 ### Summary
 
 | Function | Rating | Coverage |
 |---|---|---|
 | Payment management | Mostly Complete | ~93% |
-| Invoice management | Mostly Complete | ~85% |
+| Invoice management | Mostly Complete | ~91% |
 | Calendar management | Mostly Complete | ~85% |
 | Quote management | Partial | ~35% |
-| Project management | Mostly Complete | ~85% |
-| Entity management | Mostly Complete | ~85% |
+| Project management | Complete | ~97% |
+| Entity management | Complete | ~95% |
 
 ### Payment Management — Mostly Complete
 
 **Works:** Register payments inline from invoice detail (regular, detraccion, retencion). Register loan repayments. Payments page with full filtering. Payment totals and net position (PEN/USD). Bulk CSV import. Cross-currency support. Payment edit and soft-delete.
 
 **Gaps:**
-- No notes field in inline registration form
+- No notes field in inline registration form (workaround: edit payment after creation to add notes)
 - Exchange rate entry form missing (Supabase Dashboard workaround)
 
 ### Invoice Management — Mostly Complete
 
-**Works:** Detail view with line items, IGV, detraccion, retencion, payment history. Invoice list with 6 filter types + aging analysis. Payment status tracking. Inline payment registration. Bulk Excel import (payable and receivable).
+**Works:** Detail view with line items, IGV, detraccion, retencion, payment history. Invoice list with 6 filter types + aging analysis. Payment status tracking. Inline payment registration. Bulk Excel import (payable and receivable). Invoice editing (all fields except direction, partner, currency, project). Invoice soft-delete with cascading payment deactivation.
 
 **Gaps:**
 - No single-invoice creation form — all invoices must be bulk-imported
-- No invoice editing after creation
 
 ### Calendar Management — Mostly Complete
 
@@ -60,31 +59,26 @@ When a partner is removed from a project, their historical invoices and payments
 - No quote detail view
 - No quote section on project or entity detail pages
 
-### Project Management — Mostly Complete
+### Project Management — Complete
 
-**Works:** Project creation with auto-generated codes (PRY001...). Project list with status filtering. Full detail view: partners, entities/suppliers, budget vs. actual. Partner settlement calculations. Budget management with inline editing.
-
-**Gaps:**
-- No project detail editing after creation (name, status, contract value, dates all locked)
-- No actual_end_date capture UI
-- Partner profit share not editable (must remove and re-add)
-
-### Entity Management — Mostly Complete
-
-**Works:** Entity creation modal with validation (RUC/DNI, duplicate check). Entity list with search and multi-filter. Contact management (add/remove). Tag management. Financial data per entity (payables/receivables by project).
+**Works:** Project creation with auto-generated codes (PRY001...). Project list with status filtering. Full detail view: partners, entities/suppliers, budget vs. actual. Partner settlement calculations. Budget management with inline editing. Project detail editing (name, status, contract value, start date, expected end date, actual end date, location, notes). Actual end date capture with helper text. Partner profit share inline editing.
 
 **Gaps:**
-- No entity editing after creation
-- No contact editing (must remove and re-add)
-- No soft-delete/deactivate via UI
+- None
+
+### Entity Management — Complete
+
+**Works:** Entity creation modal with validation (RUC/DNI, duplicate check). Entity list with search and multi-filter. Contact management (add/edit/remove). Tag management. Financial data per entity (payables/receivables by project). Entity editing (legal name, common name, city, region, notes — document type/number locked). Soft-delete/deactivate with confirmation modal and impact warning. Contact inline editing.
+
+**Gaps:**
+- None
 
 ### Cross-Cutting Gaps
 
-Three patterns repeat across multiple areas:
+Two patterns repeat across areas:
 
-1. **No edit forms** — Projects, entities, invoices, and quotes all lack post-creation editing. Corrections require Supabase Dashboard.
-2. **Creation limited to import** — Invoices and quotes can only be created via bulk Excel import. No single-record creation forms.
-3. **Exchange rate entry** — Needed for payment registration and invoice import. Currently requires Supabase Dashboard.
+1. **Creation limited to import** — Invoices and quotes can only be created via bulk Excel import. No single-record creation forms.
+2. **Exchange rate entry** — Needed for payment registration and invoice import. Currently requires Supabase Dashboard.
 
 ---
 

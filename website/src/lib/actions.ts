@@ -101,10 +101,15 @@ export async function registerPayment(input: {
   if (input.related_to === 'invoice') {
     const { data: inv } = await supabase
       .from('v_invoice_balances')
-      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable')
+      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable, direction')
       .eq('invoice_id', input.related_id)
       .single()
     if (!inv) return { error: 'Invoice not found' }
+
+    // Retencion only on receivables (Korakuen is NOT a retencion agent)
+    if (input.payment_type === 'retencion' && inv.direction === 'payable') {
+      return { error: 'Retencion payments only apply to receivable invoices' }
+    }
     const bdnOutstandingPen = inv.bdn_outstanding_pen ?? 0
     const retencionOutstanding = inv.retencion_outstanding ?? 0
     const payable = inv.payable_or_receivable ?? 0

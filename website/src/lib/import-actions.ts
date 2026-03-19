@@ -211,6 +211,12 @@ export async function importInvoices(
       errors.push({ row: r, column: 'category', message: 'Not found in categories' })
     }
 
+    // Retencion only on receivables (Korakuen is NOT a retencion agent)
+    const retencionApplicable = String(row.retencion_applicable ?? '').toLowerCase() === 'true'
+    if (direction === 'payable' && retencionApplicable) {
+      errors.push({ row: r, column: 'retencion_applicable', message: 'Retencion only applies to receivable invoices' })
+    }
+
     // Conditional requirements
     if (direction === 'payable' && !docRef) {
       errors.push({ row: r, column: 'document_ref', message: 'Required for payable (grouping key)' })
@@ -333,9 +339,12 @@ export async function importPayments(
   const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
 
   const { data: invoices } = await supabase
-    .from('invoices').select('id, document_ref')
+    .from('invoices').select('id, document_ref, direction')
   const invoiceMap = new Map(
     (invoices ?? []).filter(i => i.document_ref).map(i => [i.document_ref!, i.id])
+  )
+  const invoiceDirectionMap = new Map(
+    (invoices ?? []).filter(i => i.document_ref).map(i => [i.document_ref!, i.direction])
   )
 
   const { data: bankAccounts } = await supabase
@@ -409,6 +418,11 @@ export async function importPayments(
           errors.push({ row: r, column: 'bank_account', message: 'Cannot use detracción account for regular payments' })
         }
       }
+    }
+
+    // Retencion only on receivable invoices (Korakuen is NOT a retencion agent)
+    if (paymentType === 'retencion' && invoiceDocRef && invoiceDirectionMap.get(invoiceDocRef) === 'payable') {
+      errors.push({ row: r, column: 'payment_type', message: 'Retencion payments only apply to receivable invoices' })
     }
 
     // Amount positive
