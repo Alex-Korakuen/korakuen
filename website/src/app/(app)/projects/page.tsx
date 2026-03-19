@@ -1,28 +1,7 @@
-import { getProjectsList, getProjectDetail, getPartnerCompanies, getProjectCategories } from '@/lib/queries'
-import { ProjectsWrapper } from './projects-wrapper'
+import { getProjectsCardData } from '@/lib/queries'
+import { ProjectsGrid } from './projects-grid'
 
-type Props = {
-  searchParams: Promise<{ selected?: string }>
-}
-
-export default async function ProjectsPage({ searchParams }: Props) {
-  const params = await searchParams
-  const selectedId = params.selected || null
-
-  const [projects, partnerCompanies, categories, detail] = await Promise.all([
-    getProjectsList(),
-    getPartnerCompanies(),
-    getProjectCategories(),
-    selectedId ? getProjectDetail(selectedId) : Promise.resolve(null),
-  ])
-
-  return (
-    <ProjectsWrapper
-      projects={projects}
-      detail={detail}
-      selectedId={selectedId}
-      partnerCompanies={partnerCompanies}
-      categories={categories}
-    />
-  )
+export default async function ProjectsPage() {
+  const projects = await getProjectsCardData()
+  return <ProjectsGrid projects={projects} />
 }

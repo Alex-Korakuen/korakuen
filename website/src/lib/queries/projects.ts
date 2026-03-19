@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '../supabase/server'
 import { buildEntityNameMap, buildEntityTagsMap } from './shared'
 import type {
   ProjectListItem,
+  ProjectCardItem,
   ProjectDetailData,
   ProjectEntitySummary,
   ProjectPartnerRow,
@@ -20,6 +21,156 @@ export async function getProjectsList(): Promise<ProjectListItem[]> {
 
   if (error) throw error
   return (data ?? []) as ProjectListItem[]
+}
+
+export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // 1. Fetch all active projects
+  const { data: projects, error: pErr } = await supabase
+    .from('projects')
+    .select('id, project_code, name, status, contract_value, contract_currency')
+    .eq('is_active', true)
+    .order('project_code')
+  if (pErr) throw pErr
+  if (!projects || projects.length === 0) return []
+
+  const projectIds = projects.map(p => p.id)
+
+  // 2. Fetch partners, budget aggregates, costs, and receivables in parallel
+  const [partnersResult, budgetResult, costResult, receivableResult] = await Promise.all([
+    supabase
+      .from('project_partners')
+      .select('project_id, partner_company_id, profit_share_pct')
+      .in('project_id', projectIds)
+      .eq('is_active', true),
+    supabase
+      .from('v_budget_vs_actual')
+      .select('project_id, budgeted_amount, actual_amount')
+      .in('project_id', projectIds),
+    supabase
+      .from('v_invoice_totals')
+      .select('project_id, partner_company_id, subtotal, currency, exchange_rate')
+      .eq('direction', 'payable')
+      .eq('cost_type', 'project_cost')
+      .in('project_id', projectIds),
+    supabase
+      .from('invoices')
+      .select('id, project_id, partner_company_id, currency')
+      .eq('direction', 'receivable')
+      .in('project_id', projectIds)
+      .eq('is_active', true),
+  ])
+  if (partnersResult.error) throw partnersResult.error
+  if (budgetResult.error) throw budgetResult.error
+  if (costResult.error) throw costResult.error
+  if (receivableResult.error) throw receivableResult.error
+
+  // 3. Fetch payments for all receivable invoices (one query)
+  const receivableIds = (receivableResult.data ?? []).map(r => r.id)
+  const paymentsByReceivable = new Map<string, number>()
+  if (receivableIds.length > 0) {
+    const { data: arPayments, error: pmtErr } = await supabase
+      .from('payments')
+      .select('related_id, amount, currency, exchange_rate')
+      .in('related_id', receivableIds)
+      .eq('related_to', 'invoice')
+      .eq('is_active', true)
+    if (pmtErr) throw pmtErr
+    for (const p of arPayments ?? []) {
+      const amount = p.amount ?? 0
+      const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
+      const amountPen = (p.currency ?? 'PEN') === 'USD' ? amount * rate : amount
+      paymentsByReceivable.set(p.related_id, (paymentsByReceivable.get(p.related_id) ?? 0) + amountPen)
+    }
+  }
+
+  // 4. Build lookup maps
+
+  // Partners grouped by project
+  const partnersByProject = new Map<string, Array<{ partner_company_id: string; profit_share_pct: number }>>()
+  for (const pp of partnersResult.data ?? []) {
+    const list = partnersByProject.get(pp.project_id) ?? []
+    list.push({ partner_company_id: pp.partner_company_id, profit_share_pct: pp.profit_share_pct })
+    partnersByProject.set(pp.project_id, list)
+  }
+
+  // Budget aggregates per project
+  const budgetMap = new Map<string, { budgeted: number; actual: number }>()
+  for (const b of budgetResult.data ?? []) {
+    if (!b.project_id) continue
+    const existing = budgetMap.get(b.project_id) ?? { budgeted: 0, actual: 0 }
+    existing.budgeted += b.budgeted_amount ?? 0
+    existing.actual += b.actual_amount ?? 0
+    budgetMap.set(b.project_id, existing)
+  }
+
+  // Costs per project per partner (PEN)
+  const costsByProjectPartner = new Map<string, Map<string, number>>()
+  for (const ct of costResult.data ?? []) {
+    if (!ct.partner_company_id || !ct.project_id) continue
+    const projectMap = costsByProjectPartner.get(ct.project_id) ?? new Map()
+    const subtotal = ct.subtotal ?? 0
+    const rate = ct.exchange_rate ? Number(ct.exchange_rate) : 1
+    const amountPen = ct.currency === 'USD' ? subtotal * rate : subtotal
+    projectMap.set(ct.partner_company_id, (projectMap.get(ct.partner_company_id) ?? 0) + amountPen)
+    costsByProjectPartner.set(ct.project_id, projectMap)
+  }
+
+  // Revenue per project per partner (PEN)
+  const revenueByProjectPartner = new Map<string, Map<string, number>>()
+  for (const inv of receivableResult.data ?? []) {
+    if (!inv.partner_company_id || !inv.project_id) continue
+    const paidAmount = paymentsByReceivable.get(inv.id) ?? 0
+    if (paidAmount === 0) continue
+    const projectMap = revenueByProjectPartner.get(inv.project_id) ?? new Map()
+    projectMap.set(inv.partner_company_id, (projectMap.get(inv.partner_company_id) ?? 0) + paidAmount)
+    revenueByProjectPartner.set(inv.project_id, projectMap)
+  }
+
+  // 5. Build card items
+  return projects.map(p => {
+    const partners = partnersByProject.get(p.id) ?? []
+    const budget = budgetMap.get(p.id)
+    const budgetPct = budget && budget.budgeted > 0
+      ? Math.round((budget.actual / budget.budgeted) * 1000) / 10
+      : null
+
+    // Settlement: check if all partner balances are zero
+    let isSettled: boolean | null = null
+    if (partners.length > 0) {
+      const costMap = costsByProjectPartner.get(p.id) ?? new Map()
+      const revMap = revenueByProjectPartner.get(p.id) ?? new Map()
+      const totalCosts = [...costMap.values()].reduce((sum, v) => sum + v, 0)
+      const totalRevenue = [...revMap.values()].reduce((sum, v) => sum + v, 0)
+      const totalProfit = totalRevenue - totalCosts
+
+      isSettled = true
+      for (const partner of partners) {
+        const costs = costMap.get(partner.partner_company_id) ?? 0
+        const revenue = revMap.get(partner.partner_company_id) ?? 0
+        const profit = Math.round((revenue - costs) * 100) / 100
+        const shouldReceive = Math.round(totalProfit * (partner.profit_share_pct / 100) * 100) / 100
+        const balance = Math.round((shouldReceive - profit) * 100) / 100
+        if (balance !== 0) {
+          isSettled = false
+          break
+        }
+      }
+    }
+
+    return {
+      id: p.id,
+      project_code: p.project_code,
+      name: p.name,
+      status: p.status,
+      contract_value: p.contract_value,
+      contract_currency: p.contract_currency,
+      partner_count: partners.length,
+      budget_pct: budgetPct,
+      is_settled: isSettled,
+    }
+  })
 }
 
 export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {

@@ -5,7 +5,7 @@ export { getInvoicesPage, getInvoiceDetail, getLoanDetail } from './invoices'
 export type { InvoicesPageSummary } from './invoices'
 export { getPaymentsPage } from './payments'
 export { getFinancialPosition, getBankTransactions } from './financial-position'
-export { getProjectsList, getProjectDetail, getPartnerPayableDetails, getPartnerReceivableDetails } from './projects'
+export { getProjectsList, getProjectsCardData, getProjectDetail, getPartnerPayableDetails, getPartnerReceivableDetails } from './projects'
 export { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from './entities'
 export { getPriceHistory, getPriceFilterOptions } from './prices'
 export {

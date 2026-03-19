@@ -48,6 +48,8 @@ export function Header() {
         <h1 className="text-lg font-semibold text-zinc-800">
           {pageTitle}
         </h1>
+        {/* Left-side portal: pages can inject breadcrumbs or custom titles */}
+        <div id="header-title-portal" className="flex items-center gap-2" />
       </div>
 
       {/* Right: page-specific actions injected via HeaderPortal */}

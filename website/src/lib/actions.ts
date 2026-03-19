@@ -437,7 +437,7 @@ export async function updateProject(
     .eq('is_active', true)
 
   if (error) return { error: error.message }
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
   revalidatePath('/invoices')
   revalidatePath('/calendar')
   return {}
@@ -474,7 +474,7 @@ export async function createProject(data: {
     notes: data.notes || null,
   })
   if (error) throw new Error(error.message)
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
 }
 
 // --- Project Partners ---
@@ -520,7 +520,7 @@ export async function addProjectPartner(
     profit_share_pct: profitSharePct,
   })
   if (error) throw new Error(error.message)
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
 }
 
 export async function removeProjectPartner(id: string) {
@@ -530,7 +530,7 @@ export async function removeProjectPartner(id: string) {
     .update({ is_active: false })
     .eq('id', id)
   if (error) throw new Error(error.message)
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
 }
 
 export async function updatePartnerProfitShare(
@@ -574,7 +574,7 @@ export async function updatePartnerProfitShare(
     .eq('is_active', true)
 
   if (error) return { error: error.message }
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
   return {}
 }
 
@@ -612,7 +612,7 @@ export async function upsertProjectBudget(
     })
     if (error) throw new Error(error.message)
   }
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
 }
 
 export async function removeProjectBudget(projectId: string, category: string) {
@@ -624,7 +624,7 @@ export async function removeProjectBudget(projectId: string, category: string) {
     .eq('category', category)
     .eq('is_active', true)
   if (error) throw new Error(error.message)
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
 }
 
 // --- Loans ---
@@ -1043,7 +1043,7 @@ export async function updateInvoice(input: {
   revalidatePath('/payments')
   revalidatePath('/calendar')
   revalidatePath('/financial-position')
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
   revalidatePath('/prices')
   return {}
 }
@@ -1098,7 +1098,7 @@ export async function deactivateInvoice(
   revalidatePath('/payments')
   revalidatePath('/calendar')
   revalidatePath('/financial-position')
-  revalidatePath('/projects')
+  revalidatePath('/projects', 'layout')
   revalidatePath('/prices')
   return {}
 }

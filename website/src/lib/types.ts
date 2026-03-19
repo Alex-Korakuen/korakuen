@@ -241,6 +241,12 @@ export type ProjectListItem = {
   contract_currency: string | null
 }
 
+export type ProjectCardItem = ProjectListItem & {
+  partner_count: number
+  budget_pct: number | null       // actual/budgeted * 100, null if no budget
+  is_settled: boolean | null      // null = no partners or no activity
+}
+
 export type ProjectEntitySummary = {
   entityId: string | null
   entityName: string
