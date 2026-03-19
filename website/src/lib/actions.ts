@@ -369,6 +369,12 @@ export async function createEntity(data: {
   if (data.document_type === 'DNI' && !/^\d{8}$/.test(data.document_number)) {
     return { error: 'DNI must be exactly 8 digits', field: 'document_number' }
   }
+  if (data.document_type === 'CE' && !/^[A-Za-z0-9]{6,12}$/.test(data.document_number)) {
+    return { error: 'CE must be 6-12 alphanumeric characters', field: 'document_number' }
+  }
+  if (data.document_type === 'Pasaporte' && !/^[A-Za-z0-9]{6,20}$/.test(data.document_number)) {
+    return { error: 'Passport must be 6-20 alphanumeric characters', field: 'document_number' }
+  }
 
   // Check document_number uniqueness
   const { data: existing } = await supabase

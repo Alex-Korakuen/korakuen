@@ -86,6 +86,30 @@ export async function importQuotes(
     if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
       errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
     }
+
+    // Arithmetic validation
+    const igvAmount = num(row.igv_amount)
+    const quantity = num(row.quantity)
+    const unitPrice = num(row.unit_price)
+
+    if (quantity !== null && unitPrice !== null && subtotal !== null) {
+      const expected = Math.round(quantity * unitPrice * 100) / 100
+      if (Math.abs(expected - subtotal) > 0.01) {
+        errors.push({ row: r, column: 'subtotal', message: `quantity × unit_price = ${expected}, but subtotal is ${subtotal}` })
+      }
+    }
+    if (igvAmount !== null && subtotal !== null) {
+      const expectedIgv = Math.round(subtotal * 0.18 * 100) / 100
+      if (Math.abs(expectedIgv - igvAmount) > 0.01) {
+        errors.push({ row: r, column: 'igv_amount', message: `subtotal × 18% = ${expectedIgv}, but igv_amount is ${igvAmount}` })
+      }
+    }
+    if (igvAmount !== null && subtotal !== null && total !== null) {
+      const expectedTotal = Math.round((subtotal + igvAmount) * 100) / 100
+      if (Math.abs(expectedTotal - total) > 0.01) {
+        errors.push({ row: r, column: 'total', message: `subtotal + igv_amount = ${expectedTotal}, but total is ${total}` })
+      }
+    }
   }
 
   if (errors.length > 0) return { errors }
