@@ -148,6 +148,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
       .select('id, partner_company_id, currency')
       .eq('direction', 'receivable')
       .eq('project_id', projectId)
+      .eq('is_active', true)
     if (recvError) throw recvError
 
     const receivableIds = (projectReceivables ?? []).map(a => a.id)
