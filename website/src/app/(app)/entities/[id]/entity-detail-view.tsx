@@ -167,7 +167,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         </HeaderPortal>
       )}
 
-      <div className="space-y-5 p-6">
+      <div className="space-y-5">
         {/* ===== View Mode Metadata — no duplicate title, shown in header breadcrumb ===== */}
         {mode === 'view' && (
           <div>

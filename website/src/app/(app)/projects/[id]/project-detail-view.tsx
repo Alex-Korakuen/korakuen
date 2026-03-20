@@ -294,7 +294,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
       {/* View mode: dashboard */}
       {mode === 'view' && (
-        <div className="space-y-6 p-6">
+        <div className="space-y-6">
           {/* Metadata row — first element, no duplicate title */}
           <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
             {clientName && (
@@ -408,7 +408,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
       {/* Edit mode */}
       {mode === 'edit' && (
-        <div className="p-6">
+        <div>
           <div className="rounded-lg border border-zinc-200 p-4 space-y-4">
             <h3 className="text-sm font-semibold text-zinc-700">Edit Project — {project.project_code}</h3>
 
