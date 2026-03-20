@@ -126,27 +126,6 @@ export function ProjectsGrid({ projects }: Props) {
                 </div>
               </div>
 
-              {/* Footer: partners + settlement */}
-              <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
-                <span className="text-xs text-zinc-500">
-                  <span className="font-semibold text-zinc-700">{p.partner_count}</span> partners
-                </span>
-                {p.is_settled === true && (
-                  <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-semibold text-green-700">
-                    Settled
-                  </span>
-                )}
-                {p.is_settled === false && (
-                  <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
-                    Unsettled
-                  </span>
-                )}
-                {p.is_settled === null && (
-                  <span className="rounded-full bg-zinc-50 px-2.5 py-0.5 text-[11px] font-semibold text-zinc-400">
-                    No data
-                  </span>
-                )}
-              </div>
             </Link>
           ))}
         </div>
