@@ -111,12 +111,10 @@ export function EntitiesDirectory({
                   <th className="px-4 py-2.5 text-center font-medium">Tags</th>
                   <th className="px-4 py-2.5 text-center font-medium">Payable</th>
                   <th className="px-4 py-2.5 text-center font-medium">Receivable</th>
-                  <th className="px-4 py-2.5 text-center font-medium">Net</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {entities.map((entity) => {
-                  const net = entity.outstandingReceivable - entity.outstandingPayable
                   const cur = entity.currency ?? 'PEN'
                   const hasFinancials = entity.totalPayable > 0 || entity.totalReceivable > 0
 
@@ -174,15 +172,6 @@ export function EntitiesDirectory({
                       <td className="px-4 py-2.5 text-center font-mono text-xs">
                         {hasFinancials && entity.outstandingReceivable > 0 ? (
                           <span className="text-green-600">{formatCurrency(entity.outstandingReceivable, cur)}</span>
-                        ) : (
-                          <span className="text-zinc-300">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-center font-mono text-xs font-medium">
-                        {hasFinancials ? (
-                          <span className={net > 0 ? 'text-green-600' : net < 0 ? 'text-red-600' : 'text-zinc-400'}>
-                            {net > 0 ? '+' : ''}{formatCurrency(net, cur)}
-                          </span>
                         ) : (
                           <span className="text-zinc-300">—</span>
                         )}
