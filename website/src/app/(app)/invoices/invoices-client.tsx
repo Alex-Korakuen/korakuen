@@ -8,16 +8,14 @@ import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importInvoices } from '@/lib/import-actions'
-import { SlideOver } from '@/components/ui/slide-over'
+import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
-import { StatusBadge } from '@/components/ui/status-badge'
 
 const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
 import { LoanExpandContent } from './loan-expand-content'
-import { getStatusLabel, getStatusVariant } from './helpers'
 import type {
   InvoicesPageRow,
   InvoiceDetailData,
@@ -124,14 +122,14 @@ export function InvoicesClient({
     await fetchDetail(row)
   }, [fetchDetail])
 
-  const handleCloseSlideOver = () => {
+  const handleCloseModal = () => {
     setModalRow(null)
     setModalDetail(null)
     setModalMode('view')
   }
 
   const handleMutationSuccess = useCallback(() => {
-    handleCloseSlideOver()
+    handleCloseModal()
     router.refresh()
   }, [router])
 
@@ -140,18 +138,8 @@ export function InvoicesClient({
     router.refresh()
   }, [modalRow, fetchDetail, router])
 
-  // Prev/Next navigation
-  const currentIndex = modalRow ? data.findIndex(r => r.id === modalRow.id) : -1
-  const navigateTo = (row: InvoicesPageRow) => {
-    setModalRow(row)
-    setModalMode('view')
-    fetchDetail(row)
-  }
-  const handlePrev = currentIndex > 0 ? () => navigateTo(data[currentIndex - 1]) : undefined
-  const handleNext = currentIndex >= 0 && currentIndex < data.length - 1 ? () => navigateTo(data[currentIndex + 1]) : undefined
-
-  // SlideOver title
-  const slideOverTitle = modalRow
+  // Modal title
+  const modalTitle = modalRow
     ? modalRow.type === 'loan'
       ? 'Loan Detail'
       : modalMode === 'edit'
@@ -160,44 +148,6 @@ export function InvoicesClient({
           ? `Invoice ${modalRow.invoice_number}`
           : 'Invoice Detail'
     : ''
-
-  const slideOverSubtitle = modalRow && modalMode !== 'edit' ? (
-    <StatusBadge label={getStatusLabel(modalRow.payment_status)} variant={getStatusVariant(modalRow.payment_status)} />
-  ) : undefined
-
-  const slideOverActions = modalRow && modalRow.type !== 'loan' && modalMode === 'view' ? (
-    <div className="flex gap-1">
-      <button type="button" onClick={() => setModalMode('edit')}
-        className="rounded border border-zinc-200 p-1.5 text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700" title="Edit">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-        </svg>
-      </button>
-      <button type="button" onClick={() => setModalMode('delete')}
-        className="rounded border border-zinc-200 p-1.5 text-zinc-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Delete">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-        </svg>
-      </button>
-    </div>
-  ) : undefined
-
-  function renderSlideOverContent() {
-    if (!modalRow) return null
-    if (modalLoading) return <div className="flex items-center justify-center py-6"><span className="text-sm text-zinc-400">Loading detail...</span></div>
-    if (!modalDetail) return <p className="py-3 text-sm text-zinc-400">Could not load detail.</p>
-
-    if (modalRow.type === 'loan') {
-      return <LoanExpandContent detail={modalDetail as LoanDetailData} onRepaymentSuccess={handlePaymentSuccess} />
-    }
-    return (
-      <InvoiceExpandContent
-        detail={modalDetail as InvoiceDetailData} row={modalRow} mode={modalMode}
-        onSetMode={setModalMode} onMutationSuccess={handleMutationSuccess}
-        onPaymentSuccess={handlePaymentSuccess} categories={categories}
-      />
-    )
-  }
 
   return (
     <div>
@@ -269,11 +219,23 @@ export function InvoicesClient({
         />
       </div>
 
-      <SlideOver isOpen={modalRow !== null} onClose={handleCloseSlideOver}
-        title={slideOverTitle} subtitle={slideOverSubtitle}
-        actions={slideOverActions} onPrev={handlePrev} onNext={handleNext}>
-        {renderSlideOverContent()}
-      </SlideOver>
+      <Modal isOpen={modalRow !== null} onClose={handleCloseModal} title={modalTitle}>
+        {modalLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <span className="text-sm text-zinc-400">Loading detail...</span>
+          </div>
+        ) : modalRow && modalDetail ? (
+          modalRow.type === 'loan' ? (
+            <LoanExpandContent detail={modalDetail as LoanDetailData} onRepaymentSuccess={handlePaymentSuccess} />
+          ) : (
+            <InvoiceExpandContent
+              detail={modalDetail as InvoiceDetailData} row={modalRow} mode={modalMode}
+              onSetMode={setModalMode} onMutationSuccess={handleMutationSuccess}
+              onPaymentSuccess={handlePaymentSuccess} categories={categories}
+            />
+          )
+        ) : null}
+      </Modal>
 
       <ImportModal isOpen={showImport} onClose={() => setShowImport(false)}
         title="Import Invoices" onImport={importInvoices} />

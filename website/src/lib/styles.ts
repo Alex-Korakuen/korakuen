@@ -20,7 +20,7 @@ export const btnPrimary =
 export const btnPrimaryLg =
   'rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700'
 
-/** Danger button with label — delete actions in slide-over footers */
+/** Danger button with label — delete actions in modal footers */
 export const btnDangerOutline =
   'inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50'
 
