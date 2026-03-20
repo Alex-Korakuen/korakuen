@@ -4,6 +4,7 @@ import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
 import type {
+  Currency,
   PriceFilterOptions,
   PriceHistoryRow,
 } from '../types'
@@ -88,7 +89,7 @@ export async function getPriceHistory(
       quantity: item.quantity,
       unit_of_measure: item.unit_of_measure,
       unit_price: item.unit_price,
-      currency: inv.currency ?? DEFAULT_CURRENCY,
+      currency: (inv.currency ?? DEFAULT_CURRENCY) as Currency,
       entityTags: inv.entity_id ? entityTagsMap.get(inv.entity_id) ?? [] : [],
     })
   }
@@ -108,7 +109,7 @@ export async function getPriceHistory(
       quantity: q.quantity,
       unit_of_measure: q.unit_of_measure,
       unit_price: q.unit_price,
-      currency: q.currency ?? DEFAULT_CURRENCY,
+      currency: (q.currency ?? DEFAULT_CURRENCY) as Currency,
       entityTags: q.entity_id ? entityTagsMap.get(q.entity_id) ?? [] : [],
     })
   }

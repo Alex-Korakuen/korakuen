@@ -31,7 +31,7 @@ export type ProjectType = 'subcontractor' | 'oxi'
 export type EntityType = 'company' | 'individual'
 export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
 export type AccountType = 'checking' | 'savings' | 'detraccion'
-export type ReturnType = 'percentage' | 'fixed'
+export type LoanReturnType = 'percentage' | 'fixed'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 
@@ -62,7 +62,7 @@ export type LoanDetailData = {
     lender_name: string | null
     lender_contact: string | null
     purpose: string | null
-    currency: string | null
+    currency: Currency | null
     date_borrowed: string | null
     due_date: string | null
     principal: number | null
@@ -85,18 +85,6 @@ export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'next-7' | 'next-30
 
 export type BucketValue = { count: number; pen: number; usd: number }
 
-// --- Invoices page types (backward-looking aging buckets) ---
-
-export type InvoiceAgingBucketId = 'all' | 'current' | '1-30' | '31-60' | '61-90' | '90+'
-
-export type InvoiceAgingBuckets = {
-  current: BucketValue
-  '1-30': BucketValue
-  '31-60': BucketValue
-  '61-90': BucketValue
-  '90+': BucketValue
-}
-
 // Invoices page row — UNION of commercial invoices + loan schedule entries
 export type InvoicesPageRow = {
   id: string                          // invoice_id or loan_schedule_id
@@ -111,7 +99,7 @@ export type InvoicesPageRow = {
   invoice_number: string | null
   invoice_date: string | null
   due_date: string | null
-  currency: string
+  currency: Currency
   total: number
   amount_paid: number
   outstanding: number
@@ -130,7 +118,7 @@ export type PaymentsPageRow = {
   direction: PaymentDirection
   payment_type: PaymentType
   amount: number
-  currency: string
+  currency: Currency
   exchange_rate: number
   entity_name: string | null
   project_id: string | null
@@ -158,7 +146,7 @@ export type PartnerPayableDetail = {
   date: string | null
   invoice_number: string | null
   subtotal: number
-  currency: string | null
+  currency: Currency | null
   exchange_rate: number | null
   subtotal_pen: number // subtotal * exchange_rate for USD, subtotal for PEN
 }
@@ -168,7 +156,7 @@ export type PartnerReceivableDetail = {
   payment_date: string | null
   invoice_number: string | null
   amount: number
-  currency: string | null
+  currency: Currency | null
   exchange_rate: number | null
   amount_pen: number
 }
@@ -182,7 +170,7 @@ export type BankAccountCard = {
   bankName: string | null
   accountNumberLast4: string | null
   accountType: string | null
-  currency: string | null
+  currency: Currency | null
   isDetractionAccount: boolean
   balance: number
   transactionCount: number
@@ -193,19 +181,19 @@ export type BankTransaction = {
   paymentDate: string
   direction: PaymentDirection
   amount: number
-  currency: string
+  currency: Currency
   entityName: string | null
   projectCode: string | null
   description: string | null
 }
 
 export type CurrencyAmount = {
-  currency: string
+  currency: Currency
   amount: number
 }
 
 export type IgvByCurrency = {
-  currency: string
+  currency: Currency
   igvCollected: number // debito fiscal
   igvPaid: number // credito fiscal
   net: number // paid - collected (positive = credit)
@@ -215,7 +203,7 @@ export type FinancialPositionData = {
   bankAccounts: BankAccountCard[]
   arOutstanding: CurrencyAmount[]
   apOutstanding: CurrencyAmount[]
-  loans: { loanId: string; lenderName: string; outstanding: number; currency: string }[]
+  loans: { loanId: string; lenderName: string; outstanding: number; currency: Currency }[]
   igv: IgvByCurrency[]
   retencionesUnverified: CurrencyAmount[]
 }
@@ -228,7 +216,7 @@ export type ProjectListItem = {
   name: string
   status: string
   contract_value: number | null
-  contract_currency: string | null
+  contract_currency: Currency | null
 }
 
 export type ProjectCardItem = ProjectListItem & {
@@ -243,7 +231,7 @@ export type ProjectEntitySummary = {
   tags: string[]
   totalSpent: number | null
   invoiceCount: number | null
-  currency: string
+  currency: Currency
 }
 
 export type ProjectPartnerRow = {
@@ -295,7 +283,7 @@ export type EntityDirectoryItem = EntityListItem & {
   totalReceivable: number
   outstandingReceivable: number
   /** Primary currency for display; null if no invoices */
-  currency: string | null
+  currency: Currency | null
 }
 
 export type EntityLedgerRow = {
@@ -304,7 +292,7 @@ export type EntityLedgerRow = {
   title: string | null
   invoiceTotal: number
   outstanding: number
-  currency: string
+  currency: Currency
 }
 
 export type EntityLedgerGroup = {
@@ -314,7 +302,7 @@ export type EntityLedgerGroup = {
   invoiceTotal: number
   outstanding: number
   lastDate: string | null
-  currency: string
+  currency: Currency
   transactions: EntityLedgerRow[]
 }
 
@@ -361,7 +349,7 @@ export type PriceHistoryRow = {
   quantity: number | null
   unit_of_measure: string | null
   unit_price: number | null
-  currency: string
+  currency: Currency
   entityTags: string[]
 }
 

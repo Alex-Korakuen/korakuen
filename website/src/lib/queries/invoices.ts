@@ -4,6 +4,7 @@ import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
 import type {
+  Currency,
   InvoiceBalanceRow,
   InvoicesWithLoansRow,
   InvoiceDetailData,
@@ -102,7 +103,7 @@ export async function getInvoicesPage(
     invoice_number: r.invoice_number,
     invoice_date: r.invoice_date,
     due_date: r.due_date,
-    currency: r.currency ?? DEFAULT_CURRENCY,
+    currency: (r.currency ?? DEFAULT_CURRENCY) as Currency,
     total: r.total ?? 0,
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,
@@ -199,5 +200,10 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     return { ...entry, amount_paid: amountPaid, outstanding, payment_status: status }
   })
 
-  return { loan: loanResult.data, schedule, payments }
+  const loanData = loanResult.data
+  return {
+    loan: { ...loanData, currency: loanData.currency as Currency | null },
+    schedule,
+    payments,
+  }
 }

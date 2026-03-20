@@ -3,6 +3,7 @@ import { buildEntityNameMap, buildProjectCodeMap, DEFAULT_CURRENCY } from './sha
 import type {
   BankAccountCard,
   BankTransaction,
+  Currency,
   PaymentDirection,
   CurrencyAmount,
   FinancialPositionData,
@@ -14,9 +15,9 @@ import type {
 function groupByCurrency(
   items: { amount: number; currency: string | null }[]
 ): CurrencyAmount[] {
-  const map = new Map<string, number>()
+  const map = new Map<Currency, number>()
   for (const item of items) {
-    const cur = item.currency ?? DEFAULT_CURRENCY
+    const cur = (item.currency ?? DEFAULT_CURRENCY) as Currency
     map.set(cur, (map.get(cur) ?? 0) + item.amount)
   }
   return Array.from(map.entries())
@@ -74,7 +75,7 @@ export async function getFinancialPosition(
     bankName: ba.bank_name,
     accountNumberLast4: ba.account_number_last4,
     accountType: ba.account_type,
-    currency: ba.currency,
+    currency: ba.currency as Currency,
     isDetractionAccount: ba.is_detraccion_account ?? false,
     balance: ba.balance ?? 0,
     transactionCount: ba.transaction_count ?? 0,
@@ -92,7 +93,7 @@ export async function getFinancialPosition(
 
   // IGV position by currency
   const igv: IgvByCurrency[] = (igvResult.data ?? []).map(row => ({
-    currency: row.currency ?? DEFAULT_CURRENCY,
+    currency: (row.currency ?? DEFAULT_CURRENCY) as Currency,
     igvCollected: row.igv_collected ?? 0,
     igvPaid: row.igv_paid ?? 0,
     net: (row.igv_paid ?? 0) - (row.igv_collected ?? 0),
@@ -110,7 +111,7 @@ export async function getFinancialPosition(
     loanId: l.loan_id ?? '',
     lenderName: l.lender_name ?? '—',
     outstanding: l.outstanding ?? 0,
-    currency: l.currency ?? DEFAULT_CURRENCY,
+    currency: (l.currency ?? DEFAULT_CURRENCY) as Currency,
   }))
 
   return {
@@ -188,7 +189,7 @@ export async function getBankTransactions(
       paymentDate: p.payment_date,
       direction: p.direction as PaymentDirection,
       amount: p.amount,
-      currency: p.currency,
+      currency: p.currency as Currency,
       entityName,
       projectCode,
       description,

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Currency } from '../types'
 
 /** Default currency when database value is null */
-export const DEFAULT_CURRENCY = 'PEN'
+export const DEFAULT_CURRENCY: Currency = 'PEN'
 
 /** Round to 2 decimal places (currency precision) */
 export function round2(value: number): number {
@@ -11,7 +12,7 @@ export function round2(value: number): number {
 /** Convert an amount to PEN using the exchange rate — USD amounts are multiplied by rate */
 export function convertToPen(
   amount: number,
-  currency: string | null | undefined,
+  currency: Currency | string | null | undefined,
   exchangeRate: number | string | null | undefined,
 ): number {
   const rate = exchangeRate ? Number(exchangeRate) : 1

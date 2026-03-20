@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { buildEntityNameMap, buildEntityTagsMap, DEFAULT_CURRENCY, round2, convertToPen } from './shared'
 import type {
+  Currency,
   ProjectListItem,
   ProjectCardItem,
   ProjectDetailData,
@@ -161,7 +162,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       name: p.name,
       status: p.status,
       contract_value: p.contract_value,
-      contract_currency: p.contract_currency,
+      contract_currency: p.contract_currency as Currency | null,
       partner_count: partners.length,
       budget_pct: budgetPct,
       is_settled: isSettled,
@@ -227,7 +228,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
       tags: entityId ? entityTagMap.get(entityId) ?? [] : [],
       totalSpent: spending.totalSpent,
       invoiceCount: spending.invoiceCount,
-      currency,
+      currency: currency as Currency,
     })
   }
 
@@ -384,7 +385,7 @@ export async function getPartnerPayableDetails(
       date: inv.invoice_date,
       invoice_number: inv.invoice_number,
       subtotal,
-      currency: inv.currency,
+      currency: inv.currency as Currency | null,
       exchange_rate: inv.exchange_rate ? Number(inv.exchange_rate) : null,
       subtotal_pen: round2(convertToPen(subtotal, inv.currency, inv.exchange_rate)),
     }
@@ -424,7 +425,7 @@ export async function getPartnerReceivableDetails(
 
   return (payments ?? []).map(p => {
     const inv = invoiceMap.get(p.related_id)
-    const currency = p.currency ?? inv?.currency ?? DEFAULT_CURRENCY
+    const currency = (p.currency ?? inv?.currency ?? DEFAULT_CURRENCY) as Currency
     const amount = p.amount ?? 0
     return {
       payment_id: p.id,

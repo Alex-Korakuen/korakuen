@@ -3,6 +3,7 @@ import { buildEntityTagsMap, DEFAULT_CURRENCY } from './shared'
 import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
+  Currency,
   EntityDetailData,
   EntityDirectoryItem,
   EntityListItem,
@@ -149,7 +150,7 @@ export async function getEntitiesDirectory(
       outstandingPayable: fin?.outstandingPayable ?? 0,
       totalReceivable: fin?.totalReceivable ?? 0,
       outstandingReceivable: fin?.outstandingReceivable ?? 0,
-      currency: fin?.currency ?? null,
+      currency: (fin?.currency ?? null) as Currency | null,
     }
   })
 
@@ -280,7 +281,7 @@ function groupLedger(
       title: row.title,
       invoiceTotal: row.invoiceTotal,
       outstanding: row.outstanding,
-      currency: row.currency,
+      currency: row.currency as Currency,
     }
 
     if (existing) {
@@ -298,7 +299,7 @@ function groupLedger(
         invoiceTotal: row.invoiceTotal,
         outstanding: row.outstanding,
         lastDate: row.date,
-        currency: row.currency,
+        currency: row.currency as Currency,
         transactions: [txRow],
       })
     }

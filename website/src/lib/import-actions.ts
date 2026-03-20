@@ -237,6 +237,12 @@ export async function importInvoices(
       errors.push({ row: r, column: 'category', message: 'Not found in categories' })
     }
 
+    // Detraccion deposits are always in PEN (SPOT system, Banco de la Nación)
+    const detrRate = num(row.detraccion_rate)
+    if (detrRate !== null && detrRate > 0 && currency !== 'PEN') {
+      errors.push({ row: r, column: 'detraccion_rate', message: 'Detraccion only applies to PEN invoices' })
+    }
+
     // Retencion only on receivables (Korakuen is NOT a retencion agent)
     const retencionApplicable = String(row.retencion_applicable ?? '').toLowerCase() === 'true'
     if (direction === 'payable' && retencionApplicable) {

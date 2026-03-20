@@ -12,6 +12,7 @@ import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarFilters } from './calendar-filters'
 import { CalendarTable } from './calendar-table'
 import type {
+  Currency,
   ObligationCalendarRow,
   InvoicesPageRow,
   InvoiceDetailData,
@@ -77,7 +78,7 @@ function toInvoicesPageRow(r: ObligationCalendarRow): InvoicesPageRow {
     invoice_number: r.invoice_number ?? null,
     invoice_date: r.date ?? null,
     due_date: r.due_date ?? null,
-    currency: r.currency ?? 'PEN',
+    currency: (r.currency ?? 'PEN') as Currency,
     total: r.total ?? 0,
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,
