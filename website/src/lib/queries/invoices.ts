@@ -225,7 +225,7 @@ export async function getInvoicesPage(
 
   // Sort and paginate
   const sorted = sortRows(mapped, filters.sort, filters.dir)
-  const paginated = paginateArray(sorted, filters.page)
+  const paginated = paginateArray(sorted, filters.page, 10)
 
   return { paginated, payableBuckets, receivableBuckets, summary, uniqueEntities }
 }

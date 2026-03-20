@@ -48,13 +48,13 @@ type Props = {
   }
 }
 
-// --- Aging bar colors ---
-const agingColors: Record<string, { bg: string; dot: string }> = {
-  current: { bg: 'bg-green-400', dot: 'bg-green-500' },
-  '1-30': { bg: 'bg-yellow-400', dot: 'bg-yellow-500' },
-  '31-60': { bg: 'bg-orange-400', dot: 'bg-orange-500' },
-  '61-90': { bg: 'bg-red-400', dot: 'bg-red-400' },
-  '90+': { bg: 'bg-red-600', dot: 'bg-red-700' },
+// --- Aging dot colors ---
+const agingColors: Record<string, { dot: string }> = {
+  current: { dot: 'bg-green-500' },
+  '1-30': { dot: 'bg-yellow-500' },
+  '31-60': { dot: 'bg-orange-500' },
+  '61-90': { dot: 'bg-red-400' },
+  '90+': { dot: 'bg-red-700' },
 }
 
 const agingLabels: { label: string; key: keyof BucketCounts }[] = [
@@ -65,71 +65,39 @@ const agingLabels: { label: string; key: keyof BucketCounts }[] = [
   { label: '90+ days', key: '90+' },
 ]
 
-function AgingBar({ buckets, activeBucket, onBucketClick }: {
+function AgingLegend({ buckets, activeBucket, onBucketClick }: {
   buckets: BucketCounts
   activeBucket: BucketId
   onBucketClick: (bucket: BucketId) => void
 }) {
-  // Total for proportional widths
-  const total = agingLabels.reduce((sum, { key }) => {
-    const b = buckets[key]
-    return sum + b.pen + b.usd
-  }, 0)
-
   return (
-    <div className="mb-5">
-      {/* Proportional bar */}
-      <div className="mb-2 flex h-2.5 overflow-hidden rounded-full bg-zinc-100">
-        {agingLabels.map(({ key }) => {
-          const b = buckets[key]
-          const amount = b.pen + b.usd
-          if (amount <= 0) return null
-          const width = Math.max((amount / total) * 100, 2)
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onBucketClick(key)}
-              className={`${agingColors[key]?.bg ?? 'bg-zinc-300'} transition-opacity hover:opacity-80 ${
-                activeBucket === key ? 'ring-2 ring-zinc-400 ring-offset-1' : ''
-              }`}
-              style={{ width: `${width}%` }}
-              title={`${key}: ${b.count} items`}
-            />
-          )
-        })}
-      </div>
-
-      {/* Legend with amounts */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1">
-        {agingLabels.map(({ label, key }) => {
-          const b = buckets[key]
-          const isActive = activeBucket === key
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onBucketClick(key)}
-              className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors hover:bg-zinc-100 ${
-                isActive ? 'bg-zinc-100 ring-1 ring-zinc-300' : ''
-              }`}
-            >
-              <span className={`h-2 w-2 shrink-0 rounded-full ${agingColors[key]?.dot ?? 'bg-zinc-300'}`} />
-              <span className="text-zinc-500">{label}</span>
-              {b.pen > 0 && (
-                <span className="font-mono font-medium text-zinc-800">{formatCurrency(b.pen, 'PEN')}</span>
-              )}
-              {b.usd > 0 && (
-                <span className="font-mono text-zinc-500">{formatCurrency(b.usd, 'USD')}</span>
-              )}
-              {b.pen <= 0 && b.usd <= 0 && (
-                <span className="text-zinc-400">—</span>
-              )}
-              <span className="text-zinc-400">{b.count} {b.count === 1 ? 'item' : 'items'}</span>
-            </button>
-          )
-        })}
-      </div>
+    <div className="mb-4 flex flex-wrap gap-x-5 gap-y-1">
+      {agingLabels.map(({ label, key }) => {
+        const b = buckets[key]
+        const isActive = activeBucket === key
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onBucketClick(key)}
+            className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors hover:bg-zinc-100 ${
+              isActive ? 'bg-zinc-100 ring-1 ring-zinc-300' : ''
+            }`}
+          >
+            <span className={`h-2 w-2 shrink-0 rounded-full ${agingColors[key]?.dot ?? 'bg-zinc-300'}`} />
+            <span className="text-zinc-500">{label}</span>
+            {b.pen > 0 && (
+              <span className="font-mono font-medium text-zinc-800">{formatCurrency(b.pen, 'PEN')}</span>
+            )}
+            {b.usd > 0 && (
+              <span className="font-mono text-zinc-500">{formatCurrency(b.usd, 'USD')}</span>
+            )}
+            {b.pen <= 0 && b.usd <= 0 && (
+              <span className="text-zinc-400">—</span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -441,9 +409,9 @@ export function InvoicesClient({
           </div>
         )}
 
-        {/* Aging bar (payable and receivable tabs only) */}
+        {/* Aging legend (payable and receivable tabs only) */}
         {tab !== 'loans' && (
-          <AgingBar
+          <AgingLegend
             buckets={activeBuckets}
             activeBucket={activeBucket}
             onBucketClick={handleBucketClick}

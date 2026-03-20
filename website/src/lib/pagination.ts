@@ -8,14 +8,14 @@ export type PaginatedResult<T> = {
 }
 
 /** Paginate an in-memory array. Page is 1-based. */
-export function paginateArray<T>(items: T[], page: number): PaginatedResult<T> {
+export function paginateArray<T>(items: T[], page: number, pageSize: number = PAGE_SIZE): PaginatedResult<T> {
   const validPage = Math.max(1, page)
-  const offset = (validPage - 1) * PAGE_SIZE
+  const offset = (validPage - 1) * pageSize
   return {
-    data: items.slice(offset, offset + PAGE_SIZE),
+    data: items.slice(offset, offset + pageSize),
     totalCount: items.length,
     page: validPage,
-    pageSize: PAGE_SIZE,
+    pageSize,
   }
 }
 
