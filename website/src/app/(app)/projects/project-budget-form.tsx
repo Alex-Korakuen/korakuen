@@ -13,6 +13,8 @@ type Props = {
   contractValue: number | null
   contractCurrency: string
   categories: CategoryOption[]
+  showAddForm: boolean
+  onHideAddForm: () => void
 }
 
 export function ProjectBudgetForm({
@@ -21,6 +23,8 @@ export function ProjectBudgetForm({
   contractValue,
   contractCurrency,
   categories,
+  showAddForm,
+  onHideAddForm,
 }: Props) {
   const hasBudget = useMemo(
     () => budgetRows.some((b) => b.budgeted_amount !== null && b.budgeted_amount > 0),
@@ -38,7 +42,6 @@ export function ProjectBudgetForm({
   const [error, setError] = useState<string | null>(null)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
   const [newCategory, setNewCategory] = useState('')
   const [newAmount, setNewAmount] = useState('')
 
@@ -83,7 +86,7 @@ export function ProjectBudgetForm({
         await upsertProjectBudget(projectId, newCategory, amount, contractCurrency)
         setNewCategory('')
         setNewAmount('')
-        setShowAddForm(false)
+        onHideAddForm()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to add budget')
       }
@@ -109,16 +112,13 @@ export function ProjectBudgetForm({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
-              <tr>
+            <thead className="text-xs text-zinc-500">
+              <tr className="border-b border-zinc-100">
                 <th className="px-3 py-2 text-left font-medium">Category</th>
                 <th className="px-2 py-2 text-right font-medium">Budgeted</th>
                 <th className="px-2 py-2 text-right font-medium">Actual</th>
                 {hasBudget && (
                   <th className="px-2 py-2 text-right font-medium">% Used</th>
-                )}
-                {contractValue !== null && (
-                  <th className="px-2 py-2 text-right font-medium">% Contract</th>
                 )}
                 <th className="px-2 py-2 text-right font-medium w-10"></th>
               </tr>
@@ -128,15 +128,11 @@ export function ProjectBudgetForm({
                 const category = b.category ?? `uncategorized-${i}`
                 const actual = b.actual_amount ?? 0
                 const pctUsed = b.pct_used ?? 0
-                const pctOfContract =
-                  contractValue !== null && contractValue > 0
-                    ? (actual / contractValue) * 100
-                    : null
                 const isEditing = editingCategory === category
 
                 return (
-                  <tr key={`${category}-${i}`}>
-                    <td className="px-3 py-2 font-medium text-zinc-800 truncate max-w-[120px]">
+                  <tr key={`${category}-${i}`} className="group">
+                    <td className="px-3 py-2 font-medium text-zinc-800">
                       {formatCategory(b.category)}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-700">
@@ -189,17 +185,12 @@ export function ProjectBudgetForm({
                           : '--'}
                       </td>
                     )}
-                    {contractValue !== null && (
-                      <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-600">
-                        {pctOfContract !== null ? `${pctOfContract.toFixed(1)}%` : '--'}
-                      </td>
-                    )}
                     <td className="px-2 py-2 text-right">
                       {b.budgeted_amount !== null && (
                         <button
                           onClick={() => handleRemove(category)}
                           disabled={isPending}
-                          className="text-red-400 hover:text-red-600 disabled:opacity-50"
+                          className="text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:opacity-50"
                           title="Remove budget"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -213,7 +204,7 @@ export function ProjectBudgetForm({
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t border-zinc-200 bg-zinc-50">
+              <tr className="border-t border-zinc-200 bg-zinc-50/50">
                 <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
                 <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-800">
                   {totalBudgeted !== null
@@ -236,13 +227,6 @@ export function ProjectBudgetForm({
                       : '--'}
                   </td>
                 )}
-                {contractValue !== null && (
-                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-700">
-                    {contractValue > 0
-                      ? `${((totalActual / contractValue) * 100).toFixed(1)}%`
-                      : '--'}
-                  </td>
-                )}
                 <td className="px-2 py-2"></td>
               </tr>
             </tfoot>
@@ -250,9 +234,9 @@ export function ProjectBudgetForm({
         </div>
       )}
 
-      {/* Add budget row */}
-      <div className="px-4 py-2">
-        {showAddForm ? (
+      {/* Add budget inline form */}
+      {showAddForm && (
+        <div className="px-4 py-2">
           <div className="space-y-2 border-t border-zinc-100 pt-2">
             <div className="grid grid-cols-2 gap-2">
               <select
@@ -285,23 +269,15 @@ export function ProjectBudgetForm({
                 {isPending ? 'Adding...' : 'Add'}
               </button>
               <button
-                onClick={() => { setShowAddForm(false); setError(null) }}
+                onClick={() => { onHideAddForm(); setError(null) }}
                 className="rounded px-3 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
               >
                 Cancel
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowAddForm(true)}
-            disabled={availableCategories.length === 0}
-            className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
-          >
-            + Add budget category
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </>
   )
 }

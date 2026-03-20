@@ -74,7 +74,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
   return (
     <>
       {/* Search */}
-      <div className="border-b border-zinc-200 px-4 py-3">
+      <div className="px-4 pb-3">
         <input
           type="text"
           value={search}
@@ -91,8 +91,8 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
-              <tr>
+            <thead className="text-xs text-zinc-500">
+              <tr className="border-b border-zinc-100">
                 <th className="px-4 py-2 text-left font-medium">Entity Name</th>
                 <th className="px-4 py-2 text-left font-medium">Tags</th>
                 <th className="px-4 py-2 text-right font-medium">Total Spent</th>
@@ -129,7 +129,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
             {/* Totals footer */}
             <tfoot>
               {Object.keys(currencyTotals).sort().map((c, i) => (
-                <tr key={c} className={`${i === 0 ? 'border-t border-zinc-200' : ''} bg-zinc-50`}>
+                <tr key={c} className={`${i === 0 ? 'border-t border-zinc-200' : ''} bg-zinc-50/50`}>
                   <td className="px-4 py-2 text-sm font-medium text-zinc-700">
                     {Object.keys(currencyTotals).length > 1 ? `Total ${c}` : 'Total'}
                   </td>
@@ -199,6 +199,15 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
   const contractValue = project.contract_value ?? null
   const contractCurrency = project.contract_currency ?? 'PEN'
 
+  // Inline add form state (lifted from child components)
+  const [showPartnerForm, setShowPartnerForm] = useState(false)
+  const [showBudgetForm, setShowBudgetForm] = useState(false)
+
+  const assignedPartnerIds = new Set(partners.map(p => p.partnerCompanyId))
+  const addPartnerDisabled = partnerCompanies.every(pc => assignedPartnerIds.has(pc.id))
+  const usedCategories = new Set(detail.budget.map(b => b.category))
+  const addBudgetDisabled = categories.every(c => usedCategories.has(c.name))
+
   // Edit form state
   const [editName, setEditName] = useState('')
   const [editStatus, setEditStatus] = useState('')
@@ -257,7 +266,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
   return (
     <div>
-      {/* Left side of header: breadcrumb */}
+      {/* Left side of header: breadcrumb + badges */}
       <HeaderTitlePortal>
         <Link
           href="/projects"
@@ -272,6 +281,8 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
         <span className="text-sm text-zinc-600 truncate">
           {project.project_code} — {project.name}
         </span>
+        <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
+        <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
       </HeaderTitlePortal>
 
       {/* Right side of header: edit button */}
@@ -289,79 +300,88 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
         </HeaderPortal>
       )}
 
-      {/* View mode: header + dashboard */}
+      {/* View mode: dashboard */}
       {mode === 'view' && (
         <div className="space-y-6 p-6">
-          {/* Header card */}
-          <div>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold text-zinc-800">{project.name}</h2>
-              <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
-              <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
-            </div>
-            <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-              {clientName && (
-                <div>
-                  <span className="text-xs text-zinc-500">Client</span>
-                  <p className="text-zinc-700">{clientName}</p>
-                </div>
-              )}
-              {contractValue !== null && (
-                <div>
-                  <span className="text-xs text-zinc-500">Contract Value</span>
-                  <p className="font-mono font-medium text-zinc-800">
-                    {formatCurrency(contractValue, contractCurrency)}
-                  </p>
-                </div>
-              )}
-              {project.start_date && (
-                <div>
-                  <span className="text-xs text-zinc-500">Start Date</span>
-                  <p className="text-zinc-700">{formatDate(project.start_date)}</p>
-                </div>
-              )}
-              {project.expected_end_date && (
-                <div>
-                  <span className="text-xs text-zinc-500">Expected End</span>
-                  <p className="text-zinc-700">{formatDate(project.expected_end_date)}</p>
-                </div>
-              )}
-              {project.actual_end_date && (
-                <div>
-                  <span className="text-xs text-zinc-500">Actual End</span>
-                  <p className="text-zinc-700">{formatDate(project.actual_end_date)}</p>
-                </div>
-              )}
-              {project.location && (
-                <div>
-                  <span className="text-xs text-zinc-500">Location</span>
-                  <p className="text-zinc-700">{project.location}</p>
-                </div>
-              )}
-            </div>
+          {/* Metadata row — first element, no duplicate title */}
+          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            {clientName && (
+              <div>
+                <span className="text-xs text-zinc-500">Client</span>
+                <p className="text-zinc-700">{clientName}</p>
+              </div>
+            )}
+            {contractValue !== null && (
+              <div>
+                <span className="text-xs text-zinc-500">Contract Value</span>
+                <p className="font-mono font-medium text-zinc-800">
+                  {formatCurrency(contractValue, contractCurrency)}
+                </p>
+              </div>
+            )}
+            {project.start_date && (
+              <div>
+                <span className="text-xs text-zinc-500">Start Date</span>
+                <p className="text-zinc-700">{formatDate(project.start_date)}</p>
+              </div>
+            )}
+            {project.expected_end_date && (
+              <div>
+                <span className="text-xs text-zinc-500">Expected End</span>
+                <p className="text-zinc-700">{formatDate(project.expected_end_date)}</p>
+              </div>
+            )}
+            {project.actual_end_date && (
+              <div>
+                <span className="text-xs text-zinc-500">Actual End</span>
+                <p className="text-zinc-700">{formatDate(project.actual_end_date)}</p>
+              </div>
+            )}
+            {project.location && (
+              <div>
+                <span className="text-xs text-zinc-500">Location</span>
+                <p className="text-zinc-700">{project.location}</p>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-zinc-200" />
 
           {/* Dashboard grid: Partners + Budget side by side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Partners & Settlement */}
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-zinc-600">Partners & Settlement</h3>
+            {/* Partners & Settlement — flex-col so total pins to bottom */}
+            <div className="flex flex-col rounded-xl border border-zinc-200 bg-white">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <h3 className="text-sm font-semibold text-zinc-700">Partners & Settlement</h3>
+                <button
+                  onClick={() => setShowPartnerForm(true)}
+                  disabled={addPartnerDisabled || showPartnerForm}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
+                >
+                  + Add partner
+                </button>
               </div>
               <ProjectPartnerSettlement
                 projectId={project.id}
                 partners={partners}
                 settlements={partnerSettlements}
                 partnerCompanies={partnerCompanies}
+                showForm={showPartnerForm}
+                onHideForm={() => setShowPartnerForm(false)}
               />
             </div>
 
             {/* Costs & Budget */}
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-zinc-600">Costs & Budget</h3>
+            <div className="rounded-xl border border-zinc-200 bg-white">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <h3 className="text-sm font-semibold text-zinc-700">Costs & Budget</h3>
+                <button
+                  onClick={() => setShowBudgetForm(true)}
+                  disabled={addBudgetDisabled || showBudgetForm}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
+                >
+                  + Add budget category
+                </button>
               </div>
               <ProjectBudgetForm
                 projectId={project.id}
@@ -369,25 +389,27 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 contractValue={contractValue}
                 contractCurrency={contractCurrency}
                 categories={categories}
+                showAddForm={showBudgetForm}
+                onHideAddForm={() => setShowBudgetForm(false)}
               />
             </div>
           </div>
 
           {/* Entities — full width */}
-          <div className="rounded-lg border border-zinc-200 bg-white">
-            <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2.5">
-              <h3 className="text-sm font-semibold text-zinc-600">Entities & Suppliers</h3>
+          <div className="rounded-xl border border-zinc-200 bg-white">
+            <div className="px-4 pt-4 pb-2">
+              <h3 className="text-sm font-semibold text-zinc-700">Entities & Suppliers</h3>
             </div>
             <EntitiesPaginated entities={entities} />
           </div>
 
           {/* Notes */}
           {project.notes && (
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-200 bg-zinc-50 px-4 py-2.5">
-                <h3 className="text-sm font-semibold text-zinc-600">Notes</h3>
+            <div className="rounded-xl border border-zinc-200 bg-white">
+              <div className="px-4 pt-4 pb-2">
+                <h3 className="text-sm font-semibold text-zinc-700">Notes</h3>
               </div>
-              <div className="p-4">
+              <div className="px-4 pb-4">
                 <p className="whitespace-pre-wrap text-sm text-zinc-600">{project.notes}</p>
               </div>
             </div>

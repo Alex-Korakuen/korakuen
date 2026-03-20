@@ -13,9 +13,11 @@ type Props = {
   partners: ProjectPartnerRow[]
   settlements: SettlementRow[]
   partnerCompanies: PartnerCompanyOption[]
+  showForm: boolean
+  onHideForm: () => void
 }
 
-export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies }: Props) {
+export function ProjectPartnerSettlement({ projectId, partners, settlements, partnerCompanies, showForm, onHideForm }: Props) {
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null)
   const [detailTab, setDetailTab] = useState<'costs' | 'revenue'>('costs')
   const [costDetails, setCostDetails] = useState<PartnerPayableDetail[]>([])
@@ -23,8 +25,6 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
-  // Add/remove partner form state
-  const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [formError, setFormError] = useState<string | null>(null)
   const [selectedPartner, setSelectedPartner] = useState('')
@@ -99,7 +99,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         await addProjectPartner(projectId, selectedPartner, pct)
         setSelectedPartner('')
         setProfitShare('')
-        setShowForm(false)
+        onHideForm()
       } catch (e) {
         setFormError(e instanceof Error ? e.message : 'Failed to add partner')
       }
@@ -155,17 +155,19 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
   return (
     <>
       {partners.length === 0 && !showForm ? (
-        <p className="px-4 py-6 text-center text-sm text-zinc-400">No partners assigned</p>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="px-4 py-6 text-center text-sm text-zinc-400">No partners assigned</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="flex-1 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
-              <tr>
+            <thead className="text-xs text-zinc-500">
+              <tr className="border-b border-zinc-100">
                 <th className="px-3 py-2 text-left font-medium">Partner</th>
                 <th className="px-2 py-2 text-right font-medium">Share</th>
                 <th className="px-2 py-2 text-right font-medium">Profit</th>
                 <th className="px-2 py-2 text-right font-medium">Owed</th>
-                <th className="px-2 py-2 text-right font-medium">Balance</th>
+                <th className="px-2 py-2 text-right font-medium">Balance (+&nbsp;=&nbsp;owed)</th>
                 <th className="w-10 px-2 py-2"></th>
               </tr>
             </thead>
@@ -177,7 +179,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                   <tr
                     key={p.id}
                     onClick={() => !isEditingShare && handlePartnerClick(p.partnerCompanyId)}
-                    className={`cursor-pointer transition-colors ${isEditingShare ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+                    className={`group cursor-pointer transition-colors ${isEditingShare ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
                   >
                     <td className="px-3 py-2 font-medium text-zinc-800 truncate max-w-[120px]">{p.partnerName}</td>
                     <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
@@ -240,7 +242,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                       <button
                         onClick={() => handleRemove(p.id)}
                         disabled={isPending}
-                        className={`${btnDangerIcon} disabled:opacity-50`}
+                        className={`${btnDangerIcon} opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50`}
                         title="Remove partner"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -252,12 +254,20 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 )
               })}
             </tbody>
-            <tfoot>
-              <tr
-                className="border-t border-zinc-200 bg-zinc-50 cursor-pointer transition-colors hover:bg-blue-50"
-                onClick={() => handlePartnerClick('__all__')}
-                title="Click to view all costs and revenue"
-              >
+          </table>
+        </div>
+      )}
+
+      {/* Total row — pinned to bottom via mt-auto in flex-col parent */}
+      {partners.length > 0 && (
+        <div
+          className="mt-auto border-t border-zinc-200 bg-zinc-50/50 rounded-b-xl cursor-pointer transition-colors hover:bg-blue-50"
+          onClick={() => handlePartnerClick('__all__')}
+          title="Click to view all costs and revenue"
+        >
+          <table className="w-full text-sm">
+            <tbody>
+              <tr>
                 <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
                 <td className={`px-2 py-2 text-right font-mono font-semibold ${
                   totalShare === 100 ? 'text-green-600' : 'text-amber-600'
@@ -277,22 +287,16 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 }`}>
                   {totalBalance === 0 ? 'Settled' : formatCurrency(totalBalance, 'PEN')}
                 </td>
-                <td className="px-2 py-2 text-right">
-                  {totalShare === 100 ? (
-                    <span className="text-xs text-green-600">OK</span>
-                  ) : (
-                    <span className="text-xs text-amber-600">{totalShare < 100 ? `${100 - totalShare}%` : 'Over'}</span>
-                  )}
-                </td>
+                <td className="w-10 px-2 py-2"></td>
               </tr>
-            </tfoot>
+            </tbody>
           </table>
         </div>
       )}
 
-      {/* Add partner form */}
-      <div className="px-4 py-2">
-        {showForm ? (
+      {/* Add partner inline form */}
+      {showForm && (
+        <div className="px-4 py-2">
           <div className="space-y-2 border-t border-zinc-100 pt-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
@@ -330,29 +334,15 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 {isPending ? 'Adding...' : 'Add'}
               </button>
               <button
-                onClick={() => { setShowForm(false); setFormError(null) }}
+                onClick={() => { onHideForm(); setFormError(null) }}
                 className="rounded px-3 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
               >
                 Cancel
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowForm(true)}
-            disabled={availablePartners.length === 0}
-            className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
-          >
-            + Add partner
-          </button>
-        )}
-      </div>
-
-      <div className="border-t border-zinc-200 px-3 py-2">
-        <p className="text-xs text-zinc-400">
-          All amounts in PEN at transaction-date rates. Positive balance = partner is owed. Click a row for details.
-        </p>
-      </div>
+        </div>
+      )}
 
       {/* Detail modal */}
       <Modal
