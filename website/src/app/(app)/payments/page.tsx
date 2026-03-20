@@ -20,6 +20,8 @@ export default async function PaymentsPage({ searchParams }: Props) {
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
     search: str(params, FK.search),
+    dateFrom: str(params, FK.dateFrom),
+    dateTo: str(params, FK.dateTo),
     sort,
     dir,
     page,
@@ -43,6 +45,8 @@ export default async function PaymentsPage({ searchParams }: Props) {
         projectId: filters.projectId ?? '',
         bankAccountId: filters.bankAccountId ?? '',
         search: filters.search ?? '',
+        dateFrom: filters.dateFrom ?? '',
+        dateTo: filters.dateTo ?? '',
       }}
     />
   )

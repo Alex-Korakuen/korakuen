@@ -1,3 +1,14 @@
+import { formatCurrency } from '@/lib/formatters'
+
+export function formatSignedAmount(amount: number, currency: string, direction: string): string {
+  const formatted = formatCurrency(amount, currency)
+  return direction === 'inbound' ? `+${formatted}` : `\u2212${formatted}`
+}
+
+export function getSignedAmountColorClass(direction: string): string {
+  return direction === 'inbound' ? 'text-green-600' : 'text-red-600'
+}
+
 export function getDirectionLabel(direction: string): string {
   return direction === 'inbound' ? 'In' : 'Out'
 }

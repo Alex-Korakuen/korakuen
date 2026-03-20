@@ -13,12 +13,20 @@ type Props = {
     projectId: string
     bankAccountId: string
     search: string
+    dateFrom: string
+    dateTo: string
   }
   setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string }[]
   bankAccounts: { id: string; label: string }[]
   hasActiveFilters: boolean
   onClearFilters: () => void
+}
+
+function chipClass(isActive: boolean, activeClass: string): string {
+  return `rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
+    isActive ? activeClass : 'border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50'
+  }`
 }
 
 export function PaymentsFilters({
@@ -29,24 +37,11 @@ export function PaymentsFilters({
   hasActiveFilters,
   onClearFilters,
 }: Props) {
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(currentFilters.search)
 
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
-
-  const activeFilterCount = [
-    currentFilters.direction,
-    currentFilters.paymentType,
-    currentFilters.relatedTo,
-    currentFilters.projectId,
-    currentFilters.bankAccountId,
-  ].filter(Boolean).length
-
-  // Auto-open if dropdown filters are active on load
-  const [autoOpened] = useState(() => activeFilterCount > 0)
-  const isFiltersOpen = filtersOpen || autoOpened
 
   function submitSearch() {
     const params = new URLSearchParams(searchParams.toString())
@@ -59,111 +54,138 @@ export function PaymentsFilters({
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="flex items-center gap-2 px-3 py-2">
-        {/* Search by related invoice/entity */}
-        <div className="relative flex-1">
-          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
-            placeholder="Search by invoice # or entity..."
-            className="w-full rounded-md border border-zinc-200 bg-zinc-50 py-2 pl-8 pr-3 text-sm text-zinc-700 outline-none transition-colors focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
-          />
-        </div>
+  function toggleChip(filterKey: string, currentValue: string, chipValue: string) {
+    setFilter(filterKey, currentValue === chipValue ? '' : chipValue)
+  }
 
-        {/* Filter toggle */}
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Date range */}
+      <div className="flex items-center gap-1.5">
+        <input
+          type="date"
+          defaultValue={currentFilters.dateFrom}
+          onChange={(e) => setFilter(FK.dateFrom, e.target.value)}
+          className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
+        />
+        <span className="text-zinc-300">&mdash;</span>
+        <input
+          type="date"
+          defaultValue={currentFilters.dateTo}
+          onChange={(e) => setFilter(FK.dateTo, e.target.value)}
+          className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
+        />
+      </div>
+
+      <div className="h-5 w-px bg-zinc-200" />
+
+      {/* Direction chips */}
+      <div className="flex gap-1">
         <button
-          onClick={() => setFiltersOpen(!isFiltersOpen)}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors ${
-            isFiltersOpen
-              ? 'border-blue-200 bg-blue-50 text-blue-600'
-              : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-          }`}
+          className={chipClass(currentFilters.direction === 'inbound', 'border-green-200 bg-green-100 text-green-700')}
+          onClick={() => toggleChip(FK.direction, currentFilters.direction, 'inbound')}
         >
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clipRule="evenodd" />
-          </svg>
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
-              {activeFilterCount}
-            </span>
-          )}
+          In
+        </button>
+        <button
+          className={chipClass(currentFilters.direction === 'outbound', 'border-red-200 bg-red-100 text-red-700')}
+          onClick={() => toggleChip(FK.direction, currentFilters.direction, 'outbound')}
+        >
+          Out
         </button>
       </div>
 
-      {isFiltersOpen && (
-        <div className="border-t border-zinc-100 px-4 py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <FilterSelect
-              label="Direction"
-              value={currentFilters.direction}
-              onChange={(v) => setFilter(FK.direction, v)}
-              options={[
-                { value: 'inbound', label: 'Inbound' },
-                { value: 'outbound', label: 'Outbound' },
-              ]}
-              placeholder="All"
-            />
+      <div className="h-5 w-px bg-zinc-200" />
 
-            <FilterSelect
-              label="Type"
-              value={currentFilters.paymentType}
-              onChange={(v) => setFilter(FK.type, v)}
-              options={[
-                { value: 'regular', label: 'Regular' },
-                { value: 'detraccion', label: 'Detraccion' },
-                { value: 'retencion', label: 'Retencion' },
-              ]}
-              placeholder="All"
-            />
+      {/* Type chips */}
+      <div className="flex gap-1">
+        <button
+          className={chipClass(currentFilters.paymentType === 'regular', 'border-zinc-300 bg-zinc-200 text-zinc-700')}
+          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'regular')}
+        >
+          Regular
+        </button>
+        <button
+          className={chipClass(currentFilters.paymentType === 'detraccion', 'border-blue-200 bg-blue-100 text-blue-700')}
+          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'detraccion')}
+        >
+          Det
+        </button>
+        <button
+          className={chipClass(currentFilters.paymentType === 'retencion', 'border-yellow-200 bg-yellow-100 text-yellow-700')}
+          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'retencion')}
+        >
+          Ret
+        </button>
+      </div>
 
-            <FilterSelect
-              label="Related To"
-              value={currentFilters.relatedTo}
-              onChange={(v) => setFilter(FK.related, v)}
-              options={[
-                { value: 'invoice', label: 'Invoice' },
-                { value: 'loan_schedule', label: 'Loan' },
-              ]}
-              placeholder="All"
-            />
+      <div className="h-5 w-px bg-zinc-200" />
 
-            <FilterSelect
-              label="Project"
-              value={currentFilters.projectId}
-              onChange={(v) => setFilter(FK.project, v)}
-              options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
-              placeholder="All projects"
-            />
+      {/* Related-to chips */}
+      <div className="flex gap-1">
+        <button
+          className={chipClass(currentFilters.relatedTo === 'invoice', 'border-indigo-200 bg-indigo-100 text-indigo-700')}
+          onClick={() => toggleChip(FK.related, currentFilters.relatedTo, 'invoice')}
+        >
+          Invoice
+        </button>
+        <button
+          className={chipClass(currentFilters.relatedTo === 'loan_schedule', 'border-indigo-200 bg-indigo-100 text-indigo-700')}
+          onClick={() => toggleChip(FK.related, currentFilters.relatedTo, 'loan_schedule')}
+        >
+          Loan
+        </button>
+      </div>
 
-            <FilterSelect
-              label="Bank Account"
-              value={currentFilters.bankAccountId}
-              onChange={(v) => setFilter(FK.bank, v)}
-              options={bankAccounts.map((b) => ({ value: b.id, label: b.label }))}
-              placeholder="All accounts"
-            />
+      <div className="h-5 w-px bg-zinc-200" />
 
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={onClearFilters}
-                className="self-end rounded px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:text-red-500"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Project dropdown */}
+      <FilterSelect
+        label="Project"
+        value={currentFilters.projectId}
+        onChange={(v) => setFilter(FK.project, v)}
+        options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
+        placeholder="All projects"
+      />
+
+      {/* Bank dropdown */}
+      <FilterSelect
+        label="Bank"
+        value={currentFilters.bankAccountId}
+        onChange={(v) => setFilter(FK.bank, v)}
+        options={bankAccounts.map((b) => ({ value: b.id, label: b.label }))}
+        placeholder="All banks"
+      />
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Search */}
+      <div className="relative">
+        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+          </svg>
+        </span>
+        <input
+          type="text"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
+          placeholder="Search..."
+          className="w-44 rounded-md border border-zinc-200 bg-white py-1 pl-7 pr-2 text-xs text-zinc-700 outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      {/* Clear */}
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="rounded px-2 py-1 text-xs text-zinc-400 transition-colors hover:text-red-500"
+        >
+          Clear
+        </button>
       )}
     </div>
   )

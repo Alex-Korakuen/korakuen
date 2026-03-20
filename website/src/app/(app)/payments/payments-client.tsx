@@ -11,10 +11,11 @@ import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
+import { Pagination } from '@/components/ui/pagination'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
-import type { PaymentsPageRow, PaymentsSummary, PaymentBucketId, PaymentBucketSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
+import type { PaymentsPageRow, PaymentsSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 
 const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 
@@ -33,17 +34,8 @@ type Props = {
     projectId: string
     bankAccountId: string
     search: string
-  }
-}
-
-const BUCKET_ORDER: { id: PaymentBucketId; label: string }[] = [
-  { id: 'last-30', label: 'Last 30 Days' },
-]
-
-function getBucketColors(id: PaymentBucketId): { text: string } {
-  switch (id) {
-    case 'last-30': return { text: 'text-violet-700' }
-    default: return { text: 'text-zinc-600' }
+    dateFrom: string
+    dateTo: string
   }
 }
 
@@ -55,31 +47,6 @@ function DualAmount({ pen, usd }: { pen: number; usd: number }) {
       {pen !== 0 && usd !== 0 && <span className="mx-1 text-zinc-300">|</span>}
       {usd !== 0 && formatCurrency(Math.abs(usd), 'USD')}
     </span>
-  )
-}
-
-function BucketBar({ id, label, bucket }: { id: PaymentBucketId; label: string; bucket: PaymentBucketSummary }) {
-  const colors = getBucketColors(id)
-  return (
-    <div className={`border-t border-zinc-200 bg-zinc-50/80 px-6 py-2`}>
-      <div className="flex items-center gap-6">
-        <span className={`w-28 text-xs font-semibold uppercase tracking-wider ${colors.text}`}>
-          {label}
-        </span>
-        <span className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-green-600">In</span>
-          <DualAmount pen={bucket.inflows.pen} usd={bucket.inflows.usd} />
-        </span>
-        <span className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-red-500">Out</span>
-          <DualAmount pen={bucket.outflows.pen} usd={bucket.outflows.usd} />
-        </span>
-        <span className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-zinc-600">Net</span>
-          <DualAmount pen={bucket.net.pen} usd={bucket.net.usd} />
-        </span>
-      </div>
-    </div>
   )
 }
 
@@ -109,9 +76,14 @@ export function PaymentsClient({
     currentFilters.relatedTo !== '' ||
     currentFilters.projectId !== '' ||
     currentFilters.bankAccountId !== '' ||
-    currentFilters.search !== ''
+    currentFilters.search !== '' ||
+    currentFilters.dateFrom !== '' ||
+    currentFilters.dateTo !== ''
 
-  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.search])
+  const handleClearFilters = () => clearFilters([
+    FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.search,
+    FK.dateFrom, FK.dateTo,
+  ])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
     setModalRow(row)
@@ -184,25 +156,35 @@ export function PaymentsClient({
         onClearFilters={handleClearFilters}
       />
 
-      {/* Table */}
-      <PaymentsTable
-        data={data}
-        totalCount={totalCount}
-        page={page}
-        pageSize={pageSize}
-        onRowClick={handleRowClick}
-      />
+      {/* Table card: table + footer summary + pagination */}
+      <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+        <PaymentsTable
+          data={data}
+          onRowClick={handleRowClick}
+        />
 
-      {/* Bucket summary bar — sticky at bottom of scroll area */}
-      {BUCKET_ORDER.map(({ id, label }) => {
-        const bucket = summary.buckets[id]
-        if (bucket.count === 0) return null
-        return (
-          <div key={id} className="sticky bottom-0 -mx-6 -mb-6 z-30">
-            <BucketBar id={id} label={label} bucket={bucket} />
+        {/* Footer summary */}
+        {summary.count > 0 && (
+          <div className="border-t border-zinc-200 bg-zinc-50/80 px-4 py-2.5">
+            <div className="flex items-center gap-6 text-xs">
+              <span className="flex items-center gap-2">
+                <span className="font-semibold text-green-600">In</span>
+                <DualAmount pen={summary.inflows.pen} usd={summary.inflows.usd} />
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="font-semibold text-red-500">Out</span>
+                <DualAmount pen={summary.outflows.pen} usd={summary.outflows.usd} />
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="font-semibold text-indigo-600">Net</span>
+                <DualAmount pen={summary.net.pen} usd={summary.net.usd} />
+              </span>
+            </div>
           </div>
-        )
-      })}
+        )}
+
+        <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
+      </div>
 
       {/* Detail modal */}
       <Modal
