@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityNameMap, buildEntityTagsMap, buildProjectCodeMap } from './shared'
+import { buildEntityNameMap, buildEntityTagsMap, buildProjectCodeMap, DEFAULT_CURRENCY } from './shared'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -88,7 +88,7 @@ export async function getPriceHistory(
       quantity: item.quantity,
       unit_of_measure: item.unit_of_measure,
       unit_price: item.unit_price,
-      currency: inv.currency ?? 'PEN',
+      currency: inv.currency ?? DEFAULT_CURRENCY,
       entityTags: inv.entity_id ? entityTagsMap.get(inv.entity_id) ?? [] : [],
     })
   }
@@ -108,7 +108,7 @@ export async function getPriceHistory(
       quantity: q.quantity,
       unit_of_measure: q.unit_of_measure,
       unit_price: q.unit_price,
-      currency: q.currency ?? 'PEN',
+      currency: q.currency ?? DEFAULT_CURRENCY,
       entityTags: q.entity_id ? entityTagsMap.get(q.entity_id) ?? [] : [],
     })
   }

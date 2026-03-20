@@ -3,12 +3,12 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
+import { DualAmount } from '@/components/ui/dual-amount'
 import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { Pagination } from '@/components/ui/pagination'
@@ -36,17 +36,6 @@ type Props = {
     search: string
     month: string
   }
-}
-
-function DualAmount({ pen, usd }: { pen: number; usd: number }) {
-  if (pen === 0 && usd === 0) return <span className="text-zinc-400">--</span>
-  return (
-    <span className="font-mono text-xs">
-      {pen !== 0 && formatCurrency(Math.abs(pen), 'PEN')}
-      {pen !== 0 && usd !== 0 && <span className="mx-1 text-zinc-300">|</span>}
-      {usd !== 0 && formatCurrency(Math.abs(usd), 'USD')}
-    </span>
-  )
 }
 
 export function PaymentsClient({

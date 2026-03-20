@@ -27,17 +27,6 @@ export async function getProjectsForFilter(): Promise<{ id: string; project_code
   return data ?? []
 }
 
-export async function getPartnerCompaniesForFilter(): Promise<{ id: string; name: string }[]> {
-  const supabase = await createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('partner_companies')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name')
-  if (error) throw error
-  return data ?? []
-}
-
 export async function getBankAccountsForPartner(
   partnerCompanyId: string
 ): Promise<BankAccountOption[]> {
@@ -60,18 +49,6 @@ export async function getExchangeRateForDate(
     .from('exchange_rates')
     .select('mid_rate, rate_date')
     .lte('rate_date', date)
-    .order('rate_date', { ascending: false })
-    .limit(1)
-    .single()
-  if (error || !data) return null
-  return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
-}
-
-export async function getLatestExchangeRate(): Promise<{ mid_rate: number; rate_date: string } | null> {
-  const supabase = await createServerSupabaseClient()
-  const { data, error } = await supabase
-    .from('exchange_rates')
-    .select('mid_rate, rate_date')
     .order('rate_date', { ascending: false })
     .limit(1)
     .single()

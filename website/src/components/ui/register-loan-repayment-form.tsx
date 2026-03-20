@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
-import { registerLoanRepayment, fetchExchangeRateForDate } from '@/lib/actions'
+import { useState, useTransition } from 'react'
+import { registerLoanRepayment } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass } from '@/lib/styles'
+import { todayISO } from '@/lib/date-utils'
+import { useExchangeRate } from '@/lib/use-exchange-rate'
 import type { Currency } from '@/lib/types'
 
 type Props = {
@@ -16,9 +18,6 @@ type Props = {
   onCancel: () => void
 }
 
-function todayISO() {
-  return new Date().toISOString().split('T')[0]
-}
 
 export function RegisterLoanRepaymentForm({
   loanId,
@@ -35,13 +34,7 @@ export function RegisterLoanRepaymentForm({
 
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-
-  useEffect(() => {
-    fetchExchangeRateForDate(paymentDate)
-      .then(rate => setExchangeRate(rate?.mid_rate ?? null))
-      .catch(() => setExchangeRate(null))
-  }, [paymentDate])
+  const exchangeRate = useExchangeRate(paymentDate)
 
   function handleSubmit() {
     setError(null)

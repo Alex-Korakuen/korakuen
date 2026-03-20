@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
-import { addLoanScheduleEntry, fetchExchangeRateForDate } from '@/lib/actions'
+import { useState, useTransition } from 'react'
+import { addLoanScheduleEntry } from '@/lib/actions'
 import { inputCompactClass, btnPrimary } from '@/lib/styles'
+import { todayISO } from '@/lib/date-utils'
+import { useExchangeRate } from '@/lib/use-exchange-rate'
 
 type Props = {
   loanId: string
   onSuccess: () => void
-}
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0]
 }
 
 export function LoanScheduleForm({ loanId, onSuccess }: Props) {
@@ -20,19 +18,15 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
 
   const [scheduledDate, setScheduledDate] = useState(todayISO)
   const [scheduledAmount, setScheduledAmount] = useState('')
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!isOpen) return
-    fetchExchangeRateForDate(scheduledDate)
-      .then(rate => setExchangeRate(rate?.mid_rate ?? null))
-      .catch(() => setExchangeRate(null))
-  }, [scheduledDate, isOpen])
+  // Auto-fetch rate, but allow manual override via the input
+  const autoRate = useExchangeRate(scheduledDate, isOpen)
+  const [manualRate, setManualRate] = useState<number | null>(null)
+  const exchangeRate = manualRate ?? autoRate
 
   function resetForm() {
     setScheduledDate(todayISO())
     setScheduledAmount('')
-    setExchangeRate(null)
+    setManualRate(null)
     setError(null)
   }
 
@@ -110,7 +104,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
             step="0.0001"
             min="0"
             value={exchangeRate ?? ''}
-            onChange={e => setExchangeRate(parseFloat(e.target.value) || null)}
+            onChange={e => setManualRate(parseFloat(e.target.value) || null)}
             className={`${inputCompactClass} w-full font-mono`}
           />
         </div>

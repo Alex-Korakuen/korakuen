@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityNameMap, buildProjectCodeMap } from './shared'
+import { buildEntityNameMap, buildProjectCodeMap, DEFAULT_CURRENCY } from './shared'
 import type {
   BankAccountCard,
   BankTransaction,
@@ -15,7 +15,7 @@ function groupByCurrency(
 ): CurrencyAmount[] {
   const map = new Map<string, number>()
   for (const item of items) {
-    const cur = item.currency ?? 'PEN'
+    const cur = item.currency ?? DEFAULT_CURRENCY
     map.set(cur, (map.get(cur) ?? 0) + item.amount)
   }
   return Array.from(map.entries())
@@ -91,7 +91,7 @@ export async function getFinancialPosition(
 
   // IGV position by currency
   const igv: IgvByCurrency[] = (igvResult.data ?? []).map(row => ({
-    currency: row.currency ?? 'PEN',
+    currency: row.currency ?? DEFAULT_CURRENCY,
     igvCollected: row.igv_collected ?? 0,
     igvPaid: row.igv_paid ?? 0,
     net: (row.igv_paid ?? 0) - (row.igv_collected ?? 0),
@@ -109,7 +109,7 @@ export async function getFinancialPosition(
     loanId: l.loan_id ?? '',
     lenderName: l.lender_name ?? '—',
     outstanding: l.outstanding ?? 0,
-    currency: l.currency ?? 'PEN',
+    currency: l.currency ?? DEFAULT_CURRENCY,
   }))
 
   return {

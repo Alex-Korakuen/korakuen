@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AuthLayout } from '@/components/auth-layout'
 import { FormInput } from '@/components/ui/form-input'
+import { btnAuthPrimary } from '@/lib/styles'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -66,7 +67,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`w-full ${btnAuthPrimary}`}
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>

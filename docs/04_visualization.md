@@ -77,13 +77,13 @@ Dashboards
 
 **Layout:** Split-panel. Left panel: entity list. Right panel: selected entity detail.
 
-**Left panel — list:** Table of all entities. Search by legal_name, common_name, or document_number. Columns: legal_name, common_name, document_number, tags. Filterable by tag, entity_type, city, region. Clicking a row loads its detail in the right panel. Selected row highlighted.
+**Left panel — list:** Table of all entities. Search by legal_name or document_number. Columns: legal_name, document_number, tags. Filterable by tag, entity_type, city, region. Clicking a row loads its detail in the right panel. Selected row highlighted.
 
 **Location filters:** City and region dropdowns enable filtering suppliers by geography. Practical when starting projects in new regions — quickly find entities near the project location. Projects already have a `location` field; entities now have `city` and `region` for consistent geographic filtering.
 
 **Right panel — detail** (loads on row click):
-- Entity header (legal_name, common_name, document_type, document_number, tags)
-- Contacts list (name, role, phone, email, primary flag)
+- Entity header (legal_name, document_type, document_number, tags)
+- Contacts list (name, role, phone, email)
 - Transaction history per project: table showing each project this entity is linked to, with total AP, total AR, net amount, transaction count, and "last transaction" date. Each project row links to that project's detail in the Projects page. Click a project row to expand and see individual invoice records for that entity on that project
 
 **Responsive:** On mobile, list and detail stack vertically. Selecting a row scrolls to detail. Back button returns to list.

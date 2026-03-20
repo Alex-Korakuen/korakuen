@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/formatters'
+import { DualAmount } from '@/components/ui/dual-amount'
 import { formatCalendarDate, formatUrgency, getUrgencyColor, getSectionColors } from './helpers'
 import type { SectionTotals } from './calendar-client'
 import type { ObligationCalendarRow, CalendarBucketId } from '@/lib/types'
@@ -26,17 +27,6 @@ function DirectionBadge({ direction }: { direction: string | null }) {
   return (
     <span className={`inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[11px] font-medium uppercase tracking-wider ${colors}`}>
       {label}
-    </span>
-  )
-}
-
-function DualAmount({ pen, usd }: { pen: number; usd: number }) {
-  if (pen === 0 && usd === 0) return <span className="text-zinc-400">--</span>
-  return (
-    <span className="font-mono text-xs">
-      {pen > 0 && formatCurrency(pen, 'PEN')}
-      {pen > 0 && usd > 0 && <span className="mx-1 text-zinc-300">|</span>}
-      {usd > 0 && formatCurrency(usd, 'USD')}
     </span>
   )
 }

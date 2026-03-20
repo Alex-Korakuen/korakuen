@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { round2 } from '@/lib/queries'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
@@ -93,19 +94,19 @@ export async function importQuotes(
     const unitPrice = num(row.unit_price)
 
     if (quantity !== null && unitPrice !== null && subtotal !== null) {
-      const expected = Math.round(quantity * unitPrice * 100) / 100
+      const expected = round2(quantity * unitPrice)
       if (Math.abs(expected - subtotal) > 0.01) {
         errors.push({ row: r, column: 'subtotal', message: `quantity × unit_price = ${expected}, but subtotal is ${subtotal}` })
       }
     }
     if (igvAmount !== null && subtotal !== null) {
-      const expectedIgv = Math.round(subtotal * 0.18 * 100) / 100
+      const expectedIgv = round2(subtotal * 0.18)
       if (Math.abs(expectedIgv - igvAmount) > 0.01) {
         errors.push({ row: r, column: 'igv_amount', message: `subtotal × 18% = ${expectedIgv}, but igv_amount is ${igvAmount}` })
       }
     }
     if (igvAmount !== null && subtotal !== null && total !== null) {
-      const expectedTotal = Math.round((subtotal + igvAmount) * 100) / 100
+      const expectedTotal = round2(subtotal + igvAmount)
       if (Math.abs(expectedTotal - total) > 0.01) {
         errors.push({ row: r, column: 'total', message: `subtotal + igv_amount = ${expectedTotal}, but total is ${total}` })
       }

@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityTagsMap } from './shared'
+import { buildEntityTagsMap, DEFAULT_CURRENCY } from './shared'
 import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
@@ -224,7 +224,7 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
       projectId: c.project_id,
       date: c.invoice_date,
       title: c.title,
-      currency: c.currency ?? 'PEN',
+      currency: c.currency ?? DEFAULT_CURRENCY,
       invoiceTotal: c.total ?? 0,
       outstanding: c.outstanding ?? 0,
     })),
@@ -238,7 +238,7 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
       projectId: a.project_id,
       date: a.invoice_date,
       title: a.notes ?? (a.invoice_number ? `Invoice ${a.invoice_number}` : null),
-      currency: a.currency ?? 'PEN',
+      currency: a.currency ?? DEFAULT_CURRENCY,
       invoiceTotal: a.total ?? 0,
       outstanding: a.outstanding ?? 0,
     })),

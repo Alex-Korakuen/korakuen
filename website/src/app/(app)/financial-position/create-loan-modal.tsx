@@ -4,20 +4,18 @@ import { useState, useEffect, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
-import { createLoan, fetchExchangeRateForDate, fetchBankAccountsForPayment } from '@/lib/actions'
+import { createLoan, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PartnerCompanyOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
+import { todayISO } from '@/lib/date-utils'
+import { useExchangeRate } from '@/lib/use-exchange-rate'
 
 type Props = {
   isOpen: boolean
   onClose: () => void
   partnerCompanies: PartnerCompanyOption[]
   projects: { id: string; project_code: string; name: string }[]
-}
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0]
 }
 
 export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }: Props) {
@@ -29,7 +27,6 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   const [entityName, setEntityName] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<Currency>('PEN')
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
   const [dateBorrowed, setDateBorrowed] = useState(todayISO)
   const [projectId, setProjectId] = useState('')
   const [returnType, setReturnType] = useState<'percentage' | 'fixed'>('percentage')
@@ -40,6 +37,9 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   const [bankAccountId, setBankAccountId] = useState('')
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
 
+  // Auto-fetch exchange rate when date changes
+  const exchangeRate = useExchangeRate(dateBorrowed, isOpen)
+
   // Auto-fetch bank accounts when partner changes
   useEffect(() => {
     if (!isOpen || !partnerCompanyId) { setBankAccounts([]); setBankAccountId(''); return }
@@ -48,21 +48,12 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
       .catch(() => setBankAccounts([]))
   }, [partnerCompanyId, isOpen])
 
-  // Auto-fetch exchange rate when date changes
-  useEffect(() => {
-    if (!isOpen) return
-    fetchExchangeRateForDate(dateBorrowed)
-      .then(rate => setExchangeRate(rate?.mid_rate ?? null))
-      .catch(() => setExchangeRate(null))
-  }, [dateBorrowed, isOpen])
-
   function resetForm() {
     setPartnerCompanyId('')
     setEntityId(null)
     setEntityName(null)
     setAmount('')
     setCurrency('PEN')
-    setExchangeRate(null)
     setDateBorrowed(todayISO())
     setProjectId('')
     setReturnType('percentage')

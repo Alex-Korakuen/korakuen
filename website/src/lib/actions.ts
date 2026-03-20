@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getInvoiceDetail, getLoanDetail, getPartnerPayableDetails, getPartnerReceivableDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate } from '@/lib/queries'
+import { getInvoiceDetail, getLoanDetail, getPartnerPayableDetails, getPartnerReceivableDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
 import type { PartnerPayableDetail, PartnerReceivableDetail, BankTransaction, Currency } from '@/lib/types'
 
 export async function fetchInvoiceDetail(invoiceId: string) {
@@ -44,6 +44,92 @@ export async function fetchBankTransactions(
   return getBankTransactions(bankAccountId)
 }
 
+// --- Payment validation helpers (shared by registerPayment, updatePayment, registerLoanRepayment) ---
+
+type ServerSupabase = Awaited<ReturnType<typeof createServerSupabaseClient>>
+
+/** Validates that a bank account exists and its currency matches the expected currency. */
+async function validateBankCurrency(
+  supabase: ServerSupabase,
+  bankAccountId: string,
+  expectedCurrency: string,
+): Promise<string | null> {
+  const { data: bankAccount } = await supabase
+    .from('bank_accounts')
+    .select('currency')
+    .eq('id', bankAccountId)
+    .single()
+  if (!bankAccount) return 'Bank account not found'
+  if (bankAccount.currency !== expectedCurrency) return 'Bank account currency does not match payment currency'
+  return null
+}
+
+/** Validates a payment amount against invoice balance limits. Returns error string or null. */
+async function validateInvoicePaymentLimit(
+  supabase: ServerSupabase,
+  invoiceId: string,
+  paymentType: string,
+  amount: number,
+  addBack: number = 0,
+): Promise<string | null> {
+  const { data: inv } = await supabase
+    .from('v_invoice_balances')
+    .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable, direction')
+    .eq('invoice_id', invoiceId)
+    .single()
+  if (!inv) return 'Invoice not found'
+
+  if (paymentType === 'retencion' && inv.direction === 'payable') {
+    return 'Retencion payments only apply to receivable invoices'
+  }
+
+  let maxAmount: number
+  if (paymentType === 'detraccion') {
+    maxAmount = (inv.bdn_outstanding_pen ?? 0) + addBack
+  } else if (paymentType === 'retencion') {
+    maxAmount = (inv.retencion_outstanding ?? 0) + addBack
+  } else {
+    maxAmount = (inv.payable_or_receivable ?? 0) + addBack
+  }
+
+  if (amount > maxAmount) {
+    return `Amount exceeds ${paymentType} limit (${maxAmount.toFixed(2)})`
+  }
+  return null
+}
+
+/** Validates a payment amount against loan schedule outstanding. Returns error string or null. */
+async function validateLoanScheduleLimit(
+  supabase: ServerSupabase,
+  scheduleEntryId: string,
+  amount: number,
+  excludePaymentId?: string,
+): Promise<string | null> {
+  let paymentsQuery = supabase
+    .from('payments')
+    .select('amount')
+    .eq('related_to', 'loan_schedule')
+    .eq('related_id', scheduleEntryId)
+    .eq('is_active', true)
+  if (excludePaymentId) {
+    paymentsQuery = paymentsQuery.neq('id', excludePaymentId)
+  }
+
+  const [{ data: existingPayments }, { data: scheduleEntry }] = await Promise.all([
+    paymentsQuery,
+    supabase.from('loan_schedule').select('scheduled_amount').eq('id', scheduleEntryId).single(),
+  ])
+
+  if (!scheduleEntry) return 'Schedule entry not found'
+  const totalPaid = (existingPayments ?? []).reduce((s, p) => s + p.amount, 0)
+  const outstanding = scheduleEntry.scheduled_amount - totalPaid
+
+  if (amount > outstanding) {
+    return `Amount exceeds schedule entry outstanding (${outstanding.toFixed(2)})`
+  }
+  return null
+}
+
 // --- Payment actions ---
 
 export type { BankAccountOption } from '@/lib/queries'
@@ -75,75 +161,31 @@ export async function registerPayment(input: {
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
-  // Validate amount > 0
+  // Basic validations
   if (input.amount <= 0) return { error: 'Amount must be greater than 0' }
-
-  // Validate bank_account_id required unless retencion
   if (input.payment_type !== 'retencion' && !input.bank_account_id) {
     return { error: 'Bank account is required for this payment type' }
   }
-
-  // Detraccion payments must be in PEN (Banco de la Nación requirement)
   if (input.payment_type === 'detraccion' && input.currency !== 'PEN') {
     return { error: 'Detraccion payments must be in PEN' }
   }
 
-  // Validate bank account currency matches payment currency
+  // Bank account currency match
   if (input.bank_account_id) {
-    const { data: bankAccount } = await supabase
-      .from('bank_accounts')
-      .select('currency')
-      .eq('id', input.bank_account_id)
-      .single()
-    if (!bankAccount) return { error: 'Bank account not found' }
-    if (bankAccount.currency !== input.currency) {
-      return { error: 'Bank account currency does not match payment currency' }
-    }
+    const bankErr = await validateBankCurrency(supabase, input.bank_account_id, input.currency)
+    if (bankErr) return { error: bankErr }
   }
 
-  // Re-query balances and validate per payment type
-  // View handles cross-currency detraccion conversion (PEN payments on USD invoices)
+  // Invoice balance limits
   if (input.related_to === 'invoice') {
-    const { data: inv } = await supabase
-      .from('v_invoice_balances')
-      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable, direction')
-      .eq('invoice_id', input.related_id)
-      .single()
-    if (!inv) return { error: 'Invoice not found' }
-
-    // Retencion only on receivables (Korakuen is NOT a retencion agent)
-    if (input.payment_type === 'retencion' && inv.direction === 'payable') {
-      return { error: 'Retencion payments only apply to receivable invoices' }
-    }
-    const bdnOutstandingPen = inv.bdn_outstanding_pen ?? 0
-    const retencionOutstanding = inv.retencion_outstanding ?? 0
-    const payable = inv.payable_or_receivable ?? 0
-    let maxAmount: number
-    if (input.payment_type === 'detraccion') {
-      // Detraccion is always paid in PEN — validate against PEN outstanding
-      maxAmount = bdnOutstandingPen
-    } else if (input.payment_type === 'retencion') {
-      maxAmount = retencionOutstanding
-    } else {
-      maxAmount = payable
-    }
-    if (input.amount > maxAmount) {
-      return { error: `Amount exceeds ${input.payment_type} limit (${maxAmount})` }
-    }
+    const invErr = await validateInvoicePaymentLimit(supabase, input.related_id, input.payment_type, input.amount)
+    if (invErr) return { error: invErr }
   }
 
-  // Validate loan schedule overpayment
+  // Loan schedule overpayment
   if (input.related_to === 'loan_schedule') {
-    const [{ data: existingPayments }, { data: scheduleEntry }] = await Promise.all([
-      supabase.from('payments').select('amount').eq('related_to', 'loan_schedule').eq('related_id', input.related_id).eq('is_active', true),
-      supabase.from('loan_schedule').select('scheduled_amount').eq('id', input.related_id).single(),
-    ])
-    if (!scheduleEntry) return { error: 'Schedule entry not found' }
-    const totalPaid = (existingPayments ?? []).reduce((s, p) => s + p.amount, 0)
-    const outstanding = scheduleEntry.scheduled_amount - totalPaid
-    if (input.amount > outstanding) {
-      return { error: `Amount exceeds schedule entry outstanding (${outstanding.toFixed(2)})` }
-    }
+    const lsErr = await validateLoanScheduleLimit(supabase, input.related_id, input.amount)
+    if (lsErr) return { error: lsErr }
   }
 
   const { error } = await supabase.from('payments').insert({
@@ -751,27 +793,8 @@ export async function registerLoanRepayment(data: {
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
 
   // Validate against schedule entry outstanding
-  const { data: existingPayments } = await supabase
-    .from('payments')
-    .select('amount')
-    .eq('related_to', 'loan_schedule')
-    .eq('related_id', data.schedule_entry_id)
-    .eq('is_active', true)
-
-  const { data: scheduleEntry } = await supabase
-    .from('loan_schedule')
-    .select('scheduled_amount')
-    .eq('id', data.schedule_entry_id)
-    .single()
-
-  if (!scheduleEntry) return { error: 'Schedule entry not found' }
-
-  const totalPaid = (existingPayments ?? []).reduce((s, p) => s + p.amount, 0)
-  const entryOutstanding = scheduleEntry.scheduled_amount - totalPaid
-
-  if (data.amount > entryOutstanding) {
-    return { error: `Amount exceeds schedule entry outstanding (${entryOutstanding.toFixed(2)})` }
-  }
+  const lsErr = await validateLoanScheduleLimit(supabase, data.schedule_entry_id, data.amount)
+  if (lsErr) return { error: lsErr }
 
   // Insert into payments table (same table as invoice payments)
   const { error } = await supabase.from('payments').insert({
@@ -820,63 +843,26 @@ export async function updatePayment(input: {
     .single()
   if (!existing) return { error: 'Payment not found' }
 
-  // Validate bank account currency matches
+  // Bank account currency match
   if (input.bank_account_id) {
-    const { data: bankAccount } = await supabase
-      .from('bank_accounts')
-      .select('currency')
-      .eq('id', input.bank_account_id)
-      .single()
-    if (!bankAccount) return { error: 'Bank account not found' }
-    if (bankAccount.currency !== existing.currency) {
-      return { error: 'Bank account currency does not match payment currency' }
-    }
+    const bankErr = await validateBankCurrency(supabase, input.bank_account_id, existing.currency)
+    if (bankErr) return { error: bankErr }
   }
 
-  // Validate bank account required unless retencion
+  // Bank account required unless retencion
   if (existing.payment_type !== 'retencion' && !input.bank_account_id) {
     return { error: 'Bank account is required for this payment type' }
   }
 
-  // Validate amount ceiling — max = current outstanding + this payment's original amount
+  // Amount ceiling — max = current outstanding + this payment's original amount
   if (existing.related_to === 'invoice') {
-    const { data: inv } = await supabase
-      .from('v_invoice_balances')
-      .select('bdn_outstanding_pen, retencion_outstanding, payable_or_receivable')
-      .eq('invoice_id', existing.related_id)
-      .single()
-    if (!inv) return { error: 'Related invoice not found' }
-
-    let maxAmount: number
-    if (existing.payment_type === 'detraccion') {
-      maxAmount = (inv.bdn_outstanding_pen ?? 0) + existing.amount
-    } else if (existing.payment_type === 'retencion') {
-      maxAmount = (inv.retencion_outstanding ?? 0) + existing.amount
-    } else {
-      maxAmount = (inv.payable_or_receivable ?? 0) + existing.amount
-    }
-    if (input.amount > maxAmount) {
-      return { error: `Amount exceeds ${existing.payment_type} limit (${maxAmount.toFixed(2)})` }
-    }
+    const invErr = await validateInvoicePaymentLimit(
+      supabase, existing.related_id, existing.payment_type, input.amount, existing.amount,
+    )
+    if (invErr) return { error: invErr }
   } else if (existing.related_to === 'loan_schedule') {
-    const { data: otherPayments } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('related_to', 'loan_schedule')
-      .eq('related_id', existing.related_id)
-      .eq('is_active', true)
-      .neq('id', input.id)
-    const { data: scheduleEntry } = await supabase
-      .from('loan_schedule')
-      .select('scheduled_amount')
-      .eq('id', existing.related_id)
-      .single()
-    if (!scheduleEntry) return { error: 'Schedule entry not found' }
-    const otherPaid = (otherPayments ?? []).reduce((s, p) => s + p.amount, 0)
-    const maxAmount = scheduleEntry.scheduled_amount - otherPaid
-    if (input.amount > maxAmount) {
-      return { error: `Amount exceeds schedule entry outstanding (${maxAmount.toFixed(2)})` }
-    }
+    const lsErr = await validateLoanScheduleLimit(supabase, existing.related_id, input.amount, input.id)
+    if (lsErr) return { error: lsErr }
   } else if (existing.related_to === 'loan') {
     // Loan disbursement — cap at loan principal
     const { data: loan } = await supabase
@@ -1013,7 +999,7 @@ export async function updateInvoice(input: {
       if (p.currency === existing.currency) return sum + p.amount
       return sum + p.amount / (input.exchange_rate || 1)
     }, 0)
-    const igvAmount = Math.round(newSubtotal * (existing.igv_rate / 100) * 100) / 100
+    const igvAmount = round2(newSubtotal * (existing.igv_rate / 100))
     const newTotal = newSubtotal + igvAmount
     if (newTotal < amountPaid) {
       return { error: `New total (${newTotal.toFixed(2)}) cannot be less than amount already paid (${amountPaid.toFixed(2)})` }

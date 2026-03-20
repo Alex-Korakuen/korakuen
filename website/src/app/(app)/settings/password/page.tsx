@@ -4,6 +4,8 @@ import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { FormInput } from '@/components/ui/form-input'
+import { validatePassword } from '@/lib/validate-password'
+import { btnAuthPrimary } from '@/lib/styles'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -18,13 +20,9 @@ export default function ChangePasswordPage() {
     setError(null)
     setSuccess(false)
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
+    const validationError = validatePassword(password, confirmPassword)
+    if (validationError) {
+      setError(validationError)
       return
     }
 
@@ -99,7 +97,7 @@ export default function ChangePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className={btnAuthPrimary}
             >
               {loading ? 'Updating...' : 'Update Password'}
             </button>

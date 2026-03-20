@@ -32,6 +32,10 @@ export const btnDangerIcon =
 export const btnEditIcon =
   'rounded border border-zinc-200 p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700'
 
+/** Auth page primary button — dark zinc with focus ring */
+export const btnAuthPrimary =
+  'rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+
 // ── Tables ───────────────────────────────────────────────────────────
 
 /** Table header row — uppercase, muted, compact */

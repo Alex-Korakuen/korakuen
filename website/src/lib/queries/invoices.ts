@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
+import { DEFAULT_CURRENCY } from './shared'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -101,7 +102,7 @@ export async function getInvoicesPage(
     invoice_number: r.invoice_number,
     invoice_date: r.invoice_date,
     due_date: r.due_date,
-    currency: r.currency ?? 'PEN',
+    currency: r.currency ?? DEFAULT_CURRENCY,
     total: r.total ?? 0,
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,

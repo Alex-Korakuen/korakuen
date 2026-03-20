@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { registerPayment, fetchBankAccountsForPayment, fetchExchangeRateForDate } from '@/lib/actions'
+import { registerPayment, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass } from '@/lib/styles'
+import { todayISO } from '@/lib/date-utils'
+import { useExchangeRate } from '@/lib/use-exchange-rate'
 
 type Props = {
   relatedTo: 'invoice' | 'loan_schedule'
@@ -22,10 +24,6 @@ type Props = {
 }
 
 const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion'] as const
-
-function todayISO() {
-  return new Date().toISOString().split('T')[0]
-}
 
 export function RegisterPaymentForm({
   relatedTo,
@@ -56,7 +54,7 @@ export function RegisterPaymentForm({
   const [loadingAccounts, setLoadingAccounts] = useState(false)
 
   // Exchange rate (auto-fetched)
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
+  const exchangeRate = useExchangeRate(paymentDate)
 
   // Load bank accounts on mount
   useEffect(() => {
@@ -66,13 +64,6 @@ export function RegisterPaymentForm({
       .catch(() => setBankAccounts([]))
       .finally(() => setLoadingAccounts(false))
   }, [partnerCompanyId])
-
-  // Auto-fetch exchange rate when payment date changes
-  useEffect(() => {
-    fetchExchangeRateForDate(paymentDate)
-      .then(rate => setExchangeRate(rate?.mid_rate ?? null))
-      .catch(() => setExchangeRate(null))
-  }, [paymentDate])
 
   // Detraccion payments are always in PEN (even for USD invoices)
   const paymentCurrency = paymentType === 'detraccion' ? 'PEN' : currency

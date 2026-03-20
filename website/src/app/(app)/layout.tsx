@@ -1,5 +1,5 @@
 import { getPartnerName } from '@/lib/auth'
-import { getPartnerCompaniesForFilter } from '@/lib/queries'
+import { getPartnerCompanies } from '@/lib/queries'
 import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { Sidebar } from '@/components/sidebar'
 import { Header } from '@/components/header'
@@ -13,7 +13,7 @@ export default async function AppLayout({
 }) {
   const [partnerName, partners, initialSelection] = await Promise.all([
     getPartnerName(),
-    getPartnerCompaniesForFilter(),
+    getPartnerCompanies(),
     getPartnerFilter(),
   ])
 

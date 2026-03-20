@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityNameMap, buildEntityTagsMap } from './shared'
+import { buildEntityNameMap, buildEntityTagsMap, DEFAULT_CURRENCY, round2, convertToPen } from './shared'
 import type {
   ProjectListItem,
   ProjectCardItem,
@@ -78,9 +78,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       .eq('is_active', true)
     if (pmtErr) throw pmtErr
     for (const p of arPayments ?? []) {
-      const amount = p.amount ?? 0
-      const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
-      const amountPen = (p.currency ?? 'PEN') === 'USD' ? amount * rate : amount
+      const amountPen = convertToPen(p.amount ?? 0, p.currency ?? DEFAULT_CURRENCY, p.exchange_rate)
       paymentsByReceivable.set(p.related_id, (paymentsByReceivable.get(p.related_id) ?? 0) + amountPen)
     }
   }
@@ -110,9 +108,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   for (const ct of costResult.data ?? []) {
     if (!ct.partner_company_id || !ct.project_id) continue
     const projectMap = costsByProjectPartner.get(ct.project_id) ?? new Map()
-    const subtotal = ct.subtotal ?? 0
-    const rate = ct.exchange_rate ? Number(ct.exchange_rate) : 1
-    const amountPen = ct.currency === 'USD' ? subtotal * rate : subtotal
+    const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
     projectMap.set(ct.partner_company_id, (projectMap.get(ct.partner_company_id) ?? 0) + amountPen)
     costsByProjectPartner.set(ct.project_id, projectMap)
   }
@@ -149,9 +145,9 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       for (const partner of partners) {
         const costs = costMap.get(partner.partner_company_id) ?? 0
         const revenue = revMap.get(partner.partner_company_id) ?? 0
-        const profit = Math.round((revenue - costs) * 100) / 100
-        const shouldReceive = Math.round(totalProfit * (partner.profit_share_pct / 100) * 100) / 100
-        const balance = Math.round((shouldReceive - profit) * 100) / 100
+        const profit = round2(revenue - costs)
+        const shouldReceive = round2(totalProfit * (partner.profit_share_pct / 100))
+        const balance = round2(shouldReceive - profit)
         if (balance !== 0) {
           isSettled = false
           break
@@ -199,7 +195,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
   const spendingMap = new Map<string, { totalSpent: number; invoiceCount: number }>()
   for (const ct of costTotals ?? []) {
-    const key = `${ct.entity_id ?? '__none__'}|${ct.currency ?? 'PEN'}`
+    const key = `${ct.entity_id ?? '__none__'}|${ct.currency ?? DEFAULT_CURRENCY}`
     const existing = spendingMap.get(key)
     if (existing) {
       existing.totalSpent += ct.subtotal ?? 0
@@ -287,9 +283,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     const costsByPartner = new Map<string, number>()
     for (const ct of costTotals ?? []) {
       if (!ct.partner_company_id) continue
-      const subtotal = ct.subtotal ?? 0
-      const rate = ct.exchange_rate ? Number(ct.exchange_rate) : 1
-      const amountPen = ct.currency === 'USD' ? subtotal * rate : subtotal
+      const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
       costsByPartner.set(ct.partner_company_id, (costsByPartner.get(ct.partner_company_id) ?? 0) + amountPen)
     }
 
@@ -325,9 +319,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
         const invInfo = receivablePartnerMap.get(p.related_id)
         if (!invInfo) continue
         const paymentCurrency = p.currency ?? invInfo.currency
-        const amount = p.amount ?? 0
-        const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
-        const amountPen = paymentCurrency === 'USD' ? amount * rate : amount
+        const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
         receivedByPartner.set(invInfo.partner_company_id, (receivedByPartner.get(invInfo.partner_company_id) ?? 0) + amountPen)
       }
     }
@@ -341,15 +333,15 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     partnerSettlements = partners.map(p => {
       const costsContributed = costsByPartner.get(p.partnerCompanyId) ?? 0
       const revenueReceived = receivedByPartner.get(p.partnerCompanyId) ?? 0
-      const profit = Math.round((revenueReceived - costsContributed) * 100) / 100
-      const shouldReceive = Math.round(totalProjectProfit * (p.profitSharePct / 100) * 100) / 100
-      const balance = Math.round((shouldReceive - profit) * 100) / 100
+      const profit = round2(revenueReceived - costsContributed)
+      const shouldReceive = round2(totalProjectProfit * (p.profitSharePct / 100))
+      const balance = round2(shouldReceive - profit)
       return {
         partnerCompanyId: p.partnerCompanyId,
         partnerName: p.partnerName,
         profitSharePct: p.profitSharePct,
         costsContributed,
-        revenueReceived: Math.round(revenueReceived * 100) / 100,
+        revenueReceived: round2(revenueReceived),
         profit,
         shouldReceive,
         balance,
@@ -387,7 +379,6 @@ export async function getPartnerPayableDetails(
 
   return invoices.map(inv => {
     const subtotal = inv.subtotal ?? 0
-    const rate = inv.exchange_rate ? Number(inv.exchange_rate) : 1
     return {
       invoice_id: inv.invoice_id!,
       date: inv.invoice_date,
@@ -395,7 +386,7 @@ export async function getPartnerPayableDetails(
       subtotal,
       currency: inv.currency,
       exchange_rate: inv.exchange_rate ? Number(inv.exchange_rate) : null,
-      subtotal_pen: inv.currency === 'USD' ? Math.round(subtotal * rate * 100) / 100 : subtotal,
+      subtotal_pen: round2(convertToPen(subtotal, inv.currency, inv.exchange_rate)),
     }
   })
 }
@@ -432,9 +423,8 @@ export async function getPartnerReceivableDetails(
 
   return (payments ?? []).map(p => {
     const inv = invoiceMap.get(p.related_id)
-    const currency = p.currency ?? inv?.currency ?? 'PEN'
+    const currency = p.currency ?? inv?.currency ?? DEFAULT_CURRENCY
     const amount = p.amount ?? 0
-    const rate = p.exchange_rate ? Number(p.exchange_rate) : 1
     return {
       payment_id: p.id,
       payment_date: p.payment_date,
@@ -442,7 +432,7 @@ export async function getPartnerReceivableDetails(
       amount,
       currency,
       exchange_rate: p.exchange_rate ? Number(p.exchange_rate) : null,
-      amount_pen: currency === 'USD' ? Math.round(amount * rate * 100) / 100 : amount,
+      amount_pen: round2(convertToPen(amount, currency, p.exchange_rate)),
     }
   })
 }

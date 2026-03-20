@@ -1,5 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+/** Default currency when database value is null */
+export const DEFAULT_CURRENCY = 'PEN'
+
+/** Round to 2 decimal places (currency precision) */
+export function round2(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/** Convert an amount to PEN using the exchange rate — USD amounts are multiplied by rate */
+export function convertToPen(
+  amount: number,
+  currency: string | null | undefined,
+  exchangeRate: number | string | null | undefined,
+): number {
+  const rate = exchangeRate ? Number(exchangeRate) : 1
+  return currency === 'USD' ? amount * rate : amount
+}
+
 /** Fetch entity names by IDs and return a Map of id -> display name (legal_name) */
 export async function buildEntityNameMap(
   supabase: SupabaseClient,

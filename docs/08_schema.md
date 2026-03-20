@@ -92,7 +92,6 @@ Every external party Korakuen does business with — companies and individuals. 
 | document_type | VARCHAR | NO | RUC, DNI, CE, Pasaporte |
 | document_number | VARCHAR | NO | the actual ID number |
 | legal_name | VARCHAR | NO | razón social or full legal name |
-| common_name | VARCHAR | YES | how you refer to them day to day |
 | city | VARCHAR | YES | e.g. "Arequipa" — enables geographic filtering |
 | region | VARCHAR | YES | e.g. "Arequipa" — Peruvian department |
 | is_active | BOOLEAN | NO | default true, soft delete |
@@ -100,7 +99,7 @@ Every external party Korakuen does business with — companies and individuals. 
 | created_at | TIMESTAMP | NO | auto set on insert |
 | updated_at | TIMESTAMP | NO | auto updated on change |
 
-**Note:** Individual entities (DNI holders) follow Option B — they always have at least one `entity_contacts` record representing themselves, flagged as primary. This keeps phone/email consistent across all entity types.
+**Note:** Individual entities (DNI holders) always have at least one `entity_contacts` record representing themselves (the individual person). This keeps phone/email consistent across all entity types.
 
 ---
 

@@ -9,10 +9,8 @@ export { getEntitiesList, getEntitiesDirectory, getEntityDetail, getEntitiesFilt
 export { getPriceHistory, getPriceFilterOptions } from './prices'
 export {
   getProjectsForFilter,
-  getPartnerCompaniesForFilter,
   getBankAccountsForPartner,
   getExchangeRateForDate,
-  getLatestExchangeRate,
   getPartnerCompanies,
   searchEntities,
   getNextProjectCode,
@@ -20,3 +18,4 @@ export {
 } from './lookups'
 export type { BankAccountOption } from './lookups'
 export type { PartnerCompanyOption, CategoryOption } from './lookups'
+export { DEFAULT_CURRENCY, round2, convertToPen } from './shared'

@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
+import { DEFAULT_CURRENCY } from './shared'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -124,7 +125,7 @@ export async function getPaymentsPage(
     direction: r.direction ?? 'outbound',
     payment_type: r.payment_type ?? 'regular',
     amount: r.amount ?? 0,
-    currency: r.currency ?? 'PEN',
+    currency: r.currency ?? DEFAULT_CURRENCY,
     exchange_rate: r.exchange_rate ?? 0,
     entity_name: r.entity_name,
     project_id: r.project_id,
