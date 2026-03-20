@@ -15,6 +15,7 @@ type Props = {
 export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useClickOutside(dropdownRef, useCallback(() => setOpen(false), []))
@@ -23,12 +24,12 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
 
   function handleToggle(tagId: string) {
     const isAssigned = assignedTagIds.has(tagId)
+    setError(null)
     startTransition(async () => {
-      if (isAssigned) {
-        await removeEntityTag(entityId, tagId)
-      } else {
-        await addEntityTag(entityId, tagId)
-      }
+      const result = isAssigned
+        ? await removeEntityTag(entityId, tagId)
+        : await addEntityTag(entityId, tagId)
+      if (result.error) setError(result.error)
     })
   }
 
@@ -83,6 +84,11 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
           {isPending && (
             <div className="border-t border-zinc-100 px-3 py-1.5 text-xs text-zinc-400">
               Saving...
+            </div>
+          )}
+          {error && (
+            <div className="border-t border-zinc-100 px-3 py-1.5 text-xs text-red-600">
+              {error}
             </div>
           )}
         </div>

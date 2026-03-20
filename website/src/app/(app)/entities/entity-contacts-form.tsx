@@ -25,6 +25,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   function startEdit(c: EntityContact) {
     setEditingId(c.id)
@@ -63,24 +64,31 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
 
   function handleAdd() {
     if (!name.trim()) return
+    setActionError(null)
     startTransition(async () => {
-      await addEntityContact(entityId, {
+      const result = await addEntityContact(entityId, {
         full_name: name.trim(),
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         role: role.trim() || undefined,
       })
-      setName('')
-      setPhone('')
-      setEmail('')
-      setRole('')
-      setShowForm(false)
+      if (result.error) {
+        setActionError(result.error)
+      } else {
+        setName('')
+        setPhone('')
+        setEmail('')
+        setRole('')
+        setShowForm(false)
+      }
     })
   }
 
   function handleRemove(contactId: string) {
+    setActionError(null)
     startTransition(async () => {
-      await removeEntityContact(contactId)
+      const result = await removeEntityContact(contactId)
+      if (result.error) setActionError(result.error)
     })
   }
 
@@ -201,6 +209,12 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="border-t border-zinc-100 px-4 py-2">
+          <p className="text-xs text-red-600">{actionError}</p>
         </div>
       )}
 

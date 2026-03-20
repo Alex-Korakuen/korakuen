@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getInvoiceDetail, getLoanDetail, getPartnerPayableDetails, getPartnerReceivableDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
 import type { PartnerPayableDetail, PartnerReceivableDetail, BankTransaction, Currency } from '@/lib/types'
+import { handleDbError } from '@/lib/server-utils'
 
 export async function fetchInvoiceDetail(invoiceId: string) {
   return getInvoiceDetail(invoiceId)
@@ -202,7 +203,7 @@ export async function registerPayment(input: {
     notes: input.notes,
   })
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to register payment') }
 
   // Auto-verify retencion on the invoice when a retencion payment is registered
   if (input.payment_type === 'retencion' && input.related_to === 'invoice') {
@@ -221,30 +222,32 @@ export async function registerPayment(input: {
 
 // --- Mutation actions ---
 
-export async function addEntityTag(entityId: string, tagId: string) {
+export async function addEntityTag(entityId: string, tagId: string): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_tags')
     .insert({ entity_id: entityId, tag_id: tagId })
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to update tags') }
   revalidatePath('/entities')
+  return {}
 }
 
-export async function removeEntityTag(entityId: string, tagId: string) {
+export async function removeEntityTag(entityId: string, tagId: string): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_tags')
     .delete()
     .eq('entity_id', entityId)
     .eq('tag_id', tagId)
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to update tags') }
   revalidatePath('/entities')
+  return {}
 }
 
 export async function addEntityContact(
   entityId: string,
   data: { full_name: string; phone?: string; email?: string; role?: string }
-) {
+): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
@@ -256,18 +259,20 @@ export async function addEntityContact(
       email: data.email || null,
       role: data.role || null,
     })
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to add contact') }
   revalidatePath('/entities')
+  return {}
 }
 
-export async function removeEntityContact(contactId: string) {
+export async function removeEntityContact(contactId: string): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_contacts')
     .update({ is_active: false })
     .eq('id', contactId)
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to remove contact') }
   revalidatePath('/entities')
+  return {}
 }
 
 export async function updateEntityContact(
@@ -288,7 +293,7 @@ export async function updateEntityContact(
     .eq('id', contactId)
     .eq('is_active', true)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to update contact') }
   revalidatePath('/entities')
   return {}
 }
@@ -318,7 +323,7 @@ export async function updateEntity(
     .eq('id', entityId)
     .eq('is_active', true)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to update entity') }
   revalidatePath('/entities')
   return {}
 }
@@ -341,7 +346,7 @@ export async function deactivateEntity(
     .update({ is_active: false })
     .eq('id', entityId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to deactivate entity') }
   revalidatePath('/entities')
   revalidatePath('/invoices')
   return {}
@@ -355,7 +360,7 @@ export async function createBankAccount(data: {
   account_type: 'checking' | 'savings' | 'detraccion'
   currency: Currency
   is_detraccion_account: boolean
-}) {
+}): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
   // Check label uniqueness
@@ -366,12 +371,13 @@ export async function createBankAccount(data: {
     .eq('is_active', true)
     .limit(1)
   if (existing && existing.length > 0) {
-    throw new Error(`A bank account with label "${data.label}" already exists`)
+    return { error: `A bank account with label "${data.label}" already exists` }
   }
 
   const { error } = await supabase.from('bank_accounts').insert(data)
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to create bank account') }
   revalidatePath('/financial-position')
+  return {}
 }
 
 // --- Entity search (for entity picker) ---
@@ -435,7 +441,7 @@ export async function createEntity(data: {
     region: data.region || null,
     notes: data.notes || null,
   })
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to create entity') }
   revalidatePath('/entities')
 }
 
@@ -474,7 +480,7 @@ export async function updateProject(
     .eq('id', projectId)
     .eq('is_active', true)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to update project') }
   revalidatePath('/projects', 'layout')
   revalidatePath('/invoices')
   revalidatePath('/calendar')
@@ -494,7 +500,7 @@ export async function createProject(data: {
   expected_end_date?: string
   location?: string
   notes?: string
-}) {
+}): Promise<{ error?: string }> {
   const projectCode = await getNextProjectCode()
 
   const supabase = await createServerSupabaseClient()
@@ -511,8 +517,9 @@ export async function createProject(data: {
     location: data.location || null,
     notes: data.notes || null,
   })
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to create project') }
   revalidatePath('/projects', 'layout')
+  return {}
 }
 
 // --- Project Partners ---
@@ -521,7 +528,7 @@ export async function addProjectPartner(
   projectId: string,
   partnerCompanyId: string,
   profitSharePct: number
-) {
+): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
   // Check not already assigned
@@ -533,7 +540,7 @@ export async function addProjectPartner(
     .eq('is_active', true)
     .limit(1)
   if (existing && existing.length > 0) {
-    throw new Error('This partner is already assigned to the project')
+    return { error: 'This partner is already assigned to the project' }
   }
 
   // Validate profit shares sum to <= 100%
@@ -547,9 +554,7 @@ export async function addProjectPartner(
     0
   )
   if (currentTotal + profitSharePct > 100) {
-    throw new Error(
-      `Profit shares would total ${currentTotal + profitSharePct}%. Must not exceed 100% (current total: ${currentTotal}%)`
-    )
+    return { error: `Profit shares would total ${currentTotal + profitSharePct}%. Must not exceed 100% (current total: ${currentTotal}%)` }
   }
 
   const { error } = await supabase.from('project_partners').insert({
@@ -557,18 +562,20 @@ export async function addProjectPartner(
     partner_company_id: partnerCompanyId,
     profit_share_pct: profitSharePct,
   })
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to add partner') }
   revalidatePath('/projects', 'layout')
+  return {}
 }
 
-export async function removeProjectPartner(id: string) {
+export async function removeProjectPartner(id: string): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('project_partners')
     .update({ is_active: false })
     .eq('id', id)
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to remove partner') }
   revalidatePath('/projects', 'layout')
+  return {}
 }
 
 export async function updatePartnerProfitShare(
@@ -611,7 +618,7 @@ export async function updatePartnerProfitShare(
     .eq('id', projectPartnerId)
     .eq('is_active', true)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to update profit share') }
   revalidatePath('/projects', 'layout')
   return {}
 }
@@ -623,7 +630,7 @@ export async function upsertProjectBudget(
   category: string,
   budgetedAmount: number,
   currency: string
-) {
+): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
   // Check if budget row already exists for this project+category
@@ -640,7 +647,7 @@ export async function upsertProjectBudget(
       .from('project_budgets')
       .update({ budgeted_amount: budgetedAmount })
       .eq('id', existing[0].id)
-    if (error) throw new Error(error.message)
+    if (error) return { error: handleDbError(error, 'Failed to save budget') }
   } else {
     const { error } = await supabase.from('project_budgets').insert({
       project_id: projectId,
@@ -648,12 +655,13 @@ export async function upsertProjectBudget(
       budgeted_amount: budgetedAmount,
       currency,
     })
-    if (error) throw new Error(error.message)
+    if (error) return { error: handleDbError(error, 'Failed to save budget') }
   }
   revalidatePath('/projects', 'layout')
+  return {}
 }
 
-export async function removeProjectBudget(projectId: string, category: string) {
+export async function removeProjectBudget(projectId: string, category: string): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('project_budgets')
@@ -661,8 +669,9 @@ export async function removeProjectBudget(projectId: string, category: string) {
     .eq('project_id', projectId)
     .eq('category', category)
     .eq('is_active', true)
-  if (error) throw new Error(error.message)
+  if (error) return { error: handleDbError(error, 'Failed to remove budget') }
   revalidatePath('/projects', 'layout')
+  return {}
 }
 
 // --- Loans ---
@@ -711,7 +720,7 @@ export async function createLoan(data: {
     notes: data.notes?.trim() || null,
   }).select('id').single()
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to create loan') }
 
   // Record the disbursement as an inbound payment (the cash received from the lender)
   const { error: paymentError } = await supabase.from('payments').insert({
@@ -728,7 +737,7 @@ export async function createLoan(data: {
     notes: `Loan disbursement from ${data.lender_name.trim()}`,
   })
 
-  if (paymentError) return { error: paymentError.message }
+  if (paymentError) return { error: handleDbError(paymentError, 'Failed to record loan disbursement') }
 
   revalidatePath('/financial-position')
   revalidatePath('/calendar')
@@ -772,7 +781,7 @@ export async function addLoanScheduleEntry(data: {
     exchange_rate: data.exchange_rate,
   })
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to add schedule entry') }
   revalidatePath('/calendar')
   revalidatePath('/financial-position')
   return {}
@@ -811,7 +820,7 @@ export async function registerLoanRepayment(data: {
     notes: data.notes?.trim() || null,
   })
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to register repayment') }
 
   revalidatePath('/calendar')
   revalidatePath('/invoices')
@@ -888,7 +897,7 @@ export async function updatePayment(input: {
     .eq('id', input.id)
     .eq('is_active', true)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to update payment') }
 
   revalidatePath('/calendar')
   revalidatePath('/invoices')
@@ -916,7 +925,7 @@ export async function deactivatePayment(
     .update({ is_active: false })
     .eq('id', paymentId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to deactivate payment') }
 
   // If this was the only retencion payment on the invoice, un-verify retencion
   if (existing.payment_type === 'retencion' && existing.related_to === 'invoice') {
@@ -1026,7 +1035,7 @@ export async function updateInvoice(input: {
     .eq('id', input.id)
     .eq('is_active', true)
 
-  if (updateError) return { error: updateError.message }
+  if (updateError) return { error: handleDbError(updateError, 'Failed to update invoice') }
 
   // Delete all existing invoice_items and reinsert
   const { error: deleteError } = await supabase
@@ -1034,7 +1043,7 @@ export async function updateInvoice(input: {
     .delete()
     .eq('invoice_id', input.id)
 
-  if (deleteError) return { error: deleteError.message }
+  if (deleteError) return { error: handleDbError(deleteError, 'Failed to update invoice items') }
 
   const { error: insertError } = await supabase
     .from('invoice_items')
@@ -1050,7 +1059,7 @@ export async function updateInvoice(input: {
       }))
     )
 
-  if (insertError) return { error: insertError.message }
+  if (insertError) return { error: handleDbError(insertError, 'Failed to update invoice items') }
 
   revalidatePath('/invoices')
   revalidatePath('/payments')
@@ -1079,7 +1088,7 @@ export async function deactivateInvoice(
     .update({ is_active: false })
     .eq('id', invoiceId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to deactivate invoice') }
 
   // Cascade: deactivate all related payments
   const { data: relatedPayments } = await supabase

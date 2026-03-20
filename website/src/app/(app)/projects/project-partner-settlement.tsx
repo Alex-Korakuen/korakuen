@@ -94,24 +94,21 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     setFormError(null)
 
     startTransition(async () => {
-      try {
-        await addProjectPartner(projectId, selectedPartner, pct)
+      const result = await addProjectPartner(projectId, selectedPartner, pct)
+      if (result.error) {
+        setFormError(result.error)
+      } else {
         setSelectedPartner('')
         setProfitShare('')
         onHideForm()
-      } catch (e) {
-        setFormError(e instanceof Error ? e.message : 'Failed to add partner')
       }
     })
   }
 
   function handleRemove(id: string) {
     startTransition(async () => {
-      try {
-        await removeProjectPartner(id)
-      } catch (e) {
-        setFormError(e instanceof Error ? e.message : 'Failed to remove partner')
-      }
+      const result = await removeProjectPartner(id)
+      if (result.error) setFormError(result.error)
     })
   }
 

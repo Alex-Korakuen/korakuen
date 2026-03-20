@@ -53,19 +53,19 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
     setError(null)
 
     startTransition(async () => {
-      try {
-        await createBankAccount({
-          partner_company_id: partnerCompanyId,
-          bank_name: bankName.trim(),
-          account_number_last4: last4,
-          label: label.trim(),
-          account_type: accountType,
-          currency,
-          is_detraccion_account: isDetraccion,
-        })
+      const result = await createBankAccount({
+        partner_company_id: partnerCompanyId,
+        bank_name: bankName.trim(),
+        account_number_last4: last4,
+        label: label.trim(),
+        account_type: accountType,
+        currency,
+        is_detraccion_account: isDetraccion,
+      })
+      if (result.error) {
+        setError(result.error)
+      } else {
         handleClose()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to create bank account')
       }
     })
   }

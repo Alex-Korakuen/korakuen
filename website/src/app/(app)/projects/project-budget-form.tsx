@@ -59,12 +59,12 @@ export function ProjectBudgetForm({
     setError(null)
 
     startTransition(async () => {
-      try {
-        await upsertProjectBudget(projectId, category, amount, contractCurrency)
+      const result = await upsertProjectBudget(projectId, category, amount, contractCurrency)
+      if (result.error) {
+        setError(result.error)
+      } else {
         setEditingCategory(null)
         setEditValue('')
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to save budget')
       }
     })
   }
@@ -81,24 +81,21 @@ export function ProjectBudgetForm({
     setError(null)
 
     startTransition(async () => {
-      try {
-        await upsertProjectBudget(projectId, newCategory, amount, contractCurrency)
+      const result = await upsertProjectBudget(projectId, newCategory, amount, contractCurrency)
+      if (result.error) {
+        setError(result.error)
+      } else {
         setNewCategory('')
         setNewAmount('')
         onHideAddForm()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to add budget')
       }
     })
   }
 
   function handleRemove(category: string) {
     startTransition(async () => {
-      try {
-        await removeProjectBudget(projectId, category)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to remove budget')
-      }
+      const result = await removeProjectBudget(projectId, category)
+      if (result.error) setError(result.error)
     })
   }
 

@@ -56,22 +56,22 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
     const parsedValue = contractValue ? parseFloat(contractValue) : undefined
 
     startTransition(async () => {
-      try {
-        await createProject({
-          name: name.trim(),
-          project_type: projectType,
-          status,
-          client_entity_id: clientEntityId || undefined,
-          contract_value: parsedValue && !isNaN(parsedValue) ? parsedValue : undefined,
-          contract_currency: parsedValue && !isNaN(parsedValue) ? contractCurrency : undefined,
-          start_date: startDate || undefined,
-          expected_end_date: expectedEndDate || undefined,
-          location: location.trim() || undefined,
-          notes: notes.trim() || undefined,
-        })
+      const result = await createProject({
+        name: name.trim(),
+        project_type: projectType,
+        status,
+        client_entity_id: clientEntityId || undefined,
+        contract_value: parsedValue && !isNaN(parsedValue) ? parsedValue : undefined,
+        contract_currency: parsedValue && !isNaN(parsedValue) ? contractCurrency : undefined,
+        start_date: startDate || undefined,
+        expected_end_date: expectedEndDate || undefined,
+        location: location.trim() || undefined,
+        notes: notes.trim() || undefined,
+      })
+      if (result.error) {
+        setError(result.error)
+      } else {
         handleClose()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to create project')
       }
     })
   }

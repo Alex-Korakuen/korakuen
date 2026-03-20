@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { round2 } from '@/lib/queries'
+import { handleDbError } from '@/lib/server-utils'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
@@ -134,7 +135,7 @@ export async function importQuotes(
   }))
 
   const { error, data } = await supabase.from('quotes').insert(records).select('id')
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to import quotes') }
 
   revalidatePath('/prices')
   return { success: data.length }
@@ -334,7 +335,7 @@ export async function importInvoices(
 
     if (error) {
       const ref = str(first.document_ref) || `group ${totalInvoices + 1}`
-      return { error: `Failed to import "${ref}": ${error.message}` }
+      return { error: handleDbError(error, `Failed to import invoice "${ref}"`) }
     }
     totalInvoices++
   }
@@ -482,7 +483,7 @@ export async function importPayments(
   })
 
   const { error, data } = await supabase.from('payments').insert(records).select('id')
-  if (error) return { error: error.message }
+  if (error) return { error: handleDbError(error, 'Failed to import payments') }
 
   revalidatePath('/payments')
   revalidatePath('/invoices')
