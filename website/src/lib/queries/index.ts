@@ -2,7 +2,6 @@
 
 export { getObligationCalendar, getCalendarBucket } from './calendar'
 export { getInvoicesPage, getInvoiceDetail, getLoanDetail } from './invoices'
-export type { InvoicesPageSummary } from './invoices'
 export { getPaymentsPage } from './payments'
 export { getFinancialPosition, getBankTransactions } from './financial-position'
 export { getProjectsList, getProjectsCardData, getProjectDetail, getPartnerPayableDetails, getPartnerReceivableDetails } from './projects'

@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
@@ -21,14 +20,13 @@ import type {
   InvoiceDetailData,
   LoanDetailData,
 } from '@/lib/types'
-import type { InvoicesPageSummary as Summary, CategoryOption } from '@/lib/queries'
+import type { CategoryOption } from '@/lib/queries'
 
 type Props = {
   data: InvoicesPageRow[]
   totalCount: number
   page: number
   pageSize: number
-  summary: Summary
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
   categories: CategoryOption[]
@@ -47,7 +45,6 @@ export function InvoicesClient({
   totalCount,
   page,
   pageSize,
-  summary,
   projects,
   uniqueEntities,
   categories,
@@ -135,25 +132,6 @@ export function InvoicesClient({
       </HeaderPortal>
 
       <div className="px-4 pt-4">
-        {/* Summary strip */}
-        <div className="mb-4 flex flex-wrap items-center gap-5">
-          <div>
-            <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-0.5">Payable</div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-zinc-900">{formatCurrency(summary.ap.pen, 'PEN')}</span>
-              {summary.ap.usd > 0 && <span className="text-sm font-semibold text-zinc-500">{formatCurrency(summary.ap.usd, 'USD')}</span>}
-            </div>
-          </div>
-          <div className="h-8 w-px bg-zinc-200" />
-          <div>
-            <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-0.5">Receivable</div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-zinc-900">{formatCurrency(summary.ar.pen, 'PEN')}</span>
-              {summary.ar.usd > 0 && <span className="text-sm font-semibold text-zinc-500">{formatCurrency(summary.ar.usd, 'USD')}</span>}
-            </div>
-          </div>
-        </div>
-
         {/* Filters */}
         <InvoicesFilters
           currentFilters={currentFilters}

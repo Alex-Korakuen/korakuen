@@ -26,21 +26,14 @@ type InvoicesPageFilters = {
   page: number
 }
 
-export type InvoicesPageSummary = {
-  ap: { pen: number; usd: number }
-  ar: { pen: number; usd: number }
-}
-
 type InvoicesPageResult = {
   paginated: PaginatedResult<InvoicesPageRow>
-  summary: InvoicesPageSummary
   uniqueEntities: string[]
 }
 
 export async function getInvoicesPage(
   partnerFilter: string[],
   filters: InvoicesPageFilters,
-  midRate: number | null = null,
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
 
@@ -63,18 +56,6 @@ export async function getInvoicesPage(
   const entitySet = new Set<string>()
   for (const r of rows) { if (r.entity_name) entitySet.add(r.entity_name) }
   const uniqueEntities = Array.from(entitySet).sort()
-
-  // Compute summary totals split by direction (before filters)
-  const summary: InvoicesPageSummary = { ap: { pen: 0, usd: 0 }, ar: { pen: 0, usd: 0 } }
-
-  for (const r of rows) {
-    const effectiveOutstanding = (r.outstanding ?? 0) + (r.bdn_outstanding ?? 0)
-    if (effectiveOutstanding <= 0) continue
-
-    const dir = r.direction === 'receivable' ? summary.ar : summary.ap
-    if (r.currency === 'PEN') dir.pen += effectiveOutstanding
-    else if (r.currency === 'USD') dir.usd += effectiveOutstanding
-  }
 
   // Apply filters
   if (filters.direction) {
@@ -135,7 +116,7 @@ export async function getInvoicesPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page, 10)
 
-  return { paginated, summary, uniqueEntities }
+  return { paginated, uniqueEntities }
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {
