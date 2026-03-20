@@ -175,13 +175,10 @@ export function EntityDetailView({ detail, availableTags }: Props) {
       )}
 
       <div className="space-y-5 p-6">
-        {/* ===== View Mode Header ===== */}
+        {/* ===== View Mode Metadata — no duplicate title, shown in header breadcrumb ===== */}
         {mode === 'view' && (
           <div>
-            <h2 className="text-lg font-semibold text-zinc-800">
-              {entity.legal_name}
-            </h2>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
               <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
               {entity.document_number && (
                 <span>{entity.document_type}: {entity.document_number}</span>
