@@ -36,8 +36,8 @@ korakuen/
 ├── supabase/               → SQL schema, migrations, and seeds
 │   ├── migrations/
 │   │   ├── 20260301000001_initial_schema.sql
-│   │   ├── ...               → 60+ migrations through March 18
-│   │   └── 20260318000004_...
+│   │   ├── ...               → 80+ timestamped migration files
+│   │   └── 20260320000001_...
 │   ├── views/              → individual view source files (combined into migration for deploy)
 │   │   ├── v_bank_balances.sql
 │   │   ├── v_budget_vs_actual.sql
