@@ -49,7 +49,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
   }
 
   function handleSelect(entity: EntitySearchResult) {
-    const name = entity.common_name || entity.legal_name
+    const name = entity.legal_name
     onChange(entity.id, name)
     setQuery('')
     setResults([])
@@ -101,11 +101,8 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
                 className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50"
               >
                 <span className="font-medium text-zinc-800">
-                  {e.common_name || e.legal_name}
+                  {e.legal_name}
                 </span>
-                {e.common_name && e.common_name !== e.legal_name && (
-                  <span className="ml-1 text-zinc-500">({e.legal_name})</span>
-                )}
                 <span className="ml-2 text-xs text-zinc-400">{e.document_number}</span>
               </button>
             </li>

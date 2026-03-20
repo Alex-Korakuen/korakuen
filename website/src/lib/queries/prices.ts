@@ -175,11 +175,11 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
   if (entityIds.length > 0) {
     const { data, error } = await supabase
       .from('entities')
-      .select('id, legal_name, common_name')
+      .select('id, legal_name')
       .in('id', entityIds)
       .order('legal_name')
     if (error) throw error
-    entities = (data ?? []).map(e => ({ id: e.id, name: e.common_name || e.legal_name }))
+    entities = (data ?? []).map(e => ({ id: e.id, name: e.legal_name }))
   }
 
   return {

@@ -243,11 +243,11 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   if (project.client_entity_id) {
     const { data: clientEntity, error: clientError } = await supabase
       .from('entities')
-      .select('legal_name, common_name')
+      .select('legal_name')
       .eq('id', project.client_entity_id)
       .single()
     if (clientError && clientError.code !== 'PGRST116') throw clientError
-    clientName = clientEntity?.common_name || clientEntity?.legal_name || null
+    clientName = clientEntity?.legal_name || null
   }
 
   // 5. Partners — build name map from partner_companies

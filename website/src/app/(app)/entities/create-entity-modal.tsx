@@ -27,7 +27,6 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
   const [documentType, setDocumentType] = useState<'RUC' | 'DNI' | 'CE' | 'Pasaporte'>('RUC')
   const [documentNumber, setDocumentNumber] = useState('')
   const [legalName, setLegalName] = useState('')
-  const [commonName, setCommonName] = useState('')
   const [city, setCity] = useState('')
   const [region, setRegion] = useState('')
   const [notes, setNotes] = useState('')
@@ -37,7 +36,6 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
     setDocumentType('RUC')
     setDocumentNumber('')
     setLegalName('')
-    setCommonName('')
     setCity('')
     setRegion('')
     setNotes('')
@@ -67,7 +65,6 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
         document_type: documentType,
         document_number: documentNumber.trim(),
         legal_name: legalName.trim(),
-        common_name: commonName.trim() || undefined,
         city: city.trim() || undefined,
         region: region.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -140,20 +137,6 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             value={legalName}
             onChange={(e) => setLegalName(e.target.value)}
             placeholder="Razon social or full name"
-            className={inputClass}
-          />
-        </div>
-
-        {/* Common Name */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Common Name <span className="font-normal text-zinc-400">(optional)</span>
-          </label>
-          <input
-            type="text"
-            value={commonName}
-            onChange={(e) => setCommonName(e.target.value)}
-            placeholder="Short or trade name"
             className={inputClass}
           />
         </div>

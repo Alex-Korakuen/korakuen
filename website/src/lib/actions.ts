@@ -257,7 +257,6 @@ export async function updateEntity(
   entityId: string,
   data: {
     legal_name: string
-    common_name?: string
     city?: string
     region?: string
     notes?: string
@@ -270,7 +269,6 @@ export async function updateEntity(
     .from('entities')
     .update({
       legal_name: data.legal_name.trim(),
-      common_name: data.common_name?.trim() || null,
       city: data.city?.trim() || null,
       region: data.region?.trim() || null,
       notes: data.notes?.trim() || null,
@@ -347,7 +345,6 @@ export async function createEntity(data: {
   document_type: 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
   document_number: string
   legal_name: string
-  common_name?: string
   city?: string
   region?: string
   notes?: string
@@ -392,7 +389,6 @@ export async function createEntity(data: {
     document_type: data.document_type,
     document_number: data.document_number,
     legal_name: data.legal_name,
-    common_name: data.common_name || null,
     city: data.city || null,
     region: data.region || null,
     notes: data.notes || null,

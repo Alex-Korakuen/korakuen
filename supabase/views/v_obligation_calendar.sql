@@ -20,7 +20,7 @@ SELECT
   p.project_code,
   p.name                AS project_name,
   ib.entity_id,
-  COALESCE(e.common_name, e.legal_name) AS entity_name,
+  e.legal_name              AS entity_name,
   ib.cost_type,
   ib.invoice_date       AS date,
   ib.title,

@@ -42,13 +42,13 @@ export async function getEntitiesList(
   // Build filtered query
   let query = supabase
     .from('entities')
-    .select('id, legal_name, common_name, document_type, document_number, entity_type, city, region', { count: 'exact' })
+    .select('id, legal_name, document_type, document_number, entity_type, city, region', { count: 'exact' })
     .eq('is_active', true)
     .order('legal_name')
 
   if (filters.search) {
     const s = `%${filters.search}%`
-    query = query.or(`legal_name.ilike.${s},common_name.ilike.${s},document_number.ilike.${s}`)
+    query = query.or(`legal_name.ilike.${s},document_number.ilike.${s}`)
   }
   if (filters.entityType) query = query.eq('entity_type', filters.entityType)
   if (filters.city) query = query.eq('city', filters.city)
@@ -70,7 +70,6 @@ export async function getEntitiesList(
   const items: EntityListItem[] = (entities ?? []).map(e => ({
     id: e.id,
     legal_name: e.legal_name,
-    common_name: e.common_name,
     document_type: e.document_type,
     document_number: e.document_number,
     entity_type: e.entity_type,

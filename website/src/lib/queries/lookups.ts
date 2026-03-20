@@ -98,9 +98,9 @@ export async function searchEntities(
   const pattern = `%${query.trim()}%`
   const { data, error } = await supabase
     .from('entities')
-    .select('id, legal_name, common_name, document_number')
+    .select('id, legal_name, document_number')
     .eq('is_active', true)
-    .or(`legal_name.ilike.${pattern},common_name.ilike.${pattern},document_number.ilike.${pattern}`)
+    .or(`legal_name.ilike.${pattern},document_number.ilike.${pattern}`)
     .order('legal_name')
     .limit(10)
   if (error) throw error

@@ -26,7 +26,7 @@ SELECT
   i.invoice_number,
   i.project_id,
   pr.project_code,
-  COALESCE(e.common_name, e.legal_name) AS entity_name,
+  e.legal_name              AS entity_name,
   -- Enriched from bank account
   ba.bank_name
 FROM payments p

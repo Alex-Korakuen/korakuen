@@ -57,7 +57,6 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
   // Edit form state
   const [editLegalName, setEditLegalName] = useState('')
-  const [editCommonName, setEditCommonName] = useState('')
   const [editCity, setEditCity] = useState('')
   const [editRegion, setEditRegion] = useState('')
   const [editNotes, setEditNotes] = useState('')
@@ -67,7 +66,6 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
   function startEdit() {
     setEditLegalName(entity.legal_name)
-    setEditCommonName(entity.common_name ?? '')
     setEditCity(entity.city ?? '')
     setEditRegion(entity.region ?? '')
     setEditNotes(entity.notes ?? '')
@@ -84,7 +82,6 @@ export function EntityDetailView({ detail, availableTags }: Props) {
     startTransition(async () => {
       const result = await updateEntity(entity.id, {
         legal_name: editLegalName.trim(),
-        common_name: editCommonName.trim() || undefined,
         city: editCity.trim() || undefined,
         region: editRegion.trim() || undefined,
         notes: editNotes.trim() || undefined,
@@ -149,7 +146,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         </Link>
         <div className="h-4 w-px bg-zinc-200" />
         <span className="text-sm text-zinc-600 truncate">
-          {entity.common_name || entity.legal_name}
+          {entity.legal_name}
         </span>
       </HeaderTitlePortal>
 
@@ -184,9 +181,6 @@ export function EntityDetailView({ detail, availableTags }: Props) {
             <h2 className="text-lg font-semibold text-zinc-800">
               {entity.legal_name}
             </h2>
-            {entity.common_name && entity.common_name !== entity.legal_name && (
-              <p className="mt-0.5 text-sm text-zinc-500">{entity.common_name}</p>
-            )}
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
               <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
               {entity.document_number && (
@@ -228,15 +222,9 @@ export function EntityDetailView({ detail, availableTags }: Props) {
             <div className="border-t border-zinc-200" />
 
             {/* Editable fields */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Legal Name</label>
-                <input type="text" value={editLegalName} onChange={(e) => setEditLegalName(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Common Name</label>
-                <input type="text" value={editCommonName} onChange={(e) => setEditCommonName(e.target.value)} className={`${inputCompactClass} w-full bg-white`} placeholder="Short or trade name" />
-              </div>
+            <div>
+              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Legal Name</label>
+              <input type="text" value={editLegalName} onChange={(e) => setEditLegalName(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -289,7 +277,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 <div className="flex-1">
                   <h4 className="text-sm font-semibold text-red-800">Deactivate this entity?</h4>
                   <p className="text-sm text-red-700 mt-1">
-                    {entity.common_name || entity.legal_name} has{' '}
+                    {entity.legal_name} has{' '}
                     <strong>{invoiceCount} linked invoice{invoiceCount !== 1 ? 's' : ''}</strong>
                     {projectCount > 0 && <> across {projectCount} project{projectCount !== 1 ? 's' : ''}</>}.
                     The entity will be hidden from search and dropdowns but all financial history is preserved.

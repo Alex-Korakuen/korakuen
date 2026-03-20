@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       bank_accounts: {
@@ -97,7 +122,6 @@ export type Database = {
       entities: {
         Row: {
           city: string | null
-          common_name: string | null
           created_at: string
           document_number: string
           document_type: string
@@ -111,7 +135,6 @@ export type Database = {
         }
         Insert: {
           city?: string | null
-          common_name?: string | null
           created_at?: string
           document_number: string
           document_type: string
@@ -125,7 +148,6 @@ export type Database = {
         }
         Update: {
           city?: string | null
-          common_name?: string | null
           created_at?: string
           document_number?: string
           document_type?: string
@@ -297,35 +319,35 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "invoice_items_category_fkey"
+            foreignKeyName: "fk_invoice_items_categories"
             columns: ["category"]
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["name"]
           },
           {
-            foreignKeyName: "invoice_items_invoice_id_fkey"
+            foreignKeyName: "fk_invoice_items_invoices"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoice_items_invoice_id_fkey"
+            foreignKeyName: "fk_invoice_items_invoices"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_invoice_balances"
             referencedColumns: ["invoice_id"]
           },
           {
-            foreignKeyName: "invoice_items_invoice_id_fkey"
+            foreignKeyName: "fk_invoice_items_invoices"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_invoice_totals"
             referencedColumns: ["invoice_id"]
           },
           {
-            foreignKeyName: "invoice_items_invoice_id_fkey"
+            foreignKeyName: "fk_invoice_items_invoices"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "v_retencion_dashboard"
@@ -420,28 +442,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "invoices_entity_id_fkey"
+            foreignKeyName: "fk_invoices_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_partner_company_id_fkey"
+            foreignKeyName: "fk_invoices_partner_companies"
             columns: ["partner_company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_project_id_fkey"
+            foreignKeyName: "fk_invoices_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_quote_id_fkey"
+            foreignKeyName: "fk_invoices_quotes"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
@@ -979,6 +1001,7 @@ export type Database = {
           bank_account_id: string | null
           bank_name: string | null
           currency: string | null
+          is_active: boolean | null
           is_detraccion_account: boolean | null
           partner_company_id: string | null
           partner_name: string | null
@@ -1074,21 +1097,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "invoices_entity_id_fkey"
+            foreignKeyName: "fk_invoices_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_partner_company_id_fkey"
+            foreignKeyName: "fk_invoices_partner_companies"
             columns: ["partner_company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_project_id_fkey"
+            foreignKeyName: "fk_invoices_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1129,28 +1152,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "invoices_entity_id_fkey"
+            foreignKeyName: "fk_invoices_entities"
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_partner_company_id_fkey"
+            foreignKeyName: "fk_invoices_partner_companies"
             columns: ["partner_company_id"]
             isOneToOne: false
             referencedRelation: "partner_companies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_project_id_fkey"
+            foreignKeyName: "fk_invoices_projects"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoices_quote_id_fkey"
+            foreignKeyName: "fk_invoices_quotes"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
@@ -1449,6 +1472,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

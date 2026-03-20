@@ -282,7 +282,6 @@ export type ProjectStatusFilter = 'all' | ProjectStatus
 export type EntityListItem = {
   id: string
   legal_name: string
-  common_name: string | null
   document_type: string | null
   document_number: string | null
   entity_type: string
@@ -345,7 +344,6 @@ export type CategoryOption = { name: string; cost_type: string }
 export type EntitySearchResult = {
   id: string
   legal_name: string
-  common_name: string | null
   document_number: string
 }
 

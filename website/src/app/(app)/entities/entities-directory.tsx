@@ -126,11 +126,8 @@ export function EntitiesDirectory({
                           className="block"
                         >
                           <span className="font-medium text-zinc-800">
-                            {entity.common_name || entity.legal_name}
+                            {entity.legal_name}
                           </span>
-                          {entity.common_name && entity.common_name !== entity.legal_name && (
-                            <span className="ml-1.5 text-xs text-zinc-400">{entity.legal_name}</span>
-                          )}
                         </Link>
                       </td>
                       <td className="px-4 py-2.5 text-center">
