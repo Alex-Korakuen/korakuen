@@ -34,8 +34,7 @@ type Props = {
     projectId: string
     bankAccountId: string
     search: string
-    dateFrom: string
-    dateTo: string
+    month: string
   }
 }
 
@@ -77,12 +76,11 @@ export function PaymentsClient({
     currentFilters.projectId !== '' ||
     currentFilters.bankAccountId !== '' ||
     currentFilters.search !== '' ||
-    currentFilters.dateFrom !== '' ||
-    currentFilters.dateTo !== ''
+    currentFilters.month !== ''
 
   const handleClearFilters = () => clearFilters([
     FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.search,
-    FK.dateFrom, FK.dateTo,
+    FK.month,
   ])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {

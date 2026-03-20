@@ -46,7 +46,7 @@ export const tableRowHover =
 
 /** Native select / filter dropdown */
 export const selectClass =
-  'rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700'
+  'rounded border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-700'
 
 // ── Direction badges (colors only — compose with layout classes) ─────
 

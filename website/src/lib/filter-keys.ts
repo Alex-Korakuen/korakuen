@@ -16,6 +16,7 @@ export const FK = {
   tag: 'tag',
   dateFrom: 'dateFrom',
   dateTo: 'dateTo',
+  month: 'month',
   entityType: 'entityType',
   tagId: 'tagId',
   city: 'city',

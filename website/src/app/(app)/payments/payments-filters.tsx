@@ -13,8 +13,7 @@ type Props = {
     projectId: string
     bankAccountId: string
     search: string
-    dateFrom: string
-    dateTo: string
+    month: string
   }
   setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string }[]
@@ -60,22 +59,13 @@ export function PaymentsFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Date range */}
-      <div className="flex items-center gap-1.5">
-        <input
-          type="date"
-          defaultValue={currentFilters.dateFrom}
-          onChange={(e) => setFilter(FK.dateFrom, e.target.value)}
-          className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
-        />
-        <span className="text-zinc-300">&mdash;</span>
-        <input
-          type="date"
-          defaultValue={currentFilters.dateTo}
-          onChange={(e) => setFilter(FK.dateTo, e.target.value)}
-          className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
-        />
-      </div>
+      {/* Month picker */}
+      <input
+        type="month"
+        defaultValue={currentFilters.month}
+        onChange={(e) => setFilter(FK.month, e.target.value)}
+        className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
+      />
 
       <div className="h-5 w-px bg-zinc-200" />
 
@@ -141,7 +131,6 @@ export function PaymentsFilters({
 
       {/* Project dropdown */}
       <FilterSelect
-        label="Project"
         value={currentFilters.projectId}
         onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
@@ -150,7 +139,6 @@ export function PaymentsFilters({
 
       {/* Bank dropdown */}
       <FilterSelect
-        label="Bank"
         value={currentFilters.bankAccountId}
         onChange={(v) => setFilter(FK.bank, v)}
         options={bankAccounts.map((b) => ({ value: b.id, label: b.label }))}

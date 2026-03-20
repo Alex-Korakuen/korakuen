@@ -13,6 +13,17 @@ export default async function PaymentsPage({ searchParams }: Props) {
   const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'payment_date', dir: 'desc' })
 
+  // Derive dateFrom/dateTo from month param (e.g. "2026-03" → "2026-03-01" / "2026-03-31")
+  const month = str(params, FK.month)
+  let dateFrom: string | undefined
+  let dateTo: string | undefined
+  if (month) {
+    const [y, m] = month.split('-').map(Number)
+    const lastDay = new Date(y, m, 0).getDate()
+    dateFrom = `${month}-01`
+    dateTo = `${month}-${String(lastDay).padStart(2, '0')}`
+  }
+
   const filters = {
     direction: str(params, FK.direction) as 'inbound' | 'outbound' | undefined,
     paymentType: str(params, FK.type) as 'regular' | 'detraccion' | 'retencion' | undefined,
@@ -20,8 +31,8 @@ export default async function PaymentsPage({ searchParams }: Props) {
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
     search: str(params, FK.search),
-    dateFrom: str(params, FK.dateFrom),
-    dateTo: str(params, FK.dateTo),
+    dateFrom,
+    dateTo,
     sort,
     dir,
     page,
@@ -45,8 +56,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
         projectId: filters.projectId ?? '',
         bankAccountId: filters.bankAccountId ?? '',
         search: filters.search ?? '',
-        dateFrom: filters.dateFrom ?? '',
-        dateTo: filters.dateTo ?? '',
+        month: month ?? '',
       }}
     />
   )
