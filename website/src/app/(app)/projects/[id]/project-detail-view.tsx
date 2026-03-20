@@ -73,14 +73,15 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
   return (
     <>
-      {/* Search */}
-      <div className="px-4 pb-3">
+      {/* Header + Search */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <h3 className="text-sm font-semibold text-zinc-700">Entities & Suppliers</h3>
         <input
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           placeholder="Search entities..."
-          className="w-full max-w-xs rounded border border-zinc-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="max-w-xs rounded border border-zinc-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
       </div>
 
@@ -397,9 +398,6 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
           {/* Entities — full width */}
           <div className="rounded-xl border border-zinc-200 bg-white">
-            <div className="px-4 pt-4 pb-2">
-              <h3 className="text-sm font-semibold text-zinc-700">Entities & Suppliers</h3>
-            </div>
             <EntitiesPaginated entities={entities} />
           </div>
 
