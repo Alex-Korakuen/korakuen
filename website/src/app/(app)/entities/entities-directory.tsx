@@ -104,13 +104,13 @@ export function EntitiesDirectory({
             <table className="w-full text-sm">
               <thead className="bg-zinc-50 text-xs text-zinc-500">
                 <tr>
-                  <th className="px-4 py-2.5 text-left font-medium">Name</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Type</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Document</th>
-                  <th className="px-4 py-2.5 text-left font-medium">Tags</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Payable</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Receivable</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Net</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Name</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Type</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Document</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Tags</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Payable</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Receivable</th>
+                  <th className="px-4 py-2.5 text-center font-medium">Net</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -121,7 +121,7 @@ export function EntitiesDirectory({
 
                   return (
                     <tr key={entity.id} className="transition-colors hover:bg-blue-50">
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5 text-center">
                         <Link
                           href={`/entities/${entity.id}`}
                           className="block"
@@ -134,7 +134,7 @@ export function EntitiesDirectory({
                           )}
                         </Link>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5 text-center">
                         <span className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${
                           entity.entity_type === 'company'
                             ? 'bg-blue-50 text-blue-700'
@@ -143,11 +143,11 @@ export function EntitiesDirectory({
                           {formatEntityType(entity.entity_type)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-zinc-500">
+                      <td className="px-4 py-2.5 text-center font-mono text-xs text-zinc-500">
                         {entity.document_number || '—'}
                       </td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex flex-wrap gap-1">
+                      <td className="px-4 py-2.5 text-center">
+                        <div className="flex flex-wrap justify-center gap-1">
                           {entity.tags.slice(0, 3).map((tag) => (
                             <span
                               key={tag}
@@ -161,7 +161,7 @@ export function EntitiesDirectory({
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-xs">
+                      <td className="px-4 py-2.5 text-center font-mono text-xs">
                         {hasFinancials && entity.outstandingPayable > 0 ? (
                           <span className="text-red-600">{formatCurrency(entity.outstandingPayable, cur)}</span>
                         ) : hasFinancials ? (
@@ -170,14 +170,14 @@ export function EntitiesDirectory({
                           <span className="text-zinc-300">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-xs">
+                      <td className="px-4 py-2.5 text-center font-mono text-xs">
                         {hasFinancials && entity.outstandingReceivable > 0 ? (
                           <span className="text-green-600">{formatCurrency(entity.outstandingReceivable, cur)}</span>
                         ) : (
                           <span className="text-zinc-300">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-xs font-medium">
+                      <td className="px-4 py-2.5 text-center font-mono text-xs font-medium">
                         {hasFinancials ? (
                           <span className={net > 0 ? 'text-green-600' : net < 0 ? 'text-red-600' : 'text-zinc-400'}>
                             {net > 0 ? '+' : ''}{formatCurrency(net, cur)}

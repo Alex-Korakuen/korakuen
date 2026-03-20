@@ -218,48 +218,48 @@ export function PricesClient({
       {/* Table */}
       <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
               <tr>
                 <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('date')}
                 >
                   Date <SortIndicator column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th className="px-4 py-3">Source</th>
+                <th className="px-4 py-3 text-center">Source</th>
                 <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('entityName')}
                 >
                   Supplier <SortIndicator column="entityName" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('projectCode')}
                 >
                   Project <SortIndicator column="projectCode" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('title')}
                 >
                   Title <SortIndicator column="title" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('quantity')}
                 >
                   Qty <SortIndicator column="quantity" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th className="px-4 py-3">Unit</th>
+                <th className="px-4 py-3 text-center">Unit</th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-right hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
                   onClick={() => handleSort('unit_price')}
                 >
                   Unit Price <SortIndicator column="unit_price" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
-                <th className="px-4 py-3">Cur.</th>
+                <th className="px-4 py-3 text-center">Cur.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -272,36 +272,36 @@ export function PricesClient({
               ) : (
                 data.map((row) => (
                   <tr key={row.id} className="transition-colors hover:bg-zinc-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-700">
                       {row.date ? formatDate(row.date) : '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3 text-center">
                       <StatusBadge
                         label={row.source === 'invoice' ? 'Invoice' : 'Quote'}
                         variant={row.source === 'invoice' ? 'zinc' : 'blue'}
                       />
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">
+                    <td className="px-4 py-3 text-center text-zinc-700">
                       {row.entityName}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-xs text-zinc-500">
                       {row.projectCode}
                     </td>
-                    <td className="max-w-[200px] truncate px-4 py-3 text-zinc-700">
+                    <td className="max-w-[200px] truncate px-4 py-3 text-center text-zinc-700">
                       {row.title || '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-zinc-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-600">
                       {row.quantity !== null ? row.quantity : '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-500">
                       {row.unit_of_measure ?? '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-zinc-700">
                       {row.unit_price !== null
                         ? formatCurrency(row.unit_price, row.currency)
                         : '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-500">
                       {row.currency}
                     </td>
                   </tr>

@@ -23,30 +23,30 @@ export function PaymentsTable({ data, onRowClick }: Props) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-sm">
         <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
           <tr>
             <th
-              className="cursor-pointer whitespace-nowrap px-3 py-3 hover:text-zinc-700"
+              className="cursor-pointer whitespace-nowrap px-3 py-3 text-center hover:text-zinc-700"
               onClick={() => handleSort('payment_date')}
             >
               Date <SortIndicator column="payment_date" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
-              className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
               onClick={() => handleSort('entity_name')}
             >
               Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
-            <th className="px-3 py-3">Reference</th>
+            <th className="px-3 py-3 text-center">Reference</th>
             <th
-              className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
               onClick={() => handleSort('bank_name')}
             >
               Bank <SortIndicator column="bank_name" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
-              className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
               onClick={() => handleSort('amount')}
             >
               Amount <SortIndicator column="amount" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -67,13 +67,13 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 className="cursor-pointer transition-colors hover:bg-zinc-50"
                 onClick={() => onRowClick(row)}
               >
-                <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
                   {row.payment_date ? formatDate(row.payment_date) : '--'}
                 </td>
-                <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
+                <td className="max-w-[200px] truncate px-3 py-3 text-center text-zinc-700">
                   {row.entity_name ?? '--'}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3">
+                <td className="whitespace-nowrap px-3 py-3 text-center">
                   <span className="font-mono text-xs text-zinc-500">
                     {getRelatedLabel(row.related_to, row.invoice_number)}
                   </span>
@@ -92,10 +92,10 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                     </span>
                   )}
                 </td>
-                <td className="max-w-[120px] truncate px-3 py-3 text-xs text-zinc-500">
+                <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-zinc-500">
                   {row.bank_name ?? '--'}
                 </td>
-                <td className={`whitespace-nowrap px-3 py-3 text-right font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>
+                <td className={`whitespace-nowrap px-3 py-3 text-center font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>
                   {formatSignedAmount(row.amount, row.currency, row.direction)}
                 </td>
               </tr>
