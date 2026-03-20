@@ -39,7 +39,8 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             >
               Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
-            <th className="px-3 py-3 text-center">Reference</th>
+            <th className="px-3 py-3 text-center">Project</th>
+            <th className="px-3 py-3 text-center">Invoice</th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
               onClick={() => handleSort('bank_name')}
@@ -57,7 +58,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
         <tbody className="divide-y divide-zinc-100">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+              <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
                 No payments found
               </td>
             </tr>
@@ -74,16 +75,13 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 <td className="max-w-[200px] truncate px-3 py-3 text-center text-zinc-700">
                   {row.entity_name ?? '--'}
                 </td>
+                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-zinc-400">
+                  {row.project_code ?? '--'}
+                </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
                   <span className="font-mono text-xs text-zinc-500">
                     {getRelatedLabel(row.related_to, row.invoice_number)}
                   </span>
-                  {row.project_code && (
-                    <>
-                      <span className="mx-1.5 text-zinc-300">&middot;</span>
-                      <span className="font-mono text-xs text-zinc-400">{row.project_code}</span>
-                    </>
-                  )}
                   {row.payment_type !== 'regular' && (
                     <span className="ml-2">
                       <StatusBadge
