@@ -221,15 +221,15 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                         <p className="mt-1 text-[10px] text-red-600">{editShareError}</p>
                       )}
                     </td>
-                    <td className={`px-2 py-2 text-right font-mono font-medium ${
+                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${
                       (s?.profit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
                     }`}>
                       {formatCurrency(s?.profit ?? 0, 'PEN')}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-2 py-2 text-right font-mono text-zinc-700 whitespace-nowrap">
                       {formatCurrency(s?.shouldReceive ?? 0, 'PEN')}
                     </td>
-                    <td className={`px-2 py-2 text-right font-mono font-medium ${
+                    <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${
                       (s?.balance ?? 0) > 0
                         ? 'text-amber-600'
                         : (s?.balance ?? 0) < 0
@@ -274,15 +274,15 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 }`}>
                   {totalShare}%
                 </td>
-                <td className={`px-2 py-2 text-right font-mono font-semibold ${
+                <td className={`px-2 py-2 text-right font-mono font-semibold whitespace-nowrap ${
                   totalProfit >= 0 ? 'text-green-700' : 'text-red-600'
                 }`}>
                   {formatCurrency(totalProfit, 'PEN')}
                 </td>
-                <td className="px-2 py-2 text-right font-mono font-semibold text-zinc-800">
+                <td className="px-2 py-2 text-right font-mono font-semibold text-zinc-800 whitespace-nowrap">
                   {formatCurrency(totalShouldReceive, 'PEN')}
                 </td>
-                <td className={`px-2 py-2 text-right font-mono font-semibold ${
+                <td className={`px-2 py-2 text-right font-mono font-semibold whitespace-nowrap ${
                   totalBalance > 0 ? 'text-amber-600' : totalBalance < 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
                   {totalBalance === 0 ? 'Settled' : formatCurrency(totalBalance, 'PEN')}
