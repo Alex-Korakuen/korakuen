@@ -96,7 +96,7 @@ SELECT
       ROUND(COALESCE(it.detraccion_amount, 0) * it.exchange_rate, 2)
       - COALESCE(SUM(CASE WHEN p.payment_type = 'detraccion' THEN p.amount END), 0))
   END AS bdn_outstanding_pen,
-  -- Payment status
+  -- Payment status (accounts for unpaid BDN detraccion obligations)
   CASE
     WHEN COALESCE(SUM(
       CASE WHEN p.currency = it.currency THEN p.amount
@@ -107,7 +107,14 @@ SELECT
       CASE WHEN p.currency = it.currency THEN p.amount
            ELSE ROUND(p.amount / p.exchange_rate, 2)
       END
-    ), 0) >= it.total THEN 'paid'
+    ), 0) >= it.total
+      AND GREATEST(0, COALESCE(it.detraccion_amount, 0) - COALESCE(SUM(
+        CASE WHEN p.payment_type = 'detraccion' THEN
+          CASE WHEN p.currency = it.currency THEN p.amount
+               ELSE ROUND(p.amount / p.exchange_rate, 2)
+          END
+        END
+      ), 0)) = 0 THEN 'paid'
     ELSE 'partial'
   END AS payment_status,
   -- Retencion outstanding (retencion_amount minus retencion payments received)

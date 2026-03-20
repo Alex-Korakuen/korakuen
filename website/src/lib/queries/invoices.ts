@@ -109,9 +109,7 @@ export async function getInvoicesPage(
     outstanding: r.outstanding ?? 0,
     bdn_outstanding: r.bdn_outstanding ?? 0,
     bdn_outstanding_pen: r.bdn_outstanding_pen ?? 0,
-    payment_status: r.payment_status === 'paid' && (r.bdn_outstanding ?? 0) > 0
-      ? 'partial'
-      : (r.payment_status ?? 'pending'),
+    payment_status: (r.payment_status ?? 'pending') as 'pending' | 'partial' | 'paid',
     loan_id: r.loan_id,
   }))
 

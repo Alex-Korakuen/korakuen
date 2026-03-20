@@ -421,10 +421,11 @@ export async function createEntity(data: {
     return { error: 'Passport must be 6-20 alphanumeric characters', field: 'document_number' }
   }
 
-  // Check document_number uniqueness
+  // Check document_number uniqueness (scoped to same document_type)
   const { data: existing } = await supabase
     .from('entities')
     .select('id')
+    .eq('document_type', data.document_type)
     .eq('document_number', data.document_number)
     .eq('is_active', true)
     .limit(1)
