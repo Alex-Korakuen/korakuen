@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
+import { useState, useRef, useTransition, useCallback } from 'react'
 import { addEntityTag, removeEntityTag } from '@/lib/actions'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { tagColor } from './helpers'
