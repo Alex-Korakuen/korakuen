@@ -1,7 +1,7 @@
-import { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from '@/lib/queries'
+import { getEntitiesDirectory, getEntitiesFilterOptions } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
-import { EntitiesWrapper } from './entities-wrapper'
+import { EntitiesDirectory } from './entities-directory'
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -9,7 +9,6 @@ type Props = {
 
 export default async function EntitiesPage({ searchParams }: Props) {
   const params = await searchParams
-  const selectedId = str(params, FK.selected) ?? null
   const { page } = parsePaginationParams(params, { sort: 'legal_name' })
 
   const filters = {
@@ -21,21 +20,18 @@ export default async function EntitiesPage({ searchParams }: Props) {
     page,
   }
 
-  const [result, filterOptions, detail] = await Promise.all([
-    getEntitiesList(filters),
+  const [result, filterOptions] = await Promise.all([
+    getEntitiesDirectory(filters),
     getEntitiesFilterOptions(),
-    selectedId ? getEntityDetail(selectedId) : Promise.resolve(null),
   ])
 
   return (
-    <EntitiesWrapper
+    <EntitiesDirectory
       entities={result.data}
       totalCount={result.totalCount}
       page={result.page}
       pageSize={result.pageSize}
       filterOptions={filterOptions}
-      detail={detail}
-      selectedId={selectedId}
       currentFilters={{
         search: filters.search ?? '',
         entityType: filters.entityType ?? '',

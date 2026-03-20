@@ -4,6 +4,7 @@ import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
   EntityDetailData,
+  EntityDirectoryItem,
   EntityListItem,
   EntityLedgerGroup,
   EntityLedgerRow,
@@ -83,6 +84,81 @@ export async function getEntitiesList(
     totalCount: count ?? 0,
     page: filters.page,
     pageSize: PAGE_SIZE,
+  }
+}
+
+export async function getEntitiesDirectory(
+  filters: EntitiesListFilters = { page: 1 }
+): Promise<PaginatedResult<EntityDirectoryItem>> {
+  const supabase = await createServerSupabaseClient()
+
+  // Get the base entity list (paginated, filtered)
+  const listResult = await getEntitiesList(filters)
+  if (listResult.data.length === 0) {
+    return {
+      data: [],
+      totalCount: listResult.totalCount,
+      page: listResult.page,
+      pageSize: listResult.pageSize,
+    }
+  }
+
+  const entityIds = listResult.data.map(e => e.id)
+
+  // Aggregate financial totals from v_invoice_balances in one query
+  const { data: balances, error: balError } = await supabase
+    .from('v_invoice_balances')
+    .select('entity_id, direction, currency, total, outstanding')
+    .in('entity_id', entityIds)
+
+  if (balError) throw balError
+
+  // Build aggregated totals per entity (pick dominant currency)
+  const financials = new Map<string, {
+    totalPayable: number
+    outstandingPayable: number
+    totalReceivable: number
+    outstandingReceivable: number
+    currency: string | null
+  }>()
+
+  for (const row of balances ?? []) {
+    if (!row.entity_id) continue
+    let agg = financials.get(row.entity_id)
+    if (!agg) {
+      agg = { totalPayable: 0, outstandingPayable: 0, totalReceivable: 0, outstandingReceivable: 0, currency: null }
+      financials.set(row.entity_id, agg)
+    }
+    const total = row.total ?? 0
+    const outstanding = row.outstanding ?? 0
+    if (row.direction === 'payable') {
+      agg.totalPayable += total
+      agg.outstandingPayable += outstanding
+    } else {
+      agg.totalReceivable += total
+      agg.outstandingReceivable += outstanding
+    }
+    // Use first currency seen (entities typically operate in one currency)
+    if (!agg.currency && row.currency) agg.currency = row.currency
+  }
+
+  const items: EntityDirectoryItem[] = listResult.data.map(e => {
+    const fin = financials.get(e.id)
+    return {
+      ...e,
+      totalPayable: fin?.totalPayable ?? 0,
+      outstandingPayable: fin?.outstandingPayable ?? 0,
+      totalReceivable: fin?.totalReceivable ?? 0,
+      outstandingReceivable: fin?.outstandingReceivable ?? 0,
+      currency: fin?.currency ?? null,
+    }
+  })
+
+  return {
+    data: items,
+    totalCount: listResult.totalCount,
+    page: listResult.page,
+    pageSize: listResult.pageSize,
   }
 }
 

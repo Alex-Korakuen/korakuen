@@ -105,7 +105,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
                   <td className="px-4 py-2">
                     {e.entityId ? (
                       <a
-                        href={`/entities?selected=${e.entityId}`}
+                        href={`/entities/${e.entityId}`}
                         className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         {e.entityName}

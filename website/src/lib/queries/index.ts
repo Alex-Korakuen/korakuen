@@ -6,7 +6,7 @@ export type { InvoicesPageSummary } from './invoices'
 export { getPaymentsPage } from './payments'
 export { getFinancialPosition, getBankTransactions } from './financial-position'
 export { getProjectsList, getProjectsCardData, getProjectDetail, getPartnerPayableDetails, getPartnerReceivableDetails } from './projects'
-export { getEntitiesList, getEntityDetail, getEntitiesFilterOptions } from './entities'
+export { getEntitiesList, getEntitiesDirectory, getEntityDetail, getEntitiesFilterOptions } from './entities'
 export { getPriceHistory, getPriceFilterOptions } from './prices'
 export {
   getProjectsForFilter,

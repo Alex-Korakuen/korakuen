@@ -300,6 +300,15 @@ export type EntityListItem = {
   tags: string[]
 }
 
+export type EntityDirectoryItem = EntityListItem & {
+  totalPayable: number
+  outstandingPayable: number
+  totalReceivable: number
+  outstandingReceivable: number
+  /** Primary currency for display; null if no invoices */
+  currency: string | null
+}
+
 export type EntityLedgerRow = {
   transactionId: string
   date: string | null
