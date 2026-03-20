@@ -11,8 +11,10 @@ import {
   getStatusVariant,
 } from './helpers'
 import type { InvoicesPageRow } from '@/lib/types'
+import type { InvoiceTab } from '@/lib/queries'
 
 type Props = {
+  tab: InvoiceTab
   data: InvoicesPageRow[]
   totalCount: number
   page: number
@@ -21,6 +23,7 @@ type Props = {
 }
 
 export function InvoicesTable({
+  tab,
   data,
   totalCount,
   page,
@@ -28,10 +31,11 @@ export function InvoicesTable({
   onRowClick,
 }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('due_date')
+  const isLoans = tab === 'loans'
 
   return (
     <>
-      <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-200">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
             <tr>
@@ -41,44 +45,76 @@ export function InvoicesTable({
               >
                 Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th
-                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
-                onClick={() => handleSort('invoice_number')}
-              >
-                Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
-                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
-                onClick={() => handleSort('entity_name')}
-              >
-                Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
-                className="cursor-pointer px-3 py-3 hover:text-zinc-700"
-                onClick={() => handleSort('project_code')}
-              >
-                Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
-                className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
-                onClick={() => handleSort('total')}
-              >
-                Total <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th
-                className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
-                onClick={() => handleSort('outstanding')}
-              >
-                Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
-              </th>
-              <th className="px-3 py-3">Status</th>
+              {isLoans ? (
+                <>
+                  <th
+                    className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                    onClick={() => handleSort('entity_name')}
+                  >
+                    Lender <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                    onClick={() => handleSort('project_code')}
+                  >
+                    Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+                    onClick={() => handleSort('total')}
+                  >
+                    Amount <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+                    onClick={() => handleSort('outstanding')}
+                  >
+                    Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th className="px-3 py-3">Status</th>
+                </>
+              ) : (
+                <>
+                  <th
+                    className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                    onClick={() => handleSort('invoice_number')}
+                  >
+                    Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                    onClick={() => handleSort('entity_name')}
+                  >
+                    Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 hover:text-zinc-700"
+                    onClick={() => handleSort('project_code')}
+                  >
+                    Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+                    onClick={() => handleSort('total')}
+                  >
+                    Total <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th
+                    className="cursor-pointer px-3 py-3 text-right hover:text-zinc-700"
+                    onClick={() => handleSort('outstanding')}
+                  >
+                    Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
+                  </th>
+                  <th className="px-3 py-3">Status</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
-                  No invoices found
+                <td colSpan={isLoans ? 6 : 7} className="px-4 py-8 text-center text-zinc-400">
+                  {isLoans ? 'No loan payments found' : 'No invoices found'}
                 </td>
               </tr>
             ) : (
@@ -90,7 +126,35 @@ export function InvoicesTable({
                   ? getAgingRowBorderClass(daysOverdue)
                   : ''
 
-                return (
+                return isLoans ? (
+                  <tr
+                    key={row.id}
+                    className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass}`}
+                    onClick={() => onRowClick(row)}
+                  >
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                      {row.due_date ? formatDate(row.due_date) : '--'}
+                    </td>
+                    <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
+                      {row.entity_name ?? '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
+                      {row.project_code ?? '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono text-zinc-700">
+                      {formatCurrency(row.total, row.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono font-medium text-zinc-900">
+                      {row.outstanding > 0 ? formatCurrency(row.outstanding, row.currency) : '--'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <StatusBadge
+                        label={getStatusLabel(row.payment_status)}
+                        variant={getStatusVariant(row.payment_status)}
+                      />
+                    </td>
+                  </tr>
+                ) : (
                   <tr
                     key={row.id}
                     className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass}`}
@@ -100,7 +164,7 @@ export function InvoicesTable({
                       {row.due_date ? formatDate(row.due_date) : '--'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-zinc-500">
-                      {row.invoice_number ?? (row.type === 'loan' ? 'Loan' : '--')}
+                      {row.invoice_number ?? '--'}
                     </td>
                     <td className="max-w-[200px] truncate px-3 py-3 text-zinc-700">
                       {row.entity_name ?? '--'}
