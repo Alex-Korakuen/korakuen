@@ -12,6 +12,7 @@ import { FilterSelect } from '@/components/ui/filter-select'
 import { Pagination } from '@/components/ui/pagination'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { FK } from '@/lib/filter-keys'
+import { tableHead, selectClass } from '@/lib/styles'
 import { importQuotes } from '@/lib/import-actions'
 import type { PriceHistoryRow, PriceFilterOptions } from '@/lib/types'
 
@@ -181,14 +182,14 @@ export function PricesClient({
                     type="date"
                     defaultValue={currentFilters.dateFrom}
                     onChange={(e) => setFilter(FK.dateFrom, e.target.value)}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+                    className={selectClass}
                   />
                   <span className="text-xs text-zinc-400">—</span>
                   <input
                     type="date"
                     defaultValue={currentFilters.dateTo}
                     onChange={(e) => setFilter(FK.dateTo, e.target.value)}
-                    className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+                    className={selectClass}
                   />
                 </div>
               </div>
@@ -219,7 +220,7 @@ export function PricesClient({
       <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            <thead className={tableHead}>
               <tr>
                 <th
                   className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"

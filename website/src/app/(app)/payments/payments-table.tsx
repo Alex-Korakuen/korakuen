@@ -4,6 +4,7 @@ import { formatDate } from '@/lib/formatters'
 import { useUrlSort } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { tableHead, tableRowHover } from '@/lib/styles'
 import {
   getPaymentTypeLabel,
   getPaymentTypeBadgeVariant,
@@ -24,7 +25,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <thead className={tableHead}>
           <tr>
             <th
               className="cursor-pointer whitespace-nowrap px-3 py-3 text-center hover:text-zinc-700"
@@ -64,7 +65,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             data.map((row) => (
               <tr
                 key={row.id}
-                className="cursor-pointer transition-colors hover:bg-zinc-50"
+                className={tableRowHover}
                 onClick={() => onRowClick(row)}
               >
                 <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">

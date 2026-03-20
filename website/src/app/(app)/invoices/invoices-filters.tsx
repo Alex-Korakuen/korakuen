@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { FK } from '@/lib/filter-keys'
+import { selectClass } from '@/lib/styles'
 
 type Props = {
   currentFilters: {
@@ -46,7 +47,7 @@ export function InvoicesFilters({
   }
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className="mb-3 flex flex-wrap items-center gap-3">
       {/* Search */}
       <div className="relative flex-1" style={{ minWidth: 200, maxWidth: 320 }}>
         <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">
@@ -77,7 +78,7 @@ export function InvoicesFilters({
             setFilter(FK.direction, v)
           }
         }}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+        className={selectClass}
       >
         <option value="">All Directions</option>
         <option value="payable">Payable</option>
@@ -89,7 +90,7 @@ export function InvoicesFilters({
       <select
         value={currentFilters.status}
         onChange={(e) => setFilter(FK.status, e.target.value)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+        className={selectClass}
       >
         <option value="">All Statuses</option>
         <option value="pending">Pending</option>
@@ -102,7 +103,7 @@ export function InvoicesFilters({
       <select
         value={currentFilters.projectId}
         onChange={(e) => setFilter(FK.project, e.target.value)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+        className={selectClass}
       >
         <option value="">All Projects</option>
         {projects.map((p) => (
@@ -114,7 +115,7 @@ export function InvoicesFilters({
       <select
         value={currentFilters.entity}
         onChange={(e) => setFilter(FK.entity, e.target.value)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+        className={selectClass}
       >
         <option value="">All Entities</option>
         {uniqueEntities.map((name) => (

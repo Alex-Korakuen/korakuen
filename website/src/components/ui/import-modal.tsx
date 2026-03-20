@@ -2,6 +2,7 @@
 
 import { useState, useRef, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
+import { btnPrimaryLg } from '@/lib/styles'
 import * as XLSX from 'xlsx'
 
 export type ImportError = { row: number; column: string; message: string }
@@ -244,7 +245,7 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
               type="button"
               onClick={handleImport}
               disabled={isPending}
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className={`${btnPrimaryLg} disabled:opacity-50`}
             >
               {isPending ? 'Importing...' : `Import ${rows.length} rows`}
             </button>

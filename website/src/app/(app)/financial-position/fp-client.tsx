@@ -316,7 +316,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
                       {txn.description ?? '—'}
                     </td>
                     <td className={`whitespace-nowrap px-3 py-2 text-right font-medium ${
-                      txn.direction === 'inbound' ? 'text-emerald-600' : 'text-red-600'
+                      txn.direction === 'inbound' ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {txn.direction === 'inbound' ? '+' : '−'}
                       {fmt(txn.amount, txn.currency)}

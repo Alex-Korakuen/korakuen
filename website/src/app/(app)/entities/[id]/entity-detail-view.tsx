@@ -12,7 +12,7 @@ import { EntityTagsDropdown } from '../entity-tags-dropdown'
 import { EntityContactsForm } from '../entity-contacts-form'
 import { LedgerTable } from '../ledger-table'
 import { updateEntity, deactivateEntity } from '@/lib/actions'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnEditIcon, btnDangerIcon } from '@/lib/styles'
 import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
 
 const TransactionModal = dynamic(() => import('../entities-transaction-modal').then(m => ({ default: m.TransactionModal })))
@@ -158,7 +158,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         <HeaderPortal>
           <button
             onClick={startEdit}
-            className="rounded border border-zinc-200 p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+            className={`${btnEditIcon}`}
             title="Edit entity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -167,7 +167,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
           </button>
           <button
             onClick={() => { setError(null); setMode('delete') }}
-            className="rounded border border-red-200 p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            className={`${btnDangerIcon}`}
             title="Deactivate entity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">

@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { formatCalendarDate, formatUrgency, getUrgencyColor, getSectionColors } from './helpers'
 import type { SectionTotals } from './calendar-client'
 import type { ObligationCalendarRow, CalendarBucketId } from '@/lib/types'
+import { badgeAP, badgeAR } from '@/lib/styles'
 
 type BucketGroup = {
   id: Exclude<CalendarBucketId, 'all'>
@@ -20,16 +21,11 @@ type Props = {
 }
 
 function DirectionBadge({ direction }: { direction: string | null }) {
-  if (direction === 'receivable') {
-    return (
-      <span className="inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">
-        AR
-      </span>
-    )
-  }
+  const colors = direction === 'receivable' ? badgeAR : badgeAP
+  const label = direction === 'receivable' ? 'AR' : 'AP'
   return (
-    <span className="inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-orange-50 text-orange-700">
-      AP
+    <span className={`inline-flex w-7 items-center justify-center rounded px-1 py-0.5 text-[11px] font-medium uppercase tracking-wider ${colors}`}>
+      {label}
     </span>
   )
 }

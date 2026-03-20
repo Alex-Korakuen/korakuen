@@ -10,6 +10,7 @@ import {
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
+import { btnPrimary, selectClass } from '@/lib/styles'
 
 const CreateProjectModal = dynamic(() => import('./create-project-modal').then(m => ({ default: m.CreateProjectModal })))
 
@@ -46,7 +47,7 @@ export function ProjectsGrid({ projects }: Props) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as ProjectStatusFilter)}
-          className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+          className={selectClass}
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -56,7 +57,7 @@ export function ProjectsGrid({ projects }: Props) {
         </select>
         <button
           onClick={() => setShowCreate(true)}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className={`${btnPrimary}`}
         >
           + New Project
         </button>

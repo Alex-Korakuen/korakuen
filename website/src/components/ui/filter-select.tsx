@@ -1,3 +1,5 @@
+import { selectClass } from '@/lib/styles'
+
 type FilterSelectOption = {
   value: string
   label: string
@@ -18,7 +20,7 @@ export function FilterSelect({ label, value, onChange, options, placeholder = 'A
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+        className={selectClass}
       >
         <option value="">{placeholder}</option>
         {options.map((opt) => (

@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from '@/lib/formatters'
 import { useUrlSort } from '@/lib/sort-utils'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { tableHead, tableRowHover, badgeAP, badgeAR, badgeLoan } from '@/lib/styles'
 import { Pagination } from '@/components/ui/pagination'
 import {
   getAgingRowBorderClass,
@@ -20,18 +21,18 @@ type Props = {
   onRowClick: (row: InvoicesPageRow) => void
 }
 
-// Direction badge colors
-const dirBadge: Record<string, { bg: string; text: string; label: string }> = {
-  'payable-commercial': { bg: 'bg-zinc-100', text: 'text-zinc-600', label: 'AP' },
-  'receivable-commercial': { bg: 'bg-blue-50', text: 'text-blue-600', label: 'AR' },
-  'payable-loan': { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Loan' },
+// Direction badge colors (shared tokens from styles.ts)
+const dirBadge: Record<string, { colors: string; label: string }> = {
+  'payable-commercial': { colors: badgeAP, label: 'AP' },
+  'receivable-commercial': { colors: badgeAR, label: 'AR' },
+  'payable-loan': { colors: badgeLoan, label: 'Loan' },
 }
 
 function DirectionBadge({ direction, type }: { direction: string; type: string }) {
   const key = `${direction}-${type}`
   const badge = dirBadge[key] ?? dirBadge['payable-commercial']
   return (
-    <span className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium ${badge.bg} ${badge.text}`}>
+    <span className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium ${badge.colors}`}>
       {badge.label}
     </span>
   )
@@ -50,7 +51,7 @@ export function InvoicesTable({
     <>
       <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+          <thead className={tableHead}>
             <tr>
               <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('due_date')}>
                 Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -90,7 +91,7 @@ export function InvoicesTable({
 
                 return (
                   <tr key={row.id}
-                    className={`cursor-pointer transition-colors hover:bg-zinc-50 ${borderClass}`}
+                    className={`${tableRowHover} ${borderClass}`}
                     onClick={() => onRowClick(row)}>
                     <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
                       {row.due_date ? formatDate(row.due_date) : '--'}

@@ -59,7 +59,7 @@ export function PaymentsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Date range */}
       <div className="flex items-center gap-1.5">
         <input

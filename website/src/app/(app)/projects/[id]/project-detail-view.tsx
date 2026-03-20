@@ -16,7 +16,7 @@ import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { ProjectPartnerSettlement } from '../project-partner-settlement'
 import { ProjectBudgetForm } from '../project-budget-form'
 import { updateProject } from '@/lib/actions'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnEditIcon } from '@/lib/styles'
 
 import type { ProjectDetailData, ProjectEntitySummary } from '@/lib/types'
 import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
@@ -279,7 +279,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
         <HeaderPortal>
           <button
             onClick={startEdit}
-            className="rounded border border-zinc-200 p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+            className={`${btnEditIcon}`}
             title="Edit project"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">

@@ -1,3 +1,5 @@
+import { btnPrimaryLg } from '@/lib/styles'
+
 type Props = {
   onCancel: () => void
   onSubmit: () => void
@@ -28,7 +30,7 @@ export function ModalActions({
         type="button"
         onClick={onSubmit}
         disabled={disabled || isPending}
-        className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        className={`${btnPrimaryLg} disabled:opacity-50`}
       >
         {isPending ? pendingLabel : submitLabel}
       </button>

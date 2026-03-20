@@ -10,6 +10,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
+import { btnPrimary, tableHead, tableRowHover, selectClass } from '@/lib/styles'
 import { tagColor } from './helpers'
 import type { EntityDirectoryItem, EntitiesFilterOptions } from '@/lib/types'
 
@@ -46,7 +47,7 @@ export function EntitiesDirectory({
       <HeaderPortal>
         <button
           onClick={() => setShowCreate(true)}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          className={`${btnPrimary}`}
         >
           + New Entity
         </button>
@@ -102,7 +103,7 @@ export function EntitiesDirectory({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-xs text-zinc-500">
+              <thead className={tableHead}>
                 <tr>
                   <th className="px-4 py-2.5 text-center font-medium">Name</th>
                   <th className="px-4 py-2.5 text-center font-medium">Type</th>
@@ -120,7 +121,7 @@ export function EntitiesDirectory({
                   const hasFinancials = entity.totalPayable > 0 || entity.totalReceivable > 0
 
                   return (
-                    <tr key={entity.id} className="transition-colors hover:bg-blue-50">
+                    <tr key={entity.id} className={tableRowHover}>
                       <td className="px-4 py-2.5 text-center">
                         <Link
                           href={`/entities/${entity.id}`}

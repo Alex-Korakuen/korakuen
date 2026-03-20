@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { addEntityContact, removeEntityContact, updateEntityContact } from '@/lib/actions'
 import type { EntityContact } from '@/lib/types'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnPrimary, btnDangerIcon } from '@/lib/styles'
 
 type Props = {
   entityId: string
@@ -187,7 +187,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                           type="button"
                           onClick={() => handleRemove(c.id)}
                           disabled={isPending}
-                          className="rounded border border-red-200 p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className={`${btnDangerIcon}`}
                           title="Remove contact"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -242,7 +242,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
               type="button"
               onClick={handleAdd}
               disabled={isPending || !name.trim()}
-              className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className={`${btnPrimary} text-xs disabled:opacity-50`}
             >
               {isPending ? 'Adding...' : 'Add'}
             </button>

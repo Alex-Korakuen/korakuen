@@ -5,7 +5,7 @@ import { formatCurrency, formatDate, formatComprobanteType } from '@/lib/formatt
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnDangerOutline, btnPrimaryLg } from '@/lib/styles'
 import { updateInvoice, deactivateInvoice, fetchExchangeRateForDate } from '@/lib/actions'
 import type { InvoiceDetailData, InvoicesPageRow } from '@/lib/types'
 import type { CategoryOption } from '@/lib/queries'
@@ -181,14 +181,14 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
       <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
         <button
           onClick={() => onSetMode('delete')}
-          className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+          className={`${btnDangerOutline}`}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={trashPath} clipRule="evenodd" /></svg>
           Delete
         </button>
         <button
           onClick={() => onSetMode('edit')}
-          className="inline-flex items-center gap-1.5 rounded-md bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
+          className={`inline-flex items-center gap-1.5 rounded-md ${btnPrimaryLg} transition-colors`}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d={pencilPath} /></svg>
           Edit

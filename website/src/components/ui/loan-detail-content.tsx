@@ -7,6 +7,7 @@ import { DetailField } from '@/components/ui/detail-field'
 import { LoanScheduleForm } from '@/components/ui/loan-schedule-form'
 import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
 import type { LoanDetailData, Currency } from '@/lib/types'
+import { btnPrimaryLg } from '@/lib/styles'
 
 export function LoanDetailContent({
   detail,
@@ -191,7 +192,7 @@ export function LoanDetailContent({
         <button
           type="button"
           onClick={() => handleRegisterPayment(currentScheduleEntry.id)}
-          className="rounded bg-zinc-800 px-4 py-1.5 text-sm font-medium text-white hover:bg-zinc-700"
+          className={`${btnPrimaryLg}`}
         >
           Register Repayment
         </button>

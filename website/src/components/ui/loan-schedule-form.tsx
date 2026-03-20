@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { addLoanScheduleEntry, fetchExchangeRateForDate } from '@/lib/actions'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnPrimary } from '@/lib/styles'
 
 type Props = {
   loanId: string
@@ -120,7 +120,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
         <button
           onClick={handleSubmit}
           disabled={isPending}
-          className="rounded bg-zinc-800 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+          className={`${btnPrimary} text-xs disabled:opacity-50`}
         >
           {isPending ? 'Saving...' : 'Add'}
         </button>

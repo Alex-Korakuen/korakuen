@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerPayables, fetchPartnerReceivables, addProjectPartner, removeProjectPartner, updatePartnerProfitShare } from '@/lib/actions'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, btnDangerIcon } from '@/lib/styles'
 import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerPayableDetail, PartnerReceivableDetail } from '@/lib/types'
 import type { PartnerCompanyOption } from '@/lib/queries'
 
@@ -240,7 +240,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                       <button
                         onClick={() => handleRemove(p.id)}
                         disabled={isPending}
-                        className="rounded border border-red-200 p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        className={`${btnDangerIcon} disabled:opacity-50`}
                         title="Remove partner"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">

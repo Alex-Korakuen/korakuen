@@ -56,7 +56,7 @@ export function SlideOver({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-3">
           <div className="flex items-center gap-2">
             {/* Prev / Next navigation */}
             {(onPrev || onNext) && (
@@ -108,7 +108,7 @@ export function SlideOver({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
       </div>
     </div>
   )
