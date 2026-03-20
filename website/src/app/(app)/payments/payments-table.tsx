@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDate } from '@/lib/formatters'
-import { useUrlSort } from '@/lib/sort-utils'
+import { useUrlSort } from '@/lib/use-url-sort'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { tableHead, tableRowHover } from '@/lib/styles'

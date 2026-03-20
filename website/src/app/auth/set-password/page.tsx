@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { DEFAULT_ROUTE } from '@/lib/constants'
 import { AuthLayout } from '@/components/auth-layout'
 import { FormInput } from '@/components/ui/form-input'
 import { validatePassword } from '@/lib/validate-password'
@@ -39,7 +40,7 @@ export default function SetPasswordPage() {
       return
     }
 
-    router.push('/calendar')
+    router.push(DEFAULT_ROUTE)
     router.refresh()
   }
 

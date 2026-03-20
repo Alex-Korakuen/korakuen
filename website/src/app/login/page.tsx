@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { DEFAULT_ROUTE } from '@/lib/constants'
 import { AuthLayout } from '@/components/auth-layout'
 import { FormInput } from '@/components/ui/form-input'
 import { btnAuthPrimary } from '@/lib/styles'
@@ -31,7 +32,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/calendar')
+    router.push(DEFAULT_ROUTE)
     router.refresh()
   }
 

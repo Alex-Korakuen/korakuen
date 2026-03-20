@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { usePartnerFilter } from '@/lib/partner-filter-context'
 import { useSidebar } from '@/lib/sidebar-context'
+import { useClickOutside } from '@/lib/use-click-outside'
 import { createClient } from '@/lib/supabase/client'
 
 interface NavItem {
@@ -93,17 +94,7 @@ function PartnerFilter({ collapsed }: { collapsed: boolean }) {
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [open])
+  useClickOutside(dropdownRef, useCallback(() => setOpen(false), []))
 
   const selectedCount = selectedPartnerIds.length
   const label = selectedCount === 0
@@ -254,17 +245,7 @@ function UserMenu({ collapsed, partnerName }: { collapsed: boolean; partnerName:
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [open])
+  useClickOutside(menuRef, useCallback(() => setOpen(false), []))
 
   async function handleSignOut() {
     const supabase = createClient()

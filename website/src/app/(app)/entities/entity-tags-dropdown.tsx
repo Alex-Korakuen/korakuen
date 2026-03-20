@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition, useCallback } from 'react'
 import { addEntityTag, removeEntityTag } from '@/lib/actions'
+import { useClickOutside } from '@/lib/use-click-outside'
 import { tagColor } from './helpers'
 import type { EntityTagItem } from '@/lib/types'
 
@@ -16,17 +17,7 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
   const [isPending, startTransition] = useTransition()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Close on click outside
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  useClickOutside(dropdownRef, useCallback(() => setOpen(false), []))
 
   const assignedTagIds = new Set(currentTags.map(t => t.tagId))
 

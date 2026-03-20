@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { DEFAULT_ROUTE } from '@/lib/constants'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/set-password`)
       }
 
-      return NextResponse.redirect(`${origin}/calendar`)
+      return NextResponse.redirect(`${origin}${DEFAULT_ROUTE}`)
     }
   }
 

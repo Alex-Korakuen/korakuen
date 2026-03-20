@@ -18,10 +18,10 @@ type PartnerFilterContextType = {
 
 const PartnerFilterContext = createContext<PartnerFilterContextType | null>(null)
 
-import { COOKIE_NAME } from './partner-filter-utils'
+import { COOKIE_NAME, serializePartnerFilterCookie } from './partner-filter-utils'
 
 function setCookie(ids: string[]) {
-  const value = ids.length > 0 ? ids.join(',') : ''
+  const value = serializePartnerFilterCookie(ids)
   document.cookie = `${COOKIE_NAME}=${value};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax;secure`
 }
 

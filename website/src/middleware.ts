@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEFAULT_ROUTE } from '@/lib/constants'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -40,7 +41,7 @@ export async function middleware(request: NextRequest) {
   // Authenticated users trying to access /login — redirect to dashboard
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
-    url.pathname = '/calendar'
+    url.pathname = DEFAULT_ROUTE
     return NextResponse.redirect(url)
   }
 

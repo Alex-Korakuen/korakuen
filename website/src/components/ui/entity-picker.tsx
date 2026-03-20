@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useTransition } from 'react'
+import { useState, useRef, useTransition, useCallback } from 'react'
 import { searchEntitiesAction } from '@/lib/actions'
+import { useClickOutside } from '@/lib/use-click-outside'
 import { inputClass } from '@/lib/styles'
 import type { EntitySearchResult } from '@/lib/types'
 
@@ -20,16 +21,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  useClickOutside(containerRef, useCallback(() => setIsOpen(false), []))
 
   function handleSearch(q: string) {
     setQuery(q)

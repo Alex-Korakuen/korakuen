@@ -34,13 +34,13 @@ export function useUrlFilters() {
   }, [router, searchParams, pathname])
 
   const clearFilters = useCallback((keys: string[]) => {
-    const params = new URLSearchParams(window.location.search)
+    const params = new URLSearchParams(searchParams.toString())
     for (const key of keys) {
       params.delete(key)
     }
     params.delete('page')
-    window.location.search = params.toString()
-  }, [])
+    router.push(`${pathname}?${params.toString()}`)
+  }, [router, searchParams, pathname])
 
   return { setFilter, setFilters, clearFilters }
 }
