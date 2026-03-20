@@ -37,6 +37,6 @@ export function getPaymentTypeBadgeVariant(type: string): 'zinc' | 'blue' | 'yel
 }
 
 export function getRelatedLabel(relatedTo: string, invoiceNumber: string | null): string {
-  if (relatedTo === 'loan_schedule') return 'Loan'
+  if (relatedTo === 'loan_schedule' || relatedTo === 'loan') return 'Loan'
   return invoiceNumber ?? '--'
 }

@@ -68,4 +68,34 @@ LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id
 WHERE p.related_to = 'loan_schedule'
   AND p.is_active = true
 
+UNION ALL
+
+-- Part 3: Loan disbursement payments (inflow when loan is received)
+SELECT
+  p.id,
+  p.payment_date,
+  p.direction,
+  p.payment_type,
+  p.amount,
+  p.currency,
+  p.exchange_rate,
+  p.related_to,
+  p.related_id,
+  p.partner_company_id,
+  p.bank_account_id,
+  p.notes,
+  -- No invoice number for loans
+  NULL::VARCHAR AS invoice_number,
+  l.project_id,
+  pr.project_code,
+  l.lender_name AS entity_name,
+  -- Enriched from bank account
+  ba.bank_name
+FROM payments p
+JOIN loans l ON l.id = p.related_id
+LEFT JOIN projects pr ON pr.id = l.project_id
+LEFT JOIN bank_accounts ba ON ba.id = p.bank_account_id
+WHERE p.related_to = 'loan'
+  AND p.is_active = true
+
 ORDER BY payment_date DESC;

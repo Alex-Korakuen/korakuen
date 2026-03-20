@@ -639,6 +639,7 @@ export async function createLoan(data: {
   agreed_return_amount?: number
   due_date?: string
   notes?: string
+  bank_account_id?: string
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
@@ -650,7 +651,7 @@ export async function createLoan(data: {
     return { error: 'Agreed return amount is required for fixed return type' }
   }
 
-  const { error } = await supabase.from('loans').insert({
+  const { data: loan, error } = await supabase.from('loans').insert({
     partner_company_id: data.partner_company_id,
     entity_id: data.entity_id,
     lender_name: data.lender_name.trim(),
@@ -666,11 +667,30 @@ export async function createLoan(data: {
     agreed_return_amount: data.return_type === 'fixed' ? data.agreed_return_amount : null,
     due_date: data.due_date || null,
     notes: data.notes?.trim() || null,
-  })
+  }).select('id').single()
 
   if (error) return { error: error.message }
+
+  // Record the disbursement as an inbound payment (the cash received from the lender)
+  const { error: paymentError } = await supabase.from('payments').insert({
+    related_to: 'loan',
+    related_id: loan.id,
+    direction: 'inbound',
+    payment_type: 'regular',
+    payment_date: data.date_borrowed,
+    amount: data.amount,
+    currency: data.currency,
+    exchange_rate: data.exchange_rate,
+    partner_company_id: data.partner_company_id,
+    bank_account_id: data.bank_account_id || null,
+    notes: `Loan disbursement from ${data.lender_name.trim()}`,
+  })
+
+  if (paymentError) return { error: paymentError.message }
+
   revalidatePath('/financial-position')
   revalidatePath('/calendar')
+  revalidatePath('/payments')
   return {}
 }
 

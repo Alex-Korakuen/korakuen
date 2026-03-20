@@ -4,7 +4,8 @@ import { useState, useEffect, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
-import { createLoan, fetchExchangeRateForDate } from '@/lib/actions'
+import { createLoan, fetchExchangeRateForDate, fetchBankAccountsForPayment } from '@/lib/actions'
+import type { BankAccountOption } from '@/lib/actions'
 import type { PartnerCompanyOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 
@@ -36,6 +37,16 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   const [agreedReturnAmount, setAgreedReturnAmount] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
+  const [bankAccountId, setBankAccountId] = useState('')
+  const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
+
+  // Auto-fetch bank accounts when partner changes
+  useEffect(() => {
+    if (!isOpen || !partnerCompanyId) { setBankAccounts([]); setBankAccountId(''); return }
+    fetchBankAccountsForPayment(partnerCompanyId)
+      .then(accts => setBankAccounts(accts))
+      .catch(() => setBankAccounts([]))
+  }, [partnerCompanyId, isOpen])
 
   // Auto-fetch exchange rate when date changes
   useEffect(() => {
@@ -59,6 +70,8 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
     setAgreedReturnAmount('')
     setDueDate('')
     setNotes('')
+    setBankAccountId('')
+    setBankAccounts([])
     setError(null)
   }
 
@@ -91,6 +104,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
         agreed_return_amount: returnType === 'fixed' ? parseFloat(agreedReturnAmount) || 0 : undefined,
         due_date: dueDate || undefined,
         notes: notes.trim() || undefined,
+        bank_account_id: bankAccountId || undefined,
       })
 
       if (result.error) {
@@ -240,6 +254,23 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
             )}
           </div>
         </div>
+
+        {/* Bank Account (where the money landed) */}
+        {bankAccounts.length > 0 && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700">Bank Account <span className="font-normal text-zinc-400">(where funds were received)</span></label>
+            <select
+              value={bankAccountId}
+              onChange={(e) => setBankAccountId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Select account...</option>
+              {bankAccounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Notes */}
         <div>

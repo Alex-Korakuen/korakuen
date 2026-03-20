@@ -70,7 +70,12 @@ export async function getPaymentsPage(
     rows = rows.filter(r => r.payment_type === filters.paymentType)
   }
   if (filters.relatedTo) {
-    rows = rows.filter(r => r.related_to === filters.relatedTo)
+    // "Loan" chip matches both disbursements (related_to='loan') and repayments (related_to='loan_schedule')
+    if (filters.relatedTo === 'loan_schedule') {
+      rows = rows.filter(r => r.related_to === 'loan_schedule' || r.related_to === 'loan')
+    } else {
+      rows = rows.filter(r => r.related_to === filters.relatedTo)
+    }
   }
   if (filters.projectId) {
     rows = rows.filter(r => r.project_id === filters.projectId)
