@@ -3,6 +3,7 @@ import { buildEntityNameMap, buildProjectCodeMap, DEFAULT_CURRENCY } from './sha
 import type {
   BankAccountCard,
   BankTransaction,
+  PaymentDirection,
   CurrencyAmount,
   FinancialPositionData,
   IgvByCurrency,
@@ -185,7 +186,7 @@ export async function getBankTransactions(
     return {
       id: p.id,
       paymentDate: p.payment_date,
-      direction: p.direction,
+      direction: p.direction as PaymentDirection,
       amount: p.amount,
       currency: p.currency,
       entityName,

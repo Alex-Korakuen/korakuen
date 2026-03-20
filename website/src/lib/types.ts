@@ -32,6 +32,8 @@ export type EntityType = 'company' | 'individual'
 export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
 export type AccountType = 'checking' | 'savings' | 'detraccion'
 export type ReturnType = 'percentage' | 'fixed'
+export type PaymentDirection = 'inbound' | 'outbound'
+export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 
 // --- Invoice detail types ---
 
@@ -125,15 +127,15 @@ export type InvoicesPageRow = {
 export type PaymentsPageRow = {
   id: string
   payment_date: string
-  direction: string            // inbound / outbound
-  payment_type: string         // regular / detraccion / retencion
+  direction: PaymentDirection
+  payment_type: PaymentType
   amount: number
   currency: string
   exchange_rate: number
   entity_name: string | null
   project_id: string | null
   project_code: string | null
-  related_to: string           // invoice / loan_schedule / loan
+  related_to: PaymentRelatedTo
   related_id: string | null
   invoice_number: string | null
   bank_account_id: string | null
@@ -189,7 +191,7 @@ export type BankAccountCard = {
 export type BankTransaction = {
   id: string
   paymentDate: string
-  direction: string
+  direction: PaymentDirection
   amount: number
   currency: string
   entityName: string | null

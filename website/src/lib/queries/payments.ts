@@ -6,6 +6,9 @@ import type { PaginatedResult } from '../pagination'
 import type {
   PaymentsPageRow,
   PaymentsSummary,
+  PaymentDirection,
+  PaymentType,
+  PaymentRelatedTo,
 } from '../types'
 
 type PaymentsPageFilters = {
@@ -122,15 +125,15 @@ export async function getPaymentsPage(
   const mapped: PaymentsPageRow[] = rows.map(r => ({
     id: r.id!,
     payment_date: r.payment_date ?? '',
-    direction: r.direction ?? 'outbound',
-    payment_type: r.payment_type ?? 'regular',
+    direction: (r.direction ?? 'outbound') as PaymentDirection,
+    payment_type: (r.payment_type ?? 'regular') as PaymentType,
     amount: r.amount ?? 0,
     currency: r.currency ?? DEFAULT_CURRENCY,
     exchange_rate: r.exchange_rate ?? 0,
     entity_name: r.entity_name,
     project_id: r.project_id,
     project_code: r.project_code,
-    related_to: r.related_to ?? 'invoice',
+    related_to: (r.related_to ?? 'invoice') as PaymentRelatedTo,
     related_id: r.related_id,
     invoice_number: r.invoice_number,
     bank_account_id: r.bank_account_id,

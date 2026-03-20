@@ -795,6 +795,7 @@ export async function registerLoanRepayment(data: {
   currency: Currency
   exchange_rate: number
   partner_company_id: string
+  bank_account_id?: string
   notes?: string
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
@@ -816,7 +817,7 @@ export async function registerLoanRepayment(data: {
     currency: data.currency,
     exchange_rate: data.exchange_rate,
     partner_company_id: data.partner_company_id,
-    bank_account_id: null,
+    bank_account_id: data.bank_account_id || null,
     notes: data.notes?.trim() || null,
   })
 

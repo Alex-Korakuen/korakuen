@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { registerLoanRepayment } from '@/lib/actions'
+import { useState, useEffect, useTransition } from 'react'
+import { registerLoanRepayment, fetchBankAccountsForPayment } from '@/lib/actions'
+import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
@@ -34,7 +35,17 @@ export function RegisterLoanRepaymentForm({
 
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
+  const [bankAccountId, setBankAccountId] = useState('')
+  const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
   const exchangeRate = useExchangeRate(paymentDate)
+
+  // Fetch bank accounts for the partner, filtered to loan currency (exclude detraccion accounts)
+  useEffect(() => {
+    fetchBankAccountsForPayment(partnerCompanyId).then(accounts => {
+      const filtered = accounts.filter(a => a.currency === currency && !a.is_detraccion_account)
+      setBankAccounts(filtered)
+    })
+  }, [partnerCompanyId, currency])
 
   function handleSubmit() {
     setError(null)
@@ -62,6 +73,7 @@ export function RegisterLoanRepaymentForm({
         currency,
         exchange_rate: exchangeRate,
         partner_company_id: partnerCompanyId,
+        bank_account_id: bankAccountId || undefined,
       })
 
       if (result.error) {
@@ -131,6 +143,25 @@ export function RegisterLoanRepaymentForm({
           />
         </div>
       </div>
+
+      {/* Bank Account */}
+      {bankAccounts.length > 0 && (
+        <div className="mt-3">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+            Bank Account
+          </label>
+          <select
+            value={bankAccountId}
+            onChange={e => setBankAccountId(e.target.value)}
+            className={`${inputCompactClass} w-full bg-white`}
+          >
+            <option value="">Select account...</option>
+            {bankAccounts.map(a => (
+              <option key={a.id} value={a.id}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

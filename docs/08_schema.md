@@ -396,7 +396,7 @@ The unified payments table. Every actual movement of money — both inbound and 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
-| related_to | VARCHAR | NO | invoice or loan_schedule |
+| related_to | VARCHAR | NO | invoice, loan_schedule, or loan (disbursement) |
 | related_id | UUID | NO | the specific invoice or loan_schedule entry ID |
 | direction | VARCHAR | NO | inbound or outbound |
 | payment_type | VARCHAR | NO | regular, detraccion, retencion |
