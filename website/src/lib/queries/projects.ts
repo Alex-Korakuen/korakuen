@@ -404,6 +404,7 @@ export async function getPartnerReceivableDetails(
     .eq('direction', 'receivable')
     .eq('project_id', projectId)
     .eq('partner_company_id', partnerCompanyId)
+    .eq('is_active', true)
   if (invError) throw invError
 
   if (!invoices || invoices.length === 0) return []

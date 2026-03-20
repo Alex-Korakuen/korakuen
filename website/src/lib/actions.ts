@@ -999,7 +999,7 @@ export async function updateInvoice(input: {
   // Check if invoice has payments — validate new total >= amount_paid
   const { data: paymentAgg } = await supabase
     .from('payments')
-    .select('amount, currency')
+    .select('amount, currency, exchange_rate')
     .eq('related_to', 'invoice')
     .eq('related_id', input.id)
     .eq('is_active', true)
@@ -1007,7 +1007,7 @@ export async function updateInvoice(input: {
   if (paymentAgg && paymentAgg.length > 0) {
     const amountPaid = paymentAgg.reduce((sum, p) => {
       if (p.currency === existing.currency) return sum + p.amount
-      return sum + p.amount / (input.exchange_rate || 1)
+      return sum + p.amount / (p.exchange_rate || 1)
     }, 0)
     const igvAmount = round2(newSubtotal * (existing.igv_rate / 100))
     const newTotal = newSubtotal + igvAmount
