@@ -634,19 +634,18 @@ export async function upsertProjectBudget(
 ): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
-  // Check if budget row already exists for this project+category
+  // Check if budget row already exists for this project+category (active or soft-deleted)
   const { data: existing } = await supabase
     .from('project_budgets')
-    .select('id')
+    .select('id, is_active')
     .eq('project_id', projectId)
     .eq('category', category)
-    .eq('is_active', true)
     .limit(1)
 
   if (existing && existing.length > 0) {
     const { error } = await supabase
       .from('project_budgets')
-      .update({ budgeted_amount: budgetedAmount })
+      .update({ budgeted_amount: budgetedAmount, is_active: true })
       .eq('id', existing[0].id)
     if (error) return { error: handleDbError(error, 'Failed to save budget') }
   } else {

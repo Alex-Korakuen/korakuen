@@ -193,12 +193,9 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
   // Inline add form state (lifted from child components)
   const [showPartnerForm, setShowPartnerForm] = useState(false)
-  const [showBudgetForm, setShowBudgetForm] = useState(false)
 
   const assignedPartnerIds = new Set(partners.map(p => p.partnerCompanyId))
   const addPartnerDisabled = partnerCompanies.every(pc => assignedPartnerIds.has(pc.id))
-  const usedCategories = new Set(detail.budget.map(b => b.category))
-  const addBudgetDisabled = categories.every(c => usedCategories.has(c.name))
 
   // Edit form state
   const [editName, setEditName] = useState('')
@@ -365,15 +362,8 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
             {/* Costs & Budget */}
             <div className="rounded-xl border border-zinc-200 bg-white">
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+              <div className="px-4 pt-4 pb-2">
                 <h3 className="text-sm font-semibold text-zinc-700">Costs & Budget</h3>
-                <button
-                  onClick={() => setShowBudgetForm(true)}
-                  disabled={addBudgetDisabled || showBudgetForm}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
-                >
-                  + Add budget category
-                </button>
               </div>
               <ProjectBudgetForm
                 projectId={project.id}
@@ -381,8 +371,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 contractValue={contractValue}
                 contractCurrency={contractCurrency}
                 categories={categories}
-                showAddForm={showBudgetForm}
-                onHideAddForm={() => setShowBudgetForm(false)}
+                actualCostsByCategory={detail.actualCostsByCategory}
               />
             </div>
           </div>

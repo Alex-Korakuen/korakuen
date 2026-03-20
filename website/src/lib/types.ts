@@ -258,6 +258,7 @@ export type ProjectDetailData = {
   clientName: string | null
   entities: ProjectEntitySummary[]
   budget: BudgetVsActualRow[]
+  actualCostsByCategory: Record<string, number>
   partners: ProjectPartnerRow[]
   partnerSettlements: ProjectPartnerSettlement[]
 }
@@ -326,7 +327,7 @@ export type EntitiesFilterOptions = {
 
 export type PartnerCompanyOption = { id: string; name: string }
 
-export type CategoryOption = { name: string; cost_type: string }
+export type CategoryOption = { name: string; cost_type: string; sort_order: number }
 
 export type EntitySearchResult = {
   id: string

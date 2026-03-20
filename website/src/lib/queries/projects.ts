@@ -350,11 +350,31 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     })
   }
 
+  // 8. Actual costs by category — needed for categories without budget rows
+  const { data: invoicesWithItems, error: itemsError } = await supabase
+    .from('invoices')
+    .select('invoice_items(category, subtotal)')
+    .eq('project_id', projectId)
+    .eq('direction', 'payable')
+    .eq('cost_type', 'project_cost')
+    .eq('is_active', true)
+  if (itemsError) throw itemsError
+
+  const actualCostsByCategory: Record<string, number> = {}
+  for (const inv of invoicesWithItems ?? []) {
+    for (const item of inv.invoice_items ?? []) {
+      if (item.category) {
+        actualCostsByCategory[item.category] = (actualCostsByCategory[item.category] ?? 0) + (item.subtotal ?? 0)
+      }
+    }
+  }
+
   return {
     project,
     clientName,
     entities,
     budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
+    actualCostsByCategory,
     partners,
     partnerSettlements,
   }

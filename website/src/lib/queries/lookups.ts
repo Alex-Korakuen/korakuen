@@ -103,10 +103,10 @@ export async function getProjectCategories(): Promise<CategoryOption[]> {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
     .from('categories')
-    .select('name, cost_type')
+    .select('name, cost_type, sort_order')
     .eq('is_active', true)
     .eq('cost_type', 'project_cost')
-    .order('name')
+    .order('sort_order')
   if (error) throw error
   return data ?? []
 }
