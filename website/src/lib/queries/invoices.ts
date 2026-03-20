@@ -8,7 +8,6 @@ import type {
   InvoiceDetailData,
   InvoicesPageRow,
   InvoiceItem,
-  InvoiceAgingBuckets,
   LoanDetailData,
   LoanScheduleEntry,
   Payment,
@@ -20,7 +19,7 @@ type InvoicesPageFilters = {
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
   entity?: string
-  bucket?: string
+
   search?: string
   sort: string
   dir: 'asc' | 'desc'
@@ -28,15 +27,12 @@ type InvoicesPageFilters = {
 }
 
 export type InvoicesPageSummary = {
-  pen: number
-  usd: number
-  count: number
-  overdueCount: number
+  ap: { pen: number; usd: number }
+  ar: { pen: number; usd: number }
 }
 
 type InvoicesPageResult = {
   paginated: PaginatedResult<InvoicesPageRow>
-  buckets: InvoiceAgingBuckets
   summary: InvoicesPageSummary
   uniqueEntities: string[]
 }
@@ -68,37 +64,16 @@ export async function getInvoicesPage(
   for (const r of rows) { if (r.entity_name) entitySet.add(r.entity_name) }
   const uniqueEntities = Array.from(entitySet).sort()
 
-  // Compute combined bucket counts and summary (before filters)
-  const emptyBucket = { count: 0, pen: 0, usd: 0 }
-  const buckets: InvoiceAgingBuckets = {
-    current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket },
-  }
-  const summary: InvoicesPageSummary = { pen: 0, usd: 0, count: 0, overdueCount: 0 }
+  // Compute summary totals split by direction (before filters)
+  const summary: InvoicesPageSummary = { ap: { pen: 0, usd: 0 }, ar: { pen: 0, usd: 0 } }
 
   for (const r of rows) {
-    const outstanding = r.outstanding ?? 0
-    const bdnOutstanding = r.bdn_outstanding ?? 0
-    const effectiveOutstanding = outstanding + bdnOutstanding
+    const effectiveOutstanding = (r.outstanding ?? 0) + (r.bdn_outstanding ?? 0)
     if (effectiveOutstanding <= 0) continue
 
-    const bucket = (r.aging_bucket ?? 'current') as keyof InvoiceAgingBuckets
-    const isOverdue = (r.days_overdue ?? 0) > 0
-
-    // Buckets
-    if (buckets[bucket]) {
-      buckets[bucket].count++
-      if (r.currency === 'PEN') buckets[bucket].pen += effectiveOutstanding
-      else if (r.currency === 'USD') {
-        buckets[bucket].usd += effectiveOutstanding
-        if (midRate) buckets[bucket].pen += effectiveOutstanding * midRate
-      }
-    }
-
-    // Summary
-    summary.count++
-    if (r.currency === 'PEN') summary.pen += effectiveOutstanding
-    else if (r.currency === 'USD') summary.usd += effectiveOutstanding
-    if (isOverdue) summary.overdueCount++
+    const dir = r.direction === 'receivable' ? summary.ar : summary.ap
+    if (r.currency === 'PEN') dir.pen += effectiveOutstanding
+    else if (r.currency === 'USD') dir.usd += effectiveOutstanding
   }
 
   // Apply filters
@@ -122,9 +97,7 @@ export async function getInvoicesPage(
     const search = filters.entity.toLowerCase()
     rows = rows.filter(r => (r.entity_name ?? '').toLowerCase().includes(search))
   }
-  if (filters.bucket && filters.bucket !== 'all') {
-    rows = rows.filter(r => r.aging_bucket === filters.bucket)
-  }
+
   if (filters.search) {
     const term = filters.search.toLowerCase()
     rows = rows.filter(r =>
@@ -162,7 +135,7 @@ export async function getInvoicesPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page, 10)
 
-  return { paginated, buckets, summary, uniqueEntities }
+  return { paginated, summary, uniqueEntities }
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {

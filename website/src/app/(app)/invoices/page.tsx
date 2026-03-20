@@ -24,7 +24,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
     status: str(params, FK.status) as 'pending' | 'partial' | 'paid' | 'overdue' | undefined,
     projectId: str(params, FK.project),
     entity: str(params, FK.entity),
-    bucket: str(params, FK.bucket),
+
     search: str(params, FK.search),
     sort,
     dir,
@@ -45,7 +45,6 @@ export default async function InvoicesPage({ searchParams }: Props) {
       totalCount={result.paginated.totalCount}
       page={result.paginated.page}
       pageSize={result.paginated.pageSize}
-      buckets={result.buckets}
       summary={result.summary}
       projects={projects}
       uniqueEntities={result.uniqueEntities}
@@ -56,7 +55,6 @@ export default async function InvoicesPage({ searchParams }: Props) {
         status: filters.status ?? '',
         projectId: filters.projectId ?? '',
         entity: filters.entity ?? '',
-        bucket: filters.bucket ?? 'all',
         search: filters.search ?? '',
       }}
     />

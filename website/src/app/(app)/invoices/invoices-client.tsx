@@ -20,8 +20,6 @@ import type {
   InvoicesPageRow,
   InvoiceDetailData,
   LoanDetailData,
-  InvoiceAgingBucketId as BucketId,
-  InvoiceAgingBuckets as BucketCounts,
 } from '@/lib/types'
 import type { InvoicesPageSummary as Summary, CategoryOption } from '@/lib/queries'
 
@@ -30,7 +28,6 @@ type Props = {
   totalCount: number
   page: number
   pageSize: number
-  buckets: BucketCounts
   summary: Summary
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
@@ -41,34 +38,15 @@ type Props = {
     status: string
     projectId: string
     entity: string
-    bucket: string
     search: string
   }
 }
-
-// --- Aging dot colors ---
-const agingColors: Record<string, string> = {
-  current: 'bg-green-500',
-  '1-30': 'bg-yellow-500',
-  '31-60': 'bg-orange-500',
-  '61-90': 'bg-red-400',
-  '90+': 'bg-red-700',
-}
-
-const agingLabels: { label: string; key: keyof BucketCounts }[] = [
-  { label: 'Current', key: 'current' },
-  { label: '1–30 days', key: '1-30' },
-  { label: '31–60 days', key: '31-60' },
-  { label: '61–90 days', key: '61-90' },
-  { label: '90+ days', key: '90+' },
-]
 
 export function InvoicesClient({
   data,
   totalCount,
   page,
   pageSize,
-  buckets,
   summary,
   projects,
   uniqueEntities,
@@ -84,12 +62,6 @@ export function InvoicesClient({
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
 
-  const activeBucket = currentFilters.bucket as BucketId
-
-  function handleBucketClick(bucket: BucketId) {
-    setFilter(FK.bucket, activeBucket === bucket ? '' : bucket)
-  }
-
   const hasActiveFilters =
     currentFilters.direction !== '' ||
     currentFilters.type !== '' ||
@@ -98,7 +70,7 @@ export function InvoicesClient({
     currentFilters.entity !== '' ||
     currentFilters.search !== ''
 
-  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.bucket, FK.search])
+  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.search])
 
   const fetchDetail = useCallback(async (row: InvoicesPageRow) => {
     setModalDetail(null)
@@ -165,41 +137,21 @@ export function InvoicesClient({
       <div className="px-4 pt-4">
         {/* Summary strip */}
         <div className="mb-4 flex flex-wrap items-center gap-5">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-zinc-900">{formatCurrency(summary.pen, 'PEN')}</span>
-            {summary.usd > 0 && <span className="text-sm font-semibold text-zinc-500">{formatCurrency(summary.usd, 'USD')}</span>}
-            <span className="text-xs text-zinc-500">outstanding</span>
+          <div>
+            <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-0.5">Payable</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-zinc-900">{formatCurrency(summary.ap.pen, 'PEN')}</span>
+              {summary.ap.usd > 0 && <span className="text-sm font-semibold text-zinc-500">{formatCurrency(summary.ap.usd, 'USD')}</span>}
+            </div>
           </div>
-          <div className="h-6 w-px bg-zinc-200" />
-          <div className="flex flex-col items-center">
-            <span className="text-lg font-bold">{summary.count}</span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Items</span>
+          <div className="h-8 w-px bg-zinc-200" />
+          <div>
+            <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-0.5">Receivable</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-zinc-900">{formatCurrency(summary.ar.pen, 'PEN')}</span>
+              {summary.ar.usd > 0 && <span className="text-sm font-semibold text-zinc-500">{formatCurrency(summary.ar.usd, 'USD')}</span>}
+            </div>
           </div>
-          <div className="h-6 w-px bg-zinc-200" />
-          <div className="flex flex-col items-center">
-            <span className={`text-lg font-bold ${summary.overdueCount > 0 ? 'text-red-500' : 'text-green-500'}`}>
-              {summary.overdueCount}
-            </span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Overdue</span>
-          </div>
-        </div>
-
-        {/* Aging legend */}
-        <div className="mb-4 flex flex-wrap gap-x-5 gap-y-1">
-          {agingLabels.map(({ label, key }) => {
-            const b = buckets[key]
-            const isActive = activeBucket === key
-            return (
-              <button key={key} type="button" onClick={() => handleBucketClick(key)}
-                className={`flex items-center gap-1.5 rounded px-2 py-1 text-xs transition-colors hover:bg-zinc-100 ${isActive ? 'bg-zinc-100 ring-1 ring-zinc-300' : ''}`}>
-                <span className={`h-2 w-2 shrink-0 rounded-full ${agingColors[key] ?? 'bg-zinc-300'}`} />
-                <span className="text-zinc-500">{label}</span>
-                {b.pen > 0 && <span className="font-mono font-medium text-zinc-800">{formatCurrency(b.pen, 'PEN')}</span>}
-                {b.usd > 0 && <span className="font-mono text-zinc-500">{formatCurrency(b.usd, 'USD')}</span>}
-                {b.pen <= 0 && b.usd <= 0 && <span className="text-zinc-400">—</span>}
-              </button>
-            )
-          })}
         </div>
 
         {/* Filters */}
