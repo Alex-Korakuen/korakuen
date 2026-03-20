@@ -11,6 +11,14 @@ When a partner is removed from a project, their historical invoices and payments
 - Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
 ---
 
+## RLS Policies: Partner-Scoped Write Access
+
+`supabase/migrations/20260309000001_rls_write_policies.sql` — all write policies use `WITH CHECK (true)` with no per-partner scoping. Any authenticated user can edit invoices, payments, loans across all partners. Acceptable for now given small trusted user base, but a risk if the user base grows.
+
+**Fix:** Implement partner-scoped RLS policies that restrict writes to records matching the user's `partner_company_id`. Requires a user→partner mapping (e.g. via `auth.users` metadata or a lookup table).
+
+---
+
 ## Requirements Coverage Assessment (updated March 19, 2026)
 
 ### Summary
