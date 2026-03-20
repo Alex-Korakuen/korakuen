@@ -62,7 +62,7 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
           <div className="space-y-1">
             <div className="flex justify-between">
               <span className="text-zinc-500">Related To</span>
-              <span className="text-zinc-700">{row.related_to === 'loan_schedule' ? 'Loan Repayment' : 'Invoice'}</span>
+              <span className="text-zinc-700">{row.related_to === 'loan' ? 'Loan Disbursement' : row.related_to === 'loan_schedule' ? 'Loan Repayment' : 'Invoice'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Invoice #</span>
@@ -91,7 +91,7 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
         </div>
       )}
 
-      {relatedDetail && row.related_to === 'loan_schedule' && 'loan' in relatedDetail && relatedDetail.loan && (
+      {relatedDetail && (row.related_to === 'loan_schedule' || row.related_to === 'loan') && 'loan' in relatedDetail && relatedDetail.loan && (
         <div>
           <h3 className="mb-2 text-sm font-semibold text-zinc-700">Related Loan</h3>
           <div className="grid grid-cols-2 gap-4 rounded border border-zinc-200 px-4 py-3 text-sm sm:grid-cols-4">
@@ -216,7 +216,7 @@ function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
         <div>
           <span className="block text-[11px] font-medium text-zinc-400 mb-1">Related <LockIcon /></span>
           <span className="text-sm text-zinc-500">
-            {row.related_to === 'loan_schedule' ? 'Loan' : row.invoice_number ?? 'Invoice'}
+            {(row.related_to === 'loan_schedule' || row.related_to === 'loan') ? 'Loan' : row.invoice_number ?? 'Invoice'}
           </span>
         </div>
       </div>
@@ -364,7 +364,7 @@ function DeleteContent({ row, onCancel, onSuccess }: {
           <div className="flex-1">
             <h4 className="text-sm font-semibold text-red-800">Deactivate this payment?</h4>
             <p className="text-sm text-red-700 mt-1">
-              The {row.related_to === 'loan_schedule' ? 'loan schedule' : 'invoice'} outstanding
+              The {(row.related_to === 'loan_schedule' || row.related_to === 'loan') ? 'loan' : 'invoice'} outstanding
               balance will increase by <span className="font-mono font-semibold">{formatCurrency(row.amount, row.currency)}</span>.
             </p>
             <p className="text-xs text-red-500 mt-2">This action can be reversed by an administrator.</p>

@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { formatCurrency } from '@/lib/formatters'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
-import { fetchInvoiceDetail, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
+import { fetchInvoiceDetail, fetchLoanDetailById, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
@@ -92,11 +92,13 @@ export function PaymentsClient({
 
     try {
       // Load related detail and bank accounts in parallel
-      const detailPromise = row.related_to === 'loan_schedule' && row.related_id
-        ? fetchLoanDetailByScheduleId(row.related_id)
-        : row.related_id
-          ? fetchInvoiceDetail(row.related_id)
-          : Promise.resolve(null)
+      const detailPromise = row.related_to === 'loan' && row.related_id
+        ? fetchLoanDetailById(row.related_id)
+        : row.related_to === 'loan_schedule' && row.related_id
+          ? fetchLoanDetailByScheduleId(row.related_id)
+          : row.related_id
+            ? fetchInvoiceDetail(row.related_id)
+            : Promise.resolve(null)
 
       const bankPromise = row.partner_company_id
         ? fetchBankAccountsForPayment(row.partner_company_id)

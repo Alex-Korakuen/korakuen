@@ -136,7 +136,7 @@ export type PaymentsPageRow = {
   entity_name: string | null
   project_id: string | null
   project_code: string | null
-  related_to: string           // invoice / loan_schedule
+  related_to: string           // invoice / loan_schedule / loan
   related_id: string | null
   invoice_number: string | null
   bank_account_id: string | null

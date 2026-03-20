@@ -877,6 +877,17 @@ export async function updatePayment(input: {
     if (input.amount > maxAmount) {
       return { error: `Amount exceeds schedule entry outstanding (${maxAmount.toFixed(2)})` }
     }
+  } else if (existing.related_to === 'loan') {
+    // Loan disbursement — cap at loan principal
+    const { data: loan } = await supabase
+      .from('loans')
+      .select('amount')
+      .eq('id', existing.related_id)
+      .single()
+    if (!loan) return { error: 'Related loan not found' }
+    if (input.amount > loan.amount) {
+      return { error: `Amount exceeds loan principal (${loan.amount.toFixed(2)})` }
+    }
   }
 
   const { error } = await supabase
