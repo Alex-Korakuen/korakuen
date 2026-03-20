@@ -19,8 +19,8 @@ import type {
   InvoicesPageRow,
   InvoiceDetailData,
   LoanDetailData,
+  CategoryOption,
 } from '@/lib/types'
-import type { CategoryOption } from '@/lib/queries'
 
 type Props = {
   data: InvoicesPageRow[]

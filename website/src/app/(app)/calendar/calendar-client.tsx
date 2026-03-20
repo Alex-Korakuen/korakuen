@@ -17,8 +17,8 @@ import type {
   InvoiceDetailData,
   LoanDetailData,
   CalendarBucketId as BucketId,
+  CategoryOption,
 } from '@/lib/types'
-import type { CategoryOption } from '@/lib/queries'
 
 export type SectionTotals = {
   pay: { pen: number; usd: number; count: number }

@@ -5,8 +5,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { fetchPartnerPayables, fetchPartnerReceivables, addProjectPartner, removeProjectPartner, updatePartnerProfitShare } from '@/lib/actions'
 import { inputCompactClass, btnDangerIcon, iconTrash } from '@/lib/styles'
-import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerPayableDetail, PartnerReceivableDetail } from '@/lib/types'
-import type { PartnerCompanyOption } from '@/lib/queries'
+import type { ProjectPartnerSettlement as SettlementRow, ProjectPartnerRow, PartnerPayableDetail, PartnerReceivableDetail, PartnerCompanyOption } from '@/lib/types'
 
 type Props = {
   projectId: string

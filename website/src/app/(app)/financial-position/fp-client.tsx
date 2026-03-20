@@ -11,8 +11,7 @@ import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
 const CreateLoanModal = dynamic(() => import('./create-loan-modal').then(m => ({ default: m.CreateLoanModal })))
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
-import type { BankTransaction, FinancialPositionData, LoanDetailData } from '@/lib/types'
-import type { PartnerCompanyOption } from '@/lib/queries'
+import type { BankTransaction, FinancialPositionData, LoanDetailData, PartnerCompanyOption } from '@/lib/types'
 
 type Props = {
   data: FinancialPositionData

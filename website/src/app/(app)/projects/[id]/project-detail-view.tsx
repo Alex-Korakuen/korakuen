@@ -19,8 +19,7 @@ import { updateProject } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
 import { LockIcon } from '@/components/ui/lock-icon'
-import type { ProjectDetailData, ProjectEntitySummary } from '@/lib/types'
-import type { PartnerCompanyOption, CategoryOption } from '@/lib/queries'
+import type { ProjectDetailData, ProjectEntitySummary, PartnerCompanyOption, CategoryOption } from '@/lib/types'
 
 type Props = {
   detail: ProjectDetailData

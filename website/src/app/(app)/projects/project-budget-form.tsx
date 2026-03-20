@@ -3,8 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { formatCurrency, formatCategory } from '@/lib/formatters'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
-import type { BudgetVsActualRow } from '@/lib/types'
-import type { CategoryOption } from '@/lib/queries'
+import type { BudgetVsActualRow, CategoryOption } from '@/lib/types'
 import { inputCompactClass, iconTrash } from '@/lib/styles'
 
 type Props = {

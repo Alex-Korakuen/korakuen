@@ -9,9 +9,8 @@ import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTras
 import { updateInvoice, deactivateInvoice, fetchExchangeRateForDate } from '@/lib/actions'
 import { LockIcon } from '@/components/ui/lock-icon'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
-import type { InvoiceDetailData, InvoicesPageRow } from '@/lib/types'
-import { round2 } from '@/lib/queries'
-import type { CategoryOption } from '@/lib/queries'
+import type { InvoiceDetailData, InvoicesPageRow, CategoryOption } from '@/lib/types'
+import { round2 } from '@/lib/queries/shared'
 
 type Props = {
   detail: InvoiceDetailData
