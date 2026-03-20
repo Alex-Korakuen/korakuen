@@ -8,7 +8,6 @@ import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
 import { InvoicesClient } from './invoices-client'
-import type { InvoiceTab } from '@/lib/queries'
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -19,13 +18,9 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'due_date', dir: 'desc' })
 
-  const tabRaw = str(params, 'tab') ?? 'payable'
-  const tab: InvoiceTab = ['payable', 'receivable', 'loans'].includes(tabRaw)
-    ? (tabRaw as InvoiceTab)
-    : 'payable'
-
   const filters = {
-    tab,
+    direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
+    type: str(params, FK.type) as 'commercial' | 'loan' | undefined,
     status: str(params, FK.status) as 'pending' | 'partial' | 'paid' | 'overdue' | undefined,
     projectId: str(params, FK.project),
     entity: str(params, FK.entity),
@@ -46,18 +41,18 @@ export default async function InvoicesPage({ searchParams }: Props) {
 
   return (
     <InvoicesClient
-      tab={tab}
       data={result.paginated.data}
       totalCount={result.paginated.totalCount}
       page={result.paginated.page}
       pageSize={result.paginated.pageSize}
-      payableBuckets={result.payableBuckets}
-      receivableBuckets={result.receivableBuckets}
+      buckets={result.buckets}
       summary={result.summary}
       projects={projects}
       uniqueEntities={result.uniqueEntities}
       categories={categories}
       currentFilters={{
+        direction: filters.direction ?? '',
+        type: filters.type ?? '',
         status: filters.status ?? '',
         projectId: filters.projectId ?? '',
         entity: filters.entity ?? '',

@@ -14,10 +14,9 @@ import type {
   Payment,
 } from '../types'
 
-export type InvoiceTab = 'payable' | 'receivable' | 'loans'
-
 type InvoicesPageFilters = {
-  tab: InvoiceTab
+  direction?: 'payable' | 'receivable'
+  type?: 'commercial' | 'loan'
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
   entity?: string
@@ -28,23 +27,16 @@ type InvoicesPageFilters = {
   page: number
 }
 
-export type InvoicesTabSummary = {
+export type InvoicesPageSummary = {
   pen: number
   usd: number
   count: number
   overdueCount: number
 }
 
-export type InvoicesPageSummary = {
-  payable: InvoicesTabSummary & { commercialPen: number; commercialUsd: number; loanPen: number; loanUsd: number }
-  receivable: InvoicesTabSummary
-  loans: InvoicesTabSummary & { activeCount: number; dueCount: number }
-}
-
 type InvoicesPageResult = {
   paginated: PaginatedResult<InvoicesPageRow>
-  payableBuckets: InvoiceAgingBuckets
-  receivableBuckets: InvoiceAgingBuckets
+  buckets: InvoiceAgingBuckets
   summary: InvoicesPageSummary
   uniqueEntities: string[]
 }
@@ -61,7 +53,6 @@ export async function getInvoicesPage(
     .select('*')
     .order('due_date', { ascending: false, nullsFirst: false })
 
-  // Push partner filter to database
   if (partnerFilter.length > 0) {
     query = query.in('partner_company_id', partnerFilter)
   }
@@ -77,22 +68,13 @@ export async function getInvoicesPage(
   for (const r of rows) { if (r.entity_name) entitySet.add(r.entity_name) }
   const uniqueEntities = Array.from(entitySet).sort()
 
-  // Compute bucket counts per direction (before filters)
-  // Commercial payable buckets only (loans excluded)
+  // Compute combined bucket counts and summary (before filters)
   const emptyBucket = { count: 0, pen: 0, usd: 0 }
-  const payableBuckets: InvoiceAgingBuckets = {
+  const buckets: InvoiceAgingBuckets = {
     current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket },
   }
-  const receivableBuckets: InvoiceAgingBuckets = {
-    current: { ...emptyBucket }, '1-30': { ...emptyBucket }, '31-60': { ...emptyBucket }, '61-90': { ...emptyBucket }, '90+': { ...emptyBucket },
-  }
-  const summary: InvoicesPageSummary = {
-    payable: { pen: 0, usd: 0, count: 0, overdueCount: 0, commercialPen: 0, commercialUsd: 0, loanPen: 0, loanUsd: 0 },
-    receivable: { pen: 0, usd: 0, count: 0, overdueCount: 0 },
-    loans: { pen: 0, usd: 0, count: 0, overdueCount: 0, activeCount: 0, dueCount: 0 },
-  }
+  const summary: InvoicesPageSummary = { pen: 0, usd: 0, count: 0, overdueCount: 0 }
 
-  // Only count unpaid/partial for bucket totals and summary
   for (const r of rows) {
     const outstanding = r.outstanding ?? 0
     const bdnOutstanding = r.bdn_outstanding ?? 0
@@ -102,76 +84,30 @@ export async function getInvoicesPage(
     const bucket = (r.aging_bucket ?? 'current') as keyof InvoiceAgingBuckets
     const isOverdue = (r.days_overdue ?? 0) > 0
 
-    if (r.type === 'loan') {
-      // Loan summary
-      summary.loans.count++
-      if (r.currency === 'PEN') summary.loans.pen += effectiveOutstanding
-      else if (r.currency === 'USD') summary.loans.usd += effectiveOutstanding
-      if (isOverdue) summary.loans.overdueCount++
-      summary.loans.dueCount++
-
-      // Also count in payable totals (loans are payable)
-      summary.payable.count++
-      if (r.currency === 'PEN') {
-        summary.payable.pen += effectiveOutstanding
-        summary.payable.loanPen += effectiveOutstanding
-      } else if (r.currency === 'USD') {
-        summary.payable.usd += effectiveOutstanding
-        summary.payable.loanUsd += effectiveOutstanding
+    // Buckets
+    if (buckets[bucket]) {
+      buckets[bucket].count++
+      if (r.currency === 'PEN') buckets[bucket].pen += effectiveOutstanding
+      else if (r.currency === 'USD') {
+        buckets[bucket].usd += effectiveOutstanding
+        if (midRate) buckets[bucket].pen += effectiveOutstanding * midRate
       }
-      if (isOverdue) summary.payable.overdueCount++
-    } else if (r.direction === 'receivable') {
-      // Receivable buckets and summary
-      if (receivableBuckets[bucket]) {
-        receivableBuckets[bucket].count++
-        if (r.currency === 'PEN') receivableBuckets[bucket].pen += effectiveOutstanding
-        else if (r.currency === 'USD') {
-          receivableBuckets[bucket].usd += effectiveOutstanding
-          if (midRate) receivableBuckets[bucket].pen += effectiveOutstanding * midRate
-        }
-      }
-      summary.receivable.count++
-      if (r.currency === 'PEN') summary.receivable.pen += effectiveOutstanding
-      else if (r.currency === 'USD') summary.receivable.usd += effectiveOutstanding
-      if (isOverdue) summary.receivable.overdueCount++
-    } else {
-      // Commercial payable buckets and summary
-      if (payableBuckets[bucket]) {
-        payableBuckets[bucket].count++
-        if (r.currency === 'PEN') payableBuckets[bucket].pen += effectiveOutstanding
-        else if (r.currency === 'USD') {
-          payableBuckets[bucket].usd += effectiveOutstanding
-          if (midRate) payableBuckets[bucket].pen += effectiveOutstanding * midRate
-        }
-      }
-      summary.payable.count++
-      if (r.currency === 'PEN') {
-        summary.payable.pen += effectiveOutstanding
-        summary.payable.commercialPen += effectiveOutstanding
-      } else if (r.currency === 'USD') {
-        summary.payable.usd += effectiveOutstanding
-        summary.payable.commercialUsd += effectiveOutstanding
-      }
-      if (isOverdue) summary.payable.overdueCount++
     }
+
+    // Summary
+    summary.count++
+    if (r.currency === 'PEN') summary.pen += effectiveOutstanding
+    else if (r.currency === 'USD') summary.usd += effectiveOutstanding
+    if (isOverdue) summary.overdueCount++
   }
 
-  // Count active loans (from all rows, not just outstanding)
-  for (const r of rows) {
-    if (r.type === 'loan') summary.loans.activeCount++
+  // Apply filters
+  if (filters.direction) {
+    rows = rows.filter(r => r.direction === filters.direction)
   }
-
-  // Apply tab filter
-  if (filters.tab === 'loans') {
-    rows = rows.filter(r => r.type === 'loan')
-  } else if (filters.tab === 'receivable') {
-    rows = rows.filter(r => r.direction === 'receivable')
-  } else {
-    // payable = commercial payable only
-    rows = rows.filter(r => r.direction === 'payable' && r.type === 'commercial')
+  if (filters.type) {
+    rows = rows.filter(r => r.type === filters.type)
   }
-
-  // Apply additional filters
   if (filters.status) {
     if (filters.status === 'overdue') {
       rows = rows.filter(r => r.payment_status !== 'paid' && (r.days_overdue ?? 0) > 0)
@@ -223,11 +159,10 @@ export async function getInvoicesPage(
     loan_id: r.loan_id,
   }))
 
-  // Sort and paginate
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page, 10)
 
-  return { paginated, payableBuckets, receivableBuckets, summary, uniqueEntities }
+  return { paginated, buckets, summary, uniqueEntities }
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {
@@ -264,8 +199,6 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
   }
 }
 
-
-
 export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   const supabase = await createServerSupabaseClient()
 
@@ -288,7 +221,6 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
   const scheduleEntries = scheduleResult.data ?? []
   const scheduleIds = scheduleEntries.map(s => s.id)
 
-  // Fetch all payments linked to this loan's schedule entries
   let payments: Payment[] = []
   if (scheduleIds.length > 0) {
     const { data, error } = await supabase
@@ -302,7 +234,6 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     payments = (data ?? []) as Payment[]
   }
 
-  // Compute derived fields per schedule entry
   const schedule: LoanScheduleEntry[] = scheduleEntries.map(entry => {
     const entryPayments = payments.filter(p => p.related_id === entry.id)
     const amountPaid = entryPayments.reduce((sum, p) => sum + p.amount, 0)
@@ -313,9 +244,5 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     return { ...entry, amount_paid: amountPaid, outstanding, payment_status: status }
   })
 
-  return {
-    loan: loanResult.data,
-    schedule,
-    payments,
-  }
+  return { loan: loanResult.data, schedule, payments }
 }

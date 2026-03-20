@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { FK } from '@/lib/filter-keys'
-import type { InvoiceTab } from '@/lib/queries'
 
 type Props = {
-  tab: InvoiceTab
   currentFilters: {
+    direction: string
+    type: string
     status: string
     projectId: string
     entity: string
@@ -21,7 +21,6 @@ type Props = {
 }
 
 export function InvoicesFilters({
-  tab,
   currentFilters,
   setFilter,
   projects,
@@ -49,7 +48,7 @@ export function InvoicesFilters({
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
       {/* Search */}
-      <div className="relative flex-1" style={{ minWidth: 200, maxWidth: 360 }}>
+      <div className="relative flex-1" style={{ minWidth: 200, maxWidth: 320 }}>
         <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
@@ -60,10 +59,31 @@ export function InvoicesFilters({
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
-          placeholder={tab === 'loans' ? 'Search by lender...' : 'Search by invoice #, entity...'}
+          placeholder="Search by invoice #, entity..."
           className="w-full rounded-md border border-zinc-300 py-1.5 pl-8 pr-3 text-sm text-zinc-700 outline-none transition-colors focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500"
         />
       </div>
+
+      {/* Direction */}
+      <select
+        value={currentFilters.direction || currentFilters.type}
+        onChange={(e) => {
+          const v = e.target.value
+          if (v === 'loan') {
+            setFilter(FK.direction, '')
+            setFilter(FK.type, 'loan')
+          } else {
+            setFilter(FK.type, '')
+            setFilter(FK.direction, v)
+          }
+        }}
+        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+      >
+        <option value="">All Directions</option>
+        <option value="payable">Payable</option>
+        <option value="receivable">Receivable</option>
+        <option value="loan">Loan</option>
+      </select>
 
       {/* Status */}
       <select
@@ -90,27 +110,22 @@ export function InvoicesFilters({
         ))}
       </select>
 
-      {/* Entity (only for commercial tabs) */}
-      {tab !== 'loans' && (
-        <select
-          value={currentFilters.entity}
-          onChange={(e) => setFilter(FK.entity, e.target.value)}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
-        >
-          <option value="">All Entities</option>
-          {uniqueEntities.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-      )}
+      {/* Entity */}
+      <select
+        value={currentFilters.entity}
+        onChange={(e) => setFilter(FK.entity, e.target.value)}
+        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+      >
+        <option value="">All Entities</option>
+        {uniqueEntities.map((name) => (
+          <option key={name} value={name}>{name}</option>
+        ))}
+      </select>
 
       {/* Clear */}
       {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={onClearFilters}
-          className="rounded px-2 py-1.5 text-sm text-zinc-500 transition-colors hover:text-red-500"
-        >
+        <button type="button" onClick={onClearFilters}
+          className="rounded px-2 py-1.5 text-sm text-zinc-500 transition-colors hover:text-red-500">
           Clear
         </button>
       )}
