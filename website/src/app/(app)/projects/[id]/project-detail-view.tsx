@@ -18,6 +18,7 @@ import { updateProject } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
 import { LockIcon } from '@/components/ui/lock-icon'
+import { EntityPicker } from '@/components/ui/entity-picker'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerCompanyOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -197,6 +198,8 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
   const [editStartDate, setEditStartDate] = useState('')
   const [editExpectedEnd, setEditExpectedEnd] = useState('')
   const [editActualEnd, setEditActualEnd] = useState('')
+  const [editClientEntityId, setEditClientEntityId] = useState<string | null>(null)
+  const [editClientName, setEditClientName] = useState<string | null>(null)
   const [editLocation, setEditLocation] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -208,6 +211,8 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
     setEditStartDate(project.start_date ?? '')
     setEditExpectedEnd(project.expected_end_date ?? '')
     setEditActualEnd(project.actual_end_date ?? '')
+    setEditClientEntityId(project.client_entity_id ?? null)
+    setEditClientName(clientName ?? null)
     setEditLocation(project.location ?? '')
     setEditNotes(project.notes ?? '')
     setError(null)
@@ -230,6 +235,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
       const result = await updateProject(project.id, {
         name: editName.trim(),
         status: editStatus,
+        client_entity_id: editClientEntityId || undefined,
         contract_value: parsedValue,
         start_date: editStartDate || undefined,
         expected_end_date: editExpectedEnd || undefined,
@@ -419,6 +425,16 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 className={`${inputCompactClass} w-full bg-white`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-muted mb-1">Client</label>
+              <EntityPicker
+                value={editClientEntityId}
+                displayName={editClientName}
+                onChange={(id, name) => { setEditClientEntityId(id); setEditClientName(name) }}
+                placeholder="Search for client entity..."
               />
             </div>
 
