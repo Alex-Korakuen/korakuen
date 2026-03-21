@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { usePartnerFilter } from '@/lib/partner-filter-context'
 import { useSidebar } from '@/lib/sidebar-context'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { createClient } from '@/lib/supabase/client'
@@ -85,157 +84,6 @@ function NavSection({
           />
         ))}
       </nav>
-    </div>
-  )
-}
-
-function PartnerFilter({ collapsed }: { collapsed: boolean }) {
-  const { partners, selectedPartnerIds, togglePartner, clearFilter, applyFilter, isFiltered, isDirty } = usePartnerFilter()
-  const [open, setOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useClickOutside(dropdownRef, useCallback(() => setOpen(false), []))
-
-  const selectedCount = selectedPartnerIds.length
-  const label = selectedCount === 0
-    ? 'All Partners'
-    : selectedCount === partners.length
-      ? 'All Partners'
-      : partners
-          .filter((p) => selectedPartnerIds.includes(p.id))
-          .map((p) => p.name)
-          .join(', ')
-
-  if (collapsed) {
-    return (
-      <div className="mb-6 px-2" ref={dropdownRef}>
-        <button
-          onClick={() => setOpen(!open)}
-          className={`flex h-8 w-full items-center justify-center rounded-md border text-xs font-medium transition-colors ${
-            isFiltered
-              ? 'border-edge-strong bg-surface text-ink'
-              : 'border-edge text-muted hover:border-edge-strong'
-          }`}
-          title={label}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="1 1 15 1 9 8 9 13 7 15 7 8" />
-          </svg>
-        </button>
-        {open && (
-          <div className="absolute left-full top-0 z-50 ml-1 w-48 rounded-md border border-edge bg-white py-1 shadow-lg">
-            {partners.map((p) => {
-              const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => togglePartner(p.id)}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink hover:bg-surface"
-                >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded border ${
-                    selected ? 'border-accent bg-accent text-white' : 'border-edge-strong'
-                  }`}>
-                    {selected && (
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="2 6 5 9 10 3" />
-                      </svg>
-                    )}
-                  </span>
-                  {p.name}
-                </button>
-              )
-            })}
-            {isFiltered && (
-              <button
-                onClick={() => { clearFilter(); setOpen(false) }}
-                className="w-full border-t border-edge px-3 py-1.5 text-left text-xs text-faint hover:text-muted"
-              >
-                Clear filter
-              </button>
-            )}
-            {isDirty && (
-              <button
-                onClick={() => { applyFilter(); setOpen(false) }}
-                className="w-full border-t border-edge px-3 py-1.5 text-left text-sm font-medium text-ink hover:bg-surface"
-              >
-                Apply
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative mb-6 px-2" ref={dropdownRef}>
-      <h3 className="mb-2 px-1 text-[10px] font-medium uppercase tracking-[0.1em] text-faint">
-        Partners
-      </h3>
-      <button
-        onClick={() => setOpen(!open)}
-        className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-          isFiltered
-            ? 'border-edge-strong bg-surface font-medium text-ink'
-            : 'border-edge text-muted hover:border-edge-strong'
-        }`}
-      >
-        <span className="truncate">{label}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`ml-2 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-        >
-          <polyline points="3 4.5 6 7.5 9 4.5" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute left-2 right-2 z-50 mt-1 rounded-md border border-edge bg-white py-1 shadow-lg">
-          {partners.map((p) => {
-            const selected = selectedPartnerIds.length === 0 || selectedPartnerIds.includes(p.id)
-            return (
-              <button
-                key={p.id}
-                onClick={() => togglePartner(p.id)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink hover:bg-surface"
-              >
-                <span className={`flex h-4 w-4 items-center justify-center rounded border ${
-                  selected ? 'border-accent bg-accent text-white' : 'border-edge-strong'
-                }`}>
-                  {selected && (
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="2 6 5 9 10 3" />
-                    </svg>
-                  )}
-                </span>
-                {p.name}
-              </button>
-            )
-          })}
-          {isFiltered && (
-            <button
-              onClick={() => { clearFilter(); setOpen(false) }}
-              className="w-full border-t border-edge px-3 py-1.5 text-left text-xs text-faint hover:text-muted"
-            >
-              Clear filter
-            </button>
-          )}
-          {isDirty && (
-            <button
-              onClick={() => { applyFilter(); setOpen(false) }}
-              className="w-full border-t border-edge px-3 py-1.5 text-left text-sm font-medium text-ink hover:bg-surface"
-            >
-              Apply
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -394,7 +242,6 @@ export function Sidebar({ partnerName }: SidebarProps) {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-2 py-4">
-          <PartnerFilter collapsed={collapsed} />
           <NavSection
             title="Browse"
             items={browseItems}

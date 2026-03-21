@@ -3,7 +3,6 @@ import {
   getProjectsForFilter,
   getProjectCategories,
 } from '@/lib/queries'
-import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
 import { InvoicesClient } from './invoices-client'
@@ -14,7 +13,6 @@ type Props = {
 
 export default async function InvoicesPage({ searchParams }: Props) {
   const params = await searchParams
-  const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'due_date', dir: 'desc' })
 
   const filters = {
@@ -35,7 +33,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
     getProjectCategories(),
   ])
 
-  const result = await getInvoicesPage(partnerIds, filters)
+  const result = await getInvoicesPage(filters)
 
   return (
     <InvoicesClient

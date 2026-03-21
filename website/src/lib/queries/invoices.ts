@@ -34,7 +34,6 @@ type InvoicesPageResult = {
 }
 
 export async function getInvoicesPage(
-  partnerFilter: string[],
   filters: InvoicesPageFilters,
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
@@ -43,10 +42,6 @@ export async function getInvoicesPage(
     .from('v_invoices_with_loans')
     .select('*')
     .order('due_date', { ascending: false, nullsFirst: false })
-
-  if (partnerFilter.length > 0) {
-    query = query.in('partner_company_id', partnerFilter)
-  }
 
   const { data, error } = await query
 

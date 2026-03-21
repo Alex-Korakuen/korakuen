@@ -1,5 +1,4 @@
 import { getPaymentsPage } from '@/lib/queries'
-import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
 import { PaymentsClient } from './payments-client'
@@ -10,7 +9,6 @@ type Props = {
 
 export default async function PaymentsPage({ searchParams }: Props) {
   const params = await searchParams
-  const partnerIds = await getPartnerFilter()
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'payment_date', dir: 'desc' })
 
   // Derive dateFrom/dateTo from month param (e.g. "2026-03" → "2026-03-01" / "2026-03-31")
@@ -38,7 +36,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
     page,
   }
 
-  const result = await getPaymentsPage(partnerIds, filters)
+  const result = await getPaymentsPage(filters)
 
   return (
     <PaymentsClient

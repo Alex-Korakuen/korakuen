@@ -34,7 +34,6 @@ type PaymentsPageResult = {
 }
 
 export async function getPaymentsPage(
-  partnerFilter: string[],
   filters: PaymentsPageFilters,
 ): Promise<PaymentsPageResult> {
   const supabase = await createServerSupabaseClient()
@@ -43,11 +42,6 @@ export async function getPaymentsPage(
     .from('v_payments_enriched')
     .select('*')
     .order('payment_date', { ascending: false })
-
-  // Push partner filter to database
-  if (partnerFilter.length > 0) {
-    paymentsQuery = paymentsQuery.in('partner_company_id', partnerFilter)
-  }
 
   const { data, error } = await paymentsQuery
 

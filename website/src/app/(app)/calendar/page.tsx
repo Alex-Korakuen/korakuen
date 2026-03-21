@@ -1,5 +1,4 @@
 import { getObligationCalendar, getProjectsForFilter, getProjectCategories } from '@/lib/queries'
-import { getPartnerFilter } from '@/lib/partner-filter-server'
 import { FK, str } from '@/lib/filter-keys'
 import { CalendarClient } from './calendar-client'
 
@@ -9,7 +8,6 @@ type Props = {
 
 export default async function CalendarPage({ searchParams }: Props) {
   const params = await searchParams
-  const partnerIds = await getPartnerFilter()
 
   const filters = {
     direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
@@ -24,7 +22,7 @@ export default async function CalendarPage({ searchParams }: Props) {
   const [projects, categories, result] = await Promise.all([
     getProjectsForFilter(),
     getProjectCategories(),
-    getObligationCalendar(partnerIds, filters),
+    getObligationCalendar(filters),
   ])
 
   return (

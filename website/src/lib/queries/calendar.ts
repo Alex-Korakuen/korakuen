@@ -20,7 +20,6 @@ type ObligationCalendarResult = {
 export { getCalendarBucket }
 
 export async function getObligationCalendar(
-  partnerIds: string[],
   filters: ObligationCalendarFilters,
 ): Promise<ObligationCalendarResult> {
   const supabase = await createServerSupabaseClient()
@@ -29,12 +28,8 @@ export async function getObligationCalendar(
     .select('*')
     .order('due_date', { ascending: true })
 
-  // Push direction and partner filters to database
   if (filters.direction) {
     query = query.eq('direction', filters.direction)
-  }
-  if (partnerIds.length > 0) {
-    query = query.in('partner_company_id', partnerIds)
   }
 
   const { data, error } = await query

@@ -25,24 +25,14 @@ function groupByCurrency(
     .sort((a, b) => a.currency.localeCompare(b.currency))
 }
 
-export async function getFinancialPosition(
-  partnerIds: string[]
-): Promise<FinancialPositionData> {
+export async function getFinancialPosition(): Promise<FinancialPositionData> {
   const supabase = await createServerSupabaseClient()
-  const hasPartnerFilter = partnerIds.length > 0
 
-  // Build queries with DB-side filters for partner and payment status
-  let bankQuery = supabase.from('v_bank_balances').select('*')
-  let arQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'receivable').neq('payment_status', 'paid')
-  let costQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'payable').neq('payment_status', 'paid')
-  let loanQuery = supabase.from('v_loan_balances').select('*')
-
-  if (hasPartnerFilter) {
-    bankQuery = bankQuery.in('partner_company_id', partnerIds)
-    arQuery = arQuery.in('partner_company_id', partnerIds)
-    costQuery = costQuery.in('partner_company_id', partnerIds)
-    loanQuery = loanQuery.in('partner_company_id', partnerIds)
-  }
+  // Build queries
+  const bankQuery = supabase.from('v_bank_balances').select('*')
+  const arQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'receivable').neq('payment_status', 'paid')
+  const costQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'payable').neq('payment_status', 'paid')
+  const loanQuery = supabase.from('v_loan_balances').select('*')
 
   const [
     bankResult,
