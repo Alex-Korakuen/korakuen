@@ -1,4 +1,4 @@
-import { getObligationCalendar, getProjectsForFilter, getProjectCategories, getPartnerCompanies } from '@/lib/queries'
+import { getObligationCalendar, getProjectsForFilter, getProjectCategories } from '@/lib/queries'
 import { FK, str } from '@/lib/filter-keys'
 import { CalendarClient } from './calendar-client'
 
@@ -19,11 +19,10 @@ export default async function CalendarPage({ searchParams }: Props) {
     bucket: str(params, FK.bucket),
   }
 
-  const [projects, categories, result, partners] = await Promise.all([
+  const [projects, categories, result] = await Promise.all([
     getProjectsForFilter(),
     getProjectCategories(),
     getObligationCalendar(filters),
-    getPartnerCompanies(),
   ])
 
   return (
@@ -32,7 +31,6 @@ export default async function CalendarPage({ searchParams }: Props) {
       projects={projects}
       uniqueEntities={result.uniqueSuppliers}
       categories={categories}
-      partners={partners}
       currentFilters={{
         type: filters.type ?? '',
         projectId: filters.projectId ?? '',

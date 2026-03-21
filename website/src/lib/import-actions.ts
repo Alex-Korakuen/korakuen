@@ -498,3 +498,182 @@ export async function importPayments(
 
   return { success: data.length }
 }
+
+// ============================================================
+// Direct Transactions Import (invoice + item + payment per row)
+// ============================================================
+
+export async function importDirectTransactions(
+  rows: Record<string, unknown>[]
+): Promise<ImportResult> {
+  const supabase = await createServerSupabaseClient()
+  const errors: ImportError[] = []
+
+  // Load lookups
+  const { data: projects } = await supabase
+    .from('projects').select('id, project_code').eq('is_active', true)
+  const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
+
+  const { data: partners } = await supabase
+    .from('partner_companies').select('id, name').eq('is_active', true)
+  const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
+
+  const { data: categories } = await supabase
+    .from('categories').select('name, cost_type')
+  const projectCostCategories = new Set(
+    (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
+  )
+
+  // --- Validate each row ---
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const r = i + 5
+
+    const direction = str(row.direction)
+    const partnerName = str(row.partner_company_name)
+    const projectCode = str(row.project_code)
+    const amount = num(row.amount)
+    const currency = str(row.currency)
+    const exchangeRate = num(row.exchange_rate)
+    const date = str(row.date)
+    const category = str(row.category)
+
+    // Required
+    if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
+    if (!partnerName) errors.push({ row: r, column: 'partner_company_name', message: 'Required' })
+    if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
+    if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
+    if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (!date) errors.push({ row: r, column: 'date', message: 'Required' })
+
+    // Enums
+    if (direction && !['outflow', 'inflow'].includes(direction)) {
+      errors.push({ row: r, column: 'direction', message: 'Must be: outflow, inflow' })
+    }
+    if (currency && !['USD', 'PEN'].includes(currency)) {
+      errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
+    }
+
+    // FK lookups
+    if (partnerName && !partnerMap.has(partnerName)) {
+      errors.push({ row: r, column: 'partner_company_name', message: 'Not found in database' })
+    }
+    if (projectCode && !projectMap.has(projectCode)) {
+      errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
+    }
+
+    // Category: required for outflows, must exist in project_cost categories
+    if (direction === 'outflow' && !category) {
+      errors.push({ row: r, column: 'category', message: 'Required for outflow' })
+    }
+    if (category && !projectCostCategories.has(category)) {
+      errors.push({ row: r, column: 'category', message: 'Not found in project_cost categories' })
+    }
+
+    // Amount positive
+    if (amount !== null && amount <= 0) {
+      errors.push({ row: r, column: 'amount', message: 'Must be greater than 0' })
+    }
+
+    // Exchange rate range
+    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
+      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
+    }
+  }
+
+  if (errors.length > 0) return { errors }
+
+  // --- Insert each row as invoice + item + payment ---
+  let successCount = 0
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const direction = str(row.direction)!
+    const partnerId = partnerMap.get(str(row.partner_company_name)!)!
+    const projectId = projectMap.get(str(row.project_code)!)!
+    const amount = num(row.amount)!
+    const currency = str(row.currency)!
+    const exchangeRate = num(row.exchange_rate)!
+    const date = str(row.date)!
+    const category = str(row.category)
+    const notes = str(row.notes)
+
+    const invoiceDirection = direction === 'outflow' ? 'payable' : 'receivable'
+    const paymentDirection = direction === 'outflow' ? 'outbound' : 'inbound'
+    const costType = direction === 'outflow' ? 'project_cost' : null
+    const title = notes || `Direct transaction — ${date}`
+
+    // 1. Create auto-generated invoice
+    const { data: invoice, error: invError } = await supabase
+      .from('invoices')
+      .insert({
+        direction: invoiceDirection,
+        cost_type: costType,
+        comprobante_type: 'none',
+        partner_company_id: partnerId,
+        project_id: projectId,
+        invoice_date: date,
+        due_date: date,
+        title,
+        igv_rate: 0,
+        currency,
+        exchange_rate: exchangeRate,
+        is_auto_generated: true,
+        notes,
+      })
+      .select('id')
+      .single()
+
+    if (invError) {
+      return { error: handleDbError(invError, `Failed to create invoice for row ${i + 5}`) }
+    }
+
+    // 2. Create invoice item
+    const { error: itemError } = await supabase
+      .from('invoice_items')
+      .insert({
+        invoice_id: invoice.id,
+        title,
+        subtotal: amount,
+        category: direction === 'outflow' ? category : null,
+      })
+
+    if (itemError) {
+      await supabase.from('invoices').delete().eq('id', invoice.id)
+      return { error: handleDbError(itemError, `Failed to create invoice item for row ${i + 5}`) }
+    }
+
+    // 3. Create payment (fully paid)
+    const { error: pmtError } = await supabase
+      .from('payments')
+      .insert({
+        related_to: 'invoice',
+        related_id: invoice.id,
+        direction: paymentDirection,
+        payment_type: 'regular',
+        payment_date: date,
+        amount,
+        currency,
+        exchange_rate: exchangeRate,
+        partner_company_id: partnerId,
+        bank_account_id: null,
+        notes,
+      })
+
+    if (pmtError) {
+      return { error: handleDbError(pmtError, `Failed to create payment for row ${i + 5}`) }
+    }
+
+    successCount++
+  }
+
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/calendar')
+  revalidatePath('/financial-position')
+  revalidatePath('/projects', 'layout')
+  revalidatePath('/settlement')
+
+  return { success: successCount }
+}
