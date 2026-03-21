@@ -23,6 +23,7 @@ const browseItems: NavItem[] = [
 
 const dashboardItems: NavItem[] = [
   { label: 'Calendar', href: '/calendar', shortLabel: 'Cal' },
+  { label: 'Settlement', href: '/settlement', shortLabel: 'St' },
   { label: 'Financial Pos.', href: '/financial-position', shortLabel: 'FP' },
 ]
 

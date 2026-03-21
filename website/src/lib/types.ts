@@ -263,6 +263,30 @@ export type ProjectDetailData = {
   partnerSettlements: ProjectPartnerSettlement[]
 }
 
+// --- Settlement dashboard types ---
+
+export type SettlementPartnerRow = {
+  partnerCompanyId: string
+  partnerName: string
+  profitSharePct: number | null // null when aggregating across projects with different shares
+  costsPaid: number
+  profitShare: number
+  shouldReceive: number
+  balance: number
+}
+
+export type SettlementSummary = {
+  projectCount: number
+  incomeCollected: number
+  totalCosts: number
+  totalProfit: number
+}
+
+export type SettlementDashboardData = {
+  summary: SettlementSummary
+  partners: SettlementPartnerRow[]
+}
+
 export type ProjectStatusFilter = 'all' | ProjectStatus
 
 // --- Entities browse types ---
