@@ -12,7 +12,7 @@ export function SortIndicator<T extends string>({
   sortDirection,
 }: SortIndicatorProps<T>) {
   if (sortColumn !== column) {
-    return <span className="ml-1 text-zinc-400">&#x2195;</span>
+    return <span className="ml-1 text-faint">&#x2195;</span>
   }
   return (
     <span className="ml-1">

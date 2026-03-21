@@ -44,29 +44,29 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-zinc-700">Payment History</h3>
+        <h3 className="text-sm font-semibold text-ink">Payment History</h3>
         {showAddButton && (
           <button
             type="button"
             onClick={() => setFormOpen(!formOpen)}
-            className="flex h-5 w-5 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            className="flex h-5 w-5 items-center justify-center rounded text-faint hover:bg-surface hover:text-muted"
             title={formOpen ? 'Close form' : 'Add payment'}
           >
             {formOpen ? '×' : '+'}
           </button>
         )}
         {paymentFormProps && (paymentFormProps.detraccionAmount > 0 || paymentFormProps.retencionAmount > 0) && (
-          <div className="ml-auto flex gap-3 text-xs text-zinc-500">
+          <div className="ml-auto flex gap-3 text-xs text-muted">
             <span>Regular: <span className="font-mono">{formatCurrency(paymentFormProps.payable, paymentFormProps.currency)}</span></span>
             {paymentFormProps.detraccionAmount > 0 && (
               <>
-                <span className="text-zinc-300">&middot;</span>
+                <span className="text-edge-strong">&middot;</span>
                 <span>Banco de la Nación: <span className="font-mono">{formatCurrency(paymentFormProps.bdnOutstanding, paymentFormProps.currency)}</span></span>
               </>
             )}
             {paymentFormProps.retencionAmount > 0 && (
               <>
-                <span className="text-zinc-300">&middot;</span>
+                <span className="text-edge-strong">&middot;</span>
                 <span>Ret: <span className="font-mono">{formatCurrency(paymentFormProps.retencionOutstanding ?? 0, paymentFormProps.currency)}</span></span>
               </>
             )}
@@ -90,9 +90,9 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
 
       {/* Payment table */}
       {payments.length > 0 && (
-        <div className="overflow-x-auto rounded border border-zinc-200">
+        <div className="overflow-x-auto rounded border border-edge">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 text-zinc-500">
+            <thead className="bg-panel text-faint">
               <tr>
                 <th className="px-3 py-2">Date</th>
                 <th className="px-3 py-2">Type</th>
@@ -100,17 +100,17 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
                 <th className="px-3 py-2">Currency</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {payments.map((pmt) => (
                 <tr key={pmt.id}>
-                  <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
+                  <td className="whitespace-nowrap px-3 py-2 text-ink">
                     {formatDate(pmt.payment_date)}
                   </td>
-                  <td className="px-3 py-2 capitalize text-zinc-500">{pmt.payment_type}</td>
-                  <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                  <td className="px-3 py-2 capitalize text-muted">{pmt.payment_type}</td>
+                  <td className="px-3 py-2 text-right font-mono text-ink">
                     {formatCurrency(pmt.amount, pmt.currency)}
                   </td>
-                  <td className="px-3 py-2 text-zinc-500">{pmt.currency}</td>
+                  <td className="px-3 py-2 text-muted">{pmt.currency}</td>
                 </tr>
               ))}
             </tbody>
@@ -119,7 +119,7 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
       )}
 
       {payments.length === 0 && (
-        <p className="text-xs text-zinc-400">No payments recorded yet.</p>
+        <p className="text-xs text-faint">No payments recorded yet.</p>
       )}
     </div>
   )

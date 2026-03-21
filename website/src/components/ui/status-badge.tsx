@@ -1,9 +1,9 @@
 const variantClasses: Record<string, string> = {
-  green: 'bg-green-100 text-green-800',
-  yellow: 'bg-yellow-100 text-yellow-800',
-  red: 'bg-red-100 text-red-800',
-  blue: 'bg-blue-100 text-blue-800',
-  zinc: 'bg-zinc-100 text-zinc-600',
+  green: 'bg-positive-bg text-positive',
+  yellow: 'bg-caution-bg text-caution',
+  red: 'bg-negative-bg text-negative',
+  blue: 'bg-info-bg text-info',
+  zinc: 'bg-surface text-muted',
 }
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
 export function StatusBadge({ label, variant }: Props) {
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${variantClasses[variant]}`}
+      className={`inline-block rounded-full px-2 py-[3px] text-[10px] font-medium uppercase tracking-[0.04em] ${variantClasses[variant]}`}
     >
       {label}
     </span>

@@ -39,16 +39,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       aria-labelledby="modal-title"
     >
       <div
-        className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl"
+        className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[10px] bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-zinc-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-edge px-6 py-4">
+          <h2 id="modal-title" className="text-lg font-semibold text-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+            className="rounded p-1 text-faint transition-colors hover:bg-surface hover:text-muted"
             aria-label="Close"
           >
             <svg

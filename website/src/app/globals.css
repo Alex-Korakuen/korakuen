@@ -1,18 +1,52 @@
 @import "tailwindcss";
 
+@theme {
+  /* Typography */
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+
+  /* Surfaces */
+  --color-surface: #f7f6f3;
+  --color-panel: #fafaf8;
+
+  /* Borders */
+  --color-edge: #e4e2dc;
+  --color-edge-strong: #ccc9c0;
+
+  /* Text */
+  --color-ink: #1a1917;
+  --color-muted: #6b6860;
+  --color-faint: #a8a49c;
+
+  /* Accent (nav, primary actions) */
+  --color-accent: #2d6a4f;
+  --color-accent-bg: #eef4f0;
+  --color-accent-hover: #245a42;
+
+  /* Semantic status */
+  --color-positive: #1a7a4a;
+  --color-positive-bg: #edf7f2;
+  --color-negative: #c0392b;
+  --color-negative-bg: #fdf2f1;
+  --color-caution: #92600a;
+  --color-caution-bg: #fef8ed;
+  --color-info: #1a4f7a;
+  --color-info-bg: #edf4fb;
+}
+
 :root {
   /* Urgency colors for AP Calendar */
   --color-overdue: #ef4444;
   --color-today: #f97316;
   --color-this-week: #eab308;
-  --color-neutral: #d1d5db;
+  --color-neutral: #ccc9c0;
 
   /* Status colors */
-  --color-success: #22c55e;
-  --color-warning: #eab308;
-  --color-danger: #ef4444;
+  --color-success: #1a7a4a;
+  --color-warning: #92600a;
+  --color-danger: #c0392b;
 
   /* Sidebar */
-  --sidebar-width: 240px;
+  --sidebar-width: 220px;
   --sidebar-collapsed-width: 64px;
 }

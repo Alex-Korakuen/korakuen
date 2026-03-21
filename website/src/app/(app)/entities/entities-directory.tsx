@@ -95,9 +95,9 @@ export function EntitiesDirectory({
       </div>
 
       {/* Directory table */}
-      <div className="rounded-lg border border-zinc-200 bg-white">
+      <div className="rounded-[10px] border border-edge bg-white">
         {entities.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-zinc-500">
+          <div className="px-6 py-16 text-center text-sm text-muted">
             No entities match filters
           </div>
         ) : (
@@ -113,7 +113,7 @@ export function EntitiesDirectory({
                   <th className="px-4 py-2.5 text-center font-medium">Receivable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {entities.map((entity) => {
                   const cur = entity.currency ?? 'PEN'
                   const hasFinancials = entity.totalPayable > 0 || entity.totalReceivable > 0
@@ -125,7 +125,7 @@ export function EntitiesDirectory({
                           href={`/entities/${entity.id}`}
                           className="block"
                         >
-                          <span className="font-medium text-zinc-800">
+                          <span className="font-medium text-ink">
                             {entity.legal_name}
                           </span>
                         </Link>
@@ -133,13 +133,13 @@ export function EntitiesDirectory({
                       <td className="px-4 py-2.5 text-center">
                         <span className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${
                           entity.entity_type === 'company'
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'bg-zinc-100 text-zinc-600'
+                            ? 'bg-info-bg text-info'
+                            : 'bg-surface text-muted'
                         }`}>
                           {formatEntityType(entity.entity_type)}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-center font-mono text-xs text-zinc-500">
+                      <td className="px-4 py-2.5 text-center font-mono text-xs text-muted">
                         {entity.document_number || '—'}
                       </td>
                       <td className="px-4 py-2.5 text-center">
@@ -153,24 +153,22 @@ export function EntitiesDirectory({
                             </span>
                           ))}
                           {entity.tags.length > 3 && (
-                            <span className="text-[10px] text-zinc-400">+{entity.tags.length - 3}</span>
+                            <span className="text-[10px] text-faint">+{entity.tags.length - 3}</span>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-center font-mono text-xs">
                         {hasFinancials && entity.outstandingPayable > 0 ? (
-                          <span className="text-red-600">{formatCurrency(entity.outstandingPayable, cur)}</span>
-                        ) : hasFinancials ? (
-                          <span className="text-zinc-300">—</span>
+                          <span className="text-negative">{formatCurrency(entity.outstandingPayable, cur)}</span>
                         ) : (
-                          <span className="text-zinc-300">—</span>
+                          <span className="text-edge-strong">—</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-center font-mono text-xs">
                         {hasFinancials && entity.outstandingReceivable > 0 ? (
-                          <span className="text-green-600">{formatCurrency(entity.outstandingReceivable, cur)}</span>
+                          <span className="text-positive">{formatCurrency(entity.outstandingReceivable, cur)}</span>
                         ) : (
-                          <span className="text-zinc-300">—</span>
+                          <span className="text-edge-strong">—</span>
                         )}
                       </td>
                     </tr>

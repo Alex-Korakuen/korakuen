@@ -7,13 +7,13 @@ export function LedgerTable({ groups, onRowClick, emptyMessage }: {
   emptyMessage: string
 }) {
   if (groups.length === 0) {
-    return <div className="px-4 py-6 text-center text-sm text-zinc-500">{emptyMessage}</div>
+    return <div className="px-4 py-6 text-center text-sm text-muted">{emptyMessage}</div>
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-zinc-50 text-xs text-zinc-500">
+        <thead className="bg-panel text-xs text-faint">
           <tr>
             <th className="px-4 py-2 text-left font-medium">Project</th>
             <th className="px-4 py-2 text-right font-medium">Invoice Total</th>
@@ -22,35 +22,35 @@ export function LedgerTable({ groups, onRowClick, emptyMessage }: {
             <th className="px-4 py-2 text-right font-medium">Currency</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y divide-edge">
           {groups.map((group) => (
             <tr
               key={`${group.projectId}|${group.currency}`}
               onClick={() => onRowClick(group)}
-              className="cursor-pointer transition-colors hover:bg-blue-50"
+              className="cursor-pointer transition-colors hover:bg-accent-bg"
             >
               <td className="px-4 py-2">
                 <a
                   href={`/projects/${group.projectId}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                  className="font-medium text-accent hover:text-accent-hover hover:underline"
                 >
                   {group.projectCode}
                 </a>
-                <span className="ml-1.5 hidden text-zinc-500 lg:inline">— {group.projectName}</span>
+                <span className="ml-1.5 hidden text-muted lg:inline">— {group.projectName}</span>
               </td>
-              <td className="px-4 py-2 text-right font-mono text-zinc-700">
+              <td className="px-4 py-2 text-right font-mono text-ink">
                 {formatCurrency(group.invoiceTotal, group.currency)}
               </td>
               <td className={`px-4 py-2 text-right font-mono font-medium ${
-                group.outstanding > 0 ? 'text-amber-600' : 'text-green-600'
+                group.outstanding > 0 ? 'text-caution' : 'text-positive'
               }`}>
                 {group.outstanding === 0 ? 'Paid' : formatCurrency(group.outstanding, group.currency)}
               </td>
-              <td className="px-4 py-2 text-right text-zinc-600">
+              <td className="px-4 py-2 text-right text-muted">
                 {group.lastDate ? formatDate(group.lastDate) : '—'}
               </td>
-              <td className="px-4 py-2 text-right text-zinc-600">{group.currency}</td>
+              <td className="px-4 py-2 text-right text-muted">{group.currency}</td>
             </tr>
           ))}
         </tbody>

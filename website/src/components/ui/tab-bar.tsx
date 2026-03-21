@@ -19,15 +19,15 @@ export function TabBar({ tabs, defaultTab }: Props) {
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-zinc-200 px-4">
+      <div className="flex gap-1 border-b border-edge px-4">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               t.key === active?.key
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-zinc-500 hover:text-zinc-700'
+                ? 'border-b-2 border-accent text-accent'
+                : 'text-faint hover:text-ink'
             }`}
           >
             {t.label}

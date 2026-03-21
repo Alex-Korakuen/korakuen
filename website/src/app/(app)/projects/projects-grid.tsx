@@ -27,9 +27,9 @@ function budgetBarColor(pct: number): string {
 }
 
 function budgetPctColor(pct: number): string {
-  if (pct > 100) return 'text-red-600'
-  if (pct > 90) return 'text-amber-600'
-  return 'text-green-600'
+  if (pct > 100) return 'text-negative'
+  if (pct > 90) return 'text-caution'
+  return 'text-positive'
 }
 
 export function ProjectsGrid({ projects }: Props) {
@@ -64,7 +64,7 @@ export function ProjectsGrid({ projects }: Props) {
       </HeaderPortal>
 
       {filtered.length === 0 ? (
-        <div className="px-8 py-16 text-center text-zinc-400">
+        <div className="px-8 py-16 text-center text-faint">
           No projects found
         </div>
       ) : (
@@ -73,11 +73,11 @@ export function ProjectsGrid({ projects }: Props) {
             <Link
               key={p.id}
               href={`/projects/${p.id}`}
-              className="group rounded-xl border border-zinc-200 bg-white p-5 transition-all hover:border-zinc-300 hover:shadow-md"
+              className="group rounded-[10px] border border-edge bg-white p-5 transition-all hover:border-edge-strong"
             >
               {/* Top: code + status */}
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs font-semibold tracking-wide text-zinc-400">
+                <span className="text-xs font-semibold tracking-wide text-faint">
                   {p.project_code}
                 </span>
                 <StatusBadge
@@ -87,7 +87,7 @@ export function ProjectsGrid({ projects }: Props) {
               </div>
 
               {/* Name */}
-              <h3 className="mb-4 text-sm font-semibold leading-snug text-zinc-800 group-hover:text-zinc-900">
+              <h3 className="mb-4 text-sm font-semibold leading-snug text-ink">
                 {p.name}
               </h3>
 
@@ -95,21 +95,21 @@ export function ProjectsGrid({ projects }: Props) {
               <div className="space-y-3">
                 {/* Contract value */}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Contract</span>
-                  <span className="font-mono font-semibold text-zinc-800">
+                  <span className="text-muted">Contract</span>
+                  <span className="font-mono font-semibold text-ink">
                     {p.contract_value !== null
                       ? formatCurrency(p.contract_value, p.contract_currency)
-                      : <span className="font-sans font-normal text-zinc-400">Not set</span>}
+                      : <span className="font-sans font-normal text-faint">Not set</span>}
                   </span>
                 </div>
 
                 {/* Budget bar */}
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-zinc-500">Budget</span>
+                  <span className="text-muted">Budget</span>
                   {p.budget_pct !== null ? (
                     <>
                       <div className="flex-1">
-                        <div className="h-1.5 rounded-full bg-zinc-100">
+                        <div className="h-1.5 rounded-full bg-edge">
                           <div
                             className={`h-1.5 rounded-full ${budgetBarColor(p.budget_pct)}`}
                             style={{ width: `${Math.min(p.budget_pct, 100)}%` }}
@@ -121,7 +121,7 @@ export function ProjectsGrid({ projects }: Props) {
                       </span>
                     </>
                   ) : (
-                    <span className="text-zinc-400">—</span>
+                    <span className="text-faint">—</span>
                   )}
                 </div>
               </div>

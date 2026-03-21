@@ -28,7 +28,7 @@ export function SearchInput({ paramName = 'search', placeholder = 'Search…', d
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-zinc-500">Search</label>
+      <label className="text-xs font-medium text-muted">Search</label>
       <div className="flex gap-1">
         <input
           type="text"
@@ -36,11 +36,11 @@ export function SearchInput({ paramName = 'search', placeholder = 'Search…', d
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
           placeholder={placeholder}
-          className="w-full rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-700"
+          className="w-full rounded border border-edge bg-white px-3 py-1.5 text-sm text-ink"
         />
         <button
           onClick={submit}
-          className="rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50"
+          className="rounded border border-edge bg-white px-3 py-1.5 text-sm text-muted hover:bg-surface"
         >
           Go
         </button>

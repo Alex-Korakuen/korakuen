@@ -49,36 +49,36 @@ export function InvoicesTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-zinc-200">
+      <div className="overflow-x-auto rounded-[10px] border border-edge">
         <table className="w-full text-sm">
           <thead className={tableHead}>
             <tr>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('due_date')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('due_date')}>
                 Due Date <SortIndicator column="due_date" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th className="px-3 py-3 text-center">Direction</th>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('invoice_number')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('invoice_number')}>
                 Invoice # <SortIndicator column="invoice_number" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('entity_name')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('entity_name')}>
                 Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('project_code')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('project_code')}>
                 Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('total')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('total')}>
                 Total <SortIndicator column="total" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
-              <th className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700" onClick={() => handleSort('outstanding')}>
+              <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('outstanding')}>
                 Outstanding <SortIndicator column="outstanding" sortColumn={sortColumn} sortDirection={sortDirection} />
               </th>
               <th className="px-3 py-3 text-center">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-edge">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">No invoices found</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-faint">No invoices found</td>
               </tr>
             ) : (
               data.map((row) => {
@@ -93,25 +93,25 @@ export function InvoicesTable({
                   <tr key={row.id}
                     className={`${tableRowHover} ${borderClass}`}
                     onClick={() => onRowClick(row)}>
-                    <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
+                    <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                       {row.due_date ? formatDate(row.due_date) : '--'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-center">
                       <DirectionBadge direction={row.direction} type={row.type} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-zinc-500">
+                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                       {row.invoice_number ?? '—'}
                     </td>
-                    <td className="max-w-[200px] truncate px-3 py-3 text-center text-zinc-700">
+                    <td className="max-w-[200px] truncate px-3 py-3 text-center text-ink">
                       {row.entity_name ?? '—'}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-zinc-500">
+                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                       {row.project_code ?? '—'}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-ink">
                       {formatCurrency(row.total, row.currency)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono font-medium text-zinc-900">
+                    <td className="whitespace-nowrap px-3 py-3 text-center font-mono font-medium text-ink">
                       {row.outstanding + row.bdn_outstanding > 0 ? formatCurrency(row.outstanding + row.bdn_outstanding, row.currency) : '—'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-center">

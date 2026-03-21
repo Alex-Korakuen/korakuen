@@ -88,41 +88,41 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
 
       {/* CASH */}
       <SectionCard title="Cash">
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-edge">
           {data.bankAccounts.map((ba) => (
             <div
               key={ba.bankAccountId}
-              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-blue-50"
+              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-accent-bg"
               onClick={() => handleAccountClick(ba)}
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-700">
+                <span className="text-sm text-ink">
                   {ba.bankName} ···{ba.accountNumberLast4}
                 </span>
-                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">
+                <span className="rounded bg-surface px-1.5 py-0.5 text-xs text-muted">
                   {ba.currency}
                 </span>
                 {ba.isDetractionAccount && (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+                  <span className="rounded bg-caution-bg px-1.5 py-0.5 text-xs font-medium text-caution">
                     Tax only
                   </span>
                 )}
               </div>
               <span className={`text-sm font-medium ${
-                ba.balance >= 0 ? 'text-zinc-800' : 'text-red-600'
+                ba.balance >= 0 ? 'text-ink' : 'text-negative'
               }`}>
                 {fmt(ba.balance, ba.currency ?? 'PEN')}
               </span>
             </div>
           ))}
           {data.bankAccounts.length === 0 && (
-            <p className="px-6 py-4 text-sm text-zinc-400">No bank accounts</p>
+            <p className="px-6 py-4 text-sm text-faint">No bank accounts</p>
           )}
-          <div className="border-t border-zinc-100 px-6 py-2">
+          <div className="border-t border-edge px-6 py-2">
             <button
               type="button"
               onClick={() => setShowCreateAccount(true)}
-              className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+              className="text-xs text-accent transition-colors hover:text-accent-hover"
             >
               + Add account
             </button>
@@ -133,17 +133,17 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       {/* ACCOUNTS RECEIVABLE */}
       <SectionCard title="Accounts Receivable">
         <div
-          className="cursor-pointer px-6 py-4 transition-colors hover:bg-blue-50"
+          className="cursor-pointer px-6 py-4 transition-colors hover:bg-accent-bg"
           onClick={() => router.push('/invoices?direction=receivable')}
         >
           {data.arOutstanding.length === 0 ? (
-            <p className="text-sm text-zinc-400">No outstanding invoices</p>
+            <p className="text-sm text-faint">No outstanding invoices</p>
           ) : (
             <div className="space-y-1">
               {data.arOutstanding.map((item) => (
                 <div key={item.currency} className="flex items-center justify-between py-1">
-                  <span className="text-sm text-zinc-600">Outstanding</span>
-                  <span className="text-sm font-semibold text-zinc-800">
+                  <span className="text-sm text-muted">Outstanding</span>
+                  <span className="text-sm font-semibold text-ink">
                     {fmt(item.amount, item.currency)}
                   </span>
                 </div>
@@ -156,17 +156,17 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       {/* ACCOUNTS PAYABLE */}
       <SectionCard title="Accounts Payable">
         <div
-          className="cursor-pointer px-6 py-4 transition-colors hover:bg-blue-50"
+          className="cursor-pointer px-6 py-4 transition-colors hover:bg-accent-bg"
           onClick={() => router.push('/invoices?direction=payable')}
         >
           {data.apOutstanding.length === 0 ? (
-            <p className="text-sm text-zinc-400">No outstanding costs</p>
+            <p className="text-sm text-faint">No outstanding costs</p>
           ) : (
             <div className="space-y-1">
               {data.apOutstanding.map((item) => (
                 <div key={item.currency} className="flex items-center justify-between py-1">
-                  <span className="text-sm text-zinc-600">Outstanding</span>
-                  <span className="text-sm font-semibold text-zinc-800">
+                  <span className="text-sm text-muted">Outstanding</span>
+                  <span className="text-sm font-semibold text-ink">
                     {fmt(item.amount, item.currency)}
                   </span>
                 </div>
@@ -178,27 +178,27 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
 
       {/* LOANS */}
       <SectionCard title="Loans">
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-edge">
           {data.loans.map((loan) => (
             <div
               key={loan.loanId}
-              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-blue-50"
+              className="flex cursor-pointer items-center justify-between px-6 py-3 transition-colors hover:bg-accent-bg"
               onClick={() => handleLoanClick(loan)}
             >
-              <span className="text-sm text-zinc-700">{loan.lenderName}</span>
-              <span className="text-sm font-medium text-zinc-800">
+              <span className="text-sm text-ink">{loan.lenderName}</span>
+              <span className="text-sm font-medium text-ink">
                 {fmt(loan.outstanding, loan.currency)}
               </span>
             </div>
           ))}
           {data.loans.length === 0 && (
-            <p className="px-6 py-4 text-sm text-zinc-400">No loans</p>
+            <p className="px-6 py-4 text-sm text-faint">No loans</p>
           )}
-          <div className="border-t border-zinc-100 px-6 py-2">
+          <div className="border-t border-edge px-6 py-2">
             <button
               type="button"
               onClick={() => setShowCreateLoan(true)}
-              className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+              className="text-xs text-accent transition-colors hover:text-accent-hover"
             >
               + Add loan
             </button>
@@ -210,9 +210,9 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       {(data.igv.length > 0 || data.retencionesUnverified.length > 0) && (
         <>
           <div className="flex items-center gap-3 pt-2">
-            <div className="h-px flex-1 bg-zinc-200" />
-            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">Tax Position</span>
-            <div className="h-px flex-1 bg-zinc-200" />
+            <div className="h-px flex-1 bg-edge" />
+            <span className="text-xs font-medium uppercase tracking-wider text-faint">Tax Position</span>
+            <div className="h-px flex-1 bg-edge" />
           </div>
 
           {/* IGV */}
@@ -223,23 +223,23 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
                   {data.igv.map((row) => (
                     <div key={row.currency} className="space-y-1">
                       <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-zinc-500">IGV paid (crédito fiscal)</span>
-                        <span className="text-sm font-medium text-zinc-800">
+                        <span className="text-sm text-muted">IGV paid (crédito fiscal)</span>
+                        <span className="text-sm font-medium text-ink">
                           {fmt(row.igvPaid, row.currency)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-1">
-                        <span className="text-sm text-zinc-500">IGV collected (débito fiscal)</span>
-                        <span className="text-sm font-medium text-zinc-800">
+                        <span className="text-sm text-muted">IGV collected (débito fiscal)</span>
+                        <span className="text-sm font-medium text-ink">
                           {fmt(row.igvCollected, row.currency)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between border-t border-zinc-100 pt-1">
-                        <span className="text-sm font-medium text-zinc-600">
+                      <div className="flex items-center justify-between border-t border-edge pt-1">
+                        <span className="text-sm font-medium text-muted">
                           Net {row.net >= 0 ? '(crédito)' : '(débito)'}
                         </span>
                         <span className={`text-sm font-semibold ${
-                          row.net >= 0 ? 'text-emerald-700' : 'text-red-600'
+                          row.net >= 0 ? 'text-positive' : 'text-negative'
                         }`}>
                           {fmt(Math.abs(row.net), row.currency)}
                         </span>
@@ -255,12 +255,12 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
           {data.retencionesUnverified.length > 0 && (
             <SectionCard title="Retenciones">
               <div className="px-6 py-4">
-                <p className="mb-2 text-xs text-zinc-400">Withheld by clients, pending SUNAT verification</p>
+                <p className="mb-2 text-xs text-faint">Withheld by clients, pending SUNAT verification</p>
                 <div className="space-y-1">
                   {data.retencionesUnverified.map((item) => (
                     <div key={item.currency} className="flex items-center justify-between py-1">
-                      <span className="text-sm text-zinc-600">Unverified</span>
-                      <span className="text-sm font-medium text-zinc-800">
+                      <span className="text-sm text-muted">Unverified</span>
+                      <span className="text-sm font-medium text-ink">
                         {fmt(item.amount, item.currency)}
                       </span>
                     </div>
@@ -273,7 +273,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       )}
 
       {/* Disclaimer */}
-      <p className="text-center text-xs text-zinc-400">
+      <p className="text-center text-xs text-faint">
         Balances are system-calculated, not bank-reconciled.
       </p>
 
@@ -284,14 +284,14 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
         title={`${selectedAccount?.bankName ?? ''} ···${selectedAccount?.last4 ?? ''} — Transactions`}
       >
         {loadingTxns ? (
-          <p className="py-8 text-center text-sm text-zinc-500">Loading transactions...</p>
+          <p className="py-8 text-center text-sm text-muted">Loading transactions...</p>
         ) : transactions.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">No transactions found.</p>
+          <p className="py-8 text-center text-sm text-muted">No transactions found.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-200 text-left text-xs uppercase text-zinc-500">
+                <tr className="border-b border-edge text-left text-xs uppercase text-faint">
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Entity</th>
                   <th className="px-3 py-2">Project</th>
@@ -299,23 +299,23 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
                   <th className="px-3 py-2 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {transactions.map((txn) => (
-                  <tr key={txn.id} className="transition-colors hover:bg-blue-50">
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-600">
+                  <tr key={txn.id} className="transition-colors hover:bg-accent-bg">
+                    <td className="whitespace-nowrap px-3 py-2 text-muted">
                       {formatDate(txn.paymentDate)}
                     </td>
-                    <td className="px-3 py-2 text-zinc-700">
+                    <td className="px-3 py-2 text-ink">
                       {txn.entityName ?? '—'}
                     </td>
-                    <td className="px-3 py-2 text-zinc-500">
+                    <td className="px-3 py-2 text-muted">
                       {txn.projectCode ?? '—'}
                     </td>
-                    <td className="px-3 py-2 text-zinc-500">
+                    <td className="px-3 py-2 text-muted">
                       {txn.description ?? '—'}
                     </td>
                     <td className={`whitespace-nowrap px-3 py-2 text-right font-medium ${
-                      txn.direction === 'inbound' ? 'text-green-600' : 'text-red-600'
+                      txn.direction === 'inbound' ? 'text-positive' : 'text-negative'
                     }`}>
                       {txn.direction === 'inbound' ? '+' : '−'}
                       {fmt(txn.amount, txn.currency)}
@@ -335,7 +335,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
         title={`Loan — ${selectedLoan?.lenderName ?? ''}`}
       >
         {loadingLoan && (
-          <p className="py-8 text-center text-sm text-zinc-500">Loading loan detail...</p>
+          <p className="py-8 text-center text-sm text-muted">Loading loan detail...</p>
         )}
         {!loadingLoan && loanDetail && (
           <LoanDetailContent
@@ -344,7 +344,7 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
           />
         )}
         {!loadingLoan && !loanDetail && selectedLoan && (
-          <p className="py-8 text-center text-sm text-zinc-500">Could not load loan detail.</p>
+          <p className="py-8 text-center text-sm text-muted">Could not load loan detail.</p>
         )}
       </Modal>
 

@@ -40,13 +40,13 @@ export function Pagination({ page, totalCount, pageSize }: Props) {
   }
 
   const btnBase = 'rounded border px-2.5 py-1 text-sm'
-  const btnEnabled = 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
-  const btnDisabled = 'border-zinc-200 bg-zinc-50 text-zinc-300 cursor-default'
-  const btnActive = 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+  const btnEnabled = 'border-edge bg-white text-ink hover:bg-surface'
+  const btnDisabled = 'border-edge bg-surface text-edge-strong cursor-default'
+  const btnActive = 'border-accent bg-accent-bg text-accent font-medium'
 
   return (
-    <div className="flex items-center justify-between border-t border-zinc-200 px-2 pt-3">
-      <span className="text-xs text-zinc-500">
+    <div className="flex items-center justify-between border-t border-edge px-2 pt-3">
+      <span className="text-xs text-muted">
         Showing {from}–{to} of {totalCount}
       </span>
       <div className="flex items-center gap-1">
@@ -59,7 +59,7 @@ export function Pagination({ page, totalCount, pageSize }: Props) {
         </button>
         {pages.map((p, i) =>
           p === 'ellipsis' ? (
-            <span key={`e${i}`} className="px-1 text-sm text-zinc-400">…</span>
+            <span key={`e${i}`} className="px-1 text-sm text-faint">…</span>
           ) : (
             <button
               key={p}

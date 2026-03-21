@@ -20,7 +20,7 @@ export function Header() {
   const pageTitle = pageTitles[pathname] || ''
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4">
+    <header className="flex h-14 items-center justify-between border-b border-edge bg-white px-4">
       {/* Left: expand toggle (when collapsed) + Page title */}
       <div className="flex items-center gap-2">
         {/* Spacer for mobile hamburger button */}
@@ -28,7 +28,7 @@ export function Header() {
         {collapsed && (
           <button
             onClick={toggleSidebar}
-            className="hidden rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-50 hover:text-zinc-600 md:block"
+            className="hidden rounded-md p-1 text-faint transition-colors hover:bg-surface hover:text-muted md:block"
             aria-label="Expand sidebar"
           >
             <svg
@@ -45,7 +45,7 @@ export function Header() {
             </svg>
           </button>
         )}
-        <h1 className="text-lg font-semibold text-zinc-800">
+        <h1 className="text-lg font-semibold text-ink">
           {pageTitle}
         </h1>
         {/* Left-side portal: pages can inject breadcrumbs or custom titles */}

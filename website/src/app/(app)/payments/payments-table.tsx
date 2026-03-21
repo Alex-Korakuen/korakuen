@@ -28,13 +28,13 @@ export function PaymentsTable({ data, onRowClick }: Props) {
         <thead className={tableHead}>
           <tr>
             <th
-              className="cursor-pointer whitespace-nowrap px-3 py-3 text-center hover:text-zinc-700"
+              className="cursor-pointer whitespace-nowrap px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('payment_date')}
             >
               Date <SortIndicator column="payment_date" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
-              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('entity_name')}
             >
               Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -42,23 +42,23 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             <th className="px-3 py-3 text-center">Project</th>
             <th className="px-3 py-3 text-center">Invoice</th>
             <th
-              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('bank_name')}
             >
               Bank <SortIndicator column="bank_name" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
-              className="cursor-pointer px-3 py-3 text-center hover:text-zinc-700"
+              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('amount')}
             >
               Amount <SortIndicator column="amount" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+              <td colSpan={6} className="px-4 py-8 text-center text-faint">
                 No payments found
               </td>
             </tr>
@@ -69,17 +69,17 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 className={tableRowHover}
                 onClick={() => onRowClick(row)}
               >
-                <td className="whitespace-nowrap px-3 py-3 text-center text-zinc-600">
+                <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                   {row.payment_date ? formatDate(row.payment_date) : '--'}
                 </td>
-                <td className="max-w-[200px] truncate px-3 py-3 text-center text-zinc-700">
+                <td className="max-w-[200px] truncate px-3 py-3 text-center text-ink">
                   {row.entity_name ?? '--'}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-zinc-400">
+                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-faint">
                   {row.project_code ?? '--'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
-                  <span className="font-mono text-xs text-zinc-500">
+                  <span className="font-mono text-xs text-muted">
                     {getRelatedLabel(row.related_to, row.invoice_number)}
                   </span>
                   {row.payment_type !== 'regular' && (
@@ -91,7 +91,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                     </span>
                   )}
                 </td>
-                <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-zinc-500">
+                <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-muted">
                   {row.bank_name ?? '--'}
                 </td>
                 <td className={`whitespace-nowrap px-3 py-3 text-center font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>

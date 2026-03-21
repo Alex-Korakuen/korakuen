@@ -95,7 +95,7 @@ export function PricesClient({
       <HeaderPortal>
         <button
           onClick={() => setShowImport(true)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-800"
+          className="inline-flex items-center gap-1.5 rounded-md border border-edge px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
@@ -106,11 +106,11 @@ export function PricesClient({
       </HeaderPortal>
 
       {/* Toolbar: search + filter toggle */}
-      <div className="mt-6 rounded-lg border border-zinc-200 bg-white">
+      <div className="mt-6 rounded-[10px] border border-edge bg-white">
         <div className="flex items-center gap-2 px-3 py-2">
           {/* Search with icon */}
           <div className="relative flex-1">
-            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400">
+            <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
               </svg>
@@ -121,7 +121,7 @@ export function PricesClient({
               onChange={(e) => setSearchValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
               placeholder="Search by item title..."
-              className="w-full rounded-md border border-zinc-200 bg-zinc-50 py-2 pl-8 pr-3 text-sm text-zinc-700 outline-none transition-colors focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-md border border-edge bg-surface py-2 pl-8 pr-3 text-sm text-ink outline-none transition-colors focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/20"
             />
           </div>
 
@@ -130,8 +130,8 @@ export function PricesClient({
             onClick={() => setFiltersOpen(!isFiltersOpen)}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors ${
               isFiltersOpen
-                ? 'border-blue-200 bg-blue-50 text-blue-600'
-                : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                ? 'border-accent/30 bg-accent-bg text-accent'
+                : 'border-edge text-muted hover:bg-surface'
             }`}
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -139,7 +139,7 @@ export function PricesClient({
             </svg>
             Filters
             {activeFilterCount > 0 && (
-              <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
+              <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -148,7 +148,7 @@ export function PricesClient({
 
         {/* Collapsible filter panel */}
         {isFiltersOpen && (
-          <div className="border-t border-zinc-100 px-4 py-3">
+          <div className="border-t border-edge px-4 py-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <FilterSelect
                 label="Category"
@@ -176,7 +176,7 @@ export function PricesClient({
 
               {/* Date range: from — to */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-500">Date range</label>
+                <label className="text-xs font-medium text-muted">Date range</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="date"
@@ -184,7 +184,7 @@ export function PricesClient({
                     onChange={(e) => setFilter(FK.dateFrom, e.target.value)}
                     className={selectClass}
                   />
-                  <span className="text-xs text-zinc-400">—</span>
+                  <span className="text-xs text-faint">—</span>
                   <input
                     type="date"
                     defaultValue={currentFilters.dateTo}
@@ -206,7 +206,7 @@ export function PricesClient({
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="self-end rounded px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:text-red-500"
+                  className="self-end rounded px-3 py-1.5 text-sm text-muted transition-colors hover:text-negative"
                 >
                   Clear filters
                 </button>
@@ -217,45 +217,45 @@ export function PricesClient({
       </div>
 
       {/* Table */}
-      <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <div className="mt-4 overflow-hidden rounded-[10px] border border-edge bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className={tableHead}>
               <tr>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('date')}
                 >
                   Date <SortIndicator column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th className="px-4 py-3 text-center">Source</th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('entityName')}
                 >
                   Supplier <SortIndicator column="entityName" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('projectCode')}
                 >
                   Project <SortIndicator column="projectCode" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('title')}
                 >
                   Title <SortIndicator column="title" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('quantity')}
                 >
                   Qty <SortIndicator column="quantity" sortColumn={sortColumn} sortDirection={sortDirection} />
                 </th>
                 <th className="px-4 py-3 text-center">Unit</th>
                 <th
-                  className="cursor-pointer px-4 py-3 text-center hover:text-zinc-700"
+                  className="cursor-pointer px-4 py-3 text-center hover:text-ink"
                   onClick={() => handleSort('unit_price')}
                 >
                   Unit Price <SortIndicator column="unit_price" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -263,17 +263,17 @@ export function PricesClient({
                 <th className="px-4 py-3 text-center">Cur.</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-zinc-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-faint">
                     No matching price records found
                   </td>
                 </tr>
               ) : (
                 data.map((row) => (
-                  <tr key={row.id} className="transition-colors hover:bg-zinc-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-700">
+                  <tr key={row.id} className="transition-colors hover:bg-panel">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-ink">
                       {row.date ? formatDate(row.date) : '--'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-center">
@@ -282,27 +282,27 @@ export function PricesClient({
                         variant={row.source === 'invoice' ? 'zinc' : 'blue'}
                       />
                     </td>
-                    <td className="px-4 py-3 text-center text-zinc-700">
+                    <td className="px-4 py-3 text-center text-ink">
                       {row.entityName}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-xs text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-xs text-muted">
                       {row.projectCode}
                     </td>
-                    <td className="max-w-[200px] truncate px-4 py-3 text-center text-zinc-700">
+                    <td className="max-w-[200px] truncate px-4 py-3 text-center text-ink">
                       {row.title || '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-muted">
                       {row.quantity !== null ? row.quantity : '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-muted">
                       {row.unit_of_measure ?? '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-center font-mono text-ink">
                       {row.unit_price !== null
                         ? formatCurrency(row.unit_price, row.currency)
                         : '--'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center text-zinc-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-center text-muted">
                       {row.currency}
                     </td>
                   </tr>
