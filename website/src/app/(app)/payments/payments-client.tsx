@@ -96,7 +96,8 @@ export function PaymentsClient({
       const [detail, banks] = await Promise.all([detailPromise, bankPromise])
       setModalDetail(detail)
       setModalBankAccounts(banks)
-    } catch {
+    } catch (err) {
+      console.error('Failed to load payment detail:', err)
       setModalDetail(null)
     } finally {
       setModalLoading(false)

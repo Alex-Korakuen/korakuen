@@ -53,7 +53,8 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     try {
       const txns = await fetchBankTransactions(ba.bankAccountId)
       setTransactions(txns)
-    } catch {
+    } catch (err) {
+      console.error('Failed to load bank transactions:', err)
       setTransactions([])
     } finally {
       setLoadingTxns(false)
@@ -66,7 +67,8 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     try {
       const detail = await fetchLoanDetailById(loan.loanId)
       setLoanDetail(detail)
-    } catch {
+    } catch (err) {
+      console.error('Failed to load loan detail:', err)
       setLoanDetail(null)
     } finally {
       setLoadingLoan(false)
@@ -78,8 +80,8 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
     try {
       const detail = await fetchLoanDetailById(selectedLoan.loanId)
       setLoanDetail(detail)
-    } catch {
-      // keep existing detail
+    } catch (err) {
+      console.error('Failed to refresh loan detail:', err)
     }
   }
 

@@ -150,6 +150,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
             onClick={startEdit}
             className={`${btnEditIcon}`}
             title="Edit entity"
+            aria-label="Edit entity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path d={iconPencil} />
@@ -159,6 +160,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
             onClick={() => { setError(null); setMode('delete') }}
             className={`${btnDangerIcon}`}
             title="Deactivate entity"
+            aria-label="Deactivate entity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />

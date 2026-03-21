@@ -81,7 +81,8 @@ export function InvoicesClient({
       } else {
         setModalDetail(await fetchInvoiceDetail(row.id))
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load invoice detail:', err)
       setModalDetail(null)
     } finally {
       setModalLoading(false)

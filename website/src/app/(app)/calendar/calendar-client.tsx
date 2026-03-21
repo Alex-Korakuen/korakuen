@@ -134,7 +134,8 @@ export function CalendarClient({
         const detail = await fetchInvoiceDetail(row.invoice_id)
         setModalDetail(detail)
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to load calendar detail:', err)
       setModalDetail(null)
     } finally {
       setModalLoading(false)

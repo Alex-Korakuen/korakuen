@@ -57,8 +57,8 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
       try {
         const result = await fetchSettlement(ids)
         setData(result)
-      } catch {
-        // silently fail — keep existing data
+      } catch (err) {
+        console.error('Failed to refresh settlement data:', err)
       }
     })
   }
