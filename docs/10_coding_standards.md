@@ -23,9 +23,9 @@ These principles apply to every file in this project — SQL and TypeScript.
 ### DRY — Don't Repeat Yourself
 Every piece of logic exists in exactly one place. If you find yourself writing the same code in two places, extract it.
 
-- Database query functions → `website/lib/queries.ts`
-- Currency formatters → `website/lib/formatters.ts`
-- TypeScript types → `website/lib/types.ts`
+- Database query functions → `website/src/lib/queries/` (barrel-exported via `index.ts`)
+- Currency formatters → `website/src/lib/formatters.ts`
+- TypeScript types → `website/src/lib/types.ts`
 
 ### KISS — Keep It Simple, Stupid
 Write the simplest code that correctly solves the problem. No clever abstractions, no premature optimization, no unnecessary layers.

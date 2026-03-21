@@ -396,7 +396,7 @@ export async function createEntity(data: {
   city?: string
   region?: string
   notes?: string
-}): Promise<{ error: string; field?: string } | undefined> {
+}): Promise<{ error?: string; field?: string }> {
   const supabase = await createServerSupabaseClient()
 
   // Validate entity_type / document_type consistency
@@ -444,6 +444,7 @@ export async function createEntity(data: {
   })
   if (error) return { error: handleDbError(error, 'Failed to create entity') }
   revalidatePath('/entities')
+  return {}
 }
 
 // --- Update Project ---

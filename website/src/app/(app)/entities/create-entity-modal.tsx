@@ -69,7 +69,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
         region: region.trim() || undefined,
         notes: notes.trim() || undefined,
       })
-      if (result?.error) {
+      if (result.error) {
         setError({ message: result.error, field: result.field })
       } else {
         handleClose()

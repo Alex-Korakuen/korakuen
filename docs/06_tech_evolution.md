@@ -87,7 +87,7 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 - Loan simplification — `loan_payments` table dropped, repayments go through universal `payments` table
 - `project_entities` table dropped — entity-project relationships inferred from invoices/quotes
 - Universal partner filter (cookie-based) replaces dual-view model
-- 7 sidebar pages + settings page
+- 8 sidebar pages + settings page
 
 ### When to move to V2
 Move when any of the following is true:

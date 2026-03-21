@@ -62,7 +62,7 @@ All data entry happens through the website's inline forms and modals. The websit
 
 **Why Vercel instead of Power BI:** Power BI is expensive and requires licensing. Vercel hosting is free. Next.js is already known from the finance tracker project. A custom website gives full control over what is displayed and how, with no vendor dependency. Supabase has a native JavaScript client that makes read and write queries straightforward.
 
-**What the website does:** Displays 7 sidebar pages — calendar, invoices, payments, financial position, projects, entities & contacts, and prices (plus a settings page for password change). Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies enforce authenticated access for all writes.
+**What the website does:** Displays 8 sidebar pages — projects, entities & contacts, prices, invoices, payments, calendar, settlement, and financial position (plus a settings page for password change). Provides data entry forms for entities, projects, bank accounts, loans, payments, and collections. RLS policies restrict writes to admin users only — partners have read-only access.
 
 ---
 
