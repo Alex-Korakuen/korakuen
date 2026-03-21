@@ -15,11 +15,13 @@ import { InvoicesFilters } from './invoices-filters'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
 import { LoanExpandContent } from './loan-expand-content'
+import { DirectTransactionModal } from '@/components/ui/direct-transaction-modal'
 import type {
   InvoicesPageRow,
   InvoiceDetailData,
   LoanDetailData,
   CategoryOption,
+  PartnerCompanyOption,
 } from '@/lib/types'
 
 type Props = {
@@ -30,6 +32,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
   categories: CategoryOption[]
+  partners: PartnerCompanyOption[]
   currentFilters: {
     direction: string
     type: string
@@ -48,12 +51,14 @@ export function InvoicesClient({
   projects,
   uniqueEntities,
   categories,
+  partners,
   currentFilters,
 }: Props) {
   const router = useRouter()
   const { setFilter, clearFilters } = useUrlFilters()
 
   const [showImport, setShowImport] = useState(false)
+  const [showDirectTransaction, setShowDirectTransaction] = useState(false)
   const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
@@ -121,6 +126,10 @@ export function InvoicesClient({
   return (
     <div>
       <HeaderPortal>
+        <button onClick={() => setShowDirectTransaction(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover">
+          + Direct transaction
+        </button>
         <button onClick={() => setShowImport(true)}
           className="inline-flex items-center gap-1.5 rounded-md border border-edge-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -169,6 +178,14 @@ export function InvoicesClient({
 
       <ImportModal isOpen={showImport} onClose={() => setShowImport(false)}
         title="Import Invoices" onImport={importInvoices} />
+
+      <DirectTransactionModal
+        isOpen={showDirectTransaction}
+        onClose={() => setShowDirectTransaction(false)}
+        partners={partners}
+        projects={projects}
+        categories={categories}
+      />
     </div>
   )
 }

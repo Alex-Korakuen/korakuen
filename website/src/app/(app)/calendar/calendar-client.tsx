@@ -7,6 +7,8 @@ import { getCalendarBucket } from '@/lib/date-utils'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { Modal } from '@/components/ui/modal'
+import { HeaderPortal } from '@/components/ui/header-portal'
+import { DirectTransactionModal } from '@/components/ui/direct-transaction-modal'
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
 import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarFilters } from './calendar-filters'
@@ -19,6 +21,7 @@ import type {
   LoanDetailData,
   CalendarBucketId as BucketId,
   CategoryOption,
+  PartnerCompanyOption,
 } from '@/lib/types'
 
 export type SectionTotals = {
@@ -31,6 +34,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
   categories: CategoryOption[]
+  partners: PartnerCompanyOption[]
   currentFilters: {
     type: string
     projectId: string
@@ -94,10 +98,14 @@ export function CalendarClient({
   projects,
   uniqueEntities,
   categories,
+  partners,
   currentFilters,
 }: Props) {
   const router = useRouter()
   const { setFilter, clearFilters } = useUrlFilters()
+
+  // Direct transaction modal
+  const [showDirectTransaction, setShowDirectTransaction] = useState(false)
 
   // Modal state
   const [modalRow, setModalRow] = useState<ObligationCalendarRow | null>(null)
@@ -219,6 +227,13 @@ export function CalendarClient({
 
   return (
     <div className="pb-16">
+      <HeaderPortal>
+        <button onClick={() => setShowDirectTransaction(true)}
+          className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover">
+          + Direct transaction
+        </button>
+      </HeaderPortal>
+
       <CalendarFilters
         currentFilters={currentFilters}
         setFilter={setFilter}
@@ -233,6 +248,14 @@ export function CalendarClient({
       <Modal isOpen={!!modalRow} onClose={handleCloseModal} title={modalTitle}>
         {renderModalContent()}
       </Modal>
+
+      <DirectTransactionModal
+        isOpen={showDirectTransaction}
+        onClose={() => setShowDirectTransaction(false)}
+        partners={partners}
+        projects={projects}
+        categories={categories}
+      />
     </div>
   )
 }

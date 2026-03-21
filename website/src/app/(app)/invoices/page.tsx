@@ -2,6 +2,7 @@ import {
   getInvoicesPage,
   getProjectsForFilter,
   getProjectCategories,
+  getPartnerCompanies,
 } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
@@ -28,9 +29,10 @@ export default async function InvoicesPage({ searchParams }: Props) {
     page,
   }
 
-  const [projects, categories] = await Promise.all([
+  const [projects, categories, partners] = await Promise.all([
     getProjectsForFilter(),
     getProjectCategories(),
+    getPartnerCompanies(),
   ])
 
   const result = await getInvoicesPage(filters)
@@ -44,6 +46,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
       projects={projects}
       uniqueEntities={result.uniqueEntities}
       categories={categories}
+      partners={partners}
       currentFilters={{
         direction: filters.direction ?? '',
         type: filters.type ?? '',

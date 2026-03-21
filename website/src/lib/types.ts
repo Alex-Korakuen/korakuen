@@ -24,7 +24,7 @@ export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual'
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
 export type InvoiceDirection = 'payable' | 'receivable'
-export type CostType = 'project_cost' | 'sga'
+export type CostType = 'project_cost' | 'sga' | 'intercompany'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
 export type ProjectType = 'subcontractor' | 'oxi'
