@@ -125,7 +125,7 @@ Invoice item categories. Referenced by `invoice_items.category` and `project_bud
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | name | VARCHAR(50) | NO | primary key — e.g. 'materials', 'other_sga' |
-| cost_type | VARCHAR(20) | NO | 'project_cost' or 'sga' |
+| cost_type | VARCHAR(20) | NO | 'project_cost', 'sga', or 'intercompany' |
 | label | VARCHAR(100) | NO | display name — e.g. 'Materials', 'Other' |
 | sort_order | INTEGER | NO | controls menu/display ordering |
 | is_active | BOOLEAN | NO | default true, soft delete |
@@ -317,7 +317,7 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 | entity_id | UUID | YES | references entities — null if informal/unassigned (payable), always set (receivable) |
 | quote_id | UUID | YES | references quotes — null if no prior quote (payable only) |
 | purchase_order_id | UUID | YES | reserved for future PO module — always null for now |
-| cost_type | VARCHAR | YES | `'project_cost'` or `'sga'` — payable only, null for receivable |
+| cost_type | VARCHAR | YES | `'project_cost'`, `'sga'`, or `'intercompany'` — payable only, null for receivable. Intercompany invoices are settlement transfers between partners, excluded from settlement totals |
 | title | TEXT | YES | invoice or expense title — payable only, null for receivable |
 | invoice_number | VARCHAR(100) | YES | comprobante number (payable) or own numbering (receivable) |
 | document_ref | VARCHAR(100) | YES | e.g. PRY001-AP-001 or PRY001-AR-001 |
@@ -332,6 +332,7 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 | retencion_rate | NUMERIC(5,2) | YES | default 3 if applicable — receivable only |
 | retencion_verified | BOOLEAN | NO | default false — receivable only |
 | payment_method | VARCHAR | YES | bank_transfer, cash, check — payable only |
+| is_auto_generated | BOOLEAN | NO | default false — true for invoices created via Direct Transaction (informal partner cash payments). Can be promoted to formal invoice by editing in place |
 | notes | TEXT | YES | free-form context |
 | created_at | TIMESTAMPTZ | NO | auto |
 | updated_at | TIMESTAMPTZ | NO | auto |

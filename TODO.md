@@ -11,11 +11,15 @@ When a partner is removed from a project, their historical invoices and payments
 - Does `is_active = false` on `project_partners` properly exclude them from new calculations while preserving history?
 ---
 
-## RLS Policies: Partner-Scoped Write Access
+## RLS Policies
 
-`supabase/migrations/20260309000001_rls_write_policies.sql` — all write policies use `WITH CHECK (true)` with no per-partner scoping. Any authenticated user can edit invoices, payments, loans across all partners. Acceptable for now given small trusted user base, but a risk if the user base grows.
+`supabase/migrations/20260309000001_rls_write_policies.sql` — all write policies use `WITH CHECK (true)`. Single-user system — acceptable as-is. No partner-scoped RLS needed.
 
-**Fix:** Implement partner-scoped RLS policies that restrict writes to records matching the user's `partner_company_id`. Requires a user→partner mapping (e.g. via `auth.users` metadata or a lookup table).
+---
+
+## Pending Migration
+
+`supabase/migrations/20260321000001_direct_transaction_support.sql` needs to be applied to the production Supabase database. Adds `is_auto_generated` column to invoices and `'intercompany'` to cost_type check constraint.
 
 ---
 
@@ -49,7 +53,7 @@ When a partner is removed from a project, their historical invoices and payments
 
 ### Calendar Management — Mostly Complete
 
-**Works:** Unified view combining AP obligations, AR collections, and loan repayments. Time-bucketed display (Overdue → Later). Dual-currency totals per bucket and grand total. Urgency color-coding. Partner filter integration.
+**Works:** Unified view combining AP obligations, AR collections, and loan repayments. Time-bucketed display (Overdue → Later). Dual-currency totals per bucket and grand total. Urgency color-coding. Direct transaction button for quick partner expense recording.
 
 **Gaps:**
 - No direction filter toggle in UI (API supports it)
@@ -85,7 +89,7 @@ When a partner is removed from a project, their historical invoices and payments
 
 Two patterns repeat across areas:
 
-1. **Creation limited to import** — Invoices and quotes can only be created via bulk Excel import. No single-record creation forms.
+1. **Formal invoice creation limited to import** — Formal invoices and quotes can only be created via bulk Excel import. No single-record creation form. (Informal transactions can be created via Direct Transaction modal.)
 2. **Exchange rate entry** — Needed for payment registration and invoice import. Currently requires Supabase Dashboard.
 
 ---

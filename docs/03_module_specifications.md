@@ -293,12 +293,14 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 
 ---
 
-## Module 7: Partner Ledger (Computed in Application Layer)
+## Module 7: Partner Settlement (Computed in Application Layer)
 
 **Purpose:** Shows each partner's financial position per project — what they contributed, what profit they're owed, and who owes whom for settlement.
 
 **How it works:**
-This is not a database table or SQL view — it is computed in the application layer (`queries.ts`) from `v_invoice_totals` grouped by `partner_company_id` per project. SG&A invoices are excluded — they belong to the individual partner who incurred them. No data is stored separately. The calculation is always current because it reads directly from source data. Settlement is displayed within the project detail view on the website.
+This is not a database table or SQL view — it is computed in the application layer (`queries/settlement.ts`) from `v_invoice_totals` grouped by `partner_company_id` per project. SG&A and intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals — intercompany invoices are settlement transfers between partners that would distort project economics if counted. No data is stored separately. The calculation is always current because it reads directly from source data. Settlement is displayed on the dedicated Settlement dashboard page (`/settlement`), which supports aggregating balances across multiple selected projects.
+
+**Direct transactions:** Partners' informal cash payments (no comprobante) are recorded via auto-generated invoices (`is_auto_generated = true`) with an immediate payment. These appear in settlement calculations identically to formal invoices. They can be promoted to formal invoices later when the comprobante arrives.
 
 **What the view shows:**
 
@@ -337,7 +339,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 
 ## Module 8: Loans
 
-**Purpose:** Tracks loans taken by any partner to fund project operations. Each loan belongs to a partner company via `partner_company_id`. Visible to everyone via the universal partner filter.
+**Purpose:** Tracks loans taken by any partner to fund project operations. Each loan belongs to a partner company via `partner_company_id`. All loan data is visible — no access restrictions.
 
 **Business rules:**
 - Every loan records the lender, amount, terms (percentage or fixed return), and which partner borrowed (`partner_company_id`)

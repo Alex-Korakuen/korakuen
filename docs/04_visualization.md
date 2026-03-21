@@ -14,7 +14,7 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Universal partner filter:** A global partner filter in the sidebar lets users toggle which partner companies' data to display across all 7 pages. The filter persists via a cookie (`partner_filter`). All data is visible to everyone — no role-based visibility restrictions. The filter is for focus, not access control.
+**Single-user system:** All data is visible — no partner filter, no role-based access restrictions. `partner_company_id` on financial records is used for settlement calculations only, not for UI filtering.
 
 **Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
@@ -40,10 +40,11 @@ Browse
 
 Dashboards
   Calendar
+  Settlement
   Financial Position
 ```
 
-**7 pages total.** Each answers one distinct business question. No redundancy. Settings (password change) is accessed via the header, not the sidebar.
+**8 pages total.** Each answers one distinct business question. No redundancy. Settings (password change) is accessed via the header, not the sidebar.
 
 ---
 
@@ -126,13 +127,55 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Row click:** Opens modal showing full invoice details — invoice items, payment history, document_ref, bank account, comprobante info.
 
-**Loan obligations:** `v_obligation_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. Filterable by partner via the global partner filter.
+**Loan obligations:** `v_obligation_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. All partner data visible.
 
 **Taxes tab:**
 
 Detraccion deposits pending — outbound detracciones that need to be deposited to suppliers' Banco de la Nacion accounts. Table columns: supplier, invoice title, project, detraccion amount, deposit status (paid/pending). Answers: "which detraccion deposits am I behind on?"
 
 **Data source:** Invoices table filtered to unpaid/partial status, sorted by due date (via v_obligation_calendar, v_invoice_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
+
+**Actions:** `+ Direct transaction` button in header opens modal to record informal partner transactions (see Direct Transactions below).
+
+---
+
+### Settlement Dashboard
+
+**Business question:** How are we sitting on partner settlements across all active projects?
+
+**Priority:** High
+
+**Top:** Project chips — one per active/completed project, plus "All active" shortcut. Clicking chips toggles which projects are aggregated. At least one must remain selected.
+
+**Summary strip:** Four cells reflecting the current selection: Projects (count), Income Collected (PEN), Total Costs (PEN), Total Profit (PEN). Intercompany and SGA invoices excluded from totals.
+
+**Partner table:** One row per partner involved in the selected projects. Columns:
+- Partner (name + "you" tag on Korakuen)
+- Share (% pill for single project, `—` for multi-project)
+- Costs Paid (PEN)
+- Profit Share (PEN)
+- Should Receive (PEN)
+- Balance (colored badge: green = owed money, red = has excess, `—` = settled)
+
+Total row at bottom. Balance shows `—` in total row.
+
+**Settlement math:** For each partner: `should_receive = costs_paid + profit_share`. `balance = should_receive - revenue_received`. Profit share computed per project as `project_profit × profit_share_pct / 100`, then summed.
+
+**Data source:** `v_invoice_totals` (costs by partner), `invoices` + `payments` (revenue by partner), `project_partners` (profit share %). Computed in `queries/settlement.ts`.
+
+---
+
+### Direct Transactions
+
+**Purpose:** Record informal partner transactions (cash payments without comprobante) in either direction — outflow (cost) or inflow (revenue).
+
+**Modal form fields:** Partner, Direction (Outflow/Inflow), Project, Amount, Currency, Exchange Rate, Date, Category (outflow only), Notes.
+
+**Under the hood:** Auto-generates an invoice (`is_auto_generated = true`, `comprobante_type = 'none'`) + immediate payment in one step. Data model is identical to a formal invoice + payment — all existing queries and settlement logic work without modification.
+
+**Promoting to formal:** When a comprobante arrives later, the auto-generated invoice can be edited in place via the existing invoice edit flow. `is_auto_generated` stays `true` as a historical marker.
+
+**Available on:** Invoices page header, Calendar page header.
 
 ---
 
@@ -196,7 +239,7 @@ Two sections:
 
 **Disclaimer:** System-calculated balances, not bank-reconciled.
 
-**Data source:** v_bank_balances (cash), v_invoice_balances (AR + AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). Filterable by partner via global partner filter.
+**Data source:** v_bank_balances (cash), v_invoice_balances (AR + AP outstanding), v_igv_position (IGV split), v_retencion_dashboard (retenciones unverified), v_loan_balances (loans). All partner data visible.
 
 ---
 
@@ -205,7 +248,7 @@ Two sections:
 - Next.js app hosted on Vercel free tier
 - Reads from Supabase PostgreSQL via Supabase JavaScript client
 - Authentication — Supabase Auth with email/password, invite-only (3 accounts)
-- Universal partner filter (cookie-based) controls data scope across all pages — no role-based visibility
+- All data visible to all users — no partner filter, no role-based visibility restrictions
 - Reporting currency: consolidated views include a currency selector (PEN default). Transactions in the other currency converted at display time using stored exchange_rate. Converted amounts visually marked
 - All views are filterable and sortable
 - Consistent interaction patterns: split-panel for browse pages, summary cards + table for dashboards, tabs for sub-sections, modals for row detail

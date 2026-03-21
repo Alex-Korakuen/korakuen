@@ -159,7 +159,7 @@ Known enum values per field:
 | `quotes.status` | pending, accepted, rejected |
 | `quotes.currency` | USD, PEN |
 | `invoices.direction` | payable, receivable |
-| `invoices.cost_type` | project_cost, sga (payable only) |
+| `invoices.cost_type` | project_cost, sga, intercompany (payable only) |
 | `invoices.currency` | USD, PEN |
 | `invoices.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
 | `invoices.payment_method` | bank_transfer, cash, check (payable only) |

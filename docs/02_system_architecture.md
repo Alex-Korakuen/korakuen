@@ -121,9 +121,11 @@ All three partners' bank accounts are tracked in the system. Every payment refer
 ---
 
 ### 4.9 Partner Settlement — Computed in Application Layer
-Partner contribution tracking and settlement calculations are computed in the application layer (`queries.ts`) from `v_invoice_totals` grouped by partner company. No standalone ledger table or view.
+Partner contribution tracking and settlement calculations are computed in the application layer (`queries/settlement.ts`) from `v_invoice_totals` grouped by partner company. No standalone ledger table or view.
 
-**Why:** All the data already exists in the invoices and payments tables. A separate ledger table would duplicate data and create consistency risk. Settlement is displayed within the project detail view on the website.
+**Why:** All the data already exists in the invoices and payments tables. A separate ledger table would duplicate data and create consistency risk. Settlement is displayed on the dedicated Settlement dashboard page (`/settlement`), which aggregates balances across selected projects. Intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals to prevent distorting project economics.
+
+**Direct transactions:** Partners' informal cash payments are recorded via auto-generated invoices (`is_auto_generated = true`, `comprobante_type = 'none'`) with an immediate payment — the system creates both records in one step. These can be promoted to formal invoices later when the comprobante arrives.
 
 ---
 
@@ -147,12 +149,10 @@ The `invoices` table includes a nullable `purchase_order_id` field reserved for 
 
 ---
 
-### 4.12 Universal Partner Filter
-All data is visible to all users — no role-based visibility restrictions. A global partner filter in the sidebar lets users toggle which partner companies' data to display. The filter persists across all 7 pages via a cookie (`partner_filter`).
+### 4.12 Single-User Architecture
+This is a single-user system managed by Alex. All data is visible — no role-based access restrictions, no partner filter. `partner_company_id` remains on all financial records for settlement calculations and accountant exports, but there is no UI to filter by partner.
 
-**How it works:** Partner toggle buttons in the sidebar. Toggling partners marks the filter as dirty; clicking Apply sets the cookie and refreshes the page. Server components read the cookie to scope queries. When no filter is applied, all data is shown.
-
-**Why universal:** Transparency is appropriate for this partnership structure. Every partner can see loans, financial position, and all transactions. The filter is for focus, not for access control.
+**Intentional data asymmetry:** Korakuen (Alex's company) has full formal invoice registration, bank reconciliation, and SUNAT-compliant records. Other partner companies have lightweight tracking — amounts, dates, and categories sufficient for settlement math. Each partner handles their own formal accounting externally.
 
 ---
 
@@ -161,7 +161,7 @@ Tracks loans taken by any partner to fund project contributions. Every loan has 
 
 **Business rule:** 10% return on loans. The borrower keeps the spread between the agreed return rate and what they actually pay the lender.
 
-2 tables (`loans`, `loan_schedule`) with repayments tracked in the universal `payments` table (`related_to = 'loan_schedule'`). Loan obligations appear in `v_obligation_calendar` as a second UNION source. Loan balances and status are derived in `v_loan_balances`. All loan data is visible to everyone via the universal partner filter.
+2 tables (`loans`, `loan_schedule`) with repayments tracked in the universal `payments` table (`related_to = 'loan_schedule'`). Loan obligations appear in `v_obligation_calendar` as a second UNION source. Loan balances and status are derived in `v_loan_balances`. All loan data is visible to everyone.
 
 ---
 
@@ -211,7 +211,7 @@ Identity is stored in Supabase user metadata (set via SQL after invite):
 | `display_name` | string | Name shown in header |
 | `password_set` | boolean | Set to `true` when user completes set-password flow |
 
-`auth.ts` exposes helpers: `getCurrentUser()`, `getPartnerName()`. Data visibility is controlled by the global partner filter (cookie-based), not by user role.
+`auth.ts` exposes helpers: `getCurrentUser()`, `getPartnerName()`. All data is visible — no role-based access restrictions.
 
 ### 5.4 Supabase Clients
 Two client factories, both typed against auto-generated `database.types.ts`:
