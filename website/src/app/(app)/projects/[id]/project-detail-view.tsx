@@ -266,7 +266,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
           </svg>
           Projects
         </Link>
-        <div className="h-4 w-px bg-zinc-200" />
+        <div className="h-4 w-px bg-edge" />
         <span className="text-sm text-muted truncate">
           {project.project_code} — {project.name}
         </span>

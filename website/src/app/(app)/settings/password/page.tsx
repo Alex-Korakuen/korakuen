@@ -45,11 +45,11 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
-      <div className="rounded-lg border border-zinc-200 bg-white px-8 py-8 shadow-sm">
-        <h1 className="text-lg font-semibold text-zinc-900">
+      <div className="rounded-[10px] border border-edge bg-white px-8 py-8 ">
+        <h1 className="text-lg font-semibold text-ink">
           Change Password
         </h1>
-        <p className="mt-1 mb-6 text-sm text-zinc-500">
+        <p className="mt-1 mb-6 text-sm text-muted">
           Enter a new password for your account.
         </p>
 
@@ -77,11 +77,11 @@ export default function ChangePasswordPage() {
           />
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-negative">{error}</p>
           )}
 
           {success && (
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-positive">
               Password updated successfully.
             </p>
           )}
@@ -90,7 +90,7 @@ export default function ChangePasswordPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
+              className="text-sm font-medium text-muted hover:text-ink"
             >
               Back
             </button>

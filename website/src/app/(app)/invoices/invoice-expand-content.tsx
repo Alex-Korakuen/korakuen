@@ -476,7 +476,7 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     {items.length > 1 && (
-                      <button onClick={() => removeItem(item.key)} className="rounded border border-negative/20 p-0.5 text-red-400 hover:bg-negative-bg hover:text-negative">
+                      <button onClick={() => removeItem(item.key)} className="rounded border border-negative/20 p-0.5 text-negative/60 hover:bg-negative-bg hover:text-negative">
                         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
                       </button>
                     )}

@@ -62,7 +62,7 @@ export default function LoginPage() {
         />
 
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-negative">{error}</p>
         )}
 
         <button

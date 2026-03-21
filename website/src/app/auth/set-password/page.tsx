@@ -47,10 +47,10 @@ export default function SetPasswordPage() {
   return (
     <AuthLayout>
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-zinc-900">
+        <h2 className="text-lg font-semibold text-ink">
           Set Your Password
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Choose a password for your account.
         </p>
       </div>
@@ -79,7 +79,7 @@ export default function SetPasswordPage() {
         />
 
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-negative">{error}</p>
         )}
 
         <button

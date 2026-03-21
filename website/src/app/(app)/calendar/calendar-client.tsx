@@ -184,13 +184,13 @@ export function CalendarClient({
     if (modalLoading) {
       return (
         <div className="flex items-center justify-center py-6">
-          <span className="text-sm text-zinc-400">Loading detail...</span>
+          <span className="text-sm text-faint">Loading detail...</span>
         </div>
       )
     }
 
     if (!modalDetail) {
-      return <p className="px-4 py-3 text-sm text-zinc-400">Could not load detail.</p>
+      return <p className="px-4 py-3 text-sm text-faint">Could not load detail.</p>
     }
 
     if (modalRow.type === 'loan') {

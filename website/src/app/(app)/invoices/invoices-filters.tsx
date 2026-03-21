@@ -61,7 +61,7 @@ export function InvoicesFilters({
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
           placeholder="Search by invoice #, entity..."
-          className="w-full rounded-md border border-edge-strong py-1.5 pl-8 pr-3 text-sm text-ink outline-none transition-colors focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500"
+          className="w-full rounded-md border border-edge-strong py-1.5 pl-8 pr-3 text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
         />
       </div>
 

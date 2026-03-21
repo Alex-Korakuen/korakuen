@@ -67,7 +67,7 @@ export function PaymentsFilters({
         className="rounded border border-edge bg-white px-2 py-1 text-xs text-muted"
       />
 
-      <div className="h-5 w-px bg-zinc-200" />
+      <div className="h-5 w-px bg-edge" />
 
       {/* Direction chips */}
       <div className="flex gap-1">
@@ -85,12 +85,12 @@ export function PaymentsFilters({
         </button>
       </div>
 
-      <div className="h-5 w-px bg-zinc-200" />
+      <div className="h-5 w-px bg-edge" />
 
       {/* Type chips */}
       <div className="flex gap-1">
         <button
-          className={chipClass(currentFilters.paymentType === 'regular', 'border-edge-strong bg-zinc-200 text-ink')}
+          className={chipClass(currentFilters.paymentType === 'regular', 'border-edge-strong bg-edge text-ink')}
           onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'regular')}
         >
           Regular
@@ -109,7 +109,7 @@ export function PaymentsFilters({
         </button>
       </div>
 
-      <div className="h-5 w-px bg-zinc-200" />
+      <div className="h-5 w-px bg-edge" />
 
       {/* Related-to chips */}
       <div className="flex gap-1">
@@ -127,7 +127,7 @@ export function PaymentsFilters({
         </button>
       </div>
 
-      <div className="h-5 w-px bg-zinc-200" />
+      <div className="h-5 w-px bg-edge" />
 
       {/* Project dropdown */}
       <FilterSelect

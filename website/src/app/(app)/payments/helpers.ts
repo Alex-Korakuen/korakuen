@@ -6,7 +6,7 @@ export function formatSignedAmount(amount: number, currency: string, direction: 
 }
 
 export function getSignedAmountColorClass(direction: string): string {
-  return direction === 'inbound' ? 'text-green-600' : 'text-red-600'
+  return direction === 'inbound' ? 'text-positive' : 'text-negative'
 }
 
 export function getDirectionLabel(direction: string): string {
@@ -15,8 +15,8 @@ export function getDirectionLabel(direction: string): string {
 
 export function getDirectionColorClass(direction: string): string {
   return direction === 'inbound'
-    ? 'bg-green-100 text-green-700'
-    : 'bg-red-100 text-red-700'
+    ? 'bg-positive-bg text-positive'
+    : 'bg-negative-bg text-negative'
 }
 
 export function getPaymentTypeLabel(type: string): string {

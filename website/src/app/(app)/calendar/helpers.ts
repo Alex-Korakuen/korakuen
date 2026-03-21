@@ -11,26 +11,26 @@ export function formatUrgency(daysRemaining: number | null): string {
 
 /** Urgency label text color class. */
 export function getUrgencyColor(daysRemaining: number | null): string {
-  if (daysRemaining === null) return 'text-zinc-400'
-  if (daysRemaining < 0) return 'text-red-600 font-medium'
-  if (daysRemaining === 0) return 'text-orange-600 font-medium'
-  return 'text-zinc-500'
+  if (daysRemaining === null) return 'text-faint'
+  if (daysRemaining < 0) return 'text-negative font-medium'
+  if (daysRemaining === 0) return 'text-caution font-medium'
+  return 'text-muted'
 }
 
 /** Color classes for section headers by bucket. */
 export function getSectionColors(bucket: string): { border: string; text: string; bg: string } {
   switch (bucket) {
     case 'overdue':
-      return { border: 'border-red-400', text: 'text-red-700', bg: 'bg-red-50' }
+      return { border: 'border-negative', text: 'text-negative', bg: 'bg-negative-bg' }
     case 'today':
-      return { border: 'border-orange-400', text: 'text-orange-700', bg: 'bg-orange-50' }
+      return { border: 'border-caution', text: 'text-caution', bg: 'bg-caution-bg' }
     case 'next-7':
-      return { border: 'border-blue-400', text: 'text-blue-700', bg: 'bg-blue-50' }
+      return { border: 'border-info', text: 'text-info', bg: 'bg-info-bg' }
     case 'next-30':
       return { border: 'border-violet-400', text: 'text-violet-700', bg: 'bg-violet-50' }
     case 'later':
-      return { border: 'border-zinc-300', text: 'text-zinc-600', bg: 'bg-zinc-50' }
+      return { border: 'border-edge-strong', text: 'text-muted', bg: 'bg-panel' }
     default:
-      return { border: 'border-zinc-200', text: 'text-zinc-500', bg: 'bg-zinc-50' }
+      return { border: 'border-edge', text: 'text-muted', bg: 'bg-panel' }
   }
 }

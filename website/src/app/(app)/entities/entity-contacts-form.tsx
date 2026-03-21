@@ -162,7 +162,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                           type="button"
                           onClick={cancelEdit}
                           disabled={isPending}
-                          className="rounded px-1.5 py-1 text-[11px] text-muted hover:bg-zinc-200"
+                          className="rounded px-1.5 py-1 text-[11px] text-muted hover:bg-surface"
                         >
                           Cancel
                         </button>

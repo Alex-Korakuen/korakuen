@@ -137,7 +137,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
           </svg>
           Entities
         </Link>
-        <div className="h-4 w-px bg-zinc-200" />
+        <div className="h-4 w-px bg-edge" />
         <span className="text-sm text-muted truncate">
           {entity.legal_name}
         </span>

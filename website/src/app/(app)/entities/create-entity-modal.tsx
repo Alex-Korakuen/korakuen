@@ -79,7 +79,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
 
   const canSubmit = entityType && documentType && documentNumber.trim() && legalName.trim()
   const docTypeOptions = DOC_TYPES_BY_ENTITY[entityType] ?? []
-  const errorBorder = 'border-red-500 focus:border-red-500 focus:ring-red-500'
+  const errorBorder = 'border-negative focus:border-negative focus:ring-negative'
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Entity">

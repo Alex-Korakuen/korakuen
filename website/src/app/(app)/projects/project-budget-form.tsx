@@ -180,7 +180,7 @@ export function ProjectBudgetForm({
                       <button
                         onClick={() => handleRemove(b.category)}
                         disabled={isPending}
-                        className="text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-negative disabled:opacity-50"
+                        className="text-negative/60 opacity-0 transition-opacity group-hover:opacity-100 hover:text-negative disabled:opacity-50"
                         title="Remove budget"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
