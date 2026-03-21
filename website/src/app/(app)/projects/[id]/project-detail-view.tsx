@@ -288,39 +288,29 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
           {/* Metadata card */}
           <div className="rounded-[10px] border border-edge bg-white">
             {/* Metadata grid */}
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-4 sm:grid-cols-3 lg:grid-cols-5">
-              {clientName && (
-                <div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Client</span>
-                  <p className="text-sm text-ink">{clientName}</p>
-                </div>
-              )}
-              {contractValue !== null && (
-                <div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Contract Value</span>
-                  <p className="text-sm font-mono font-medium text-ink">
-                    {formatCurrency(contractValue, contractCurrency)}
-                  </p>
-                </div>
-              )}
-              {project.start_date && (
-                <div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Start Date</span>
-                  <p className="text-sm text-ink">{formatDate(project.start_date)}</p>
-                </div>
-              )}
-              {project.expected_end_date && (
-                <div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Expected End</span>
-                  <p className="text-sm text-ink">{formatDate(project.expected_end_date)}</p>
-                </div>
-              )}
-              {project.location && (
-                <div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Location</span>
-                  <p className="text-sm text-ink">{project.location}</p>
-                </div>
-              )}
+            <div className="grid grid-cols-2 divide-x divide-edge sm:grid-cols-3 lg:grid-cols-5">
+              <div className="p-4">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Client</span>
+                <p className="text-sm text-ink">{clientName || '—'}</p>
+              </div>
+              <div className="p-4">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Contract Value</span>
+                <p className="text-sm font-mono font-medium text-ink">
+                  {contractValue !== null ? formatCurrency(contractValue, contractCurrency) : '—'}
+                </p>
+              </div>
+              <div className="p-4">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Start Date</span>
+                <p className="text-sm text-ink">{project.start_date ? formatDate(project.start_date) : '—'}</p>
+              </div>
+              <div className="p-4">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Expected End</span>
+                <p className="text-sm text-ink">{project.expected_end_date ? formatDate(project.expected_end_date) : '—'}</p>
+              </div>
+              <div className="p-4">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Location</span>
+                <p className="text-sm text-ink">{project.location || '—'}</p>
+              </div>
             </div>
 
             {/* Partners row */}
