@@ -336,7 +336,6 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                         }`}
                       >
                         {p.partnerName}
-                        {isYou && <span className="text-[10px] text-emerald-500">(you)</span>}
                         <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
                           isYou ? 'bg-emerald-100 text-emerald-600' : 'bg-panel text-muted'
                         }`}>
