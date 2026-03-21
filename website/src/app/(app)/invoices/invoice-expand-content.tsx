@@ -68,10 +68,10 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
       {/* Line items */}
       {detail.items.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Line Items</h3>
-          <div className="overflow-x-auto rounded border border-zinc-200">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Line Items</h3>
+          <div className="overflow-x-auto rounded border border-edge">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-panel text-muted">
                 <tr>
                   <th className="px-3 py-2">Title</th>
                   <th className="px-3 py-2 text-right">Qty</th>
@@ -80,16 +80,16 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
                   <th className="px-3 py-2 text-right">Subtotal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {detail.items.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-3 py-2 text-zinc-700">{item.title}</td>
-                    <td className="px-3 py-2 text-right text-zinc-600">{item.quantity ?? '--'}</td>
-                    <td className="px-3 py-2 text-zinc-500">{item.unit_of_measure ?? '--'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-600">
+                    <td className="px-3 py-2 text-ink">{item.title}</td>
+                    <td className="px-3 py-2 text-right text-muted">{item.quantity ?? '--'}</td>
+                    <td className="px-3 py-2 text-muted">{item.unit_of_measure ?? '--'}</td>
+                    <td className="px-3 py-2 text-right font-mono text-muted">
                       {item.unit_price != null ? formatCurrency(item.unit_price, currency) : '--'}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(item.subtotal, currency)}
                     </td>
                   </tr>
@@ -101,42 +101,42 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
       )}
 
       {/* Totals */}
-      <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
+      <div className="rounded border border-edge bg-panel px-4 py-3">
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
           <div className="space-y-1">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Subtotal</span>
-              <span className="font-mono text-zinc-700">{formatCurrency(invoice.subtotal ?? 0, currency)}</span>
+              <span className="text-muted">Subtotal</span>
+              <span className="font-mono text-ink">{formatCurrency(invoice.subtotal ?? 0, currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">IGV</span>
-              <span className="font-mono text-zinc-700">{formatCurrency(invoice.igv_amount ?? 0, currency)}</span>
+              <span className="text-muted">IGV</span>
+              <span className="font-mono text-ink">{formatCurrency(invoice.igv_amount ?? 0, currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium text-zinc-700">Total</span>
-              <span className="font-mono font-semibold text-zinc-900">{formatCurrency(invoice.total ?? 0, currency)}</span>
+              <span className="font-medium text-ink">Total</span>
+              <span className="font-mono font-semibold text-ink">{formatCurrency(invoice.total ?? 0, currency)}</span>
             </div>
           </div>
           <div className="space-y-1">
             {invoiceDetraccion > 0 && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Detraccion</span>
-                <span className="font-mono text-zinc-700">{formatCurrency(invoiceDetraccion, currency)}</span>
+                <span className="text-muted">Detraccion</span>
+                <span className="font-mono text-ink">{formatCurrency(invoiceDetraccion, currency)}</span>
               </div>
             )}
             {invoiceRetencion > 0 && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Retencion</span>
-                <span className="font-mono text-zinc-700">{formatCurrency(invoiceRetencion, currency)}</span>
+                <span className="text-muted">Retencion</span>
+                <span className="font-mono text-ink">{formatCurrency(invoiceRetencion, currency)}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="font-medium text-zinc-500">Paid</span>
-              <span className="font-mono text-zinc-700">{formatCurrency(invoice.amount_paid ?? 0, currency)}</span>
+              <span className="font-medium text-muted">Paid</span>
+              <span className="font-mono text-ink">{formatCurrency(invoice.amount_paid ?? 0, currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium text-zinc-500">Outstanding</span>
-              <span className="font-mono font-semibold text-red-600">{formatCurrency(invoiceOutstanding, currency)}</span>
+              <span className="font-medium text-muted">Outstanding</span>
+              <span className="font-mono font-semibold text-negative">{formatCurrency(invoiceOutstanding, currency)}</span>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
       />
 
       {/* Action footer */}
-      <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
+      <div className="flex items-center justify-between border-t border-edge pt-3">
         <button
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
@@ -332,25 +332,25 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
       {/* Locked fields */}
       <div className="grid grid-cols-4 gap-4">
         <div>
-          <span className="block text-[11px] font-medium text-zinc-400 mb-1">Direction <LockIcon /></span>
+          <span className="block text-[11px] font-medium text-faint mb-1">Direction <LockIcon /></span>
           <StatusBadge label={invoice.direction === 'receivable' ? 'Receivable' : 'Payable'} variant={invoice.direction === 'receivable' ? 'green' : 'blue'} />
         </div>
         <div>
-          <span className="block text-[11px] font-medium text-zinc-400 mb-1">Partner <LockIcon /></span>
-          <span className="text-sm text-zinc-500">{row.partner_company_id ? '—' : '--'}</span>
+          <span className="block text-[11px] font-medium text-faint mb-1">Partner <LockIcon /></span>
+          <span className="text-sm text-muted">{row.partner_company_id ? '—' : '--'}</span>
         </div>
         <div>
-          <span className="block text-[11px] font-medium text-zinc-400 mb-1">Currency <LockIcon /></span>
-          <span className="text-sm text-zinc-500">{currency}</span>
+          <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
+          <span className="text-sm text-muted">{currency}</span>
         </div>
         <div>
-          <span className="block text-[11px] font-medium text-zinc-400 mb-1">Project <LockIcon /></span>
-          <span className="text-sm text-zinc-500">{row.project_code ?? '--'}</span>
+          <span className="block text-[11px] font-medium text-faint mb-1">Project <LockIcon /></span>
+          <span className="text-sm text-muted">{row.project_code ?? '--'}</span>
         </div>
       </div>
 
       {hasPayments && (
-        <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="rounded border border-caution/20 bg-caution-bg px-3 py-2 text-xs text-caution">
           This invoice has <strong>{detail.payments.length} payment{detail.payments.length !== 1 ? 's' : ''}</strong> totaling <strong className="font-mono">{formatCurrency(amountPaid, currency)}</strong>. The new total cannot be less than the amount paid.
         </div>
       )}
@@ -358,26 +358,26 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
       {/* Editable header fields */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Title</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Title</label>
           <input type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Invoice #</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Invoice #</label>
           <input type="text" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={inputCls} />
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Invoice Date</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Invoice Date</label>
           <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Due Date</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Due Date</label>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Comprobante</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Comprobante</label>
           <select value={comprobanteType} onChange={e => setComprobanteType(e.target.value)} className={inputCls}>
             <option value="">None</option>
             <option value="factura">Factura</option>
@@ -388,7 +388,7 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Payment Method</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Payment Method</label>
           <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
             <option value="">--</option>
             <option value="bank_transfer">Transferencia</option>
@@ -400,40 +400,40 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
 
       <div className="grid grid-cols-4 gap-3">
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Document Ref</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Document Ref</label>
           <input type="text" value={documentRef} onChange={e => setDocumentRef(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Exchange Rate</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Exchange Rate</label>
           <input type="number" step="0.001" min="0" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
-          <span className="text-[10px] text-zinc-400 mt-0.5 block">Auto-fetched on date change</span>
+          <span className="text-[10px] text-faint mt-0.5 block">Auto-fetched on date change</span>
         </div>
         <div>
-          <label className="block text-[11px] font-medium text-zinc-500 mb-1">Detraccion %</label>
+          <label className="block text-[11px] font-medium text-muted mb-1">Detraccion %</label>
           <input type="number" step="0.01" min="0" max="100" value={detraccionRate} onChange={e => setDetraccionRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
         </div>
         {isReceivable && (
           <div>
-            <label className="block text-[11px] font-medium text-zinc-500 mb-1">Retencion %</label>
+            <label className="block text-[11px] font-medium text-muted mb-1">Retencion %</label>
             <input type="number" step="0.01" min="0" max="100" value={retencionRate} onChange={e => setRetencionRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
           </div>
         )}
       </div>
 
       <div>
-        <label className="block text-[11px] font-medium text-zinc-500 mb-1">Notes</label>
+        <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
         <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} className={`${inputCls} resize-none`} placeholder="Optional notes..." />
       </div>
 
       {/* Editable line items */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-zinc-700">Line Items</span>
-          <button onClick={addItem} className="rounded border border-zinc-300 px-2 py-0.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100">+ Add item</button>
+          <span className="text-sm font-semibold text-ink">Line Items</span>
+          <button onClick={addItem} className="rounded border border-edge-strong px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-surface">+ Add item</button>
         </div>
-        <div className="overflow-x-auto rounded border border-zinc-200">
+        <div className="overflow-x-auto rounded border border-edge">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 text-zinc-500">
+            <thead className="bg-panel text-muted">
               <tr>
                 <th className="px-2 py-2">Title</th>
                 <th className="px-2 py-2">Category</th>
@@ -444,39 +444,39 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
                 <th className="px-2 py-2 w-8"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {items.map(item => (
                 <tr key={item.key}>
                   <td className="px-2 py-1.5">
                     <input type="text" value={item.title} onChange={e => updateItem(item.key, 'title', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs focus:border-blue-400 focus:outline-none" />
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none" />
                   </td>
                   <td className="px-2 py-1.5">
                     <select value={item.category} onChange={e => updateItem(item.key, 'category', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs focus:border-blue-400 focus:outline-none">
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none">
                       <option value="">--</option>
                       {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                     </select>
                   </td>
                   <td className="px-2 py-1.5">
                     <input type="number" value={item.quantity} onChange={e => updateItem(item.key, 'quantity', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs text-right font-mono focus:border-blue-400 focus:outline-none" />
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono focus:border-accent focus:outline-none" />
                   </td>
                   <td className="px-2 py-1.5">
                     <input type="text" value={item.unit_of_measure} onChange={e => updateItem(item.key, 'unit_of_measure', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs focus:border-blue-400 focus:outline-none" />
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none" />
                   </td>
                   <td className="px-2 py-1.5">
                     <input type="number" step="0.01" value={item.unit_price} onChange={e => updateItem(item.key, 'unit_price', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs text-right font-mono focus:border-blue-400 focus:outline-none" />
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono focus:border-accent focus:outline-none" />
                   </td>
                   <td className="px-2 py-1.5">
                     <input type="number" step="0.01" value={item.subtotal} onChange={e => updateItem(item.key, 'subtotal', e.target.value)}
-                      className="w-full rounded border border-zinc-200 px-1.5 py-1 text-xs text-right font-mono font-semibold focus:border-blue-400 focus:outline-none" />
+                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono font-semibold focus:border-accent focus:outline-none" />
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     {items.length > 1 && (
-                      <button onClick={() => removeItem(item.key)} className="rounded border border-red-200 p-0.5 text-red-400 hover:bg-red-50 hover:text-red-600">
+                      <button onClick={() => removeItem(item.key)} className="rounded border border-negative/20 p-0.5 text-red-400 hover:bg-negative-bg hover:text-negative">
                         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
                       </button>
                     )}
@@ -489,56 +489,56 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
       </div>
 
       {/* Computed totals (read-only) */}
-      <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
+      <div className="rounded border border-edge bg-panel px-4 py-3">
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
           <div className="space-y-1">
             <div className="flex justify-between">
-              <span className="text-zinc-500">Subtotal</span>
-              <span className="font-mono text-zinc-700">{formatCurrency(computedSubtotal, currency)}</span>
+              <span className="text-muted">Subtotal</span>
+              <span className="font-mono text-ink">{formatCurrency(computedSubtotal, currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-500">IGV ({igvRate}%)</span>
-              <span className="font-mono text-zinc-700">{formatCurrency(computedIgv, currency)}</span>
+              <span className="text-muted">IGV ({igvRate}%)</span>
+              <span className="font-mono text-ink">{formatCurrency(computedIgv, currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium text-zinc-700">Total</span>
-              <span className="font-mono font-semibold text-zinc-900">{formatCurrency(computedTotal, currency)}</span>
+              <span className="font-medium text-ink">Total</span>
+              <span className="font-mono font-semibold text-ink">{formatCurrency(computedTotal, currency)}</span>
             </div>
           </div>
           <div className="space-y-1">
             {computedDetraccion > 0 && (
               <div className="flex justify-between">
-                <span className="text-zinc-500">Detraccion ({parsedDetraccion}%)</span>
-                <span className="font-mono text-zinc-700">{formatCurrency(computedDetraccion, currency)}</span>
+                <span className="text-muted">Detraccion ({parsedDetraccion}%)</span>
+                <span className="font-mono text-ink">{formatCurrency(computedDetraccion, currency)}</span>
               </div>
             )}
             {hasPayments && (
               <>
                 <div className="flex justify-between">
-                  <span className="font-medium text-zinc-500">Paid</span>
-                  <span className="font-mono text-zinc-700">{formatCurrency(amountPaid, currency)}</span>
+                  <span className="font-medium text-muted">Paid</span>
+                  <span className="font-mono text-ink">{formatCurrency(amountPaid, currency)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-medium text-zinc-500">Outstanding</span>
-                  <span className="font-mono font-semibold text-red-600">{formatCurrency(Math.max(0, computedTotal - amountPaid), currency)}</span>
+                  <span className="font-medium text-muted">Outstanding</span>
+                  <span className="font-mono font-semibold text-negative">{formatCurrency(Math.max(0, computedTotal - amountPaid), currency)}</span>
                 </div>
               </>
             )}
           </div>
         </div>
-        <div className="text-[10px] text-zinc-400 mt-1.5">Totals auto-calculated from line items.</div>
+        <div className="text-[10px] text-faint mt-1.5">Totals auto-calculated from line items.</div>
       </div>
 
-      {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-negative">{error}</p>}
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
+      <div className="flex items-center justify-between border-t border-edge pt-3">
         <button onClick={onCancel} disabled={isPending}
-          className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100">
+          className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface">
           Cancel
         </button>
         <button onClick={handleSubmit} disabled={isPending}
-          className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
           {isPending ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
@@ -601,7 +601,7 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
 
 // --- Main Component ---
 export function InvoiceExpandContent({ detail, row, mode, onSetMode, onMutationSuccess, onPaymentSuccess, categories }: Props) {
-  if (!detail.invoice) return <p className="py-2 text-sm text-zinc-400">No detail available.</p>
+  if (!detail.invoice) return <p className="py-2 text-sm text-faint">No detail available.</p>
 
   if (mode === 'edit') {
     return (

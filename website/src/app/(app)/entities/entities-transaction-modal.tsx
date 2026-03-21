@@ -18,13 +18,13 @@ export function TransactionModal({ group, onClose }: Props) {
     >
       {group && (
         <>
-          <p className="mb-4 text-xs text-zinc-500">
+          <p className="mb-4 text-xs text-muted">
             {group.transactions.length} invoice{group.transactions.length === 1 ? '' : 's'} · {group.currency}
           </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-zinc-50 text-xs text-zinc-500">
+              <thead className="sticky top-0 bg-panel text-xs text-muted">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">Date</th>
                   <th className="px-4 py-2 text-left font-medium">Title</th>
@@ -32,20 +32,20 @@ export function TransactionModal({ group, onClose }: Props) {
                   <th className="px-4 py-2 text-right font-medium">Outstanding</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {group.transactions.map((tx) => (
-                  <tr key={tx.transactionId} className="transition-colors hover:bg-zinc-50">
-                    <td className="whitespace-nowrap px-4 py-2 text-zinc-700">
+                  <tr key={tx.transactionId} className="transition-colors hover:bg-surface">
+                    <td className="whitespace-nowrap px-4 py-2 text-ink">
                       {tx.date ? formatDate(tx.date) : '—'}
                     </td>
-                    <td className="max-w-[200px] truncate px-4 py-2 text-zinc-700">
+                    <td className="max-w-[200px] truncate px-4 py-2 text-ink">
                       {tx.title ?? '—'}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-ink">
                       {formatCurrency(tx.invoiceTotal, cur)}
                     </td>
                     <td className={`whitespace-nowrap px-4 py-2 text-right font-mono font-medium ${
-                      tx.outstanding > 0 ? 'text-amber-600' : 'text-green-600'
+                      tx.outstanding > 0 ? 'text-caution' : 'text-positive'
                     }`}>
                       {tx.outstanding === 0 ? 'Paid' : formatCurrency(tx.outstanding, cur)}
                     </td>
@@ -53,13 +53,13 @@ export function TransactionModal({ group, onClose }: Props) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-zinc-200">
-                  <td colSpan={2} className="px-4 py-2 font-medium text-zinc-700">Total</td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                <tr className="border-t border-edge">
+                  <td colSpan={2} className="px-4 py-2 font-medium text-ink">Total</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-ink">
                     {formatCurrency(group.invoiceTotal, cur)}
                   </td>
                   <td className={`whitespace-nowrap px-4 py-2 text-right font-mono font-semibold ${
-                    group.outstanding > 0 ? 'text-amber-600' : 'text-green-600'
+                    group.outstanding > 0 ? 'text-caution' : 'text-positive'
                   }`}>
                     {group.outstanding === 0 ? 'Paid' : formatCurrency(group.outstanding, cur)}
                   </td>

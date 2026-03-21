@@ -51,23 +51,23 @@ export function LoanDetailContent({
 
       {/* Loan financials */}
       {loan && (
-        <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Loan Summary</h3>
+        <div className="rounded border border-edge bg-panel px-4 py-3">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Loan Summary</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-zinc-500">Principal</span>
-            <span className="text-right font-mono text-zinc-700">
+            <span className="text-muted">Principal</span>
+            <span className="text-right font-mono text-ink">
               {formatCurrency(loan.principal ?? 0, loanCurrency)}
             </span>
-            <span className="text-zinc-500">Total Owed</span>
-            <span className="text-right font-mono text-zinc-700">
+            <span className="text-muted">Total Owed</span>
+            <span className="text-right font-mono text-ink">
               {formatCurrency(loan.total_owed ?? 0, loanCurrency)}
             </span>
-            <span className="text-zinc-500">Paid</span>
-            <span className="text-right font-mono text-zinc-700">
+            <span className="text-muted">Paid</span>
+            <span className="text-right font-mono text-ink">
               {formatCurrency(loan.total_paid ?? 0, loanCurrency)}
             </span>
-            <span className="text-zinc-500">Outstanding</span>
-            <span className="text-right font-mono font-semibold text-red-600">
+            <span className="text-muted">Outstanding</span>
+            <span className="text-right font-mono font-semibold text-negative">
               {formatCurrency(loanOutstanding, loanCurrency)}
             </span>
           </div>
@@ -76,13 +76,13 @@ export function LoanDetailContent({
 
       {/* Repayment schedule */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-zinc-700">
+        <h3 className="mb-2 text-sm font-semibold text-ink">
           Repayment Schedule ({loan?.paid_schedule_count ?? 0}/{loan?.scheduled_payments_count ?? 0} paid)
         </h3>
         {detail.schedule.length > 0 && (
-          <div className="mb-2 overflow-x-auto rounded border border-zinc-200">
+          <div className="mb-2 overflow-x-auto rounded border border-edge">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-panel text-muted">
                 <tr>
                   <th className="px-3 py-2">Scheduled Date</th>
                   <th className="px-3 py-2 text-right">Amount</th>
@@ -91,16 +91,16 @@ export function LoanDetailContent({
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {detail.schedule.map((entry) => (
                   <tr key={entry.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-2 text-ink">
                       {formatDate(entry.scheduled_date)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(entry.scheduled_amount, loanCurrency)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {entry.amount_paid > 0 ? formatCurrency(entry.amount_paid, loanCurrency) : '--'}
                     </td>
                     <td className="px-3 py-2">
@@ -114,7 +114,7 @@ export function LoanDetailContent({
                         <button
                           type="button"
                           onClick={() => handleRegisterPayment(entry.id)}
-                          className="text-xs text-blue-600 hover:text-blue-800"
+                          className="text-xs text-accent hover:text-accent-hover"
                         >
                           Pay
                         </button>
@@ -137,26 +137,26 @@ export function LoanDetailContent({
       {/* Loan payment history */}
       {detail.payments.length > 0 && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-zinc-700">Payment History</h3>
-          <div className="overflow-x-auto rounded border border-zinc-200">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Payment History</h3>
+          <div className="overflow-x-auto rounded border border-edge">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-panel text-muted">
                 <tr>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2 text-right">Amount</th>
                   <th className="px-3 py-2">Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {detail.payments.map((pmt) => (
                   <tr key={pmt.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-2 text-ink">
                       {formatDate(pmt.payment_date)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(pmt.amount, pmt.currency)}
                     </td>
-                    <td className="px-3 py-2 text-zinc-500">{pmt.notes ?? '--'}</td>
+                    <td className="px-3 py-2 text-muted">{pmt.notes ?? '--'}</td>
                   </tr>
                 ))}
               </tbody>

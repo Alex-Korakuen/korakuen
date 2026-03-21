@@ -48,7 +48,7 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="inline-flex items-center rounded-full border border-dashed border-zinc-300 px-2 py-0.5 text-xs text-zinc-400 transition-colors hover:border-zinc-400 hover:text-zinc-600"
+          className="inline-flex items-center rounded-full border border-dashed border-edge-strong px-2 py-0.5 text-xs text-faint transition-colors hover:border-faint hover:text-muted"
         >
           {currentTags.length === 0 ? '+ Add tags' : 'Edit'}
         </button>
@@ -56,21 +56,21 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 z-20 mt-1 w-56 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 z-20 mt-1 w-56 rounded-[10px] border border-edge bg-white py-1 shadow-lg">
           <div className="max-h-60 overflow-y-auto">
             {availableTags.map((tag) => {
               const checked = assignedTagIds.has(tag.id)
               return (
                 <label
                   key={tag.id}
-                  className="flex cursor-pointer items-center gap-2 px-3 py-1.5 transition-colors hover:bg-zinc-50"
+                  className="flex cursor-pointer items-center gap-2 px-3 py-1.5 transition-colors hover:bg-surface"
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     disabled={isPending}
                     onChange={() => handleToggle(tag.id)}
-                    className="h-3.5 w-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    className="h-3.5 w-3.5 rounded border-edge-strong text-accent focus:ring-accent"
                   />
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${tagColor(tag.name)}`}
@@ -82,12 +82,12 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
             })}
           </div>
           {isPending && (
-            <div className="border-t border-zinc-100 px-3 py-1.5 text-xs text-zinc-400">
+            <div className="border-t border-edge px-3 py-1.5 text-xs text-faint">
               Saving...
             </div>
           )}
           {error && (
-            <div className="border-t border-zinc-100 px-3 py-1.5 text-xs text-red-600">
+            <div className="border-t border-edge px-3 py-1.5 text-xs text-negative">
               {error}
             </div>
           )}

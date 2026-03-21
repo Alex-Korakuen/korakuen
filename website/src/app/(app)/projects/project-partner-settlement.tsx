@@ -152,13 +152,13 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
     <>
       {partners.length === 0 && !showForm ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="px-4 py-6 text-center text-sm text-zinc-400">No partners assigned</p>
+          <p className="px-4 py-6 text-center text-sm text-faint">No partners assigned</p>
         </div>
       ) : (
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-xs text-zinc-500">
-              <tr className="border-b border-zinc-100">
+            <thead className="text-xs text-muted">
+              <tr className="border-b border-edge">
                 <th className="px-3 py-2 text-left font-medium">Partner</th>
                 <th className="px-2 py-2 text-right font-medium">Share</th>
                 <th className="px-2 py-2 text-right font-medium">Profit</th>
@@ -167,7 +167,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 <th className="w-10 px-2 py-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {partners.map((p) => {
                 const s = settlements.find(s => s.partnerCompanyId === p.partnerCompanyId)
                 const isEditingShare = editingShareId === p.id
@@ -175,9 +175,9 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                   <tr
                     key={p.id}
                     onClick={() => !isEditingShare && handlePartnerClick(p.partnerCompanyId)}
-                    className={`group cursor-pointer transition-colors ${isEditingShare ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
+                    className={`group cursor-pointer transition-colors ${isEditingShare ? 'bg-accent-bg' : 'hover:bg-accent-bg'}`}
                   >
-                    <td className="px-3 py-2 font-medium text-zinc-800 truncate max-w-[120px]">{p.partnerName}</td>
+                    <td className="px-3 py-2 font-medium text-ink truncate max-w-[120px]">{p.partnerName}</td>
                     <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                       {isEditingShare ? (
                         <div className="flex items-center justify-end gap-1">
@@ -195,11 +195,11 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                               if (e.key === 'Escape') { setEditingShareId(null); setEditShareError(null) }
                             }}
                           />
-                          <span className="text-xs text-zinc-500">%</span>
+                          <span className="text-xs text-muted">%</span>
                           <button
                             onClick={() => handleSaveShare(p.id)}
                             disabled={isPending}
-                            className="rounded bg-blue-600 px-1.5 py-0.5 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                            className="rounded bg-accent px-1.5 py-0.5 text-[11px] font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
                           >
                             {isPending ? '...' : 'Save'}
                           </button>
@@ -207,30 +207,30 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                       ) : (
                         <button
                           onClick={() => startShareEdit(p.id, p.profitSharePct)}
-                          className="rounded border border-dashed border-zinc-300 px-1.5 py-0.5 font-mono text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-50"
+                          className="rounded border border-dashed border-edge-strong px-1.5 py-0.5 font-mono text-accent transition-colors hover:border-accent hover:bg-accent-bg"
                           title="Click to edit share"
                         >
                           {p.profitSharePct}%
                         </button>
                       )}
                       {isEditingShare && editShareError && (
-                        <p className="mt-1 text-[10px] text-red-600">{editShareError}</p>
+                        <p className="mt-1 text-[10px] text-negative">{editShareError}</p>
                       )}
                     </td>
                     <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${
-                      (s?.profit ?? 0) >= 0 ? 'text-green-700' : 'text-red-600'
+                      (s?.profit ?? 0) >= 0 ? 'text-positive' : 'text-negative'
                     }`}>
                       {formatCurrency(s?.profit ?? 0, 'PEN')}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono text-zinc-700 whitespace-nowrap">
+                    <td className="px-2 py-2 text-right font-mono text-ink whitespace-nowrap">
                       {formatCurrency(s?.shouldReceive ?? 0, 'PEN')}
                     </td>
                     <td className={`px-2 py-2 text-right font-mono font-medium whitespace-nowrap ${
                       (s?.balance ?? 0) > 0
-                        ? 'text-amber-600'
+                        ? 'text-caution'
                         : (s?.balance ?? 0) < 0
-                        ? 'text-red-600'
-                        : 'text-green-600'
+                        ? 'text-negative'
+                        : 'text-positive'
                     }`}>
                       {(s?.balance ?? 0) === 0 ? 'Settled' : formatCurrency(s?.balance ?? 0, 'PEN')}
                     </td>
@@ -257,29 +257,29 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
       {/* Total row — pinned to bottom via mt-auto in flex-col parent */}
       {partners.length > 0 && (
         <div
-          className="mt-auto border-t border-zinc-200 bg-zinc-50/50 rounded-b-xl cursor-pointer transition-colors hover:bg-blue-50"
+          className="mt-auto border-t border-edge bg-panel/50 rounded-b-xl cursor-pointer transition-colors hover:bg-accent-bg"
           onClick={() => handlePartnerClick('__all__')}
           title="Click to view all costs and revenue"
         >
           <table className="w-full text-sm">
             <tbody>
               <tr>
-                <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
+                <td className="px-3 py-2 font-medium text-ink">Total</td>
                 <td className={`px-2 py-2 text-right font-mono font-semibold ${
-                  totalShare === 100 ? 'text-green-600' : 'text-amber-600'
+                  totalShare === 100 ? 'text-positive' : 'text-caution'
                 }`}>
                   {totalShare}%
                 </td>
                 <td className={`px-2 py-2 text-right font-mono font-semibold whitespace-nowrap ${
-                  totalProfit >= 0 ? 'text-green-700' : 'text-red-600'
+                  totalProfit >= 0 ? 'text-positive' : 'text-negative'
                 }`}>
                   {formatCurrency(totalProfit, 'PEN')}
                 </td>
-                <td className="px-2 py-2 text-right font-mono font-semibold text-zinc-800 whitespace-nowrap">
+                <td className="px-2 py-2 text-right font-mono font-semibold text-ink whitespace-nowrap">
                   {formatCurrency(totalShouldReceive, 'PEN')}
                 </td>
                 <td className={`px-2 py-2 text-right font-mono font-semibold whitespace-nowrap ${
-                  totalBalance > 0 ? 'text-amber-600' : totalBalance < 0 ? 'text-red-600' : 'text-green-600'
+                  totalBalance > 0 ? 'text-caution' : totalBalance < 0 ? 'text-negative' : 'text-positive'
                 }`}>
                   {totalBalance === 0 ? 'Settled' : formatCurrency(totalBalance, 'PEN')}
                 </td>
@@ -293,7 +293,7 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
       {/* Add partner inline form */}
       {showForm && (
         <div className="px-4 py-2">
-          <div className="space-y-2 border-t border-zinc-100 pt-3">
+          <div className="space-y-2 border-t border-edge pt-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">
                 <select
@@ -320,18 +320,18 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 />
               </div>
             </div>
-            {formError && <p className="text-xs text-red-600">{formError}</p>}
+            {formError && <p className="text-xs text-negative">{formError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleAdd}
                 disabled={!selectedPartner || !profitShare || isPending}
-                className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
                 {isPending ? 'Adding...' : 'Add'}
               </button>
               <button
                 onClick={() => { onHideForm(); setFormError(null) }}
-                className="rounded px-3 py-1 text-xs text-zinc-600 hover:bg-zinc-100"
+                className="rounded px-3 py-1 text-xs text-muted hover:bg-surface"
               >
                 Cancel
               </button>
@@ -349,33 +349,33 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
         {selectedSettlement && (
           <div>
             {/* Summary card */}
-            <div className="mb-4 grid grid-cols-2 gap-2 rounded-md bg-zinc-50 px-3 py-2 text-sm">
+            <div className="mb-4 grid grid-cols-2 gap-2 rounded-md bg-panel px-3 py-2 text-sm">
               <div>
-                <span className="text-zinc-500">Costs</span>
-                <p className="font-mono font-medium text-zinc-800">
+                <span className="text-muted">Costs</span>
+                <p className="font-mono font-medium text-ink">
                   {formatCurrency(selectedSettlement.costsContributed, 'PEN')}
                 </p>
               </div>
               <div>
-                <span className="text-zinc-500">Revenue</span>
-                <p className="font-mono font-medium text-zinc-800">
+                <span className="text-muted">Revenue</span>
+                <p className="font-mono font-medium text-ink">
                   {formatCurrency(selectedSettlement.revenueReceived, 'PEN')}
                 </p>
               </div>
               <div>
-                <span className="text-zinc-500">Profit</span>
+                <span className="text-muted">Profit</span>
                 <p className={`font-mono font-medium ${
-                  selectedSettlement.profit >= 0 ? 'text-green-700' : 'text-red-600'
+                  selectedSettlement.profit >= 0 ? 'text-positive' : 'text-negative'
                 }`}>
                   {formatCurrency(selectedSettlement.profit, 'PEN')}
                 </p>
               </div>
               <div>
-                <span className="text-zinc-500">Balance</span>
+                <span className="text-muted">Balance</span>
                 <p className={`font-mono font-medium ${
-                  selectedSettlement.balance > 0 ? 'text-amber-600'
-                    : selectedSettlement.balance < 0 ? 'text-red-600'
-                    : 'text-green-600'
+                  selectedSettlement.balance > 0 ? 'text-caution'
+                    : selectedSettlement.balance < 0 ? 'text-negative'
+                    : 'text-positive'
                 }`}>
                   {selectedSettlement.balance === 0 ? 'Settled' : formatCurrency(selectedSettlement.balance, 'PEN')}
                 </p>
@@ -383,13 +383,13 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             </div>
 
             {/* Tabs */}
-            <div className="mb-4 flex gap-1 border-b border-zinc-200">
+            <div className="mb-4 flex gap-1 border-b border-edge">
               <button
                 onClick={() => setDetailTab('costs')}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   detailTab === 'costs'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-zinc-500 hover:text-zinc-700'
+                    ? 'border-b-2 border-accent text-accent'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Costs ({costDetails.length})
@@ -398,8 +398,8 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
                 onClick={() => setDetailTab('revenue')}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   detailTab === 'revenue'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-zinc-500 hover:text-zinc-700'
+                    ? 'border-b-2 border-accent text-accent'
+                    : 'text-muted hover:text-ink'
                 }`}
               >
                 Revenue ({revenueDetails.length})
@@ -407,10 +407,10 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             </div>
 
             {loading && (
-              <p className="py-8 text-center text-sm text-zinc-500">Loading...</p>
+              <p className="py-8 text-center text-sm text-muted">Loading...</p>
             )}
             {!loading && error && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded border border-negative/20 bg-negative-bg px-4 py-3 text-sm text-negative">
                 Could not load details.
               </div>
             )}
@@ -418,37 +418,37 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             {/* Costs tab */}
             {!loading && !error && detailTab === 'costs' && (
               costDetails.length === 0 ? (
-                <p className="py-8 text-center text-sm text-zinc-500">No costs found</p>
+                <p className="py-8 text-center text-sm text-muted">No costs found</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200 text-xs text-zinc-500">
+                    <tr className="border-b border-edge text-xs text-muted">
                       <th className="pb-2 text-left font-medium">Date</th>
                       <th className="pb-2 text-left font-medium">Invoice</th>
                       <th className="pb-2 text-right font-medium">Original</th>
                       <th className="pb-2 text-right font-medium">PEN</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100">
+                  <tbody className="divide-y divide-edge">
                     {costDetails.map((d) => (
                       <tr key={d.invoice_id}>
-                        <td className="py-2 whitespace-nowrap text-zinc-600">
+                        <td className="py-2 whitespace-nowrap text-muted">
                           {d.date ? formatDate(d.date) : '—'}
                         </td>
-                        <td className="py-2 text-zinc-700">{d.invoice_number ?? '—'}</td>
-                        <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
+                        <td className="py-2 text-ink">{d.invoice_number ?? '—'}</td>
+                        <td className="py-2 whitespace-nowrap text-right font-mono text-muted">
                           {formatCurrency(d.subtotal, d.currency ?? 'PEN')}
                         </td>
-                        <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
+                        <td className="py-2 whitespace-nowrap text-right font-mono text-ink">
                           {formatCurrency(d.subtotal_pen, 'PEN')}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t border-zinc-200">
-                      <td colSpan={3} className="py-2 text-sm font-medium text-zinc-700">Total (PEN)</td>
-                      <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-zinc-800">
+                    <tr className="border-t border-edge">
+                      <td colSpan={3} className="py-2 text-sm font-medium text-ink">Total (PEN)</td>
+                      <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-ink">
                         {formatCurrency(costDetails.reduce((sum, d) => sum + d.subtotal_pen, 0), 'PEN')}
                       </td>
                     </tr>
@@ -460,37 +460,37 @@ export function ProjectPartnerSettlement({ projectId, partners, settlements, par
             {/* Revenue tab */}
             {!loading && !error && detailTab === 'revenue' && (
               revenueDetails.length === 0 ? (
-                <p className="py-8 text-center text-sm text-zinc-500">No payments received</p>
+                <p className="py-8 text-center text-sm text-muted">No payments received</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200 text-xs text-zinc-500">
+                    <tr className="border-b border-edge text-xs text-muted">
                       <th className="pb-2 text-left font-medium">Date</th>
                       <th className="pb-2 text-left font-medium">Invoice</th>
                       <th className="pb-2 text-right font-medium">Original</th>
                       <th className="pb-2 text-right font-medium">PEN</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100">
+                  <tbody className="divide-y divide-edge">
                     {revenueDetails.map((d) => (
                       <tr key={d.payment_id}>
-                        <td className="py-2 whitespace-nowrap text-zinc-600">
+                        <td className="py-2 whitespace-nowrap text-muted">
                           {d.payment_date ? formatDate(d.payment_date) : '—'}
                         </td>
-                        <td className="py-2 text-zinc-700">{d.invoice_number ?? '—'}</td>
-                        <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-500">
+                        <td className="py-2 text-ink">{d.invoice_number ?? '—'}</td>
+                        <td className="py-2 whitespace-nowrap text-right font-mono text-muted">
                           {formatCurrency(d.amount, d.currency ?? 'PEN')}
                         </td>
-                        <td className="py-2 whitespace-nowrap text-right font-mono text-zinc-700">
+                        <td className="py-2 whitespace-nowrap text-right font-mono text-ink">
                           {formatCurrency(d.amount_pen, 'PEN')}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t border-zinc-200">
-                      <td colSpan={3} className="py-2 text-sm font-medium text-zinc-700">Total (PEN)</td>
-                      <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-zinc-800">
+                    <tr className="border-t border-edge">
+                      <td colSpan={3} className="py-2 text-sm font-medium text-ink">Total (PEN)</td>
+                      <td className="py-2 whitespace-nowrap text-right font-mono font-semibold text-ink">
                         {formatCurrency(revenueDetails.reduce((sum, d) => sum + d.amount_pen, 0), 'PEN')}
                       </td>
                     </tr>

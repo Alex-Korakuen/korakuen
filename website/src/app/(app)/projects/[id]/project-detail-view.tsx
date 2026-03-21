@@ -66,53 +66,53 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
     <>
       {/* Header + Search */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <h3 className="text-sm font-semibold text-zinc-700">Entities & Suppliers</h3>
+        <h3 className="text-sm font-semibold text-ink">Entities & Suppliers</h3>
         <input
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           placeholder="Search entities..."
-          className="max-w-xs rounded border border-zinc-200 px-3 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="max-w-xs rounded border border-edge px-3 py-1.5 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-zinc-400">
+        <div className="px-4 py-6 text-center text-sm text-faint">
           {search ? 'No entities match your search' : 'No costs recorded'}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-xs text-zinc-500">
-              <tr className="border-b border-zinc-100">
+            <thead className="text-xs text-muted">
+              <tr className="border-b border-edge">
                 <th className="px-4 py-2 text-left font-medium">Entity Name</th>
                 <th className="px-4 py-2 text-left font-medium">Tags</th>
                 <th className="px-4 py-2 text-right font-medium">Total Spent</th>
                 <th className="px-4 py-2 text-right font-medium"># Invoices</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {pageItems.map((e, i) => (
-                <tr key={`${e.entityId ?? 'none'}-${e.currency}-${i}`} className="transition-colors hover:bg-blue-50">
+                <tr key={`${e.entityId ?? 'none'}-${e.currency}-${i}`} className="transition-colors hover:bg-accent-bg">
                   <td className="px-4 py-2">
                     {e.entityId ? (
                       <a
                         href={`/entities/${e.entityId}`}
-                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        className="font-medium text-accent hover:text-accent-hover hover:underline"
                       >
                         {e.entityName}
                       </a>
                     ) : (
-                      <span className="font-medium text-zinc-800">{e.entityName}</span>
+                      <span className="font-medium text-ink">{e.entityName}</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-zinc-600">
+                  <td className="px-4 py-2 text-muted">
                     {e.tags.length > 0 ? e.tags.join(', ') : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-zinc-700">
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-ink">
                     {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency) : '—'}
                   </td>
-                  <td className="px-4 py-2 text-right text-zinc-600">
+                  <td className="px-4 py-2 text-right text-muted">
                     {e.invoiceCount ?? '—'}
                   </td>
                 </tr>
@@ -121,15 +121,15 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
             {/* Totals footer */}
             <tfoot>
               {Object.keys(currencyTotals).sort().map((c, i) => (
-                <tr key={c} className={`${i === 0 ? 'border-t border-zinc-200' : ''} bg-zinc-50/50`}>
-                  <td className="px-4 py-2 text-sm font-medium text-zinc-700">
+                <tr key={c} className={`${i === 0 ? 'border-t border-edge' : ''} bg-panel/50`}>
+                  <td className="px-4 py-2 text-sm font-medium text-ink">
                     {Object.keys(currencyTotals).length > 1 ? `Total ${c}` : 'Total'}
                   </td>
                   <td className="px-4 py-2" />
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-zinc-800">
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-ink">
                     {formatCurrency(currencyTotals[c].total, c)}
                   </td>
-                  <td className="px-4 py-2 text-right font-medium text-zinc-700">
+                  <td className="px-4 py-2 text-right font-medium text-ink">
                     {currencyTotals[c].count}
                   </td>
                 </tr>
@@ -141,15 +141,15 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
       {/* Pagination */}
       {filtered.length > ENTITIES_PAGE_SIZE && (
-        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-2">
-          <span className="text-xs text-zinc-500">
+        <div className="flex items-center justify-between border-t border-edge px-4 py-2">
+          <span className="text-xs text-muted">
             {start + 1}–{Math.min(start + ENTITIES_PAGE_SIZE, filtered.length)} of {filtered.length}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="rounded border border-zinc-300 px-2.5 py-1 text-sm text-zinc-700 hover:bg-zinc-50 disabled:text-zinc-300 disabled:cursor-default"
+              className="rounded border border-edge-strong px-2.5 py-1 text-sm text-ink hover:bg-surface disabled:text-edge-strong disabled:cursor-default"
             >
               ‹
             </button>
@@ -159,8 +159,8 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
                 onClick={() => setPage(p)}
                 className={`rounded border px-2.5 py-1 text-sm ${
                   p === safePage
-                    ? 'border-blue-500 bg-blue-50 font-medium text-blue-700'
-                    : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50'
+                    ? 'border-accent bg-accent-bg font-medium text-accent'
+                    : 'border-edge-strong bg-white text-ink hover:bg-surface'
                 }`}
               >
                 {p}
@@ -169,7 +169,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="rounded border border-zinc-300 px-2.5 py-1 text-sm text-zinc-700 hover:bg-zinc-50 disabled:text-zinc-300 disabled:cursor-default"
+              className="rounded border border-edge-strong px-2.5 py-1 text-sm text-ink hover:bg-surface disabled:text-edge-strong disabled:cursor-default"
             >
               ›
             </button>
@@ -259,7 +259,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
       <HeaderTitlePortal>
         <Link
           href="/projects"
-          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15,18 9,12 15,6" />
@@ -267,7 +267,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
           Projects
         </Link>
         <div className="h-4 w-px bg-zinc-200" />
-        <span className="text-sm text-zinc-600 truncate">
+        <span className="text-sm text-muted truncate">
           {project.project_code} — {project.name}
         </span>
         <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
@@ -296,56 +296,56 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
           <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
             {clientName && (
               <div>
-                <span className="text-xs text-zinc-500">Client</span>
-                <p className="text-zinc-700">{clientName}</p>
+                <span className="text-xs text-muted">Client</span>
+                <p className="text-ink">{clientName}</p>
               </div>
             )}
             {contractValue !== null && (
               <div>
-                <span className="text-xs text-zinc-500">Contract Value</span>
-                <p className="font-mono font-medium text-zinc-800">
+                <span className="text-xs text-muted">Contract Value</span>
+                <p className="font-mono font-medium text-ink">
                   {formatCurrency(contractValue, contractCurrency)}
                 </p>
               </div>
             )}
             {project.start_date && (
               <div>
-                <span className="text-xs text-zinc-500">Start Date</span>
-                <p className="text-zinc-700">{formatDate(project.start_date)}</p>
+                <span className="text-xs text-muted">Start Date</span>
+                <p className="text-ink">{formatDate(project.start_date)}</p>
               </div>
             )}
             {project.expected_end_date && (
               <div>
-                <span className="text-xs text-zinc-500">Expected End</span>
-                <p className="text-zinc-700">{formatDate(project.expected_end_date)}</p>
+                <span className="text-xs text-muted">Expected End</span>
+                <p className="text-ink">{formatDate(project.expected_end_date)}</p>
               </div>
             )}
             {project.actual_end_date && (
               <div>
-                <span className="text-xs text-zinc-500">Actual End</span>
-                <p className="text-zinc-700">{formatDate(project.actual_end_date)}</p>
+                <span className="text-xs text-muted">Actual End</span>
+                <p className="text-ink">{formatDate(project.actual_end_date)}</p>
               </div>
             )}
             {project.location && (
               <div>
-                <span className="text-xs text-zinc-500">Location</span>
-                <p className="text-zinc-700">{project.location}</p>
+                <span className="text-xs text-muted">Location</span>
+                <p className="text-ink">{project.location}</p>
               </div>
             )}
           </div>
 
-          <div className="border-t border-zinc-200" />
+          <div className="border-t border-edge" />
 
           {/* Dashboard grid: Partners + Budget side by side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Partners & Settlement — flex-col so total pins to bottom */}
-            <div className="flex flex-col rounded-xl border border-zinc-200 bg-white">
+            <div className="flex flex-col rounded-[10px] border border-edge bg-white">
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-zinc-700">Partners & Settlement</h3>
+                <h3 className="text-sm font-semibold text-ink">Partners & Settlement</h3>
                 <button
                   onClick={() => setShowPartnerForm(true)}
                   disabled={addPartnerDisabled || showPartnerForm}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-zinc-400"
+                  className="text-xs font-medium text-accent hover:text-accent-hover disabled:text-faint"
                 >
                   + Add partner
                 </button>
@@ -361,9 +361,9 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
             </div>
 
             {/* Costs & Budget */}
-            <div className="rounded-xl border border-zinc-200 bg-white">
+            <div className="rounded-[10px] border border-edge bg-white">
               <div className="px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-zinc-700">Costs & Budget</h3>
+                <h3 className="text-sm font-semibold text-ink">Costs & Budget</h3>
               </div>
               <ProjectBudgetForm
                 projectId={project.id}
@@ -377,18 +377,18 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
           </div>
 
           {/* Entities — full width */}
-          <div className="rounded-xl border border-zinc-200 bg-white">
+          <div className="rounded-[10px] border border-edge bg-white">
             <EntitiesPaginated entities={entities} />
           </div>
 
           {/* Notes */}
           {project.notes && (
-            <div className="rounded-xl border border-zinc-200 bg-white">
+            <div className="rounded-[10px] border border-edge bg-white">
               <div className="px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-zinc-700">Notes</h3>
+                <h3 className="text-sm font-semibold text-ink">Notes</h3>
               </div>
               <div className="px-4 pb-4">
-                <p className="whitespace-pre-wrap text-sm text-zinc-600">{project.notes}</p>
+                <p className="whitespace-pre-wrap text-sm text-muted">{project.notes}</p>
               </div>
             </div>
           )}
@@ -398,30 +398,30 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
       {/* Edit mode */}
       {mode === 'edit' && (
         <div>
-          <div className="rounded-lg border border-zinc-200 p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-700">Edit Project — {project.project_code}</h3>
+          <div className="rounded-[10px] border border-edge p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-ink">Edit Project — {project.project_code}</h3>
 
             {/* Locked fields */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Code <LockIcon /></span>
-                <span className="text-sm font-mono font-semibold text-zinc-500">{project.project_code}</span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Code <LockIcon /></span>
+                <span className="text-sm font-mono font-semibold text-muted">{project.project_code}</span>
               </div>
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Type <LockIcon /></span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Type <LockIcon /></span>
                 <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
               </div>
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Currency <LockIcon /></span>
-                <span className="text-sm text-zinc-500">{contractCurrency}</span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
+                <span className="text-sm text-muted">{contractCurrency}</span>
               </div>
             </div>
 
-            <div className="border-t border-zinc-200" />
+            <div className="border-t border-edge" />
 
             {/* Editable fields */}
             <div>
-              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Project Name</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Project Name</label>
               <input
                 type="text"
                 value={editName}
@@ -432,7 +432,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Status</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Status</label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
@@ -445,7 +445,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Contract Value</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Contract Value</label>
                 <input
                   type="number"
                   value={editContractValue}
@@ -460,7 +460,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Start Date</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Start Date</label>
                 <input
                   type="date"
                   value={editStartDate}
@@ -469,7 +469,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Expected End Date</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Expected End Date</label>
                 <input
                   type="date"
                   value={editExpectedEnd}
@@ -478,19 +478,19 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Actual End Date</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Actual End Date</label>
                 <input
                   type="date"
                   value={editActualEnd}
                   onChange={(e) => setEditActualEnd(e.target.value)}
                   className={`${inputCompactClass} w-full bg-white`}
                 />
-                <span className="text-[10px] text-zinc-400 mt-0.5 block">Set when project completes</span>
+                <span className="text-[10px] text-faint mt-0.5 block">Set when project completes</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Location</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Location</label>
               <input
                 type="text"
                 value={editLocation}
@@ -501,7 +501,7 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Notes</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
               <textarea
                 rows={2}
                 value={editNotes}
@@ -511,20 +511,20 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
               />
             </div>
 
-            {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+            {error && <p className="text-xs font-medium text-negative">{error}</p>}
 
-            <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
+            <div className="flex items-center justify-between border-t border-edge pt-3">
               <button
                 onClick={() => setMode('view')}
                 disabled={isPending}
-                className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+                className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isPending || !editName.trim()}
-                className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
               >
                 {isPending ? 'Saving...' : 'Save Changes'}
               </button>

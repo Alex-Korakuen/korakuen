@@ -105,8 +105,8 @@ export function ProjectBudgetForm({
     <>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-xs text-zinc-500">
-            <tr className="border-b border-zinc-100">
+          <thead className="text-xs text-muted">
+            <tr className="border-b border-edge">
               <th className="px-3 py-2 text-left font-medium">Category</th>
               <th className="px-2 py-2 text-right font-medium">Budgeted</th>
               <th className="px-2 py-2 text-right font-medium">Actual</th>
@@ -116,16 +116,16 @@ export function ProjectBudgetForm({
               <th className="px-2 py-2 text-right font-medium w-10"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-edge">
             {displayRows.map((b) => {
               const isEditing = editingCategory === b.category
 
               return (
                 <tr key={b.category} className="group">
-                  <td className="px-3 py-2 font-medium text-zinc-800">
+                  <td className="px-3 py-2 font-medium text-ink">
                     {formatCategory(b.category)}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-700">
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-ink">
                     {isEditing ? (
                       <input
                         type="number"
@@ -146,21 +146,21 @@ export function ProjectBudgetForm({
                         autoFocus
                         step="0.01"
                         min="0"
-                        className="w-24 rounded border border-blue-300 px-1 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        className="w-24 rounded border border-accent/30 px-1 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     ) : (
                       <button
                         onClick={() => handleEditStart(b.category, b.budgeted_amount)}
-                        className="cursor-pointer rounded px-1 py-0.5 hover:bg-blue-50"
+                        className="cursor-pointer rounded px-1 py-0.5 hover:bg-accent-bg"
                         title="Click to edit budget"
                       >
                         {b.budgeted_amount !== null
                           ? formatCurrency(b.budgeted_amount, contractCurrency)
-                          : <span className="text-zinc-400">Set budget</span>}
+                          : <span className="text-faint">Set budget</span>}
                       </button>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-zinc-700">
+                  <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-ink">
                     {formatCurrency(b.actual_amount, contractCurrency)}
                   </td>
                   {hasBudget && (
@@ -180,7 +180,7 @@ export function ProjectBudgetForm({
                       <button
                         onClick={() => handleRemove(b.category)}
                         disabled={isPending}
-                        className="text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:opacity-50"
+                        className="text-red-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-negative disabled:opacity-50"
                         title="Remove budget"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -194,14 +194,14 @@ export function ProjectBudgetForm({
             })}
           </tbody>
           <tfoot>
-            <tr className="border-t border-zinc-200 bg-zinc-50/50">
-              <td className="px-3 py-2 font-medium text-zinc-700">Total</td>
-              <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-800">
+            <tr className="border-t border-edge bg-panel/50">
+              <td className="px-3 py-2 font-medium text-ink">Total</td>
+              <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
                 {totalBudgeted !== null
                   ? formatCurrency(totalBudgeted, contractCurrency)
                   : '--'}
               </td>
-              <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-zinc-800">
+              <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
                 {formatCurrency(totalActual, contractCurrency)}
               </td>
               {hasBudget && (
@@ -209,7 +209,7 @@ export function ProjectBudgetForm({
                   className={`whitespace-nowrap px-2 py-2 text-right font-mono font-semibold ${
                     totalBudgeted !== null && totalBudgeted > 0
                       ? pctUsedColor((totalActual / totalBudgeted) * 100, totalBudgeted)
-                      : 'text-zinc-700'
+                      : 'text-ink'
                   }`}
                 >
                   {totalBudgeted !== null && totalBudgeted > 0
@@ -222,7 +222,7 @@ export function ProjectBudgetForm({
           </tfoot>
         </table>
       </div>
-      {error && <p className="px-4 pb-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="px-4 pb-2 text-xs text-negative">{error}</p>}
     </>
   )
 }
@@ -230,8 +230,8 @@ export function ProjectBudgetForm({
 // --- Helpers ---
 
 function pctUsedColor(pct: number, budgeted: number | null): string {
-  if (budgeted === null || budgeted === 0) return 'text-zinc-600'
-  if (pct > 100) return 'text-red-600'
-  if (pct > 90) return 'text-amber-600'
-  return 'text-green-600'
+  if (budgeted === null || budgeted === 0) return 'text-muted'
+  if (pct > 100) return 'text-negative'
+  if (pct > 90) return 'text-caution'
+  return 'text-positive'
 }

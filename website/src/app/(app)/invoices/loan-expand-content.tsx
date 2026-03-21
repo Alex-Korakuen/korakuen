@@ -17,7 +17,7 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
   const [showRepaymentForm, setShowRepaymentForm] = useState(false)
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
 
-  if (!loan) return <p className="py-2 text-sm text-zinc-400">No loan detail available.</p>
+  if (!loan) return <p className="py-2 text-sm text-faint">No loan detail available.</p>
 
   const loanCurrency = (loan.currency ?? 'PEN') as Currency
   const loanOutstanding = loan.outstanding ?? 0
@@ -38,28 +38,28 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
       </div>
 
       {/* Loan summary */}
-      <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
+      <div className="rounded border border-edge bg-panel px-4 py-3">
         <div className="grid grid-cols-2 gap-1 text-sm sm:grid-cols-4">
-          <span className="text-zinc-500">Principal</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(loan.principal ?? 0, loanCurrency)}</span>
-          <span className="text-zinc-500">Total Owed</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(loan.total_owed ?? 0, loanCurrency)}</span>
-          <span className="text-zinc-500">Paid</span>
-          <span className="text-right font-mono text-zinc-700">{formatCurrency(loan.total_paid ?? 0, loanCurrency)}</span>
-          <span className="font-medium text-zinc-500">Outstanding</span>
-          <span className="text-right font-mono font-semibold text-red-600">{formatCurrency(loanOutstanding, loanCurrency)}</span>
+          <span className="text-muted">Principal</span>
+          <span className="text-right font-mono text-ink">{formatCurrency(loan.principal ?? 0, loanCurrency)}</span>
+          <span className="text-muted">Total Owed</span>
+          <span className="text-right font-mono text-ink">{formatCurrency(loan.total_owed ?? 0, loanCurrency)}</span>
+          <span className="text-muted">Paid</span>
+          <span className="text-right font-mono text-ink">{formatCurrency(loan.total_paid ?? 0, loanCurrency)}</span>
+          <span className="font-medium text-muted">Outstanding</span>
+          <span className="text-right font-mono font-semibold text-negative">{formatCurrency(loanOutstanding, loanCurrency)}</span>
         </div>
       </div>
 
       {/* Repayment schedule */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-zinc-700">
+        <h3 className="mb-2 text-sm font-semibold text-ink">
           Repayment Schedule ({loan.paid_schedule_count ?? 0}/{loan.scheduled_payments_count ?? 0} paid)
         </h3>
         {detail.schedule.length > 0 && (
-          <div className="overflow-x-auto rounded border border-zinc-200">
+          <div className="overflow-x-auto rounded border border-edge">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 text-zinc-500">
+              <thead className="bg-panel text-muted">
                 <tr>
                   <th className="px-3 py-2">Scheduled Date</th>
                   <th className="px-3 py-2 text-right">Amount</th>
@@ -68,16 +68,16 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {detail.schedule.map((entry) => (
                   <tr key={entry.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-2 text-ink">
                       {formatDate(entry.scheduled_date)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(entry.scheduled_amount, loanCurrency)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono text-zinc-700">
+                    <td className="px-3 py-2 text-right font-mono text-ink">
                       {entry.amount_paid > 0 ? formatCurrency(entry.amount_paid, loanCurrency) : '--'}
                     </td>
                     <td className="px-3 py-2">
@@ -91,7 +91,7 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
                         <button
                           type="button"
                           onClick={() => handleRegisterPayment(entry.id)}
-                          className="text-xs text-blue-600 hover:text-blue-800"
+                          className="text-xs text-accent hover:text-accent-hover"
                         >
                           Pay
                         </button>

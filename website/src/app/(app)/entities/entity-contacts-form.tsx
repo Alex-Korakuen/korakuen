@@ -95,11 +95,11 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
   return (
     <div>
       {contacts.length === 0 && !showForm ? (
-        <div className="px-4 py-6 text-center text-sm text-zinc-500">No contacts</div>
+        <div className="px-4 py-6 text-center text-sm text-muted">No contacts</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-xs text-zinc-500">
+            <thead className="bg-panel text-xs text-muted">
               <tr>
                 <th className="px-4 py-2 text-left font-medium">Name</th>
                 <th className="px-4 py-2 text-left font-medium">Role</th>
@@ -108,10 +108,10 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                 <th className="w-16 px-2 py-2"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-edge">
               {contacts.map((c) =>
                 editingId === c.id ? (
-                  <tr key={c.id} className="bg-blue-50">
+                  <tr key={c.id} className="bg-accent-bg">
                     <td className="px-4 py-2">
                       <input
                         type="text"
@@ -154,7 +154,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                           type="button"
                           onClick={handleSaveEdit}
                           disabled={isPending || !editName.trim()}
-                          className="rounded bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
                         >
                           {isPending ? '...' : 'Save'}
                         </button>
@@ -162,29 +162,29 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                           type="button"
                           onClick={cancelEdit}
                           disabled={isPending}
-                          className="rounded px-1.5 py-1 text-[11px] text-zinc-500 hover:bg-zinc-200"
+                          className="rounded px-1.5 py-1 text-[11px] text-muted hover:bg-zinc-200"
                         >
                           Cancel
                         </button>
                       </div>
                       {editError && (
-                        <p className="mt-1 text-[10px] text-red-600">{editError}</p>
+                        <p className="mt-1 text-[10px] text-negative">{editError}</p>
                       )}
                     </td>
                   </tr>
                 ) : (
-                  <tr key={c.id} className="transition-colors hover:bg-blue-50">
-                    <td className="px-4 py-2 text-zinc-800">{c.full_name}</td>
-                    <td className="px-4 py-2 text-zinc-600">{c.role ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-600">{c.phone ?? '—'}</td>
-                    <td className="px-4 py-2 text-zinc-600">{c.email ?? '—'}</td>
+                  <tr key={c.id} className="transition-colors hover:bg-accent-bg">
+                    <td className="px-4 py-2 text-ink">{c.full_name}</td>
+                    <td className="px-4 py-2 text-muted">{c.role ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted">{c.phone ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted">{c.email ?? '—'}</td>
                     <td className="px-2 py-2">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => startEdit(c)}
                           disabled={isPending}
-                          className="rounded border border-zinc-200 p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                          className="rounded border border-edge p-1 text-faint transition-colors hover:bg-surface hover:text-ink"
                           title="Edit contact"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
@@ -213,14 +213,14 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
       )}
 
       {actionError && (
-        <div className="border-t border-zinc-100 px-4 py-2">
-          <p className="text-xs text-red-600">{actionError}</p>
+        <div className="border-t border-edge px-4 py-2">
+          <p className="text-xs text-negative">{actionError}</p>
         </div>
       )}
 
       {/* Add contact form */}
       {showForm && (
-        <div className="border-t border-zinc-100 px-4 py-3">
+        <div className="border-t border-edge px-4 py-3">
           <div className="grid grid-cols-2 gap-2">
             <input
               type="text"
@@ -263,7 +263,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
             <button
               type="button"
               onClick={() => { setShowForm(false); setName(''); setPhone(''); setEmail(''); setRole('') }}
-              className="rounded px-3 py-1.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-100"
+              className="rounded px-3 py-1.5 text-xs text-muted transition-colors hover:bg-surface"
             >
               Cancel
             </button>
@@ -273,11 +273,11 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
 
       {/* Add button */}
       {!showForm && (
-        <div className="border-t border-zinc-100 px-4 py-2">
+        <div className="border-t border-edge px-4 py-2">
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+            className="text-xs text-accent transition-colors hover:text-accent-hover"
           >
             + Add contact
           </button>

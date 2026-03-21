@@ -30,7 +30,7 @@ function ChevronIcon({ open }: { open: boolean }) {
     <svg
       width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      className={`text-zinc-400 transition-transform ${open ? 'rotate-180' : ''}`}
+      className={`text-faint transition-transform ${open ? 'rotate-180' : ''}`}
     >
       <polyline points="4 6 8 10 12 6" />
     </svg>
@@ -130,7 +130,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
       <HeaderTitlePortal>
         <Link
           href="/entities"
-          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="15,18 9,12 15,6" />
@@ -138,7 +138,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
           Entities
         </Link>
         <div className="h-4 w-px bg-zinc-200" />
-        <span className="text-sm text-zinc-600 truncate">
+        <span className="text-sm text-muted truncate">
           {entity.legal_name}
         </span>
       </HeaderTitlePortal>
@@ -171,7 +171,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         {/* ===== View Mode Metadata — no duplicate title, shown in header breadcrumb ===== */}
         {mode === 'view' && (
           <div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
               <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
               {entity.document_number && (
                 <span>{entity.document_type}: {entity.document_number}</span>
@@ -190,54 +190,54 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
         {/* ===== Edit Mode ===== */}
         {mode === 'edit' && (
-          <div className="rounded-lg border border-zinc-200 p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-700">Edit Entity</h3>
+          <div className="rounded-[10px] border border-edge p-4 space-y-4">
+            <h3 className="text-sm font-semibold text-ink">Edit Entity</h3>
 
             {/* Locked fields */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Type <LockIcon /></span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Type <LockIcon /></span>
                 <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
               </div>
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Doc Type <LockIcon /></span>
-                <span className="text-sm text-zinc-500">{entity.document_type}</span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Doc Type <LockIcon /></span>
+                <span className="text-sm text-muted">{entity.document_type}</span>
               </div>
               <div>
-                <span className="block text-[11px] font-medium text-zinc-400 mb-1">Doc Number <LockIcon /></span>
-                <span className="text-sm font-mono text-zinc-500">{entity.document_number}</span>
+                <span className="block text-[11px] font-medium text-faint mb-1">Doc Number <LockIcon /></span>
+                <span className="text-sm font-mono text-muted">{entity.document_number}</span>
               </div>
             </div>
 
-            <div className="border-t border-zinc-200" />
+            <div className="border-t border-edge" />
 
             {/* Editable fields */}
             <div>
-              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Legal Name</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Legal Name</label>
               <input type="text" value={editLegalName} onChange={(e) => setEditLegalName(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">City</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">City</label>
                 <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1">Region</label>
+                <label className="block text-[11px] font-medium text-muted mb-1">Region</label>
                 <input type="text" value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className={`${inputCompactClass} w-full bg-white`} placeholder="Department" />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-zinc-500 mb-1">Notes</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
               <textarea rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className={`${inputCompactClass} w-full bg-white resize-none`} placeholder="Optional notes..." />
             </div>
 
-            {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+            {error && <p className="text-xs font-medium text-negative">{error}</p>}
 
-            <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
-              <button onClick={() => setMode('view')} disabled={isPending} className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100">
+            <div className="flex items-center justify-between border-t border-edge pt-3">
+              <button onClick={() => setMode('view')} disabled={isPending} className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface">
                 Cancel
               </button>
-              <button onClick={handleSave} disabled={isPending || !editLegalName.trim()} className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
+              <button onClick={handleSave} disabled={isPending || !editLegalName.trim()} className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
                 {isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -248,8 +248,8 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         {mode === 'delete' && (
           <div className="space-y-4">
             <div className="opacity-40 pointer-events-none">
-              <h2 className="text-lg font-semibold text-zinc-800">{entity.legal_name}</h2>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+              <h2 className="text-lg font-semibold text-ink">{entity.legal_name}</h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                 <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
                 {entity.document_number && (
                   <span>{entity.document_type}: {entity.document_number}</span>
@@ -276,21 +276,21 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         {/* ===== Summary Cards ===== */}
         {mode === 'view' && (summaries.totalPayable > 0 || summaries.totalReceivable > 0) && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Payable (Outstanding)</p>
-              <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outPayable > 0 ? 'text-red-600' : 'text-zinc-300'}`}>
+            <div className="rounded-[10px] border border-edge bg-white p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Payable (Outstanding)</p>
+              <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outPayable > 0 ? 'text-negative' : 'text-edge-strong'}`}>
                 {summaries.outPayable > 0 ? formatCurrency(summaries.outPayable, summaries.currency) : '—'}
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-faint">
                 {formatCurrency(summaries.totalPayable, summaries.currency)} total across {detail.payablesByProject.length} project{detail.payablesByProject.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <div className="rounded-lg border border-zinc-200 bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Receivable (Outstanding)</p>
-              <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outReceivable > 0 ? 'text-green-600' : 'text-zinc-300'}`}>
+            <div className="rounded-[10px] border border-edge bg-white p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Receivable (Outstanding)</p>
+              <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outReceivable > 0 ? 'text-positive' : 'text-edge-strong'}`}>
                 {summaries.outReceivable > 0 ? formatCurrency(summaries.outReceivable, summaries.currency) : '—'}
               </p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="mt-1 text-xs text-faint">
                 {summaries.totalReceivable > 0
                   ? `${formatCurrency(summaries.totalReceivable, summaries.currency)} total across ${detail.receivablesByProject.length} project${detail.receivablesByProject.length !== 1 ? 's' : ''}`
                   : 'No receivable invoices'}
@@ -301,21 +301,21 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
         {/* ===== Payables Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
             <button
               onClick={() => setPayablesOpen(!payablesOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
             >
-              <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
                 Payables by Project
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-500">
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
                   {detail.payablesByProject.length}
                 </span>
               </h3>
               <ChevronIcon open={payablesOpen} />
             </button>
             {payablesOpen && (
-              <div className="border-t border-zinc-200">
+              <div className="border-t border-edge">
                 <LedgerTable
                   groups={detail.payablesByProject}
                   onRowClick={setModalGroup}
@@ -328,21 +328,21 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
         {/* ===== Receivables Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
             <button
               onClick={() => setReceivablesOpen(!receivablesOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
             >
-              <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
                 Receivables by Project
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-500">
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
                   {detail.receivablesByProject.length}
                 </span>
               </h3>
               <ChevronIcon open={receivablesOpen} />
             </button>
             {receivablesOpen && (
-              <div className="border-t border-zinc-200">
+              <div className="border-t border-edge">
                 <LedgerTable
                   groups={detail.receivablesByProject}
                   onRowClick={setModalGroup}
@@ -355,21 +355,21 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
         {/* ===== Contacts Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden">
+          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
             <button
               onClick={() => setContactsOpen(!contactsOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
             >
-              <h3 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
                 Contacts
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-500">
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
                   {detail.contacts.length}
                 </span>
               </h3>
               <ChevronIcon open={contactsOpen} />
             </button>
             {contactsOpen && (
-              <div className="border-t border-zinc-200">
+              <div className="border-t border-edge">
                 <EntityContactsForm entityId={entity.id} contacts={detail.contacts} />
               </div>
             )}
@@ -378,9 +378,9 @@ export function EntityDetailView({ detail, availableTags }: Props) {
 
         {/* ===== Notes ===== */}
         {mode === 'view' && entity.notes && (
-          <div className="rounded-lg border border-zinc-200 bg-white p-4">
-            <h3 className="mb-2 text-sm font-semibold text-zinc-700">Notes</h3>
-            <p className="whitespace-pre-wrap text-sm text-zinc-600">{entity.notes}</p>
+          <div className="rounded-[10px] border border-edge bg-white p-4">
+            <h3 className="mb-2 text-sm font-semibold text-ink">Notes</h3>
+            <p className="whitespace-pre-wrap text-sm text-muted">{entity.notes}</p>
           </div>
         )}
       </div>
