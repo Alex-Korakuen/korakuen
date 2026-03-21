@@ -126,7 +126,7 @@ export function PaymentsClient({
       <HeaderPortal>
         <button
           onClick={() => setShowImport(true)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-800"
+          className="inline-flex items-center gap-1.5 rounded-md border border-edge-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink"
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
@@ -146,7 +146,7 @@ export function PaymentsClient({
       />
 
       {/* Table card: table + footer summary + pagination */}
-      <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <div className="mt-4 overflow-hidden rounded-[10px] border border-edge bg-white">
         <PaymentsTable
           data={data}
           onRowClick={handleRowClick}
@@ -154,14 +154,14 @@ export function PaymentsClient({
 
         {/* Footer summary */}
         {summary.count > 0 && (
-          <div className="border-t border-zinc-200 bg-zinc-50/80 px-4 py-2.5">
+          <div className="border-t border-edge bg-panel/80 px-4 py-2.5">
             <div className="flex items-center gap-6 text-xs">
               <span className="flex items-center gap-2">
-                <span className="font-semibold text-green-600">In</span>
+                <span className="font-semibold text-positive">In</span>
                 <DualAmount pen={summary.inflows.pen} usd={summary.inflows.usd} />
               </span>
               <span className="flex items-center gap-2">
-                <span className="font-semibold text-red-500">Out</span>
+                <span className="font-semibold text-negative">Out</span>
                 <DualAmount pen={summary.outflows.pen} usd={summary.outflows.usd} />
               </span>
               <span className="flex items-center gap-2">
@@ -183,7 +183,7 @@ export function PaymentsClient({
       >
         {modalLoading ? (
           <div className="flex items-center justify-center py-6">
-            <span className="text-sm text-zinc-400">Loading detail...</span>
+            <span className="text-sm text-faint">Loading detail...</span>
           </div>
         ) : modalRow ? (
           <PaymentExpandContent

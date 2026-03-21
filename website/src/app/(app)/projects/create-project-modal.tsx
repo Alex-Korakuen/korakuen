@@ -81,11 +81,11 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Project">
       <div className="space-y-4">
-        <p className="text-xs text-zinc-500">Project code will be auto-generated (PRY001, PRY002...)</p>
+        <p className="text-xs text-muted">Project code will be auto-generated (PRY001, PRY002...)</p>
 
         {/* Name */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Project Name *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Project Name *</label>
           <input
             type="text"
             value={name}
@@ -98,7 +98,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
         {/* Project Type + Status — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Project Type *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Project Type *</label>
             <select
               value={projectType}
               onChange={(e) => setProjectType(e.target.value as 'subcontractor' | 'oxi')}
@@ -109,7 +109,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Status *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Status *</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as 'prospect' | 'active' | 'completed' | 'cancelled')}
@@ -125,8 +125,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
 
         {/* Client */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Client <span className="font-normal text-zinc-400">(optional)</span>
+          <label className="mb-1 block text-sm font-medium text-ink">
+            Client <span className="font-normal text-faint">(optional)</span>
           </label>
           <EntityPicker
             value={clientEntityId}
@@ -139,8 +139,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
         {/* Contract Value + Currency — side by side */}
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
-            <label className="mb-1 block text-sm font-medium text-zinc-700">
-              Contract Value <span className="font-normal text-zinc-400">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Contract Value <span className="font-normal text-faint">(optional)</span>
             </label>
             <input
               type="number"
@@ -154,7 +154,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
           </div>
           {contractValue && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700">Currency</label>
+              <label className="mb-1 block text-sm font-medium text-ink">Currency</label>
               <select
                 value={contractCurrency}
                 onChange={(e) => setContractCurrency(e.target.value as Currency)}
@@ -170,8 +170,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
         {/* Dates — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">
-              Start Date <span className="font-normal text-zinc-400">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Start Date <span className="font-normal text-faint">(optional)</span>
             </label>
             <input
               type="date"
@@ -181,8 +181,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">
-              Expected End <span className="font-normal text-zinc-400">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Expected End <span className="font-normal text-faint">(optional)</span>
             </label>
             <input
               type="date"
@@ -195,8 +195,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
 
         {/* Location */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Location <span className="font-normal text-zinc-400">(optional)</span>
+          <label className="mb-1 block text-sm font-medium text-ink">
+            Location <span className="font-normal text-faint">(optional)</span>
           </label>
           <input
             type="text"
@@ -209,8 +209,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Notes <span className="font-normal text-zinc-400">(optional)</span>
+          <label className="mb-1 block text-sm font-medium text-ink">
+            Notes <span className="font-normal text-faint">(optional)</span>
           </label>
           <textarea
             value={notes}
@@ -222,7 +222,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-negative">{error}</p>
         )}
 
         {/* Actions */}

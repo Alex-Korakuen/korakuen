@@ -148,7 +148,7 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
     <Modal isOpen={isOpen} onClose={handleClose} title={title}>
       {/* General error */}
       {generalError && (
-        <div className="mb-4 rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 rounded bg-negative-bg px-4 py-3 text-sm text-negative">
           {generalError}
         </div>
       )}
@@ -156,24 +156,24 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
       {/* Validation errors */}
       {errors && errors.length > 0 && (
         <div>
-          <div className="mb-3 rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-3 rounded bg-negative-bg px-4 py-3 text-sm text-negative">
             {errors.length} validation error{errors.length !== 1 ? 's' : ''} found
           </div>
-          <div className="max-h-64 overflow-y-auto rounded border border-zinc-200">
+          <div className="max-h-64 overflow-y-auto rounded border border-edge">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-zinc-50 text-xs font-medium text-zinc-500">
+              <thead className="sticky top-0 bg-panel text-xs font-medium text-muted">
                 <tr>
                   <th className="px-3 py-2">Row</th>
                   <th className="px-3 py-2">Column</th>
                   <th className="px-3 py-2">Error</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {errors.map((err, i) => (
                   <tr key={i}>
-                    <td className="px-3 py-2 font-mono text-zinc-600">{err.row}</td>
-                    <td className="px-3 py-2 text-zinc-600">{err.column}</td>
-                    <td className="px-3 py-2 text-red-600">{err.message}</td>
+                    <td className="px-3 py-2 font-mono text-muted">{err.row}</td>
+                    <td className="px-3 py-2 text-muted">{err.column}</td>
+                    <td className="px-3 py-2 text-negative">{err.message}</td>
                   </tr>
                 ))}
               </tbody>
@@ -189,11 +189,11 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`cursor-pointer rounded-lg border-2 border-dashed px-6 py-12 text-center transition-colors ${
-            dragOver ? 'border-blue-400 bg-blue-50' : 'border-zinc-300 hover:border-zinc-400'
+          className={`cursor-pointer rounded-[10px] border-2 border-dashed px-6 py-12 text-center transition-colors ${
+            dragOver ? 'border-accent bg-accent-bg' : 'border-edge-strong hover:border-faint'
           }`}
         >
-          <p className="text-sm text-zinc-600">Drop .xlsx file here or click to browse</p>
+          <p className="text-sm text-muted">Drop .xlsx file here or click to browse</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -207,23 +207,23 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
       {/* Preview table */}
       {rows && rows.length > 0 && (
         <div>
-          <p className="mb-3 text-sm text-zinc-600">
+          <p className="mb-3 text-sm text-muted">
             {rows.length} row{rows.length !== 1 ? 's' : ''} parsed
           </p>
-          <div className="max-h-64 overflow-auto rounded border border-zinc-200">
+          <div className="max-h-64 overflow-auto rounded border border-edge">
             <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 bg-zinc-50 text-xs font-medium text-zinc-500">
+              <thead className="sticky top-0 bg-panel text-xs font-medium text-muted">
                 <tr>
                   {columns.map(col => (
                     <th key={col} className="whitespace-nowrap px-3 py-2">{col}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-edge">
                 {rows.map((row, i) => (
                   <tr key={i}>
                     {columns.map(col => (
-                      <td key={col} className="whitespace-nowrap px-3 py-1.5 text-zinc-700">
+                      <td key={col} className="whitespace-nowrap px-3 py-1.5 text-ink">
                         {row[col] != null ? String(row[col]) : ''}
                       </td>
                     ))}
@@ -237,7 +237,7 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
             <button
               type="button"
               onClick={handleClose}
-              className="rounded px-4 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-100"
+              className="rounded px-4 py-2 text-sm text-muted transition-colors hover:bg-surface"
             >
               Cancel
             </button>

@@ -65,7 +65,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="text-xs text-blue-600 transition-colors hover:text-blue-800"
+        className="text-xs text-accent transition-colors hover:text-accent-hover"
       >
         + Add scheduled payment
       </button>
@@ -73,11 +73,11 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
   }
 
   return (
-    <div className="rounded border border-zinc-200 bg-zinc-50 px-4 py-3">
-      <h4 className="mb-2 text-xs font-semibold text-zinc-600">Add Scheduled Payment</h4>
+    <div className="rounded border border-edge bg-panel px-4 py-3">
+      <h4 className="mb-2 text-xs font-semibold text-muted">Add Scheduled Payment</h4>
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Date</label>
+          <label className="mb-1 block text-xs text-muted">Date</label>
           <input
             type="date"
             value={scheduledDate}
@@ -86,7 +86,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Amount</label>
+          <label className="mb-1 block text-xs text-muted">Amount</label>
           <input
             type="number"
             step="0.01"
@@ -98,7 +98,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-zinc-500">Exchange Rate</label>
+          <label className="mb-1 block text-xs text-muted">Exchange Rate</label>
           <input
             type="number"
             step="0.0001"
@@ -109,7 +109,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
           />
         </div>
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-negative">{error}</p>}
       <div className="mt-2 flex gap-2">
         <button
           onClick={handleSubmit}
@@ -121,7 +121,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
         <button
           onClick={() => { resetForm(); setIsOpen(false) }}
           disabled={isPending}
-          className="rounded border border-zinc-300 px-3 py-1 text-xs text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+          className="rounded border border-edge-strong px-3 py-1 text-xs text-muted hover:bg-surface disabled:opacity-50"
         >
           Cancel
         </button>

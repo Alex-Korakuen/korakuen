@@ -74,7 +74,7 @@ export function CalendarFilters({
         <button
           type="button"
           onClick={onClearFilters}
-          className="self-end rounded px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-700 hover:underline"
+          className="self-end rounded px-3 py-1.5 text-sm text-muted hover:text-ink hover:underline"
         >
           Clear filters
         </button>

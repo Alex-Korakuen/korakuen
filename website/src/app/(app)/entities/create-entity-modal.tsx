@@ -87,7 +87,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
         {/* Entity Type + Document Type — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Entity Type *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Entity Type *</label>
             <select
               value={entityType}
               onChange={(e) => handleEntityTypeChange(e.target.value as EntityType)}
@@ -98,7 +98,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Document Type *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Document Type *</label>
             <select
               value={documentType}
               onChange={(e) => setDocumentType(e.target.value as DocumentType)}
@@ -113,7 +113,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
 
         {/* Document Number */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Document Number *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Document Number *</label>
           <input
             type="text"
             value={documentNumber}
@@ -125,13 +125,13 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             className={`${inputClass} font-mono ${error?.field === 'document_number' ? errorBorder : ''}`}
           />
           {error?.field === 'document_number' && (
-            <p className="mt-1 text-sm text-red-600">{error.message}</p>
+            <p className="mt-1 text-sm text-negative">{error.message}</p>
           )}
         </div>
 
         {/* Legal Name */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Legal Name *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Legal Name *</label>
           <input
             type="text"
             value={legalName}
@@ -144,8 +144,8 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
         {/* City + Region — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">
-              City <span className="font-normal text-zinc-400">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              City <span className="font-normal text-faint">(optional)</span>
             </label>
             <input
               type="text"
@@ -155,8 +155,8 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">
-              Region <span className="font-normal text-zinc-400">(optional)</span>
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Region <span className="font-normal text-faint">(optional)</span>
             </label>
             <input
               type="text"
@@ -170,8 +170,8 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">
-            Notes <span className="font-normal text-zinc-400">(optional)</span>
+          <label className="mb-1 block text-sm font-medium text-ink">
+            Notes <span className="font-normal text-faint">(optional)</span>
           </label>
           <textarea
             value={notes}
@@ -183,7 +183,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
 
         {/* General error (no specific field) */}
         {error && !error.field && (
-          <p className="text-sm text-red-600">{error.message}</p>
+          <p className="text-sm text-negative">{error.message}</p>
         )}
 
         {/* Actions */}

@@ -87,22 +87,22 @@ export function RegisterLoanRepaymentForm({
 
   if (success) {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+      <div className="rounded-[10px] border border-positive/20 bg-positive-bg px-4 py-3 text-sm text-positive">
         Loan repayment registered successfully.
       </div>
     )
   }
 
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+    <div className="rounded-[10px] border border-accent/20 bg-accent-bg px-4 py-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-blue-600">New Repayment</span>
+        <span className="text-xs font-bold uppercase tracking-wide text-accent">New Repayment</span>
         <button
           type="button"
           onClick={onCancel}
           disabled={isPending}
-          className="flex h-5 w-5 items-center justify-center rounded text-blue-400 hover:bg-blue-100 hover:text-blue-600"
+          className="flex h-5 w-5 items-center justify-center rounded text-accent/60 hover:bg-accent-bg hover:text-accent"
         >
           &times;
         </button>
@@ -112,7 +112,7 @@ export function RegisterLoanRepaymentForm({
       <div className="grid grid-cols-2 gap-3">
         {/* Amount */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
             Amount
           </label>
           <input
@@ -125,14 +125,14 @@ export function RegisterLoanRepaymentForm({
             placeholder="0.00"
             className={`${inputCompactClass} w-full bg-white font-mono`}
           />
-          <p className="mt-0.5 text-[10px] text-blue-400">
+          <p className="mt-0.5 text-[10px] text-accent/60">
             max {formatCurrency(outstanding, currency)}
           </p>
         </div>
 
         {/* Date */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
             Date
           </label>
           <input
@@ -147,7 +147,7 @@ export function RegisterLoanRepaymentForm({
       {/* Bank Account */}
       {bankAccounts.length > 0 && (
         <div className="mt-3">
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-blue-600">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
             Bank Account
           </label>
           <select
@@ -165,14 +165,14 @@ export function RegisterLoanRepaymentForm({
 
       {/* Error */}
       {error && (
-        <p className="mt-2 text-xs font-medium text-red-600">{error}</p>
+        <p className="mt-2 text-xs font-medium text-negative">{error}</p>
       )}
 
       {/* Confirm button */}
       <button
         onClick={handleSubmit}
         disabled={isPending}
-        className="mt-3 w-full rounded-lg bg-blue-600 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+        className="mt-3 w-full rounded-[10px] bg-accent py-2 text-sm font-bold text-white hover:bg-accent-hover disabled:opacity-50"
       >
         {isPending ? 'Saving...' : 'Confirm Repayment'}
       </button>

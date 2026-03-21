@@ -114,7 +114,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
       <div className="space-y-4">
         {/* Partner Company */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Partner Company *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Partner Company *</label>
           <select
             value={partnerCompanyId}
             onChange={(e) => setPartnerCompanyId(e.target.value)}
@@ -129,7 +129,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
         {/* Lender (entity picker) */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Lender *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Lender *</label>
           <EntityPicker
             value={entityId}
             displayName={entityName}
@@ -141,7 +141,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
         {/* Amount + Currency — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Principal Amount *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Principal Amount *</label>
             <input
               type="number"
               step="0.01"
@@ -153,7 +153,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Currency *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Currency *</label>
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
@@ -168,7 +168,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
         {/* Date Borrowed + Due Date — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Date Borrowed *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Date Borrowed *</label>
             <input
               type="date"
               value={dateBorrowed}
@@ -177,7 +177,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Due Date <span className="font-normal text-zinc-400">(optional)</span></label>
+            <label className="mb-1 block text-sm font-medium text-ink">Due Date <span className="font-normal text-faint">(optional)</span></label>
             <input
               type="date"
               value={dueDate}
@@ -189,7 +189,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
         {/* Project */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Project <span className="font-normal text-zinc-400">(optional — which project this funded)</span></label>
+          <label className="mb-1 block text-sm font-medium text-ink">Project <span className="font-normal text-faint">(optional — which project this funded)</span></label>
           <select
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
@@ -205,7 +205,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
         {/* Return Type + Rate/Amount — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Return Type *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Return Type *</label>
             <select
               value={returnType}
               onChange={(e) => setReturnType(e.target.value as 'percentage' | 'fixed')}
@@ -218,7 +218,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
           <div>
             {returnType === 'percentage' ? (
               <>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">Agreed Return Rate % *</label>
+                <label className="mb-1 block text-sm font-medium text-ink">Agreed Return Rate % *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -231,7 +231,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
               </>
             ) : (
               <>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">Agreed Return Amount *</label>
+                <label className="mb-1 block text-sm font-medium text-ink">Agreed Return Amount *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -249,7 +249,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
         {/* Bank Account (where the money landed) */}
         {bankAccounts.length > 0 && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Bank Account <span className="font-normal text-zinc-400">(where funds were received)</span></label>
+            <label className="mb-1 block text-sm font-medium text-ink">Bank Account <span className="font-normal text-faint">(where funds were received)</span></label>
             <select
               value={bankAccountId}
               onChange={(e) => setBankAccountId(e.target.value)}
@@ -265,7 +265,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Notes</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Notes</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -277,7 +277,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-negative">{error}</p>
         )}
 
         {/* Actions */}

@@ -24,7 +24,7 @@ type Props = {
 
 function chipClass(isActive: boolean, activeClass: string): string {
   return `rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
-    isActive ? activeClass : 'border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50'
+    isActive ? activeClass : 'border-edge bg-white text-muted hover:bg-surface'
   }`
 }
 
@@ -64,7 +64,7 @@ export function PaymentsFilters({
         type="month"
         defaultValue={currentFilters.month}
         onChange={(e) => setFilter(FK.month, e.target.value)}
-        className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600"
+        className="rounded border border-edge bg-white px-2 py-1 text-xs text-muted"
       />
 
       <div className="h-5 w-px bg-zinc-200" />
@@ -72,13 +72,13 @@ export function PaymentsFilters({
       {/* Direction chips */}
       <div className="flex gap-1">
         <button
-          className={chipClass(currentFilters.direction === 'inbound', 'border-green-200 bg-green-100 text-green-700')}
+          className={chipClass(currentFilters.direction === 'inbound', 'border-positive/20 bg-positive-bg text-positive')}
           onClick={() => toggleChip(FK.direction, currentFilters.direction, 'inbound')}
         >
           In
         </button>
         <button
-          className={chipClass(currentFilters.direction === 'outbound', 'border-red-200 bg-red-100 text-red-700')}
+          className={chipClass(currentFilters.direction === 'outbound', 'border-negative/20 bg-negative-bg text-negative')}
           onClick={() => toggleChip(FK.direction, currentFilters.direction, 'outbound')}
         >
           Out
@@ -90,13 +90,13 @@ export function PaymentsFilters({
       {/* Type chips */}
       <div className="flex gap-1">
         <button
-          className={chipClass(currentFilters.paymentType === 'regular', 'border-zinc-300 bg-zinc-200 text-zinc-700')}
+          className={chipClass(currentFilters.paymentType === 'regular', 'border-edge-strong bg-zinc-200 text-ink')}
           onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'regular')}
         >
           Regular
         </button>
         <button
-          className={chipClass(currentFilters.paymentType === 'detraccion', 'border-blue-200 bg-blue-100 text-blue-700')}
+          className={chipClass(currentFilters.paymentType === 'detraccion', 'border-accent/20 bg-accent-bg text-accent')}
           onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'detraccion')}
         >
           Det
@@ -150,7 +150,7 @@ export function PaymentsFilters({
 
       {/* Search */}
       <div className="relative">
-        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400">
+        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-faint">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
           </svg>
@@ -161,7 +161,7 @@ export function PaymentsFilters({
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
           placeholder="Search..."
-          className="w-44 rounded-md border border-zinc-200 bg-white py-1 pl-7 pr-2 text-xs text-zinc-700 outline-none transition-colors focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          className="w-44 rounded-md border border-edge bg-white py-1 pl-7 pr-2 text-xs text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
 
@@ -170,7 +170,7 @@ export function PaymentsFilters({
         <button
           type="button"
           onClick={onClearFilters}
-          className="rounded px-2 py-1 text-xs text-zinc-400 transition-colors hover:text-red-500"
+          className="rounded px-2 py-1 text-xs text-faint transition-colors hover:text-negative"
         >
           Clear
         </button>

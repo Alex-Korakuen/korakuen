@@ -77,7 +77,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
       <div className="space-y-4">
         {/* Partner Company */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Partner Company *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Partner Company *</label>
           <select
             value={partnerCompanyId}
             onChange={(e) => setPartnerCompanyId(e.target.value)}
@@ -92,7 +92,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
 
         {/* Bank Name */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Bank Name *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Bank Name *</label>
           <input
             type="text"
             value={bankName}
@@ -104,7 +104,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
 
         {/* Last 4 digits */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Account Number (last 4) *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Account Number (last 4) *</label>
           <input
             type="text"
             value={last4}
@@ -121,7 +121,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
 
         {/* Label */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700">Label * <span className="font-normal text-zinc-400">(unique identifier)</span></label>
+          <label className="mb-1 block text-sm font-medium text-ink">Label * <span className="font-normal text-faint">(unique identifier)</span></label>
           <input
             type="text"
             value={label}
@@ -134,7 +134,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
         {/* Account Type + Currency — side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Account Type *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Account Type *</label>
             <select
               value={accountType}
               onChange={(e) => setAccountType(e.target.value as 'checking' | 'savings' | 'detraccion')}
@@ -146,7 +146,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700">Currency *</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Currency *</label>
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
@@ -160,14 +160,14 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
 
         {/* Detraccion indicator */}
         {isDetraccion && (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-caution">
             Detraccion accounts are restricted to tax payments only (Banco de la Nacion).
           </p>
         )}
 
         {/* Error */}
         {error && (
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-negative">{error}</p>
         )}
 
         {/* Actions */}
