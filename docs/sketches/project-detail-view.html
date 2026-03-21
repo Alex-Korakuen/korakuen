@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Detail — PRY001</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a2e; }
+
+    /* ── Layout shell (simulates sidebar + header) ── */
+    .shell { display: flex; min-height: 100vh; }
+    .sidebar-placeholder { width: 220px; background: #1a1a2e; flex-shrink: 0; padding: 20px 16px; }
+    .sidebar-placeholder .logo { color: #fff; font-weight: 700; font-size: 16px; margin-bottom: 24px; }
+    .sidebar-placeholder .nav-item { display: block; padding: 8px 12px; border-radius: 6px; color: #94a3b8; font-size: 13px; margin-bottom: 2px; text-decoration: none; cursor: pointer; }
+    .sidebar-placeholder .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .sidebar-placeholder .nav-item.active { background: rgba(59,130,246,0.15); color: #60a5fa; }
+
+    .main-area { flex: 1; display: flex; flex-direction: column; }
+
+    .header-bar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .breadcrumb { font-size: 13px; color: #3b82f6; cursor: pointer; }
+    .breadcrumb:hover { text-decoration: underline; }
+    .divider-dot { color: #cbd5e1; }
+    .project-title { font-size: 16px; font-weight: 600; }
+    .header-right { display: flex; gap: 8px; }
+
+    .badge { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-subcontractor { background: #e0f2fe; color: #0369a1; }
+    .btn-icon { width: 32px; height: 32px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 14px; }
+    .btn-icon:hover { background: #f8fafc; color: #1a1a2e; }
+
+    .content { padding: 24px 32px; overflow-y: auto; flex: 1; }
+
+    /* ── Metadata row ── */
+    .meta-row { display: flex; flex-wrap: wrap; gap: 32px; row-gap: 8px; margin-bottom: 20px; }
+    .meta-item .meta-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .meta-item .meta-value { font-size: 13px; color: #475569; margin-top: 2px; }
+    .meta-item .meta-value.mono { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+    /* ── Dashboard grid ── */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+    .card-title { font-size: 13px; font-weight: 600; color: #475569; }
+    .card-action { font-size: 12px; color: #3b82f6; cursor: pointer; font-weight: 500; background: none; border: none; }
+    .card-action:hover { text-decoration: underline; }
+
+    /* ── Tables ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; padding: 8px 12px; color: #94a3b8; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #f1f5f9; }
+    thead th.r { text-align: right; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #f8fafc; }
+    tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody td.partner-name { font-weight: 600; color: #1a1a2e; }
+    tbody tr:hover { background: #f0f7ff; cursor: pointer; }
+    tbody tr:last-child td { border-bottom: none; }
+    tfoot td { padding: 10px 12px; font-weight: 600; background: #fafbfc; font-size: 13px; border-top: 2px solid #e2e8f0; }
+    tfoot td.r { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .green { color: #059669; }
+    .red { color: #dc2626; }
+    .amber { color: #d97706; }
+    .muted { color: #94a3b8; }
+
+    .balance-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+    .balance-pill.owes { background: #fef2f2; color: #dc2626; }
+    .balance-pill.owed { background: #f0fdf4; color: #059669; }
+    .balance-pill.even { background: #f0fdf4; color: #059669; }
+
+    .share-btn { background: none; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 2px 6px; font-size: 12px; color: #475569; cursor: pointer; font-variant-numeric: tabular-nums; }
+    .share-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+    /* ── Tag ── */
+    .tag { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+    .tag-intercompany { background: #ede9fe; color: #6d28d9; }
+
+    /* ── Entities table ── */
+    .entity-link { color: #3b82f6; text-decoration: none; font-weight: 500; }
+    .entity-link:hover { text-decoration: underline; }
+    .tags-cell { font-size: 12px; color: #64748b; }
+    .search-input { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; width: 200px; outline: none; }
+    .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #64748b; }
+    .pagination .pages { display: flex; gap: 4px; }
+    .page-btn { width: 28px; height: 28px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .page-btn:hover { background: #f8fafc; }
+    .page-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+    /* ── Notes ── */
+    .notes-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+    .notes-title { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+    .notes-body { font-size: 13px; color: #475569; line-height: 1.6; white-space: pre-wrap; }
+
+    /* ── Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; width: 640px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
+    .modal-title { font-size: 15px; font-weight: 600; }
+    .modal-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; padding: 4px; }
+    .modal-close:hover { color: #475569; }
+    .modal-body { padding: 20px; }
+
+    /* Modal summary grid */
+    .modal-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .modal-stat { background: #f8fafc; border-radius: 8px; padding: 12px; }
+    .modal-stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+    .modal-stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    /* Modal tabs */
+    .modal-tabs { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px; }
+    .modal-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #94a3b8; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .modal-tab:hover { color: #475569; }
+    .modal-tab.active { color: #1a1a2e; border-bottom-color: #3b82f6; }
+    .modal-tab-content { display: none; }
+    .modal-tab-content.active { display: block; }
+
+    /* Inline form row */
+    .inline-form { display: flex; gap: 8px; padding: 12px 16px; background: #f8fafc; border-top: 1px solid #f1f5f9; align-items: center; }
+    .inline-form input, .inline-form select { padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; outline: none; }
+    .inline-form input:focus, .inline-form select:focus { border-color: #3b82f6; }
+    .inline-form .btn-sm { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; }
+    .inline-form .btn-primary { background: #3b82f6; color: #fff; }
+    .inline-form .btn-cancel { background: #fff; color: #64748b; border: 1px solid #e2e8f0; }
+
+    /* Delete icon */
+    .delete-btn { opacity: 0; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px; transition: opacity 0.1s; }
+    tbody tr:hover .delete-btn { opacity: 1; }
+
+    /* ── Partner transaction form in modal ── */
+    .add-transaction-form { display: flex; gap: 8px; padding: 12px 0; align-items: end; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; gap: 2px; }
+    .form-group label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+    .form-group input, .form-group select { padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
+    .btn-add-sm { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; background: #3b82f6; color: #fff; align-self: end; }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar-placeholder">
+    <div class="logo">Korakuen</div>
+    <a class="nav-item active">Projects</a>
+    <a class="nav-item">Entities</a>
+    <a class="nav-item">Prices</a>
+    <a class="nav-item">Invoices</a>
+    <a class="nav-item">Payments</a>
+    <a class="nav-item">Calendar</a>
+    <a class="nav-item">Financial Position</a>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main-area">
+
+    <!-- Header -->
+    <div class="header-bar">
+      <div class="header-left">
+        <span class="breadcrumb">&#8592; Projects</span>
+        <span class="divider-dot">|</span>
+        <span class="project-title">PRY001 — Obra Vial Cusco</span>
+        <span class="badge badge-active">Active</span>
+        <span class="badge badge-subcontractor">Subcontractor</span>
+      </div>
+      <div class="header-right">
+        <button class="btn-icon" title="Edit project">&#9998;</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Metadata -->
+      <div class="meta-row">
+        <div class="meta-item">
+          <div class="meta-label">Client</div>
+          <div class="meta-value">Municipalidad Provincial de Cusco</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Contract Value</div>
+          <div class="meta-value mono">S/ 450,000.00</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Start Date</div>
+          <div class="meta-value">Jan 15, 2026</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Expected End</div>
+          <div class="meta-value">Jun 30, 2026</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Location</div>
+          <div class="meta-value">Cusco, Cusco</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- ════════════════ Dashboard Grid ════════════════ -->
+      <div class="dashboard-grid">
+
+        <!-- ── Card A: Partners & Settlement ── -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Partners & Settlement</span>
+            <button class="card-action">+ Add partner</button>
+          </div>
+
+          <!-- Project economics summary -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; border-bottom: 1px solid #f1f5f9;">
+            <div style="padding: 12px 16px; border-right: 1px solid #f1f5f9;">
+              <div style="font-size: 11px; color: #94a3b8;">Revenue</div>
+              <div style="font-size: 16px; font-weight: 700; margin-top: 2px;">S/ 100,000</div>
+            </div>
+            <div style="padding: 12px 16px; border-right: 1px solid #f1f5f9;">
+              <div style="font-size: 11px; color: #94a3b8;">Costs</div>
+              <div style="font-size: 16px; font-weight: 700; margin-top: 2px;">S/ 70,000</div>
+            </div>
+            <div style="padding: 12px 16px;">
+              <div style="font-size: 11px; color: #94a3b8;">Profit</div>
+              <div style="font-size: 16px; font-weight: 700; margin-top: 2px; color: #059669;">S/ 30,000</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Partner</th>
+                <th class="r">Share</th>
+                <th class="r">Costs</th>
+                <th class="r">Revenue</th>
+                <th class="r">Balance</th>
+                <th style="width: 32px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="openModal('a')">
+                <td class="partner-name">Partner A</td>
+                <td class="r"><button class="share-btn">50%</button></td>
+                <td class="r">10,000</td>
+                <td class="r">100,000</td>
+                <td class="r"><span class="balance-pill owes">−75,000</span></td>
+                <td><button class="delete-btn">&#128465;</button></td>
+              </tr>
+              <tr onclick="openModal('b')">
+                <td class="partner-name">Partner B</td>
+                <td class="r"><button class="share-btn">50%</button></td>
+                <td class="r">60,000</td>
+                <td class="r">0</td>
+                <td class="r"><span class="balance-pill owed">+75,000</span></td>
+                <td><button class="delete-btn">&#128465;</button></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <td>Total</td>
+              <td class="r">100%</td>
+              <td class="r">70,000</td>
+              <td class="r">100,000</td>
+              <td class="r" style="font-weight: 600;">30,000</td>
+              <td></td>
+            </tfoot>
+          </table>
+          <div style="padding: 8px 12px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+            Balance = profit share − net position. Click a partner for details.
+          </div>
+        </div>
+
+        <!-- ── Card B: Costs & Budget ── -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Costs & Budget</span>
+            <button class="card-action">+ Add budget category</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="r">Budgeted</th>
+                <th class="r">Actual</th>
+                <th class="r">% Used</th>
+                <th style="width: 32px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Materials</td>
+                <td class="r mono" style="font-size: 12px;">50,000</td>
+                <td class="r mono" style="font-size: 12px;">32,000</td>
+                <td class="r green">64%</td>
+                <td><button class="delete-btn">&#128465;</button></td>
+              </tr>
+              <tr>
+                <td>Labor</td>
+                <td class="r mono" style="font-size: 12px;">80,000</td>
+                <td class="r mono" style="font-size: 12px;">25,000</td>
+                <td class="r green">31%</td>
+                <td><button class="delete-btn">&#128465;</button></td>
+              </tr>
+              <tr>
+                <td>Equipment Rental</td>
+                <td class="r mono" style="font-size: 12px;">20,000</td>
+                <td class="r mono" style="font-size: 12px;">13,000</td>
+                <td class="r amber">65%</td>
+                <td><button class="delete-btn">&#128465;</button></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <td>Total</td>
+              <td class="r">150,000</td>
+              <td class="r">70,000</td>
+              <td class="r green">47%</td>
+              <td></td>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ════════════════ Entities & Suppliers ════════════════ -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">Entities & Suppliers</span>
+          <input type="text" class="search-input" placeholder="Search entities...">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Entity</th>
+              <th>Tags</th>
+              <th class="r">Total Spent</th>
+              <th class="r"># Invoices</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a class="entity-link">Ferretería El Sol SAC</a></td>
+              <td class="tags-cell">supplier, materials</td>
+              <td class="r mono" style="font-size: 12px;">S/ 32,000</td>
+              <td class="r">4</td>
+            </tr>
+            <tr>
+              <td><a class="entity-link">Transportes Cusco EIRL</a></td>
+              <td class="tags-cell">supplier, transport</td>
+              <td class="r mono" style="font-size: 12px;">S/ 13,000</td>
+              <td class="r">2</td>
+            </tr>
+            <tr>
+              <td><a class="entity-link">Carlos Quispe</a></td>
+              <td class="tags-cell">worker, labor</td>
+              <td class="r mono" style="font-size: 12px;">S/ 25,000</td>
+              <td class="r">6</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <td colspan="2">Total PEN</td>
+            <td class="r">S/ 70,000</td>
+            <td class="r">12</td>
+          </tfoot>
+        </table>
+        <div class="pagination">
+          <span>1–3 of 3</span>
+          <div class="pages">
+            <button class="page-btn active">1</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════ Notes ════════════════ -->
+      <div class="notes-card">
+        <div class="notes-title">Notes</div>
+        <div class="notes-body">Road rehabilitation project for the municipality. Phase 1 covers 2.5km of main avenue. Soil testing completed Jan 2026.</div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-area -->
+</div><!-- /shell -->
+
+
+<!-- ════════════════ Partner Detail Modal (Partner A) ════════════════ -->
+<div class="modal-overlay" id="modal-a">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Partner A — Settlement Details</span>
+      <button class="modal-close" onclick="closeModal('a')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Summary stats -->
+      <div class="modal-summary">
+        <div class="modal-stat">
+          <div class="modal-stat-label">Costs Contributed</div>
+          <div class="modal-stat-value">S/ 10,000</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Revenue Received</div>
+          <div class="modal-stat-value">S/ 100,000</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Net Position</div>
+          <div class="modal-stat-value green">S/ 90,000</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Balance</div>
+          <div class="modal-stat-value red">−S/ 75,000</div>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 6px;">
+        This is <strong>your company</strong>. Costs come from your invoices (cost_type = project_cost). Revenue comes from your receivable collections. The intercompany invoice to Partner B is excluded from these figures.
+      </div>
+
+      <!-- Tabs: Your Invoices (costs) | Your Collections (revenue) -->
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="showTab('a', 'costs')">Your Costs (3)</div>
+        <div class="modal-tab" onclick="showTab('a', 'revenue')">Your Revenue (1)</div>
+        <div class="modal-tab" onclick="showTab('a', 'intercompany')">Intercompany (1)</div>
+      </div>
+
+      <!-- Costs tab -->
+      <div class="modal-tab-content active" id="a-costs">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Entity</th><th>Description</th><th class="r">Amount (PEN)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Jan 20</td><td>Ferretería El Sol</td><td>Cemento y fierro</td><td class="r">4,500</td></tr>
+            <tr><td>Feb 05</td><td>Ferretería El Sol</td><td>Agregados</td><td class="r">3,500</td></tr>
+            <tr><td>Feb 18</td><td>Transportes Cusco</td><td>Flete materiales</td><td class="r">2,000</td></tr>
+          </tbody>
+          <tfoot>
+            <td colspan="3">Total</td>
+            <td class="r">10,000</td>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Revenue tab -->
+      <div class="modal-tab-content" id="a-revenue">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Entity</th><th>Description</th><th class="r">Amount (PEN)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mar 01</td><td>Municipalidad de Cusco</td><td>Valorización #1</td><td class="r">100,000</td></tr>
+          </tbody>
+          <tfoot>
+            <td colspan="3">Total</td>
+            <td class="r">100,000</td>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Intercompany tab -->
+      <div class="modal-tab-content" id="a-intercompany">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Entity</th><th>Description</th><th class="r">Amount (PEN)</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Mar 10</td>
+              <td>Partner B</td>
+              <td>Settlement payment PRY001 <span class="tag tag-intercompany">intercompany</span></td>
+              <td class="r">75,000</td>
+              <td><span class="badge" style="background: #fef3c7; color: #92400e;">Pending</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <td colspan="3">Total</td>
+            <td class="r">75,000</td>
+            <td></td>
+          </tfoot>
+        </table>
+        <div style="font-size: 11px; color: #94a3b8; padding: 8px 0;">
+          These invoices are excluded from project economics but visible on your Invoices, Calendar, and Payments pages.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ Partner Detail Modal (Partner B) ════════════════ -->
+<div class="modal-overlay" id="modal-b">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Partner B — Settlement Details</span>
+      <button class="modal-close" onclick="closeModal('b')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Summary stats -->
+      <div class="modal-summary">
+        <div class="modal-stat">
+          <div class="modal-stat-label">Costs Contributed</div>
+          <div class="modal-stat-value">S/ 60,000</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Revenue Received</div>
+          <div class="modal-stat-value">S/ 0</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Net Position</div>
+          <div class="modal-stat-value red">−S/ 60,000</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-label">Balance</div>
+          <div class="modal-stat-value green">+S/ 75,000</div>
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 6px;">
+        Partner transactions are simple records — costs they incurred and revenue they received. No invoice/payment flow.
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="showTab('b', 'costs')">Costs (2)</div>
+        <div class="modal-tab" onclick="showTab('b', 'revenue')">Revenue (0)</div>
+      </div>
+
+      <!-- Costs tab -->
+      <div class="modal-tab-content active" id="b-costs">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Description</th><th class="r">Amount (PEN)</th><th style="width: 60px;"></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Jan 20</td>
+              <td>Mano de obra semana 1-4</td>
+              <td class="r">40,000</td>
+              <td style="text-align: right;">
+                <button class="btn-icon" style="width: 24px; height: 24px; font-size: 11px;" title="Edit">&#9998;</button>
+                <button class="delete-btn" style="opacity: 1; font-size: 12px;" title="Delete">&#128465;</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Feb 10</td>
+              <td>Subcontratista excavación</td>
+              <td class="r">20,000</td>
+              <td style="text-align: right;">
+                <button class="btn-icon" style="width: 24px; height: 24px; font-size: 11px;" title="Edit">&#9998;</button>
+                <button class="delete-btn" style="opacity: 1; font-size: 12px;" title="Delete">&#128465;</button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <td colspan="2">Total</td>
+            <td class="r">60,000</td>
+            <td></td>
+          </tfoot>
+        </table>
+
+        <!-- Add transaction form -->
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 8px;">
+          <div class="add-transaction-form">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" value="2026-03-18" style="width: 130px;">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Description</label>
+              <input type="text" placeholder="What did they spend on?">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" placeholder="0.00" style="width: 100px;">
+            </div>
+            <div class="form-group">
+              <label>Currency</label>
+              <select style="width: 70px;">
+                <option>PEN</option>
+                <option>USD</option>
+              </select>
+            </div>
+            <button class="btn-add-sm">+ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenue tab (empty) -->
+      <div class="modal-tab-content" id="b-revenue">
+        <div style="padding: 32px; text-align: center; color: #94a3b8; font-size: 13px;">
+          No revenue recorded yet for Partner B on this project.
+        </div>
+
+        <!-- Add revenue form -->
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 12px;">
+          <div class="add-transaction-form">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" value="2026-03-18" style="width: 130px;">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label>Description</label>
+              <input type="text" placeholder="What did they receive?">
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" placeholder="0.00" style="width: 100px;">
+            </div>
+            <div class="form-group">
+              <label>Currency</label>
+              <select style="width: 70px;">
+                <option>PEN</option>
+                <option>USD</option>
+              </select>
+            </div>
+            <button class="btn-add-sm">+ Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  function openModal(partner) {
+    document.getElementById('modal-' + partner).classList.add('open');
+  }
+  function closeModal(partner) {
+    document.getElementById('modal-' + partner).classList.remove('open');
+  }
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  function showTab(partner, tab) {
+    // Hide all tabs for this partner
+    document.querySelectorAll('#modal-' + partner + ' .modal-tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#modal-' + partner + ' .modal-tab').forEach(t => t.classList.remove('active'));
+    // Show selected
+    document.getElementById(partner + '-' + tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -13,7 +13,6 @@ import {
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
-import { ProjectPartnerSettlement } from '../project-partner-settlement'
 import { ProjectBudgetForm } from '../project-budget-form'
 import { updateProject } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
@@ -183,19 +182,13 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 // --- Main Detail View ---
 
 export function ProjectDetailView({ detail, partnerCompanies, categories }: Props) {
-  const { project, clientName, entities, partners, partnerSettlements } = detail
+  const { project, clientName, entities, partners } = detail
   const router = useRouter()
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [isPending, startTransition] = useTransition()
 
   const contractValue = project.contract_value ?? null
   const contractCurrency = project.contract_currency ?? 'PEN'
-
-  // Inline add form state (lifted from child components)
-  const [showPartnerForm, setShowPartnerForm] = useState(false)
-
-  const assignedPartnerIds = new Set(partners.map(p => p.partnerCompanyId))
-  const addPartnerDisabled = partnerCompanies.every(pc => assignedPartnerIds.has(pc.id))
 
   // Edit form state
   const [editName, setEditName] = useState('')
@@ -292,74 +285,83 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
       {/* View mode: dashboard */}
       {mode === 'view' && (
         <div className="space-y-6">
-          {/* Metadata row — first element, no duplicate title */}
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            {clientName && (
-              <div>
-                <span className="text-xs text-muted">Client</span>
-                <p className="text-ink">{clientName}</p>
-              </div>
-            )}
-            {contractValue !== null && (
-              <div>
-                <span className="text-xs text-muted">Contract Value</span>
-                <p className="font-mono font-medium text-ink">
-                  {formatCurrency(contractValue, contractCurrency)}
-                </p>
-              </div>
-            )}
-            {project.start_date && (
-              <div>
-                <span className="text-xs text-muted">Start Date</span>
-                <p className="text-ink">{formatDate(project.start_date)}</p>
-              </div>
-            )}
-            {project.expected_end_date && (
-              <div>
-                <span className="text-xs text-muted">Expected End</span>
-                <p className="text-ink">{formatDate(project.expected_end_date)}</p>
-              </div>
-            )}
-            {project.actual_end_date && (
-              <div>
-                <span className="text-xs text-muted">Actual End</span>
-                <p className="text-ink">{formatDate(project.actual_end_date)}</p>
-              </div>
-            )}
-            {project.location && (
-              <div>
-                <span className="text-xs text-muted">Location</span>
-                <p className="text-ink">{project.location}</p>
+          {/* Metadata card */}
+          <div className="rounded-[10px] border border-edge bg-white">
+            {/* Metadata grid */}
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3 p-4 sm:grid-cols-3 lg:grid-cols-5">
+              {clientName && (
+                <div>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Client</span>
+                  <p className="text-sm text-ink">{clientName}</p>
+                </div>
+              )}
+              {contractValue !== null && (
+                <div>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Contract Value</span>
+                  <p className="text-sm font-mono font-medium text-ink">
+                    {formatCurrency(contractValue, contractCurrency)}
+                  </p>
+                </div>
+              )}
+              {project.start_date && (
+                <div>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Start Date</span>
+                  <p className="text-sm text-ink">{formatDate(project.start_date)}</p>
+                </div>
+              )}
+              {project.expected_end_date && (
+                <div>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Expected End</span>
+                  <p className="text-sm text-ink">{formatDate(project.expected_end_date)}</p>
+                </div>
+              )}
+              {project.location && (
+                <div>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Location</span>
+                  <p className="text-sm text-ink">{project.location}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Partners row */}
+            {partners.length > 0 && (
+              <div className="flex items-center gap-3 border-t border-edge px-4 py-3">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {partners.map((p) => {
+                    const isYou = p.partnerName.toLowerCase().includes('korakuen')
+                    return (
+                      <span
+                        key={p.id}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                          isYou
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-edge bg-surface text-ink'
+                        }`}
+                      >
+                        {p.partnerName}
+                        {isYou && <span className="text-[10px] text-emerald-500">(you)</span>}
+                        <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
+                          isYou ? 'bg-emerald-100 text-emerald-600' : 'bg-panel text-muted'
+                        }`}>
+                          {p.profitSharePct}%
+                        </span>
+                      </span>
+                    )
+                  })}
+                </div>
+                <Link
+                  href="/settlement"
+                  className="ml-auto text-xs font-medium text-accent hover:text-accent-hover"
+                >
+                  View settlement →
+                </Link>
               </div>
             )}
           </div>
 
-          <div className="border-t border-edge" />
-
-          {/* Dashboard grid: Partners + Budget side by side */}
+          {/* Dashboard grid: Budget + Entities side by side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Partners & Settlement — flex-col so total pins to bottom */}
-            <div className="flex flex-col rounded-[10px] border border-edge bg-white">
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-ink">Partners & Settlement</h3>
-                <button
-                  onClick={() => setShowPartnerForm(true)}
-                  disabled={addPartnerDisabled || showPartnerForm}
-                  className="text-xs font-medium text-accent hover:text-accent-hover disabled:text-faint"
-                >
-                  + Add partner
-                </button>
-              </div>
-              <ProjectPartnerSettlement
-                projectId={project.id}
-                partners={partners}
-                settlements={partnerSettlements}
-                partnerCompanies={partnerCompanies}
-                showForm={showPartnerForm}
-                onHideForm={() => setShowPartnerForm(false)}
-              />
-            </div>
-
             {/* Costs & Budget */}
             <div className="rounded-[10px] border border-edge bg-white">
               <div className="px-4 pt-4 pb-2">
@@ -374,11 +376,11 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                 actualCostsByCategory={detail.actualCostsByCategory}
               />
             </div>
-          </div>
 
-          {/* Entities — full width */}
-          <div className="rounded-[10px] border border-edge bg-white">
-            <EntitiesPaginated entities={entities} />
+            {/* Entities & Suppliers */}
+            <div className="rounded-[10px] border border-edge bg-white">
+              <EntitiesPaginated entities={entities} />
+            </div>
           </div>
 
           {/* Notes */}
