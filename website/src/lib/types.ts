@@ -31,7 +31,6 @@ export type ProjectType = 'subcontractor' | 'oxi'
 export type EntityType = 'company' | 'individual'
 export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
 export type AccountType = 'checking' | 'savings' | 'detraccion'
-export type LoanReturnType = 'percentage' | 'fixed'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 

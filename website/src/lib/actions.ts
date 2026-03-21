@@ -6,6 +6,14 @@ import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, g
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 
+/** Revalidate all financial pages that share cross-cutting data. */
+function revalidateFinancialPages() {
+  revalidatePath('/calendar')
+  revalidatePath('/invoices')
+  revalidatePath('/payments')
+  revalidatePath('/financial-position')
+}
+
 export async function fetchInvoiceDetail(invoiceId: string) {
   return getInvoiceDetail(invoiceId)
 }
@@ -199,10 +207,7 @@ export async function registerPayment(input: {
       .eq('id', input.related_id)
   }
 
-  revalidatePath('/calendar')
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -470,8 +475,7 @@ export async function updateProject(
 
   if (error) return { error: handleDbError(error, 'Failed to update project') }
   revalidatePath('/projects', 'layout')
-  revalidatePath('/invoices')
-  revalidatePath('/calendar')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -626,9 +630,7 @@ export async function createLoan(data: {
 
   if (paymentError) return { error: handleDbError(paymentError, 'Failed to record loan disbursement') }
 
-  revalidatePath('/financial-position')
-  revalidatePath('/calendar')
-  revalidatePath('/payments')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -669,8 +671,7 @@ export async function addLoanScheduleEntry(data: {
   })
 
   if (error) return { error: handleDbError(error, 'Failed to add schedule entry') }
-  revalidatePath('/calendar')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -710,10 +711,7 @@ export async function registerLoanRepayment(data: {
 
   if (error) return { error: handleDbError(error, 'Failed to register repayment') }
 
-  revalidatePath('/calendar')
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -787,10 +785,7 @@ export async function updatePayment(input: {
 
   if (error) return { error: handleDbError(error, 'Failed to update payment') }
 
-  revalidatePath('/calendar')
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -833,10 +828,7 @@ export async function deactivatePayment(
     }
   }
 
-  revalidatePath('/calendar')
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   return {}
 }
 
@@ -949,10 +941,7 @@ export async function updateInvoice(input: {
 
   if (insertError) return { error: handleDbError(insertError, 'Failed to update invoice items') }
 
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/calendar')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   revalidatePath('/projects', 'layout')
   revalidatePath('/prices')
   return {}
@@ -1004,10 +993,7 @@ export async function deactivateInvoice(
       .eq('id', invoiceId)
   }
 
-  revalidatePath('/invoices')
-  revalidatePath('/payments')
-  revalidatePath('/calendar')
-  revalidatePath('/financial-position')
+  revalidateFinancialPages()
   revalidatePath('/projects', 'layout')
   revalidatePath('/prices')
   return {}

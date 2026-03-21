@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 
 type ModalProps = {
   isOpen: boolean
@@ -10,6 +10,9 @@ type ModalProps = {
 }
 
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -19,12 +22,21 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
   useEffect(() => {
     if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null
       document.addEventListener('keydown', handleKeyDown)
       document.body.style.overflow = 'hidden'
+      // Focus first focusable element inside modal content
+      requestAnimationFrame(() => {
+        const focusable = contentRef.current?.querySelector<HTMLElement>(
+          'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+        )
+        focusable?.focus()
+      })
     }
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
+      if (!isOpen) previousFocusRef.current?.focus()
     }
   }, [isOpen, handleKeyDown])
 
@@ -69,7 +81,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         </div>
 
         {/* Scrollable content */}
-        <div className="overflow-y-auto px-6 py-4">{children}</div>
+        <div ref={contentRef} className="overflow-y-auto px-6 py-4">{children}</div>
       </div>
     </div>
   )

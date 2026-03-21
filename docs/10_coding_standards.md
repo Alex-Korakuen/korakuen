@@ -141,7 +141,8 @@ src/
       invoices/         → invoice browse and detail
       payments/         → payment browse and detail
       financial-position/ → balance sheet
-      projects/         → project list and detail (includes partner settlement)
+      projects/         → project list and detail
+      settlement/       → partner settlement dashboard
       entities/         → entity/contact directory
       prices/           → historical pricing reference
       settings/

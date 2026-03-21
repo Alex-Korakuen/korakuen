@@ -103,7 +103,8 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
         return
       }
       setRows(parsed)
-    } catch {
+    } catch (err) {
+      console.error('Error reading file:', err)
       setGeneralError('Error reading file')
     }
   }
@@ -136,6 +137,7 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
           handleClose()
         }
       } catch (err) {
+        console.error('Import failed:', err)
         setGeneralError(err instanceof Error ? err.message : 'Import failed')
         setRows(null)
       }
