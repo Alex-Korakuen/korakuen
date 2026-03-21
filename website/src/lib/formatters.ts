@@ -16,6 +16,14 @@ export function formatCurrency(amount: number, currency: string | null): string 
   return currency === 'USD' ? formatUSD(amount) : formatPEN(amount)
 }
 
+/** Signed, whole-number format for compact badges: "+S/ 1,234" or "−US$ 1,234" */
+export function formatCurrencyCompact(amount: number, currency: string | null): string {
+  const symbol = currency === 'USD' ? 'US$' : 'S/'
+  const sign = amount > 0 ? '+' : amount < 0 ? '\u2212' : ''
+  const formatted = Math.abs(amount).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return `${sign}${symbol} ${formatted}`
+}
+
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** Format date as "15/Mar" — compact dd/Mmm used across all tables. */

@@ -149,17 +149,17 @@ export function CalendarClient({
     await fetchDetail(row)
   }, [fetchDetail])
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setModalRow(null)
     setModalPageRow(null)
     setModalDetail(null)
     setModalMode('view')
-  }
+  }, [])
 
   const handleMutationSuccess = useCallback(() => {
     handleCloseModal()
     router.refresh()
-  }, [router])
+  }, [handleCloseModal, router])
 
   const handlePaymentSuccess = useCallback(() => {
     if (modalRow) {

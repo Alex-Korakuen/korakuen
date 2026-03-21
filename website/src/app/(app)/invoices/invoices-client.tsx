@@ -95,16 +95,16 @@ export function InvoicesClient({
     await fetchDetail(row)
   }, [fetchDetail])
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setModalRow(null)
     setModalDetail(null)
     setModalMode('view')
-  }
+  }, [])
 
   const handleMutationSuccess = useCallback(() => {
     handleCloseModal()
     router.refresh()
-  }, [router])
+  }, [handleCloseModal, router])
 
   const handlePaymentSuccess = useCallback(() => {
     if (modalRow) fetchDetail(modalRow)

@@ -139,28 +139,6 @@ export type PaymentsSummary = {
   count: number
 }
 
-// --- Partner settlement types ---
-
-export type PartnerPayableDetail = {
-  invoice_id: string
-  date: string | null
-  invoice_number: string | null
-  subtotal: number
-  currency: Currency | null
-  exchange_rate: number | null
-  subtotal_pen: number // subtotal * exchange_rate for USD, subtotal for PEN
-}
-
-export type PartnerReceivableDetail = {
-  payment_id: string
-  payment_date: string | null
-  invoice_number: string | null
-  amount: number
-  currency: Currency | null
-  exchange_rate: number | null
-  amount_pen: number
-}
-
 // --- Financial Position component types ---
 
 export type BankAccountCard = {

@@ -8,8 +8,6 @@ import type {
   ProjectEntitySummary,
   ProjectPartnerRow,
   ProjectPartnerSettlement,
-  PartnerPayableDetail,
-  PartnerReceivableDetail,
 } from '../types'
 
 export async function getProjectsList(): Promise<ProjectListItem[]> {
@@ -378,83 +376,4 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     partners,
     partnerSettlements,
   }
-}
-
-export async function getPartnerPayableDetails(
-  projectId: string,
-  partnerCompanyId: string,
-): Promise<PartnerPayableDetail[]> {
-  const supabase = await createServerSupabaseClient()
-
-  // Get all payable invoices for this project by this partner
-  const { data: invoices, error } = await supabase
-    .from('v_invoice_totals')
-    .select('invoice_id, invoice_date, invoice_number, currency, subtotal, exchange_rate')
-    .eq('direction', 'payable')
-    .eq('project_id', projectId)
-    .eq('partner_company_id', partnerCompanyId)
-    .order('invoice_date', { ascending: false })
-
-  if (error) throw error
-  if (!invoices || invoices.length === 0) return []
-
-  return invoices.map(inv => {
-    const subtotal = inv.subtotal ?? 0
-    return {
-      invoice_id: inv.invoice_id!,
-      date: inv.invoice_date,
-      invoice_number: inv.invoice_number,
-      subtotal,
-      currency: inv.currency as Currency | null,
-      exchange_rate: inv.exchange_rate ? Number(inv.exchange_rate) : null,
-      subtotal_pen: round2(convertToPen(subtotal, inv.currency, inv.exchange_rate)),
-    }
-  })
-}
-
-export async function getPartnerReceivableDetails(
-  projectId: string,
-  partnerCompanyId: string,
-): Promise<PartnerReceivableDetail[]> {
-  const supabase = await createServerSupabaseClient()
-
-  // Get receivable invoices for this project+partner
-  const { data: invoices, error: invError } = await supabase
-    .from('invoices')
-    .select('id, invoice_number, currency')
-    .eq('direction', 'receivable')
-    .eq('project_id', projectId)
-    .eq('partner_company_id', partnerCompanyId)
-    .eq('is_active', true)
-  if (invError) throw invError
-
-  if (!invoices || invoices.length === 0) return []
-
-  const invoiceIds = invoices.map(a => a.id)
-  const invoiceMap = new Map(invoices.map(a => [a.id, a]))
-
-  // Get payments linked to these receivable invoices
-  const { data: payments, error: pmtError } = await supabase
-    .from('payments')
-    .select('id, related_id, payment_date, amount, currency, exchange_rate')
-    .in('related_id', invoiceIds)
-    .eq('related_to', 'invoice')
-    .eq('is_active', true)
-    .order('payment_date', { ascending: false })
-  if (pmtError) throw pmtError
-
-  return (payments ?? []).map(p => {
-    const inv = invoiceMap.get(p.related_id)
-    const currency = (p.currency ?? inv?.currency ?? DEFAULT_CURRENCY) as Currency
-    const amount = p.amount ?? 0
-    return {
-      payment_id: p.id,
-      payment_date: p.payment_date,
-      invoice_number: inv?.invoice_number ?? null,
-      amount,
-      currency,
-      exchange_rate: p.exchange_rate ? Number(p.exchange_rate) : null,
-      amount_pen: round2(convertToPen(amount, currency, p.exchange_rate)),
-    }
-  })
 }

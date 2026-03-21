@@ -8,7 +8,7 @@
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never deleted or deactivated. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. `invoice_items`, `loans`, and `loan_schedule` are permanent — never soft-deleted. Historical reference tables (quotes) are permanent. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
 **Table count:** 17 tables total across 7 layers.
 
@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage

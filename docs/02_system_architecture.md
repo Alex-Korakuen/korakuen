@@ -168,7 +168,7 @@ Tracks loans taken by any partner to fund project contributions. Every loan has 
 ### 4.14 Cash-Basis Financial Reporting
 The system operates on a cash basis. There is no accrual-based P&L.
 
-**Cash Flow:** Actual cash movements through bank accounts. Computed in `queries.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on invoices and loan schedule.
+**Cash Flow:** Actual cash movements through bank accounts. Computed in `queries/financial-position.ts` (too complex for a single SQL view). Past months show actual payments; future months show forecasted in/out based on due dates on invoices and loan schedule.
 
 **Financial Position:** Point-in-time balance sheet showing assets (cash, AR, tax credits) vs liabilities (AP, tax liabilities, loans).
 

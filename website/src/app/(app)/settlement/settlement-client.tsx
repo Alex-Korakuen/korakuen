@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, formatCurrencyCompact } from '@/lib/formatters'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import type {
   ProjectListItem,
@@ -212,7 +212,7 @@ function BalanceBadge({ amount }: { amount: number }) {
           : 'bg-[#fdf2f1] text-[#c0392b]'
       }`}
     >
-      {isPositive ? '+' : '−'}S/ {Math.abs(amount).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+      {formatCurrencyCompact(amount, 'PEN')}
     </span>
   )
 }

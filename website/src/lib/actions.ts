@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getInvoiceDetail, getLoanDetail, getPartnerPayableDetails, getPartnerReceivableDetails, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
-import type { PartnerPayableDetail, PartnerReceivableDetail, BankTransaction, Currency } from '@/lib/types'
+import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
+import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 
 export async function fetchInvoiceDetail(invoiceId: string) {
@@ -23,20 +23,6 @@ export async function fetchLoanDetailByScheduleId(scheduleEntryId: string) {
     .single()
   if (!data?.loan_id) return null
   return getLoanDetail(data.loan_id)
-}
-
-export async function fetchPartnerPayables(
-  projectId: string,
-  partnerCompanyId: string,
-): Promise<PartnerPayableDetail[]> {
-  return getPartnerPayableDetails(projectId, partnerCompanyId)
-}
-
-export async function fetchPartnerReceivables(
-  projectId: string,
-  partnerCompanyId: string,
-): Promise<PartnerReceivableDetail[]> {
-  return getPartnerReceivableDetails(projectId, partnerCompanyId)
 }
 
 export async function fetchBankTransactions(
@@ -524,106 +510,6 @@ export async function createProject(data: {
   return {}
 }
 
-// --- Project Partners ---
-
-export async function addProjectPartner(
-  projectId: string,
-  partnerCompanyId: string,
-  profitSharePct: number
-): Promise<{ error?: string }> {
-  const supabase = await createServerSupabaseClient()
-
-  // Check not already assigned
-  const { data: existing } = await supabase
-    .from('project_partners')
-    .select('id')
-    .eq('project_id', projectId)
-    .eq('partner_company_id', partnerCompanyId)
-    .eq('is_active', true)
-    .limit(1)
-  if (existing && existing.length > 0) {
-    return { error: 'This partner is already assigned to the project' }
-  }
-
-  // Validate profit shares sum to <= 100%
-  const { data: currentPartners } = await supabase
-    .from('project_partners')
-    .select('profit_share_pct')
-    .eq('project_id', projectId)
-    .eq('is_active', true)
-  const currentTotal = (currentPartners || []).reduce(
-    (sum, p) => sum + Number(p.profit_share_pct),
-    0
-  )
-  if (currentTotal + profitSharePct > 100) {
-    return { error: `Profit shares would total ${currentTotal + profitSharePct}%. Must not exceed 100% (current total: ${currentTotal}%)` }
-  }
-
-  const { error } = await supabase.from('project_partners').insert({
-    project_id: projectId,
-    partner_company_id: partnerCompanyId,
-    profit_share_pct: profitSharePct,
-  })
-  if (error) return { error: handleDbError(error, 'Failed to add partner') }
-  revalidatePath('/projects', 'layout')
-  return {}
-}
-
-export async function removeProjectPartner(id: string): Promise<{ error?: string }> {
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
-    .from('project_partners')
-    .update({ is_active: false })
-    .eq('id', id)
-  if (error) return { error: handleDbError(error, 'Failed to remove partner') }
-  revalidatePath('/projects', 'layout')
-  return {}
-}
-
-export async function updatePartnerProfitShare(
-  projectPartnerId: string,
-  profitSharePct: number
-): Promise<{ error?: string }> {
-  if (profitSharePct <= 0 || profitSharePct > 100) {
-    return { error: 'Share must be between 0 and 100%' }
-  }
-
-  const supabase = await createServerSupabaseClient()
-
-  // Fetch this partner's project to validate total
-  const { data: thisPP } = await supabase
-    .from('project_partners')
-    .select('project_id')
-    .eq('id', projectPartnerId)
-    .eq('is_active', true)
-    .single()
-  if (!thisPP) return { error: 'Partner assignment not found' }
-
-  // Sum other active partners' shares (excluding this one)
-  const { data: otherPartners } = await supabase
-    .from('project_partners')
-    .select('profit_share_pct')
-    .eq('project_id', thisPP.project_id)
-    .eq('is_active', true)
-    .neq('id', projectPartnerId)
-  const othersTotal = (otherPartners ?? []).reduce(
-    (sum, p) => sum + Number(p.profit_share_pct), 0
-  )
-
-  if (othersTotal + profitSharePct > 100) {
-    return { error: `Total would be ${othersTotal + profitSharePct}%. Must not exceed 100% (other partners: ${othersTotal}%)` }
-  }
-
-  const { error } = await supabase
-    .from('project_partners')
-    .update({ profit_share_pct: profitSharePct })
-    .eq('id', projectPartnerId)
-    .eq('is_active', true)
-
-  if (error) return { error: handleDbError(error, 'Failed to update profit share') }
-  revalidatePath('/projects', 'layout')
-  return {}
-}
 
 // --- Project Budgets ---
 
