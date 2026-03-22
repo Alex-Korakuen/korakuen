@@ -192,16 +192,21 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
   if (costTotalsError) throw costTotalsError
 
-  const spendingMap = new Map<string, { totalSpent: number; invoiceCount: number }>()
+  // Group spending by entity (merge currencies into one row)
+  const spendingMap = new Map<string, { penSpent: number; usdSpent: number; invoiceCount: number }>()
   for (const ct of costTotals ?? []) {
-    const key = `${ct.entity_id ?? '__none__'}|${ct.currency ?? DEFAULT_CURRENCY}`
+    const key = ct.entity_id ?? '__none__'
     const existing = spendingMap.get(key)
+    const amount = ct.subtotal ?? 0
+    const currency = ct.currency ?? DEFAULT_CURRENCY
     if (existing) {
-      existing.totalSpent += ct.subtotal ?? 0
+      if (currency === 'USD') existing.usdSpent += amount
+      else existing.penSpent += amount
       existing.invoiceCount += 1
     } else {
       spendingMap.set(key, {
-        totalSpent: ct.subtotal ?? 0,
+        penSpent: currency === 'USD' ? 0 : amount,
+        usdSpent: currency === 'USD' ? amount : 0,
         invoiceCount: 1,
       })
     }
@@ -218,20 +223,19 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
   const entities: ProjectEntitySummary[] = []
   for (const [key, spending] of spendingMap) {
-    const [entityIdRaw, currency] = key.split('|')
-    const entityId = entityIdRaw === '__none__' ? null : entityIdRaw
+    const entityId = key === '__none__' ? null : key
     entities.push({
       entityId,
       entityName: entityId ? entityMap.get(entityId) ?? '—' : 'Other (no entity)',
       tags: entityId ? entityTagMap.get(entityId) ?? [] : [],
-      totalSpent: spending.totalSpent,
+      penSpent: spending.penSpent,
+      usdSpent: spending.usdSpent,
       invoiceCount: spending.invoiceCount,
-      currency: currency as Currency,
     })
   }
 
-  // Sort by totalSpent descending
-  entities.sort((a, b) => (b.totalSpent ?? -1) - (a.totalSpent ?? -1))
+  // Sort by total spent descending (PEN + USD combined for ordering)
+  entities.sort((a, b) => (b.penSpent + b.usdSpent) - (a.penSpent + a.usdSpent))
 
   // 4. Client name
   let clientName: string | null = null

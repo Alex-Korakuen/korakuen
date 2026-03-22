@@ -51,17 +51,15 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
   const start = (safePage - 1) * ENTITIES_PAGE_SIZE
   const pageItems = filtered.slice(start, start + ENTITIES_PAGE_SIZE)
 
-  // Currency totals for ALL filtered items (not just current page)
-  const currencyTotals = useMemo(() => {
-    const byCurrency: Record<string, { total: number; count: number }> = {}
+  // Totals for ALL filtered items (not just current page)
+  const totals = useMemo(() => {
+    let pen = 0, usd = 0, count = 0
     for (const e of filtered) {
-      if (e.totalSpent === null) continue
-      const c = e.currency
-      if (!byCurrency[c]) byCurrency[c] = { total: 0, count: 0 }
-      byCurrency[c].total += e.totalSpent
-      byCurrency[c].count += e.invoiceCount ?? 0
+      pen += e.penSpent
+      usd += e.usdSpent
+      count += e.invoiceCount
     }
-    return byCurrency
+    return { pen, usd, count }
   }, [filtered])
 
   return (
@@ -89,13 +87,14 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
               <tr className="border-b border-edge">
                 <th className="px-4 py-2 text-left font-medium">Entity Name</th>
                 <th className="px-4 py-2 text-left font-medium">Tags</th>
-                <th className="px-4 py-2 text-right font-medium">Total Spent</th>
+                <th className="px-4 py-2 text-right font-medium">PEN Spent</th>
+                <th className="px-4 py-2 text-right font-medium">USD Spent</th>
                 <th className="px-4 py-2 text-right font-medium"># Invoices</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-edge">
               {pageItems.map((e, i) => (
-                <tr key={`${e.entityId ?? 'none'}-${e.currency}-${i}`} className="transition-colors hover:bg-accent-bg">
+                <tr key={`${e.entityId ?? 'none'}-${i}`} className="transition-colors hover:bg-accent-bg">
                   <td className="px-4 py-2">
                     {e.entityId ? (
                       <a
@@ -112,31 +111,17 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
                     {e.tags.length > 0 ? e.tags.join(', ') : '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-ink">
-                    {e.totalSpent !== null ? formatCurrency(e.totalSpent, e.currency) : '—'}
+                    {e.penSpent ? formatCurrency(e.penSpent, 'PEN') : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-ink">
+                    {e.usdSpent ? formatCurrency(e.usdSpent, 'USD') : '—'}
                   </td>
                   <td className="px-4 py-2 text-right text-muted">
-                    {e.invoiceCount ?? '—'}
+                    {e.invoiceCount}
                   </td>
                 </tr>
               ))}
             </tbody>
-            {/* Totals footer */}
-            <tfoot>
-              {Object.keys(currencyTotals).sort().map((c, i) => (
-                <tr key={c} className={`${i === 0 ? 'border-t border-edge' : ''} bg-panel/50`}>
-                  <td className="px-4 py-2 text-sm font-medium text-ink">
-                    {Object.keys(currencyTotals).length > 1 ? `Total ${c}` : 'Total'}
-                  </td>
-                  <td className="px-4 py-2" />
-                  <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-ink">
-                    {formatCurrency(currencyTotals[c].total, c)}
-                  </td>
-                  <td className="px-4 py-2 text-right font-medium text-ink">
-                    {currencyTotals[c].count}
-                  </td>
-                </tr>
-              ))}
-            </tfoot>
           </table>
         </div>
       )}
@@ -177,6 +162,27 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Totals — always at bottom */}
+      {filtered.length > 0 && (
+        <table className="w-full border-t border-edge text-sm">
+          <tbody>
+            <tr className="bg-panel/50">
+              <td className="px-4 py-2 font-medium text-ink">Total</td>
+              <td className="px-4 py-2" />
+              <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-ink">
+                {totals.pen ? formatCurrency(totals.pen, 'PEN') : '—'}
+              </td>
+              <td className="whitespace-nowrap px-4 py-2 text-right font-mono font-semibold text-ink">
+                {totals.usd ? formatCurrency(totals.usd, 'USD') : '—'}
+              </td>
+              <td className="px-4 py-2 text-right font-medium text-ink">
+                {totals.count}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       )}
     </>
   )

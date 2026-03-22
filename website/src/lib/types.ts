@@ -207,9 +207,9 @@ export type ProjectEntitySummary = {
   entityId: string | null
   entityName: string
   tags: string[]
-  totalSpent: number | null
-  invoiceCount: number | null
-  currency: Currency
+  penSpent: number
+  usdSpent: number
+  invoiceCount: number
 }
 
 export type ProjectPartnerRow = {
