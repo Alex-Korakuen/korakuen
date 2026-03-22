@@ -1,10 +1,32 @@
--- View: v_budget_vs_actual
--- Purpose: Compares budgeted amounts vs actual spending per project per category.
---          Shows variance and percentage used for budget tracking.
---          USD actual costs are converted to PEN using the invoice's exchange_rate (mid-rate).
--- Source tables: project_budgets, invoice_items, invoices, projects
--- Used by: Project budget dashboard, project detail page
+-- ============================================================
+-- Korakuen Management System — Mid-Rate Standardization
+-- Migration: 20260323000003
+-- Date: 2026-03-23
+-- ============================================================
+-- Standardize all exchange rates to mid_rate. Previously, imported
+-- records used sell_rate. This migration:
+-- 1. Corrects existing USD invoices/payments that stored sell_rate
+-- 2. Updates v_budget_vs_actual to convert USD actuals to PEN
 
+-- === 1. Correct invoices that stored sell_rate instead of mid_rate ===
+UPDATE invoices i
+SET exchange_rate = er.mid_rate
+FROM exchange_rates er
+WHERE i.currency = 'USD'
+  AND er.rate_date = i.invoice_date
+  AND i.exchange_rate = er.sell_rate
+  AND i.exchange_rate != er.mid_rate;
+
+-- === 2. Correct payments that stored sell_rate instead of mid_rate ===
+UPDATE payments p
+SET exchange_rate = er.mid_rate
+FROM exchange_rates er
+WHERE p.currency = 'USD'
+  AND er.rate_date = p.payment_date
+  AND p.exchange_rate = er.sell_rate
+  AND p.exchange_rate != er.mid_rate;
+
+-- === 3. Recreate v_budget_vs_actual — convert USD actuals to PEN ===
 CREATE OR REPLACE VIEW v_budget_vs_actual
 WITH (security_invoker = on)
 AS
@@ -42,8 +64,6 @@ SELECT
   )                     AS pct_used,
   pb.notes
 FROM project_budgets pb
--- No is_active filter on projects: budget history must remain visible
--- even after project deactivation. Filtering handled at the application layer.
 JOIN projects p ON p.id = pb.project_id
 LEFT JOIN actual_costs ac
   ON ac.project_id = pb.project_id
