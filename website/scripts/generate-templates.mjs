@@ -88,7 +88,7 @@ createTemplate('invoices-template.xlsx', [
   { key: 'quote_document_ref',     description: 'Linked quote document_ref',              example: 'COT-001',          valid: 'Optional, must exist in DB' },
   { key: 'notes',                  description: 'Notes',                                  example: '',                 valid: 'Optional' },
   { key: 'item_title',             description: 'Line item title',                        example: 'Cement bags',      valid: 'Required' },
-  { key: 'category',               description: 'Line item category',                     example: 'materials',        valid: 'Required for payable. Values: materials, labor, subcontractor, equipment_rental, permits_regulatory, other, software_licenses, partner_compensation, professional_services, other_sga' },
+  { key: 'category',               description: 'Line item category',                     example: 'materials',        valid: 'Required for payable. Values: materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga' },
   { key: 'subtotal',               description: 'Line item subtotal (before IGV)',        example: '5000.00',          valid: 'Required, number' },
   { key: 'quantity',               description: 'Line item quantity',                     example: '200',              valid: 'Optional, number' },
   { key: 'unit_of_measure',        description: 'Unit of measure',                        example: 'bags',             valid: 'Optional' },
@@ -122,7 +122,7 @@ createTemplate('direct-transactions-template.xlsx', [
   { key: 'amount',                 description: 'Amount',                         example: '500.00',            valid: 'Required, > 0' },
   { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
   { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Optional — auto-filled from exchange_rates table if blank' },
-  { key: 'category',               description: 'Cost category (outflow only)',   example: 'materials',         valid: 'Required for outflow. Values: materials, labor, subcontractor, equipment_rental, permits_regulatory, other' },
+  { key: 'category',               description: 'Cost category (outflow only)',   example: 'materials',         valid: 'Required for outflow. Values: materials, labor, subcontractor, equipment_rental, housing_food, other' },
   { key: 'notes',                  description: 'Notes / description',            example: 'Cash for nails',    valid: 'Optional' },
 ])
 

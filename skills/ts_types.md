@@ -84,7 +84,7 @@ export type PaymentStatus = 'pending' | 'partial' | 'paid'
 export type LoanReturnType = 'percentage' | 'fixed'
 
 // Cost item categories — values come from the `categories` table
-// project_cost: materials, labor, subcontractor, equipment_rental, permits_regulatory, other
+// project_cost: materials, labor, subcontractor, equipment_rental, housing_food, other
 // sga: software_licenses, partner_compensation, professional_services, other_sga
 export type CostCategory = string  // dynamic — managed in categories table
 ```
