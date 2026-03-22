@@ -490,6 +490,7 @@ export async function importPayments(
       exchange_rate: num(row.exchange_rate)!,
       bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
       partner_id: partnerMap.get(str(row.partner_name)!)!,
+      document_ref: str(row.document_ref) ?? null,
       notes: str(row.notes) ?? null,
     }
   })
@@ -633,6 +634,7 @@ export async function importDirectTransactions(
     const exchangeRate = num(row.exchange_rate)!
     const date = str(row.date)!
     const category = str(row.category)
+    const documentRef = str(row.document_ref)
     const notes = str(row.notes)
 
     const invoiceDirection = direction === 'outflow' ? 'payable' : 'receivable'
@@ -694,6 +696,7 @@ export async function importDirectTransactions(
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: null,
+        document_ref: documentRef,
         notes,
       })
 

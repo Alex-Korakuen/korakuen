@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       bank_accounts: {
@@ -81,7 +56,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_bank_accounts_partner"
+            foreignKeyName: "fk_bank_accounts_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -452,7 +427,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner"
+            foreignKeyName: "fk_invoices_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -589,7 +564,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_loans_partner"
+            foreignKeyName: "fk_loans_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -611,6 +586,7 @@ export type Database = {
           created_at: string
           currency: string
           direction: string
+          document_ref: string | null
           exchange_rate: number
           id: string
           is_active: boolean
@@ -628,6 +604,7 @@ export type Database = {
           created_at?: string
           currency: string
           direction: string
+          document_ref?: string | null
           exchange_rate?: number
           id?: string
           is_active?: boolean
@@ -645,6 +622,7 @@ export type Database = {
           created_at?: string
           currency?: string
           direction?: string
+          document_ref?: string | null
           exchange_rate?: number
           id?: string
           is_active?: boolean
@@ -672,7 +650,7 @@ export type Database = {
             referencedColumns: ["bank_account_id"]
           },
           {
-            foreignKeyName: "fk_payments_partner"
+            foreignKeyName: "fk_payments_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -761,7 +739,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_project_partners_partner"
+            foreignKeyName: "fk_project_partners_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -967,7 +945,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_bank_accounts_partner"
+            foreignKeyName: "fk_bank_accounts_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -1062,7 +1040,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner"
+            foreignKeyName: "fk_invoices_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -1117,7 +1095,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner"
+            foreignKeyName: "fk_invoices_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -1197,7 +1175,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_loans_partner"
+            foreignKeyName: "fk_loans_partner_entity"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "entities"
@@ -1253,6 +1231,7 @@ export type Database = {
           bank_name: string | null
           currency: string | null
           direction: string | null
+          document_ref: string | null
           entity_name: string | null
           exchange_rate: number | null
           id: string | null
@@ -1431,9 +1410,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

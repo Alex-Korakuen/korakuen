@@ -1,8 +1,16 @@
--- View: v_payments_enriched
--- Purpose: Enriches payments with entity name, project code, invoice number, and bank account name.
---          Uses UNION to handle invoice-related and loan_schedule-related payments separately.
--- Source tables: payments, invoices, entities, projects, loan_schedule, loans, bank_accounts
--- Used by: Payments page (browse)
+-- ============================================================
+-- Migration: Add document_ref to payments table
+-- Date: 2026-03-23
+-- Purpose: Store SharePoint file reference for payment receipts
+--          (e.g. PRY001-PY-001) — same pattern as invoices.document_ref
+-- ============================================================
+
+-- 1. Add column
+ALTER TABLE payments
+  ADD COLUMN document_ref VARCHAR(100); -- e.g. PRY001-PY-001 — links to payment receipt in SharePoint
+
+-- 2. Recreate v_payments_enriched to expose the new column
+DROP VIEW IF EXISTS v_payments_enriched;
 
 CREATE VIEW v_payments_enriched
 WITH (security_invoker = on)

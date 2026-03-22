@@ -88,7 +88,7 @@ Key facts:
 
 - **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on receivable only — Korakuen is NOT a retencion agent)
 - **Unified invoice model:** `invoices` table with `direction` column (`'payable'` or `'receivable'`) replaces separate costs/AR tables. `invoice_items` holds line items. Category lives on invoice_items, not the header
-- **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on invoices — cash purchases and informal suppliers are valid
+- **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on invoices and payments — cash purchases and informal suppliers are valid
 - **Partner identity:** The three partner companies are regular rows in `entities`, identified by the `partner` tag via `entity_tags`. All financial tables (invoices, payments, loans) have explicit `partner_id` (FK to entities). Bank accounts belong only on payments (cash movements), not on invoices
 - **PO module hook:** `invoices` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null
 - **No stored totals:** subtotal, igv_amount, total on invoices are derived from invoice_items via `v_invoice_totals`. Payment status derived from payments via `v_invoice_balances`

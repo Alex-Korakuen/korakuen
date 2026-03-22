@@ -108,6 +108,7 @@ createTemplate('payments-template.xlsx', [
   { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Required, 2.5–6.0' },
   { key: 'bank_account',           description: 'Bank account (BankName-Last4)',  example: 'BCP-1234',          valid: 'Required for regular/detraccion' },
   { key: 'partner_name',   description: 'Partner name',           example: 'Korakuen SAC',      valid: 'Must exist in DB' },
+  { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
   { key: 'notes',                  description: 'Notes',                          example: '',                  valid: 'Optional' },
 ])
 
@@ -123,6 +124,7 @@ createTemplate('direct-transactions-template.xlsx', [
   { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
   { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Optional — auto-filled from exchange_rates table if blank' },
   { key: 'category',               description: 'Cost category (outflow only)',   example: 'materials',         valid: 'Required for outflow. Values: materials, labor, subcontractor, equipment_rental, housing_food, other' },
+  { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
   { key: 'notes',                  description: 'Notes / description',            example: 'Cash for nails',    valid: 'Optional' },
 ])
 

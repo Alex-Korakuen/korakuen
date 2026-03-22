@@ -18,7 +18,7 @@
 | `v_invoice_balances.sql` | `v_invoice_balances` | amount_paid, outstanding, payment_status per invoice with detraccion/retencion payment splits |
 | `v_invoices_with_loans.sql` | `v_invoices_with_loans` | UNION of commercial invoices + loan schedule entries with aging buckets — all statuses (Invoices browse page) |
 | `v_obligation_calendar.sql` | `v_obligation_calendar` | Unpaid/partial invoices and loan schedule entries sorted by due date with days_remaining (Calendar page) |
-| `v_payments_enriched.sql` | `v_payments_enriched` | Payments enriched with entity name, project code, invoice number, bank name (Payments browse page) |
+| `v_payments_enriched.sql` | `v_payments_enriched` | Payments enriched with document_ref, entity name, project code, invoice number, bank name (Payments browse page) |
 | `v_bank_balances.sql` | `v_bank_balances` | Calculated balance per bank account from payment movements |
 | `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding, derived status per loan |
 | `v_budget_vs_actual.sql` | `v_budget_vs_actual` | Budgeted vs actual per project per category |
@@ -140,7 +140,8 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 
 ### v_payments_enriched
 - Source: `payments` UNION (invoice-related payments JOIN invoices/entities/projects, loan-related payments JOIN loan_schedule/loans/entities)
-- Two-part UNION handles different join paths for invoice vs loan payments
+- Three-part UNION handles different join paths for invoice, loan_schedule, and loan disbursement payments
+- Exposes `payments.document_ref` (e.g. PRY001-PY-001 — links to payment receipt in SharePoint)
 - Enriches with entity_name, project_code, invoice_number, bank_name
 - Ordered by payment_date DESC
 
