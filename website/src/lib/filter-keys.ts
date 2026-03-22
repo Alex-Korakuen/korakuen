@@ -12,6 +12,7 @@ export const FK = {
   currency: 'currency',
   related: 'related',
   bank: 'bank',
+  partner: 'partner',
   category: 'category',
   tag: 'tag',
   dateFrom: 'dateFrom',

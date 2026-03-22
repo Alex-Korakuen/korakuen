@@ -28,13 +28,14 @@ type Props = {
   summary: PaymentsSummary
   projects: { id: string; project_code: string }[]
   bankAccounts: { id: string; label: string }[]
+  partners: { id: string; label: string }[]
   currentFilters: {
     direction: string
     paymentType: string
     relatedTo: string
     projectId: string
     bankAccountId: string
-    search: string
+    partnerId: string
     month: string
   }
 }
@@ -47,6 +48,7 @@ export function PaymentsClient({
   summary,
   projects,
   bankAccounts,
+  partners,
   currentFilters,
 }: Props) {
   const router = useRouter()
@@ -65,11 +67,11 @@ export function PaymentsClient({
     currentFilters.relatedTo !== '' ||
     currentFilters.projectId !== '' ||
     currentFilters.bankAccountId !== '' ||
-    currentFilters.search !== '' ||
+    currentFilters.partnerId !== '' ||
     currentFilters.month !== ''
 
   const handleClearFilters = () => clearFilters([
-    FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.search,
+    FK.direction, FK.type, FK.related, FK.project, FK.bank, FK.partner,
     FK.month,
   ])
 
@@ -143,6 +145,7 @@ export function PaymentsClient({
         setFilter={setFilter}
         projects={projects}
         bankAccounts={bankAccounts}
+        partners={partners}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
       />

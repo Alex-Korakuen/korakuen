@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { FK } from '@/lib/filter-keys'
 
@@ -12,12 +10,13 @@ type Props = {
     relatedTo: string
     projectId: string
     bankAccountId: string
-    search: string
+    partnerId: string
     month: string
   }
   setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string }[]
   bankAccounts: { id: string; label: string }[]
+  partners: { id: string; label: string }[]
   hasActiveFilters: boolean
   onClearFilters: () => void
 }
@@ -33,26 +32,10 @@ export function PaymentsFilters({
   setFilter,
   projects,
   bankAccounts,
+  partners,
   hasActiveFilters,
   onClearFilters,
 }: Props) {
-  const [searchValue, setSearchValue] = useState(currentFilters.search)
-
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
-
-  function submitSearch() {
-    const params = new URLSearchParams(searchParams.toString())
-    if (searchValue.trim()) {
-      params.set(FK.search, searchValue.trim())
-    } else {
-      params.delete(FK.search)
-    }
-    params.delete('page')
-    router.push(`${pathname}?${params.toString()}`)
-  }
-
   function toggleChip(filterKey: string, currentValue: string, chipValue: string) {
     setFilter(filterKey, currentValue === chipValue ? '' : chipValue)
   }
@@ -145,25 +128,13 @@ export function PaymentsFilters({
         placeholder="All banks"
       />
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Search */}
-      <div className="relative">
-        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-faint">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-          </svg>
-        </span>
-        <input
-          type="text"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
-          placeholder="Search..."
-          className="w-44 rounded-md border border-edge bg-white py-1 pl-7 pr-2 text-xs text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-      </div>
+      {/* Partner dropdown */}
+      <FilterSelect
+        value={currentFilters.partnerId}
+        onChange={(v) => setFilter(FK.partner, v)}
+        options={partners.map((p) => ({ value: p.id, label: p.label }))}
+        placeholder="All partners"
+      />
 
       {/* Clear */}
       {hasActiveFilters && (

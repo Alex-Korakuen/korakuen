@@ -28,7 +28,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
     relatedTo: str(params, FK.related) as 'invoice' | 'loan_schedule' | undefined,
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
-    search: str(params, FK.search),
+    partnerId: str(params, FK.partner),
     dateFrom,
     dateTo,
     sort,
@@ -47,13 +47,14 @@ export default async function PaymentsPage({ searchParams }: Props) {
       summary={result.summary}
       projects={result.uniqueProjects}
       bankAccounts={result.uniqueBankAccounts}
+      partners={result.uniquePartners}
       currentFilters={{
         direction: filters.direction ?? '',
         paymentType: filters.paymentType ?? '',
         relatedTo: filters.relatedTo ?? '',
         projectId: filters.projectId ?? '',
         bankAccountId: filters.bankAccountId ?? '',
-        search: filters.search ?? '',
+        partnerId: filters.partnerId ?? '',
         month: month ?? '',
       }}
     />

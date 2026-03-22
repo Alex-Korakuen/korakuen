@@ -18,7 +18,7 @@ type PaymentsPageFilters = {
   relatedTo?: 'invoice' | 'loan_schedule'
   projectId?: string
   bankAccountId?: string
-  search?: string
+  partnerId?: string
   dateFrom?: string
   dateTo?: string
   sort: string
@@ -31,6 +31,7 @@ type PaymentsPageResult = {
   summary: PaymentsSummary
   uniqueProjects: { id: string; project_code: string }[]
   uniqueBankAccounts: { id: string; label: string }[]
+  uniquePartners: { id: string; label: string }[]
 }
 
 export async function getPaymentsPage(
@@ -49,16 +50,20 @@ export async function getPaymentsPage(
 
   let rows = data ?? []
 
-  // Collect unique projects and bank accounts for filter dropdowns
+  // Collect unique projects, bank accounts, and partners for filter dropdowns
   const projectMap = new Map<string, string>()
   const bankMap = new Map<string, string>()
+  const partnerMap = new Map<string, string>()
   for (const r of rows) {
     if (r.project_id && r.project_code) projectMap.set(r.project_id, r.project_code)
     if (r.bank_account_id && r.bank_name) bankMap.set(r.bank_account_id, r.bank_name)
+    if (r.partner_id && r.partner_name) partnerMap.set(r.partner_id, r.partner_name)
   }
   const uniqueProjects = Array.from(projectMap, ([id, project_code]) => ({ id, project_code }))
     .sort((a, b) => a.project_code.localeCompare(b.project_code))
   const uniqueBankAccounts = Array.from(bankMap, ([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+  const uniquePartners = Array.from(partnerMap, ([id, label]) => ({ id, label }))
     .sort((a, b) => a.label.localeCompare(b.label))
 
   // Apply filters
@@ -82,12 +87,8 @@ export async function getPaymentsPage(
   if (filters.bankAccountId) {
     rows = rows.filter(r => r.bank_account_id === filters.bankAccountId)
   }
-  if (filters.search) {
-    const term = filters.search.toLowerCase()
-    rows = rows.filter(r =>
-      (r.invoice_number ?? '').toLowerCase().includes(term) ||
-      (r.entity_name ?? '').toLowerCase().includes(term)
-    )
+  if (filters.partnerId) {
+    rows = rows.filter(r => r.partner_id === filters.partnerId)
   }
   if (filters.dateFrom) {
     rows = rows.filter(r => (r.payment_date ?? '') >= filters.dateFrom!)
@@ -142,5 +143,5 @@ export async function getPaymentsPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page)
 
-  return { paginated, summary, uniqueProjects, uniqueBankAccounts }
+  return { paginated, summary, uniqueProjects, uniqueBankAccounts, uniquePartners }
 }
