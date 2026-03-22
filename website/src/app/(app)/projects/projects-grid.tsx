@@ -21,9 +21,9 @@ type Props = {
 }
 
 function budgetBarColor(pct: number): string {
-  if (pct > 100) return 'bg-red-500'
-  if (pct > 90) return 'bg-amber-500'
-  return 'bg-green-500'
+  if (pct > 100) return 'bg-negative'
+  if (pct > 90) return 'bg-caution'
+  return 'bg-positive'
 }
 
 function budgetPctColor(pct: number): string {

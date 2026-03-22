@@ -208,8 +208,8 @@ function BalanceBadge({ amount }: { amount: number }) {
     <span
       className={`inline-block rounded-md px-2 py-0.5 font-mono text-xs font-semibold ${
         isPositive
-          ? 'bg-[#edf7f2] text-[#1a7a4a]'
-          : 'bg-[#fdf2f1] text-[#c0392b]'
+          ? 'bg-positive-bg text-positive'
+          : 'bg-negative-bg text-negative'
       }`}
     >
       {formatCurrencyCompact(amount, 'PEN')}
