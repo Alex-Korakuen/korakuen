@@ -20,12 +20,11 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     [onClose]
   )
 
+  // Focus first element only when modal opens
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
-      document.addEventListener('keydown', handleKeyDown)
       document.body.style.overflow = 'hidden'
-      // Focus first focusable element inside modal content
       requestAnimationFrame(() => {
         const focusable = contentRef.current?.querySelector<HTMLElement>(
           'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
@@ -34,9 +33,16 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       })
     }
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
       if (!isOpen) previousFocusRef.current?.focus()
+    }
+  }, [isOpen])
+
+  // Escape key handler — separate effect so it doesn't re-trigger focus
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, handleKeyDown])
 
