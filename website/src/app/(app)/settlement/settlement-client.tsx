@@ -79,7 +79,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
           onClick={selectAllActive}
           className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
             isAllActive
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              ? 'border-positive/30 bg-positive-bg text-positive'
               : 'border-edge bg-white text-muted hover:border-edge-strong hover:text-ink'
           }`}
         >
@@ -138,7 +138,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
                     <td className="px-4 py-3">
                       <span className="font-medium text-ink">{p.partnerName}</span>
                       {isYou && (
-                        <span className="ml-1.5 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                        <span className="ml-1.5 inline-block rounded bg-positive-bg px-1.5 py-0.5 text-[10px] font-medium text-positive">
                           you
                         </span>
                       )}

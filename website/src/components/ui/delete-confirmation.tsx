@@ -31,7 +31,7 @@ export function DeleteConfirmation({ title, message, isPending, error, onCancel,
               Cancel
             </button>
             <button onClick={onConfirm} disabled={isPending}
-              className="rounded-md bg-red-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+              className="rounded-md bg-negative px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-negative/85 disabled:opacity-50">
               {isPending ? 'Deactivating...' : 'Yes, deactivate'}
             </button>
           </div>

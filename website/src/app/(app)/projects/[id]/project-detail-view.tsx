@@ -332,13 +332,13 @@ export function ProjectDetailView({ detail, partnerCompanies, categories }: Prop
                         key={p.id}
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
                           isYou
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            ? 'border-positive/30 bg-positive-bg text-positive'
                             : 'border-edge bg-surface text-ink'
                         }`}
                       >
                         {p.partnerName}
                         <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
-                          isYou ? 'bg-emerald-100 text-emerald-600' : 'bg-panel text-muted'
+                          isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
                         }`}>
                           {p.profitSharePct}%
                         </span>
