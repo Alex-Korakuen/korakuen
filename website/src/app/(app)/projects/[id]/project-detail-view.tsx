@@ -14,7 +14,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { ProjectBudgetForm } from '../project-budget-form'
-import { updateProject } from '@/lib/actions'
+import { updateProject, updatePartnerShares } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
 import { SectionCard } from '@/components/ui/section-card'
@@ -181,6 +181,137 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
   )
 }
 
+// --- Partners Row (inline-editable) ---
+
+function PartnersRow({ partners, projectId }: { partners: ProjectDetailData['partners']; projectId: string }) {
+  const router = useRouter()
+  const [editing, setEditing] = useState(false)
+  const [pcts, setPcts] = useState<Record<string, string>>({})
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function startEdit() {
+    const initial: Record<string, string> = {}
+    for (const p of partners) initial[p.id] = String(p.profitSharePct)
+    setPcts(initial)
+    setError(null)
+    setEditing(true)
+  }
+
+  const total = editing
+    ? partners.reduce((s, p) => s + (parseFloat(pcts[p.id] || '0') || 0), 0)
+    : 0
+
+  function handleSave() {
+    const shares = partners.map(p => ({
+      id: p.id,
+      profitSharePct: parseFloat(pcts[p.id] || '0') || 0,
+    }))
+    setError(null)
+    startTransition(async () => {
+      const result = await updatePartnerShares(projectId, shares)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setEditing(false)
+        router.refresh()
+      }
+    })
+  }
+
+  if (editing) {
+    return (
+      <div className="border-t border-edge px-4 py-3 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
+          <span className={`text-[11px] font-medium ${Math.abs(total - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
+            Total: {total}%
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {partners.map((p) => {
+            const isYou = p.partnerName.toLowerCase().includes('korakuen')
+            return (
+              <div
+                key={p.id}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
+                  isYou
+                    ? 'border-positive/30 bg-positive-bg text-positive'
+                    : 'border-edge bg-surface text-ink'
+                }`}
+              >
+                {p.partnerName}
+                <input
+                  type="number"
+                  value={pcts[p.id] ?? ''}
+                  onChange={(e) => setPcts(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  className="w-14 rounded border border-edge bg-white px-1.5 py-0.5 text-center text-xs font-mono focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                <span className="text-[10px]">%</span>
+              </div>
+            )
+          })}
+        </div>
+        {error && <p className="text-xs font-medium text-negative">{error}</p>}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing(false)}
+            disabled={isPending}
+            className="rounded border border-edge-strong px-3 py-1 text-xs font-medium text-muted hover:bg-surface"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isPending || Math.abs(total - 100) > 0.01}
+            className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+          >
+            {isPending ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3 border-t border-edge px-4 py-3">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
+      <div className="flex flex-wrap items-center gap-2">
+        {partners.map((p) => {
+          const isYou = p.partnerName.toLowerCase().includes('korakuen')
+          return (
+            <button
+              key={p.id}
+              onClick={startEdit}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                isYou
+                  ? 'border-positive/30 bg-positive-bg text-positive hover:border-positive/50'
+                  : 'border-edge bg-surface text-ink hover:border-edge-strong hover:bg-panel'
+              }`}
+            >
+              {p.partnerName}
+              <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
+                isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
+              }`}>
+                {p.profitSharePct}%
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <Link
+        href="/settlement"
+        className="ml-auto text-xs font-medium text-accent hover:text-accent-hover"
+      >
+        View settlement →
+      </Link>
+    </div>
+  )
+}
+
 // --- Main Detail View ---
 
 export function ProjectDetailView({ detail, partnerOptions, categories }: Props) {
@@ -323,37 +454,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
 
             {/* Partners row */}
             {partners.length > 0 && (
-              <div className="flex items-center gap-3 border-t border-edge px-4 py-3">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  {partners.map((p) => {
-                    const isYou = p.partnerName.toLowerCase().includes('korakuen')
-                    return (
-                      <span
-                        key={p.id}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-                          isYou
-                            ? 'border-positive/30 bg-positive-bg text-positive'
-                            : 'border-edge bg-surface text-ink'
-                        }`}
-                      >
-                        {p.partnerName}
-                        <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
-                          isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
-                        }`}>
-                          {p.profitSharePct}%
-                        </span>
-                      </span>
-                    )
-                  })}
-                </div>
-                <Link
-                  href="/settlement"
-                  className="ml-auto text-xs font-medium text-accent hover:text-accent-hover"
-                >
-                  View settlement →
-                </Link>
-              </div>
+              <PartnersRow partners={partners} projectId={project.id} />
             )}
           </SectionCard>
 

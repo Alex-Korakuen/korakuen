@@ -515,6 +515,34 @@ export async function createProject(data: {
 }
 
 
+// --- Update Partner Shares ---
+
+export async function updatePartnerShares(
+  projectId: string,
+  shares: { id: string; profitSharePct: number }[]
+): Promise<{ error?: string }> {
+  const total = shares.reduce((s, p) => s + p.profitSharePct, 0)
+  if (Math.abs(total - 100) > 0.01) return { error: `Percentages must sum to 100% (currently ${total}%)` }
+  for (const s of shares) {
+    if (s.profitSharePct < 0) return { error: 'Percentages cannot be negative' }
+  }
+
+  const supabase = await createServerSupabaseClient()
+  for (const s of shares) {
+    const { error } = await supabase
+      .from('project_partners')
+      .update({ profit_share_pct: s.profitSharePct })
+      .eq('id', s.id)
+      .eq('project_id', projectId)
+      .eq('is_active', true)
+    if (error) return { error: handleDbError(error, 'Failed to update partner shares') }
+  }
+
+  revalidatePath('/projects', 'layout')
+  revalidatePath('/settlement')
+  return {}
+}
+
 // --- Project Budgets ---
 
 export async function upsertProjectBudget(
