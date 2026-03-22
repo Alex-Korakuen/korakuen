@@ -45,7 +45,7 @@ export function Pagination({ page, totalCount, pageSize }: Props) {
   const btnActive = 'border-accent bg-accent-bg text-accent font-medium'
 
   return (
-    <div className="flex items-center justify-between border-t border-edge px-2 pt-3">
+    <div className="flex items-center justify-between border-t border-edge px-3 py-3">
       <span className="text-xs text-muted">
         Showing {from}–{to} of {totalCount}
       </span>

@@ -47,7 +47,7 @@ export function InvoicesFilters({
   }
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
       <div className="relative flex-1" style={{ minWidth: 200, maxWidth: 320 }}>
         <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint">
@@ -61,7 +61,7 @@ export function InvoicesFilters({
           onChange={(e) => setSearchValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submitSearch() }}
           placeholder="Search by invoice #, entity..."
-          className="w-full rounded-md border border-edge-strong py-1.5 pl-8 pr-3 text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
+          className="w-full rounded-md border border-edge-strong py-1.5 pl-8 pr-3 text-sm text-ink outline-none focus:border-accent focus:ring-1 focus:ring-accent"
         />
       </div>
 

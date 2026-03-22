@@ -9,6 +9,8 @@ import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importInvoices } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
+import { Pagination } from '@/components/ui/pagination'
+import { SectionCard } from '@/components/ui/section-card'
 
 const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 import { InvoicesFilters } from './invoices-filters'
@@ -125,7 +127,7 @@ export function InvoicesClient({
   return (
     <div>
       <HeaderPortal>
-<button onClick={() => setShowImport(true)}
+        <button onClick={() => setShowImport(true)}
           className="inline-flex items-center gap-1.5 rounded-md border border-edge-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
@@ -135,23 +137,22 @@ export function InvoicesClient({
         </button>
       </HeaderPortal>
 
-      <div className="px-4 pt-4">
-        {/* Filters */}
-        <InvoicesFilters
-          currentFilters={currentFilters}
-          projects={projects}
-          uniqueEntities={uniqueEntities}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-          setFilter={setFilter}
-        />
+      <InvoicesFilters
+        currentFilters={currentFilters}
+        projects={projects}
+        uniqueEntities={uniqueEntities}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={handleClearFilters}
+        setFilter={setFilter}
+      />
 
-        {/* Table */}
+      <SectionCard className="mt-4 overflow-hidden">
         <InvoicesTable
-          data={data} totalCount={totalCount} page={page} pageSize={pageSize}
+          data={data}
           onRowClick={handleRowClick}
         />
-      </div>
+        <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
+      </SectionCard>
 
       <Modal isOpen={modalRow !== null} onClose={handleCloseModal} title={modalTitle}>
         {modalLoading ? (
