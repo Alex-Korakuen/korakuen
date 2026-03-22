@@ -166,7 +166,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
       {/* Totals — always at bottom */}
       {filtered.length > 0 && (
-        <table className="w-full border-t border-edge text-sm">
+        <table className="mt-auto w-full border-t border-edge text-sm">
           <tbody>
             <tr className="bg-panel/50">
               <td className="px-4 py-2 font-medium text-ink">Total</td>
@@ -483,7 +483,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
             </SectionCard>
 
             {/* Entities & Suppliers */}
-            <SectionCard>
+            <SectionCard className="flex flex-col">
               <EntitiesPaginated entities={entities} />
             </SectionCard>
           </div>
