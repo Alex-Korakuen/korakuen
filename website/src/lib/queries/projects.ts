@@ -349,9 +349,10 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   }
 
   // 8. Actual costs by category — needed for categories without budget rows
+  // Includes currency + exchange_rate so USD amounts are converted to PEN
   const { data: invoicesWithItems, error: itemsError } = await supabase
     .from('invoices')
-    .select('invoice_items(category, subtotal)')
+    .select('currency, exchange_rate, invoice_items(category, subtotal)')
     .eq('project_id', projectId)
     .eq('direction', 'payable')
     .eq('cost_type', 'project_cost')
@@ -362,7 +363,8 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   for (const inv of invoicesWithItems ?? []) {
     for (const item of inv.invoice_items ?? []) {
       if (item.category) {
-        actualCostsByCategory[item.category] = (actualCostsByCategory[item.category] ?? 0) + (item.subtotal ?? 0)
+        const amountPen = convertToPen(item.subtotal ?? 0, inv.currency, inv.exchange_rate)
+        actualCostsByCategory[item.category] = (actualCostsByCategory[item.category] ?? 0) + amountPen
       }
     }
   }

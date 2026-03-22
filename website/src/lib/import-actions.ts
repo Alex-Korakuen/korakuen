@@ -545,10 +545,10 @@ export async function importDirectTransactions(
   if (datesToLookup.size > 0) {
     const { data: rates } = await supabase
       .from('exchange_rates')
-      .select('rate_date, sell_rate')
+      .select('rate_date, mid_rate')
       .in('rate_date', [...datesToLookup])
     for (const rate of rates ?? []) {
-      exchangeRateMap.set(rate.rate_date, Number(rate.sell_rate))
+      exchangeRateMap.set(rate.rate_date, Number(rate.mid_rate))
     }
   }
 
