@@ -135,6 +135,7 @@ export async function getPaymentsPage(
     bank_name: r.bank_name,
     notes: r.notes,
     partner_id: r.partner_id,
+    partner_name: r.partner_name,
   }))
 
   // Sort and paginate

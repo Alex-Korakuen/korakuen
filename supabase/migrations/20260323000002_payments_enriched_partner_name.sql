@@ -1,8 +1,7 @@
--- View: v_payments_enriched
--- Purpose: Enriches payments with entity name, partner name, project code, invoice number, and bank account name.
---          Uses UNION to handle invoice-related and loan_schedule-related payments separately.
--- Source tables: payments, invoices, entities, projects, loan_schedule, loans, bank_accounts
--- Used by: Payments page (browse)
+-- Migration: Add partner_name to v_payments_enriched
+-- Purpose: Resolve partner_id to partner legal_name so the Payments page can display which partner made each payment
+
+DROP VIEW IF EXISTS v_payments_enriched;
 
 CREATE VIEW v_payments_enriched
 WITH (security_invoker = on)

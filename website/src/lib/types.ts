@@ -129,6 +129,7 @@ export type PaymentsPageRow = {
   bank_name: string | null
   notes: string | null
   partner_id: string | null
+  partner_name: string | null
 }
 
 export type PaymentsSummary = {

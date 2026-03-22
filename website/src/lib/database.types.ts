@@ -1238,6 +1238,7 @@ export type Database = {
           invoice_number: string | null
           notes: string | null
           partner_id: string | null
+          partner_name: string | null
           payment_date: string | null
           payment_type: string | null
           project_code: string | null

@@ -35,6 +35,12 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
+              onClick={() => handleSort('partner_name')}
+            >
+              Partner <SortIndicator column="partner_name" sortColumn={sortColumn} sortDirection={sortDirection} />
+            </th>
+            <th
+              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('entity_name')}
             >
               Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -58,7 +64,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-faint">
+              <td colSpan={7} className="px-4 py-8 text-center text-faint">
                 No payments found
               </td>
             </tr>
@@ -71,6 +77,9 @@ export function PaymentsTable({ data, onRowClick }: Props) {
               >
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                   {row.payment_date ? formatDate(row.payment_date) : '--'}
+                </td>
+                <td className="max-w-[140px] truncate px-3 py-3 text-center text-xs text-muted">
+                  {row.partner_name ?? '--'}
                 </td>
                 <td className="max-w-[200px] truncate px-3 py-3 text-center text-ink">
                   {row.entity_name ?? '--'}
