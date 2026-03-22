@@ -10,6 +10,7 @@ import { useUrlFilters } from '@/lib/use-url-filters'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { FilterSelect } from '@/components/ui/filter-select'
 import { Pagination } from '@/components/ui/pagination'
+import { SectionCard } from '@/components/ui/section-card'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { FK } from '@/lib/filter-keys'
 import { tableHead, selectClass } from '@/lib/styles'
@@ -106,7 +107,7 @@ export function PricesClient({
       </HeaderPortal>
 
       {/* Toolbar: search + filter toggle */}
-      <div className="mt-6 rounded-[10px] border border-edge bg-white">
+      <SectionCard className="mt-6">
         <div className="flex items-center gap-2 px-3 py-2">
           {/* Search with icon */}
           <div className="relative flex-1">
@@ -214,10 +215,10 @@ export function PricesClient({
             </div>
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {/* Table */}
-      <div className="mt-4 overflow-hidden rounded-[10px] border border-edge bg-white">
+      <SectionCard className="mt-4 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className={tableHead}>
@@ -314,7 +315,7 @@ export function PricesClient({
 
         {/* Pagination inside the table card */}
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
-      </div>
+      </SectionCard>
 
       {/* Import modal */}
       <ImportModal

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { FormInput } from '@/components/ui/form-input'
 import { validatePassword } from '@/lib/validate-password'
+import { SectionCard } from '@/components/ui/section-card'
 import { btnAuthPrimary } from '@/lib/styles'
 
 export default function ChangePasswordPage() {
@@ -45,7 +46,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
-      <div className="rounded-[10px] border border-edge bg-white px-8 py-8 ">
+      <SectionCard className="px-8 py-8">
         <h1 className="text-lg font-semibold text-ink">
           Change Password
         </h1>
@@ -103,7 +104,7 @@ export default function ChangePasswordPage() {
             </button>
           </div>
         </form>
-      </div>
+      </SectionCard>
     </div>
   )
 }

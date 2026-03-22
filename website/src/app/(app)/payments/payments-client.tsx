@@ -12,6 +12,7 @@ import { DualAmount } from '@/components/ui/dual-amount'
 import { Modal } from '@/components/ui/modal'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { Pagination } from '@/components/ui/pagination'
+import { SectionCard } from '@/components/ui/section-card'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
@@ -147,7 +148,7 @@ export function PaymentsClient({
       />
 
       {/* Table card: table + footer summary + pagination */}
-      <div className="mt-4 overflow-hidden rounded-[10px] border border-edge bg-white">
+      <SectionCard className="mt-4 overflow-hidden">
         <PaymentsTable
           data={data}
           onRowClick={handleRowClick}
@@ -174,7 +175,7 @@ export function PaymentsClient({
         )}
 
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
-      </div>
+      </SectionCard>
 
       {/* Detail modal */}
       <Modal

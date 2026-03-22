@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { formatCurrency, formatCurrencyCompact } from '@/lib/formatters'
+import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import type {
   ProjectListItem,
@@ -113,7 +114,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
       </div>
 
       {/* Partner table */}
-      <div className={`overflow-hidden rounded-[10px] border border-edge bg-white ${isPending ? 'opacity-60' : ''}`}>
+      <SectionCard className={`overflow-hidden ${isPending ? 'opacity-60' : ''}`}>
         {partners.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-faint">
             No partners assigned to the selected projects.
@@ -182,7 +183,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
             </tfoot>
           </table>
         )}
-      </div>
+      </SectionCard>
     </div>
   )
 }

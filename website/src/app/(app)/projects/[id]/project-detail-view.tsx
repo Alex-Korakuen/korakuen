@@ -17,6 +17,7 @@ import { ProjectBudgetForm } from '../project-budget-form'
 import { updateProject } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
+import { SectionCard } from '@/components/ui/section-card'
 import { LockIcon } from '@/components/ui/lock-icon'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
@@ -293,7 +294,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
       {mode === 'view' && (
         <div className="space-y-6">
           {/* Metadata card */}
-          <div className="rounded-[10px] border border-edge bg-white">
+          <SectionCard>
             {/* Metadata grid */}
             <div className="grid grid-cols-2 divide-x divide-edge sm:grid-cols-3 lg:grid-cols-5">
               <div className="p-4">
@@ -354,12 +355,12 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
                 </Link>
               </div>
             )}
-          </div>
+          </SectionCard>
 
           {/* Dashboard grid: Budget + Entities side by side */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Costs & Budget */}
-            <div className="rounded-[10px] border border-edge bg-white">
+            <SectionCard>
               <div className="px-4 pt-4 pb-2">
                 <h3 className="text-sm font-semibold text-ink">Costs & Budget</h3>
               </div>
@@ -371,24 +372,24 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
                 categories={categories}
                 actualCostsByCategory={detail.actualCostsByCategory}
               />
-            </div>
+            </SectionCard>
 
             {/* Entities & Suppliers */}
-            <div className="rounded-[10px] border border-edge bg-white">
+            <SectionCard>
               <EntitiesPaginated entities={entities} />
-            </div>
+            </SectionCard>
           </div>
 
           {/* Notes */}
           {project.notes && (
-            <div className="rounded-[10px] border border-edge bg-white">
+            <SectionCard>
               <div className="px-4 pt-4 pb-2">
                 <h3 className="text-sm font-semibold text-ink">Notes</h3>
               </div>
               <div className="px-4 pb-4">
                 <p className="whitespace-pre-wrap text-sm text-muted">{project.notes}</p>
               </div>
-            </div>
+            </SectionCard>
           )}
         </div>
       )}

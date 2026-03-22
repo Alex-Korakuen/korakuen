@@ -12,6 +12,7 @@ import { EntityTagsDropdown } from '../entity-tags-dropdown'
 import { EntityContactsForm } from '../entity-contacts-form'
 import { LedgerTable } from '../ledger-table'
 import { updateEntity, deactivateEntity } from '@/lib/actions'
+import { SectionCard } from '@/components/ui/section-card'
 import { inputCompactClass, btnEditIcon, btnDangerIcon, iconPencil, iconTrash } from '@/lib/styles'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { LockIcon } from '@/components/ui/lock-icon'
@@ -278,7 +279,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         {/* ===== Summary Cards ===== */}
         {mode === 'view' && (summaries.totalPayable > 0 || summaries.totalReceivable > 0) && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-[10px] border border-edge bg-white p-4">
+            <SectionCard className="p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Payable (Outstanding)</p>
               <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outPayable > 0 ? 'text-negative' : 'text-edge-strong'}`}>
                 {summaries.outPayable > 0 ? formatCurrency(summaries.outPayable, summaries.currency) : '—'}
@@ -286,8 +287,8 @@ export function EntityDetailView({ detail, availableTags }: Props) {
               <p className="mt-1 text-xs text-faint">
                 {formatCurrency(summaries.totalPayable, summaries.currency)} total across {detail.payablesByProject.length} project{detail.payablesByProject.length !== 1 ? 's' : ''}
               </p>
-            </div>
-            <div className="rounded-[10px] border border-edge bg-white p-4">
+            </SectionCard>
+            <SectionCard className="p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Receivable (Outstanding)</p>
               <p className={`mt-1 text-2xl font-semibold font-mono ${summaries.outReceivable > 0 ? 'text-positive' : 'text-edge-strong'}`}>
                 {summaries.outReceivable > 0 ? formatCurrency(summaries.outReceivable, summaries.currency) : '—'}
@@ -297,13 +298,13 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                   ? `${formatCurrency(summaries.totalReceivable, summaries.currency)} total across ${detail.receivablesByProject.length} project${detail.receivablesByProject.length !== 1 ? 's' : ''}`
                   : 'No receivable invoices'}
               </p>
-            </div>
+            </SectionCard>
           </div>
         )}
 
         {/* ===== Payables Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
+          <SectionCard className="overflow-hidden">
             <button
               onClick={() => setPayablesOpen(!payablesOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
@@ -325,12 +326,12 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 />
               </div>
             )}
-          </div>
+          </SectionCard>
         )}
 
         {/* ===== Receivables Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
+          <SectionCard className="overflow-hidden">
             <button
               onClick={() => setReceivablesOpen(!receivablesOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
@@ -352,12 +353,12 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 />
               </div>
             )}
-          </div>
+          </SectionCard>
         )}
 
         {/* ===== Contacts Section ===== */}
         {mode !== 'delete' && (
-          <div className="rounded-[10px] border border-edge bg-white overflow-hidden">
+          <SectionCard className="overflow-hidden">
             <button
               onClick={() => setContactsOpen(!contactsOpen)}
               className="flex w-full items-center justify-between px-4 py-3 text-left"
@@ -375,15 +376,15 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 <EntityContactsForm entityId={entity.id} contacts={detail.contacts} />
               </div>
             )}
-          </div>
+          </SectionCard>
         )}
 
         {/* ===== Notes ===== */}
         {mode === 'view' && entity.notes && (
-          <div className="rounded-[10px] border border-edge bg-white p-4">
+          <SectionCard className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-ink">Notes</h3>
             <p className="whitespace-pre-wrap text-sm text-muted">{entity.notes}</p>
-          </div>
+          </SectionCard>
         )}
       </div>
 

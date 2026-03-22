@@ -10,6 +10,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
+import { SectionCard } from '@/components/ui/section-card'
 import { btnPrimary, tableHead, tableRowHover, selectClass } from '@/lib/styles'
 import { tagColor } from './helpers'
 import type { EntityDirectoryItem, EntitiesFilterOptions } from '@/lib/types'
@@ -95,7 +96,7 @@ export function EntitiesDirectory({
       </div>
 
       {/* Directory table */}
-      <div className="rounded-[10px] border border-edge bg-white">
+      <SectionCard>
         {entities.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted">
             No entities match filters
@@ -179,7 +180,7 @@ export function EntitiesDirectory({
           </div>
         )}
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
-      </div>
+      </SectionCard>
 
       <CreateEntityModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
     </>

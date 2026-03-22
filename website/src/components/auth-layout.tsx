@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { SectionCard } from '@/components/ui/section-card'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -9,7 +10,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface">
       <div className="w-full max-w-sm">
-        <div className="rounded-[10px] border border-edge bg-white px-8 py-10">
+        <SectionCard className="px-8 py-10">
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold tracking-widest text-ink">
               KORAKUEN
@@ -17,7 +18,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             <p className="mt-1 text-sm text-muted">Management System</p>
           </div>
           {children}
-        </div>
+        </SectionCard>
       </div>
     </div>
   )
