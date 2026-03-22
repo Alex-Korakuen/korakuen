@@ -8,6 +8,7 @@ import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTras
 import { updatePayment, deactivatePayment, fetchExchangeRateForDate } from '@/lib/actions'
 import { LockIcon } from '@/components/ui/lock-icon'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
+import { NotesDisplay } from '@/components/ui/notes-display'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PaymentsPageRow, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 import { getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
@@ -66,7 +67,7 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
         {row.notes && (
           <div className="mt-2 border-t border-edge pt-2">
             <span className="text-xs text-faint">Notes:</span>
-            <p className="text-sm text-muted">{row.notes}</p>
+            <NotesDisplay notes={row.notes} />
           </div>
         )}
       </div>

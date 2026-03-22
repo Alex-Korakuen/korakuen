@@ -8,6 +8,7 @@ import { LoanScheduleForm } from '@/components/ui/loan-schedule-form'
 import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
 import type { LoanDetailData, Currency } from '@/lib/types'
 import { btnPrimaryLg } from '@/lib/styles'
+import { NotesDisplay } from '@/components/ui/notes-display'
 
 export function LoanDetailContent({
   detail,
@@ -156,7 +157,7 @@ export function LoanDetailContent({
                     <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(pmt.amount, pmt.currency)}
                     </td>
-                    <td className="px-3 py-2 text-muted">{pmt.notes ?? '--'}</td>
+                    <td className="px-3 py-2 text-muted">{pmt.notes ? <NotesDisplay notes={pmt.notes} /> : '--'}</td>
                   </tr>
                 ))}
               </tbody>

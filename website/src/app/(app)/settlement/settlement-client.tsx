@@ -146,7 +146,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
                     </td>
                     <td className="px-4 py-3 text-right text-muted">
                       {isSingleProject && p.profitSharePct !== null
-                        ? `${p.profitSharePct}%`
+                        ? `${p.profitSharePct.toFixed(1)}%`
                         : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-ink">

@@ -13,6 +13,7 @@ import { EntityContactsForm } from '../entity-contacts-form'
 import { LedgerTable } from '../ledger-table'
 import { updateEntity, deactivateEntity } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
+import { NotesDisplay } from '@/components/ui/notes-display'
 import { inputCompactClass, btnEditIcon, btnDangerIcon, iconPencil, iconTrash } from '@/lib/styles'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { LockIcon } from '@/components/ui/lock-icon'
@@ -383,7 +384,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         {mode === 'view' && entity.notes && (
           <SectionCard className="p-4">
             <h3 className="mb-2 text-sm font-semibold text-ink">Notes</h3>
-            <p className="whitespace-pre-wrap text-sm text-muted">{entity.notes}</p>
+            <NotesDisplay notes={entity.notes} />
           </SectionCard>
         )}
       </div>

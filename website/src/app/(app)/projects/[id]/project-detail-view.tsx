@@ -13,6 +13,7 @@ import {
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
+import { NotesDisplay } from '@/components/ui/notes-display'
 import { ProjectBudgetForm } from '../project-budget-form'
 import { updateProject, updatePartnerShares } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
@@ -296,7 +297,7 @@ function PartnersRow({ partners, projectId }: { partners: ProjectDetailData['par
               <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
                 isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
               }`}>
-                {p.profitSharePct}%
+                {p.profitSharePct.toFixed(1)}%
               </span>
             </button>
           )
@@ -488,7 +489,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
                 <h3 className="text-sm font-semibold text-ink">Notes</h3>
               </div>
               <div className="px-4 pb-4">
-                <p className="whitespace-pre-wrap text-sm text-muted">{project.notes}</p>
+                <NotesDisplay notes={project.notes} />
               </div>
             </SectionCard>
           )}
