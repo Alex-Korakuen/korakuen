@@ -10,10 +10,10 @@
 
 PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. `invoice_items`, `loans`, and `loan_schedule` are permanent — never soft-deleted. Historical reference tables (quotes) are permanent. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 17 tables total across 7 layers.
+**Table count:** 16 tables total across 7 layers.
 
 ```
-Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
+Layer 1: bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_partners, quotes
 Layer 4: invoices, invoice_items
@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
@@ -39,35 +39,13 @@ Layer 7: project_budgets
 
 ## Layer 1 — No Dependencies
 
-### `partner_companies`
-The three partner companies. Referenced on every financial transaction to identify who paid or who issued an invoice. Also referenced by bank accounts.
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| id | UUID | NO | primary key, system generated |
-| name | VARCHAR | NO | legal company name |
-| ruc | VARCHAR(11) | NO | Peruvian company tax ID |
-| owner_name | VARCHAR | NO | partner's full name |
-| owner_document_type | VARCHAR | NO | RUC, DNI, CE, Pasaporte |
-| owner_document_number | VARCHAR | NO | the actual ID number |
-| email | VARCHAR | YES | partner contact email |
-| phone | VARCHAR | YES | partner contact phone |
-| bank_tracking_full | BOOLEAN | NO | true for Alex, false for other partners |
-| is_active | BOOLEAN | NO | default true, soft delete |
-| created_at | TIMESTAMP | NO | auto set on insert |
-| updated_at | TIMESTAMP | NO | auto updated on change |
-
-**Rows:** 3 (one per partner). Rarely changes.
-
----
-
 ### `bank_accounts`
-All bank accounts used for project transactions. Belongs to a partner company. Includes Banco de la Nación detracción accounts as a special type.
+All bank accounts used for project transactions. Belongs to a partner (an entity tagged with `partner` via `entity_tags`). Includes Banco de la Nación detraccion accounts as a special type.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
-| partner_company_id | UUID | NO | references partner_companies |
+| partner_id | UUID | NO | references entities (must be tagged as partner) |
 | bank_name | VARCHAR | NO | BCP, Interbank, BBVA, Scotiabank, Banco de la Nación, etc. |
 | account_number_last4 | VARCHAR(4) | NO | last 4 digits only for reference |
 | label | VARCHAR | NO | unique human-readable label for import lookups (e.g., "BCP-1234") |
@@ -78,12 +56,12 @@ All bank accounts used for project transactions. Belongs to a partner company. I
 | created_at | TIMESTAMP | NO | auto set on insert |
 | updated_at | TIMESTAMP | NO | auto updated on change |
 
-**Note:** All partner accounts are tracked for project-related transactions. Partner account balances reflect only project activity in the system — not full personal banking. `bank_tracking_full` on `partner_companies` indicates whether full reconciliation against bank statements is expected.
+**Note:** All partner accounts are tracked for project-related transactions. Partner account balances reflect only project activity in the system — not full personal banking.
 
 ---
 
 ### `entities`
-Every external party Korakuen does business with — companies and individuals. The contacts module. Registered once, referenced everywhere. Phone, email, and address live in `entity_contacts`, not here.
+Every party Korakuen does business with — companies and individuals, including the three partner companies themselves. The contacts module. Registered once, referenced everywhere. Phone, email, and address live in `entity_contacts`, not here. The three partner companies are identified by the `partner` tag via `entity_tags`. Owner info for partners is stored as `entity_contacts` records.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
@@ -223,13 +201,13 @@ Stores the agreed profit share percentage per partner company per project. Each 
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | project_id | UUID | NO | references projects |
-| partner_company_id | UUID | NO | references partner_companies |
+| partner_id | UUID | NO | references entities (must be tagged as partner) |
 | profit_share_pct | NUMERIC(5,2) | NO | e.g. 40.00 = 40%, must be > 0 and <= 100 |
 | is_active | BOOLEAN | NO | default TRUE — soft delete |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-Partial UNIQUE index on (project_id, partner_company_id) WHERE is_active = TRUE.
+Partial UNIQUE index on (project_id, partner_id) WHERE is_active = TRUE.
 
 ---
 
@@ -298,6 +276,7 @@ The `tags` table serves as a single master list for all categorization needs —
 - OxI Financing Company
 - Client
 - General Supplier
+- Partner — identifies the three partner companies in `entities`. All `partner_id` FKs reference entities with this tag
 
 *Tags are addable anytime via Supabase Dashboard. Nothing is locked — the list grows with operational experience.*
 
@@ -312,7 +291,7 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | direction | VARCHAR | NO | `'payable'` or `'receivable'` |
-| partner_company_id | UUID | NO | references partner_companies — who incurred (payable) or issued (receivable) |
+| partner_id | UUID | NO | references entities (must be tagged as partner) — who incurred (payable) or issued (receivable) |
 | project_id | UUID | YES | references projects — null if SG&A (payable only) |
 | entity_id | UUID | YES | references entities — null if informal/unassigned (payable), always set (receivable) |
 | quote_id | UUID | YES | references quotes — null if no prior quote (payable only) |
@@ -406,7 +385,7 @@ The unified payments table. Every actual movement of money — both inbound and 
 | currency | VARCHAR(3) | NO | USD or PEN |
 | exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | bank_account_id | UUID | YES | nullable — retencion never hits an account |
-| partner_company_id | UUID | NO | which partner's account was involved — required because retencion has no bank account |
+| partner_id | UUID | NO | references entities (must be tagged as partner) — which partner's account was involved, required because retencion has no bank account |
 | notes | TEXT | YES | |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
@@ -436,12 +415,12 @@ row 1: outbound | loan_schedule | regular | S/ 5,000 | BCP account
 ## Layer 6 — Loans
 
 ### `loans`
-Financing arrangements — money borrowed from friends, family, or informal lenders to fund project contributions. Each loan belongs to a partner company. Business rule: 10% return on loans, borrower keeps the spread.
+Financing arrangements — money borrowed from friends, family, or informal lenders to fund project contributions. Each loan belongs to a partner (an entity tagged with `partner`). Business rule: 10% return on loans, borrower keeps the spread.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | id | UUID | NO | primary key |
-| partner_company_id | UUID | NO | references partner_companies — which partner borrowed |
+| partner_id | UUID | NO | references entities (must be tagged as partner) — which partner borrowed |
 | lender_name | VARCHAR | NO | who borrowed from |
 | lender_contact | VARCHAR | YES | phone or email |
 | amount | NUMERIC(15,2) | NO | principal borrowed |
@@ -505,11 +484,10 @@ Budget targets per project per category. Compared against actual invoices from `
 
 ## Complete Table List — Final
 
-**17 tables total:**
+**16 tables total:**
 
 ```
 Layer 1 (no dependencies):
-  partner_companies
   bank_accounts
   entities
   exchange_rates
@@ -572,13 +550,13 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on invoices.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.
-- **Partner is explicit** on invoices and payments via `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices.
-- **Tags serve all classification needs** — entity categorization and project roles use the same master list.
-- **Partner balances are derived** from invoices (via `partner_company_id` and `direction`) + payments per project. No separate settlement table.
+- **Partner is explicit** on invoices, payments, and loans via `partner_id` (FK to entities, must be tagged as `partner`). Bank accounts belong only on payments (cash movements), not on invoices.
+- **Tags serve all classification needs** — entity categorization, project roles, and partner identification use the same master list. The `partner` tag identifies the three partner companies.
+- **Partner balances are derived** from invoices (via `partner_id` and `direction`) + payments per project. No separate settlement table.
 
 ---
 

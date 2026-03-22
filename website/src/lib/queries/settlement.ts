@@ -28,29 +28,29 @@ export async function getSettlementDashboard(
   // 1. Fetch partners for selected projects
   const { data: ppData, error: ppError } = await supabase
     .from('project_partners')
-    .select('project_id, partner_company_id, profit_share_pct')
+    .select('project_id, partner_id, profit_share_pct')
     .in('project_id', projectIds)
     .eq('is_active', true)
   if (ppError) throw ppError
 
-  // 2. Get partner company names
-  const partnerCompanyIds = [...new Set((ppData ?? []).map(pp => pp.partner_company_id))]
+  // 2. Get partner names from entities
+  const partnerIds = [...new Set((ppData ?? []).map(pp => pp.partner_id))]
   let partnerNameMap = new Map<string, string>()
-  if (partnerCompanyIds.length > 0) {
+  if (partnerIds.length > 0) {
     const { data: pcData, error: pcError } = await supabase
-      .from('partner_companies')
-      .select('id, name')
-      .in('id', partnerCompanyIds)
+      .from('entities')
+      .select('id, legal_name')
+      .in('id', partnerIds)
     if (pcError) throw pcError
     for (const pc of pcData ?? []) {
-      partnerNameMap.set(pc.id, pc.name)
+      partnerNameMap.set(pc.id, pc.legal_name)
     }
   }
 
   // 3. Fetch costs per partner — project_cost only (excludes SGA and intercompany)
   const { data: costTotals, error: costError } = await supabase
     .from('v_invoice_totals')
-    .select('project_id, partner_company_id, subtotal, currency, exchange_rate')
+    .select('project_id, partner_id, subtotal, currency, exchange_rate')
     .eq('direction', 'payable')
     .eq('cost_type', 'project_cost')
     .in('project_id', projectIds)
@@ -59,15 +59,15 @@ export async function getSettlementDashboard(
   // Sum costs per partner (across all selected projects) in PEN
   const costsByPartner = new Map<string, number>()
   for (const ct of costTotals ?? []) {
-    if (!ct.partner_company_id) continue
+    if (!ct.partner_id) continue
     const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
-    costsByPartner.set(ct.partner_company_id, (costsByPartner.get(ct.partner_company_id) ?? 0) + amountPen)
+    costsByPartner.set(ct.partner_id, (costsByPartner.get(ct.partner_id) ?? 0) + amountPen)
   }
 
   // 4. Fetch revenue — AR payments received per partner (excludes intercompany)
   const { data: receivables, error: recvError } = await supabase
     .from('invoices')
-    .select('id, project_id, partner_company_id, currency, cost_type')
+    .select('id, project_id, partner_id, currency, cost_type')
     .eq('direction', 'receivable')
     .in('project_id', projectIds)
     .eq('is_active', true)
@@ -77,11 +77,11 @@ export async function getSettlementDashboard(
   const nonIntercompanyReceivables = (receivables ?? []).filter(r => r.cost_type !== 'intercompany')
   const receivableIds = nonIntercompanyReceivables.map(r => r.id)
 
-  // Build lookup: invoice_id → { partner_company_id, project_id, currency }
-  const receivableInfoMap = new Map<string, { partner_company_id: string; project_id: string; currency: string }>()
+  // Build lookup: invoice_id → { partner_id, project_id, currency }
+  const receivableInfoMap = new Map<string, { partner_id: string; project_id: string; currency: string }>()
   for (const inv of nonIntercompanyReceivables) {
-    if (inv.partner_company_id && inv.project_id) {
-      receivableInfoMap.set(inv.id, { partner_company_id: inv.partner_company_id, project_id: inv.project_id, currency: inv.currency })
+    if (inv.partner_id && inv.project_id) {
+      receivableInfoMap.set(inv.id, { partner_id: inv.partner_id, project_id: inv.project_id, currency: inv.currency })
     }
   }
 
@@ -102,7 +102,7 @@ export async function getSettlementDashboard(
       if (!invInfo) continue
       const paymentCurrency = p.currency ?? invInfo.currency
       const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
-      receivedByPartner.set(invInfo.partner_company_id, (receivedByPartner.get(invInfo.partner_company_id) ?? 0) + amountPen)
+      receivedByPartner.set(invInfo.partner_id, (receivedByPartner.get(invInfo.partner_id) ?? 0) + amountPen)
       revenueByProject.set(invInfo.project_id, (revenueByProject.get(invInfo.project_id) ?? 0) + amountPen)
     }
   }
@@ -115,9 +115,9 @@ export async function getSettlementDashboard(
   // 6. Compute profit share per partner per project, then aggregate
   const partnerProjects = new Map<string, Array<{ project_id: string; profit_share_pct: number }>>()
   for (const pp of ppData ?? []) {
-    const list = partnerProjects.get(pp.partner_company_id) ?? []
+    const list = partnerProjects.get(pp.partner_id) ?? []
     list.push({ project_id: pp.project_id, profit_share_pct: pp.profit_share_pct })
-    partnerProjects.set(pp.partner_company_id, list)
+    partnerProjects.set(pp.partner_id, list)
   }
 
   // Per-project costs
@@ -150,7 +150,7 @@ export async function getSettlementDashboard(
     const balance = round2(shouldReceive - revenueReceived)
 
     partners.push({
-      partnerCompanyId: partnerId,
+      partnerId: partnerId,
       partnerName: partnerNameMap.get(partnerId) ?? '—',
       profitSharePct: isSingleProject ? consistentPct : null,
       costsPaid,

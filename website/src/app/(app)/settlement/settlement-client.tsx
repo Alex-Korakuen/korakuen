@@ -134,7 +134,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
               {partners.map(p => {
                 const isYou = p.partnerName.toLowerCase().includes('korakuen')
                 return (
-                  <tr key={p.partnerCompanyId} className="transition-colors hover:bg-accent-bg">
+                  <tr key={p.partnerId} className="transition-colors hover:bg-accent-bg">
                     <td className="px-4 py-3">
                       <span className="font-medium text-ink">{p.partnerName}</span>
                       {isYou && (

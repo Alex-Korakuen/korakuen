@@ -6,7 +6,7 @@ import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createLoan, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
-import type { PartnerCompanyOption, Currency } from '@/lib/types'
+import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
@@ -14,15 +14,15 @@ import { useExchangeRate } from '@/lib/use-exchange-rate'
 type Props = {
   isOpen: boolean
   onClose: () => void
-  partnerCompanies: PartnerCompanyOption[]
+  partners: PartnerOption[]
   projects: { id: string; project_code: string; name: string }[]
 }
 
-export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }: Props) {
+export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const [partnerCompanyId, setPartnerCompanyId] = useState('')
+  const [partnerId, setPartnerId] = useState('')
   const [entityId, setEntityId] = useState<string | null>(null)
   const [entityName, setEntityName] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
@@ -42,14 +42,14 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
   // Auto-fetch bank accounts when partner changes
   useEffect(() => {
-    if (!isOpen || !partnerCompanyId) { setBankAccounts([]); setBankAccountId(''); return }
-    fetchBankAccountsForPayment(partnerCompanyId)
+    if (!isOpen || !partnerId) { setBankAccounts([]); setBankAccountId(''); return }
+    fetchBankAccountsForPayment(partnerId)
       .then(accts => setBankAccounts(accts))
       .catch(() => setBankAccounts([]))
-  }, [partnerCompanyId, isOpen])
+  }, [partnerId, isOpen])
 
   function resetForm() {
-    setPartnerCompanyId('')
+    setPartnerId('')
     setEntityId(null)
     setEntityName(null)
     setAmount('')
@@ -73,7 +73,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
   function handleSubmit() {
     const parsedAmount = parseFloat(amount)
-    if (!partnerCompanyId || !entityId || isNaN(parsedAmount) || parsedAmount <= 0) return
+    if (!partnerId || !entityId || isNaN(parsedAmount) || parsedAmount <= 0) return
     if (exchangeRate === null) {
       setError('Exchange rate not available for this date')
       return
@@ -82,7 +82,7 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
 
     startTransition(async () => {
       const result = await createLoan({
-        partner_company_id: partnerCompanyId,
+        partner_id: partnerId,
         entity_id: entityId,
         lender_name: entityName ?? '',
         amount: parsedAmount,
@@ -107,21 +107,21 @@ export function CreateLoanModal({ isOpen, onClose, partnerCompanies, projects }:
   }
 
   const parsedAmount = parseFloat(amount)
-  const canSubmit = partnerCompanyId && entityId && !isNaN(parsedAmount) && parsedAmount > 0 && exchangeRate !== null
+  const canSubmit = partnerId && entityId && !isNaN(parsedAmount) && parsedAmount > 0 && exchangeRate !== null
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Loan">
       <div className="space-y-4">
-        {/* Partner Company */}
+        {/* Partner */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Partner Company *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Partner *</label>
           <select
-            value={partnerCompanyId}
-            onChange={(e) => setPartnerCompanyId(e.target.value)}
+            value={partnerId}
+            onChange={(e) => setPartnerId(e.target.value)}
             className={inputClass}
           >
             <option value="">Select partner...</option>
-            {partnerCompanies.map((p) => (
+            {partners.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>

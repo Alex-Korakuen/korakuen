@@ -174,7 +174,7 @@ export function LoanDetailContent({
           outstanding={
             detail.schedule.find(s => s.id === selectedEntryId)?.outstanding ?? 0
           }
-          partnerCompanyId={loan.partner_company_id!}
+          partnerId={loan.partner_id!}
           onSuccess={() => {
             setShowRepaymentForm(false)
             setSelectedEntryId(null)

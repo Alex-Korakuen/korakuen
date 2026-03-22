@@ -12,7 +12,7 @@ WITH item_sums AS (
     i.id                  AS invoice_id,
     i.direction,
     i.project_id,
-    i.partner_company_id,
+    i.partner_id,
     i.entity_id,
     i.quote_id,
     i.purchase_order_id,
@@ -37,7 +37,7 @@ WITH item_sums AS (
   LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
   WHERE i.is_active = true
   GROUP BY
-    i.id, i.direction, i.project_id, i.partner_company_id,
+    i.id, i.direction, i.project_id, i.partner_id,
     i.entity_id, i.quote_id, i.purchase_order_id, i.cost_type,
     i.title, i.invoice_number, i.invoice_date, i.due_date,
     i.igv_rate, i.detraccion_rate, i.retencion_applicable,
@@ -55,7 +55,7 @@ SELECT
   invoice_id,
   direction,
   project_id,
-  partner_company_id,
+  partner_id,
   entity_id,
   quote_id,
   purchase_order_id,

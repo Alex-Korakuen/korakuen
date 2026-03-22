@@ -4,7 +4,7 @@
 -- Date: 2026-03-01
 --
 -- Seeds bank accounts for all three partner companies.
--- Uses subqueries on RUC to reference partner_companies by ID
+-- Uses subqueries on RUC to reference partner entities by ID
 -- since UUIDs are auto-generated.
 --
 -- *** ALL last4 DIGITS ARE PLACEHOLDERS ***
@@ -27,9 +27,9 @@
 
 -- BCP PEN checking account
 -- PLACEHOLDER: last4 '0001' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000001'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000001'),
   'BCP',
   '0001',               -- PLACEHOLDER: real last 4 digits
   'checking',
@@ -39,9 +39,9 @@ VALUES (
 
 -- Interbank PEN checking account
 -- PLACEHOLDER: last4 '0002' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000001'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000001'),
   'Interbank',
   '0002',               -- PLACEHOLDER: real last 4 digits
   'checking',
@@ -51,9 +51,9 @@ VALUES (
 
 -- BCP USD checking account
 -- PLACEHOLDER: last4 '0003' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000001'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000001'),
   'BCP',
   '0003',               -- PLACEHOLDER: real last 4 digits
   'checking',
@@ -63,9 +63,9 @@ VALUES (
 
 -- Banco de la Nacion PEN detraccion account
 -- PLACEHOLDER: last4 '0004' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000001'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000001'),
   'Banco de la Nación',
   '0004',               -- PLACEHOLDER: real last 4 digits
   'detraccion',
@@ -77,9 +77,9 @@ VALUES (
 
 -- BCP PEN checking account
 -- PLACEHOLDER: last4 '0005' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000002'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000002'),
   'BCP',
   '0005',               -- PLACEHOLDER: real last 4 digits
   'checking',
@@ -91,9 +91,9 @@ VALUES (
 
 -- BBVA PEN checking account
 -- PLACEHOLDER: last4 '0006' — replace with real last 4 digits
-INSERT INTO bank_accounts (partner_company_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
+INSERT INTO bank_accounts (partner_id, bank_name, account_number_last4, account_type, currency, is_detraccion_account)
 VALUES (
-  (SELECT id FROM partner_companies WHERE ruc = '20000000003'),
+  (SELECT id FROM entities WHERE document_type = 'RUC' AND document_number = '20000000003'),
   'BBVA',
   '0006',               -- PLACEHOLDER: real last 4 digits
   'checking',

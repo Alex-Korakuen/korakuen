@@ -1,4 +1,4 @@
-import { getProjectDetail, getPartnerCompanies, getProjectCategories } from '@/lib/queries'
+import { getProjectDetail, getPartners, getProjectCategories } from '@/lib/queries'
 import { ProjectDetailView } from './project-detail-view'
 import { notFound } from 'next/navigation'
 
@@ -9,9 +9,9 @@ type Props = {
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params
 
-  const [detail, partnerCompanies, categories] = await Promise.all([
+  const [detail, partners, categories] = await Promise.all([
     getProjectDetail(id).catch(() => null),
-    getPartnerCompanies(),
+    getPartners(),
     getProjectCategories(),
   ])
 
@@ -20,7 +20,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   return (
     <ProjectDetailView
       detail={detail}
-      partnerCompanies={partnerCompanies}
+      partnerOptions={partners}
       categories={categories}
     />
   )

@@ -147,7 +147,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - `direction` column: `'payable'` (expense) or `'receivable'` (income)
 - Project field is nullable — null means SG&A (company-level expense, not tied to a project)
 - **SG&A invoices belong exclusively to the individual partner who incurred them** — excluded from project profit/settlement calculations
-- Every invoice records the partner company (`partner_company_id`)
+- Every invoice records the partner (`partner_id`, FK to entities tagged as partner)
 - Quantity and unit price on line items enable historical unit price analysis
 - IGV, detraccion, and retencion tracked separately on every invoice
 - Currency must be specified (USD or PEN) — never converted at storage
@@ -167,7 +167,7 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 **Key attributes — `invoices` header:**
 - Invoice ID (system generated)
 - Direction: payable or receivable
-- Partner company (references Partner Companies)
+- Partner (references Entities — must be tagged as partner)
 - Project (nullable — null if SG&A)
 - Entity (nullable — references Entities)
 - Quote reference (nullable — references Quotes)
@@ -272,7 +272,6 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 - Balance is calculated dynamically from transactions — never stored as a static field
 - All partner accounts are tracked for project-related transactions (invoice payments, collections, loan repayments)
 - Partner account balances reflect only project transactions visible in the system — not full personal banking activity
-- `bank_tracking_full` on `partner_companies` indicates whether full reconciliation against bank statements is expected (true for Alex, false for other partners)
 
 **Account types:**
 - Regular checking (BCP, Interbank, BBVA, Scotiabank, etc.)
@@ -281,7 +280,7 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 
 **Key attributes:**
 - Account ID
-- Account holder (partner company)
+- Account holder (partner entity)
 - Bank name
 - Account number (last 4 digits for reference)
 - Account type
@@ -298,7 +297,7 @@ Payments against receivables use `payments` with `related_to = 'invoice'`, `dire
 **Purpose:** Shows each partner's financial position per project — what they contributed, what profit they're owed, and who owes whom for settlement.
 
 **How it works:**
-This is not a database table or SQL view — it is computed in the application layer (`queries/settlement.ts`) from `v_invoice_totals` grouped by `partner_company_id` per project. SG&A and intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals — intercompany invoices are settlement transfers between partners that would distort project economics if counted. No data is stored separately. The calculation is always current because it reads directly from source data. Settlement is displayed on the dedicated Settlement dashboard page (`/settlement`), which supports aggregating balances across multiple selected projects.
+This is not a database table or SQL view — it is computed in the application layer (`queries/settlement.ts`) from `v_invoice_totals` grouped by `partner_id` per project. SG&A and intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals — intercompany invoices are settlement transfers between partners that would distort project economics if counted. No data is stored separately. The calculation is always current because it reads directly from source data. Settlement is displayed on the dedicated Settlement dashboard page (`/settlement`), which supports aggregating balances across multiple selected projects.
 
 **Direct transactions:** Partners' informal cash payments (no comprobante) are recorded via auto-generated invoices (`is_auto_generated = true`) with an immediate payment. These appear in settlement calculations identically to formal invoices. They can be promoted to formal invoices later when the comprobante arrives.
 
@@ -339,10 +338,10 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 
 ## Module 8: Loans
 
-**Purpose:** Tracks loans taken by any partner to fund project operations. Each loan belongs to a partner company via `partner_company_id`. All loan data is visible — no access restrictions.
+**Purpose:** Tracks loans taken by any partner to fund project operations. Each loan belongs to a partner via `partner_id` (FK to entities tagged as partner). All loan data is visible — no access restrictions.
 
 **Business rules:**
-- Every loan records the lender, amount, terms (percentage or fixed return), and which partner borrowed (`partner_company_id`)
+- Every loan records the lender, amount, terms (percentage or fixed return), and which partner borrowed (`partner_id`)
 - Business rule: 10% return on loans — borrower keeps the spread between agreed return and what they pay the lender
 - A loan can optionally be linked to a project it funded
 - Return can be percentage-based (e.g. 8%) or a fixed agreed amount
@@ -358,7 +357,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 
 **Key attributes — `loans` (header):**
 - Loan ID (system generated)
-- Partner company (references Partner Companies — which partner borrowed)
+- Partner (references Entities — must be tagged as partner — which partner borrowed)
 - Entity ID (nullable — references Entities, the lender)
 - Lender name
 - Lender contact (nullable — phone or email)

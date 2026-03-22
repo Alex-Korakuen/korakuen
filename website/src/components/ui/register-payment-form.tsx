@@ -12,7 +12,7 @@ type Props = {
   relatedTo: 'invoice' | 'loan_schedule'
   relatedId: string
   direction: 'outbound' | 'inbound'
-  partnerCompanyId: string
+  partnerId: string
   currency: string
   outstanding: number
   payable: number
@@ -29,7 +29,7 @@ export function RegisterPaymentForm({
   relatedTo,
   relatedId,
   direction,
-  partnerCompanyId,
+  partnerId,
   currency,
   outstanding,
   payable,
@@ -59,11 +59,11 @@ export function RegisterPaymentForm({
   // Load bank accounts on mount
   useEffect(() => {
     setLoadingAccounts(true)
-    fetchBankAccountsForPayment(partnerCompanyId)
+    fetchBankAccountsForPayment(partnerId)
       .then(setBankAccounts)
       .catch(() => setBankAccounts([]))
       .finally(() => setLoadingAccounts(false))
-  }, [partnerCompanyId])
+  }, [partnerId])
 
   // Detraccion payments are always in PEN (even for USD invoices)
   const paymentCurrency = paymentType === 'detraccion' ? 'PEN' : currency
@@ -130,7 +130,7 @@ export function RegisterPaymentForm({
         amount: parsedAmount,
         currency: paymentCurrency,
         exchange_rate: exchangeRate,
-        partner_company_id: partnerCompanyId,
+        partner_id: partnerId,
         bank_account_id: isRetencion ? null : bankAccountId,
         notes: null,
       })

@@ -20,7 +20,7 @@ import type {
   InvoiceDetailData,
   LoanDetailData,
   CategoryOption,
-  PartnerCompanyOption,
+  PartnerOption,
 } from '@/lib/types'
 
 type Props = {
@@ -31,7 +31,7 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
   categories: CategoryOption[]
-  partners: PartnerCompanyOption[]
+  partners: PartnerOption[]
   currentFilters: {
     direction: string
     type: string

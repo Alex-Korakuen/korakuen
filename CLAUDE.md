@@ -58,10 +58,10 @@ korakuen/
 
 ---
 
-## Database — 17 Tables
+## Database — 16 Tables
 
 ```
-Layer 1: partner_companies, bank_accounts, entities, exchange_rates, categories
+Layer 1: bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
 Layer 3: project_partners, quotes
 Layer 4: invoices, invoice_items
@@ -89,10 +89,10 @@ Key facts:
 - **Peruvian tax reality:** Every financial transaction has IGV (18%), potentially detraccion (varies %), potentially retencion (3% on receivable only — Korakuen is NOT a retencion agent)
 - **Unified invoice model:** `invoices` table with `direction` column (`'payable'` or `'receivable'`) replaces separate costs/AR tables. `invoice_items` holds line items. Category lives on invoice_items, not the header
 - **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on invoices — cash purchases and informal suppliers are valid
-- **Partner identity:** All financial tables (invoices, payments, loans) have explicit `partner_company_id`. Bank accounts belong only on payments (cash movements), not on invoices
+- **Partner identity:** The three partner companies are regular rows in `entities`, identified by the `partner` tag via `entity_tags`. All financial tables (invoices, payments, loans) have explicit `partner_id` (FK to entities). Bank accounts belong only on payments (cash movements), not on invoices
 - **PO module hook:** `invoices` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null
 - **No stored totals:** subtotal, igv_amount, total on invoices are derived from invoice_items via `v_invoice_totals`. Payment status derived from payments via `v_invoice_balances`
-- **Tags are universal:** one `tags` table serves both entity categorization and project roles
+- **Tags are universal:** one `tags` table serves entity categorization, project roles, and partner identification (the `partner` tag marks the three partner companies in `entities`)
 - **Project code drives everything:** PRY001, PRY002... — auto-sequential, used in all SharePoint filenames
 
 ---
@@ -180,15 +180,15 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** Database (17 tables, 10 views) and website (8 pages) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
+**Development complete.** Database (16 tables, 10 views) and website (8 pages) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
 
-**Role-based write access.** Alex is the admin (`app_metadata.role = 'admin'`) — full read/write. Partners have read-only access enforced via RLS `is_admin()` check on all write policies. All data is visible to everyone — no row-level read filtering. Partner companies exist in the data model for settlement calculations only (tracking who paid what on each project). `partner_company_id` on invoices and payments identifies which partner incurred the cost or received the revenue.
+**Role-based write access.** Alex is the admin (`app_metadata.role = 'admin'`) — full read/write. Partners have read-only access enforced via RLS `is_admin()` check on all write policies. All data is visible to everyone — no row-level read filtering. Partners are regular entities tagged with `partner` via `entity_tags` — no separate partner_companies table. `partner_id` on invoices and payments identifies which partner incurred the cost or received the revenue.
 
 **Settlement dashboard.** Dedicated `/settlement` page aggregates partner balances across projects. Project detail shows partners as read-only chips; settlement math lives in its own page. Intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals to avoid distorting project economics.
 
 **Direct transactions.** Partners' informal cash payments (no comprobante) are recorded via "Direct transaction" — auto-generates an invoice + payment in one step. Supports both outflow (costs) and inflow (revenue). Can be promoted to a formal invoice later when the comprobante arrives.
 
-**Loans are partner-owned.** Every loan has a `partner_company_id`. Business rule: 10% return on loans, borrower keeps the spread between agreed return and what they pay the lender.
+**Loans are partner-owned.** Every loan has a `partner_id` (FK to entities). Business rule: 10% return on loans, borrower keeps the spread between agreed return and what they pay the lender.
 
 See `TODO.md` for remaining work.
 

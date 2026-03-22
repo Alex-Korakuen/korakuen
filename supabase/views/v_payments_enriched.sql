@@ -19,7 +19,7 @@ SELECT
   p.exchange_rate,
   p.related_to,
   p.related_id,
-  p.partner_company_id,
+  p.partner_id,
   p.bank_account_id,
   p.notes,
   -- Enriched from invoice
@@ -50,7 +50,7 @@ SELECT
   p.exchange_rate,
   p.related_to,
   p.related_id,
-  p.partner_company_id,
+  p.partner_id,
   p.bank_account_id,
   p.notes,
   -- No invoice number for loans
@@ -81,7 +81,7 @@ SELECT
   p.exchange_rate,
   p.related_to,
   p.related_id,
-  p.partner_company_id,
+  p.partner_id,
   p.bank_account_id,
   p.notes,
   -- No invoice number for loans

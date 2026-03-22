@@ -1,12 +1,12 @@
-import { getFinancialPosition, getPartnerCompanies, getProjectsForFilter } from '@/lib/queries'
+import { getFinancialPosition, getPartners, getProjectsForFilter } from '@/lib/queries'
 import { FPClient } from './fp-client'
 
 export default async function FinancialPositionPage() {
-  const [data, partnerCompanies, projects] = await Promise.all([
+  const [data, partners, projects] = await Promise.all([
     getFinancialPosition(),
-    getPartnerCompanies(),
+    getPartners(),
     getProjectsForFilter(),
   ])
 
-  return <FPClient data={data} partnerCompanies={partnerCompanies} projects={projects} />
+  return <FPClient data={data} partners={partners} projects={projects} />
 }

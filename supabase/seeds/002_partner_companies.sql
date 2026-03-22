@@ -1,50 +1,74 @@
 -- ============================================================
 -- Korakuen Management System — Seed Data: Partner Companies
 -- File: 002_partner_companies.sql
--- Date: 2026-03-01
+-- Date: 2026-03-22
 --
--- Seeds the partner_companies table with 3 partner companies.
+-- Seeds partner companies as entities tagged 'partner'.
+-- Also creates owner contacts for each partner.
 --
 -- *** ALL VALUES ARE PLACEHOLDERS ***
 -- Replace names, RUCs, document numbers, and contact info
 -- with real data before running in production.
---
--- Partner 1 (Alex): bank_tracking_full = true (full bank tracking)
--- Partners 2 & 3: bank_tracking_full = false (reference only)
 -- ============================================================
 
--- Partner 1 — Alex (full bank tracking)
+-- Ensure 'partner' tag exists
+INSERT INTO tags (name, notes)
+VALUES ('partner', 'Identifies the three partner companies that own Korakuen')
+ON CONFLICT (name) DO NOTHING;
+
+-- Partner 1 — Alex
 -- PLACEHOLDER: Replace name, ruc, owner details with real data
-INSERT INTO partner_companies (name, ruc, owner_name, owner_document_type, owner_document_number, bank_tracking_full)
+INSERT INTO entities (entity_type, document_type, document_number, legal_name)
+VALUES ('company', 'RUC', '20000000001', 'Korakuen SAC');
+
+INSERT INTO entity_tags (entity_id, tag_id)
 VALUES (
-  'Korakuen SAC',       -- PLACEHOLDER: real company name
-  '20000000001',        -- PLACEHOLDER: real 11-digit RUC
+  (SELECT id FROM entities WHERE document_number = '20000000001' AND document_type = 'RUC'),
+  (SELECT id FROM tags WHERE name = 'partner')
+);
+
+INSERT INTO entity_contacts (entity_id, full_name, role, is_primary)
+VALUES (
+  (SELECT id FROM entities WHERE document_number = '20000000001' AND document_type = 'RUC'),
   'Alex Partner',       -- PLACEHOLDER: real owner full name
-  'DNI',
-  '00000001',           -- PLACEHOLDER: real 8-digit DNI
-  true                  -- Alex gets full bank balance tracking
+  'Owner',
+  true
 );
 
 -- Partner 2
 -- PLACEHOLDER: Replace name, ruc, owner details with real data
-INSERT INTO partner_companies (name, ruc, owner_name, owner_document_type, owner_document_number, bank_tracking_full)
+INSERT INTO entities (entity_type, document_type, document_number, legal_name)
+VALUES ('company', 'RUC', '20000000002', 'Partner B SAC');
+
+INSERT INTO entity_tags (entity_id, tag_id)
 VALUES (
-  'Partner B SAC',      -- PLACEHOLDER: real company name
-  '20000000002',        -- PLACEHOLDER: real 11-digit RUC
+  (SELECT id FROM entities WHERE document_number = '20000000002' AND document_type = 'RUC'),
+  (SELECT id FROM tags WHERE name = 'partner')
+);
+
+INSERT INTO entity_contacts (entity_id, full_name, role, is_primary)
+VALUES (
+  (SELECT id FROM entities WHERE document_number = '20000000002' AND document_type = 'RUC'),
   'Partner B',          -- PLACEHOLDER: real owner full name
-  'DNI',
-  '00000002',           -- PLACEHOLDER: real 8-digit DNI
-  false                 -- reference only — no full bank tracking
+  'Owner',
+  true
 );
 
 -- Partner 3
 -- PLACEHOLDER: Replace name, ruc, owner details with real data
-INSERT INTO partner_companies (name, ruc, owner_name, owner_document_type, owner_document_number, bank_tracking_full)
+INSERT INTO entities (entity_type, document_type, document_number, legal_name)
+VALUES ('company', 'RUC', '20000000003', 'Partner C SAC');
+
+INSERT INTO entity_tags (entity_id, tag_id)
 VALUES (
-  'Partner C SAC',      -- PLACEHOLDER: real company name
-  '20000000003',        -- PLACEHOLDER: real 11-digit RUC
+  (SELECT id FROM entities WHERE document_number = '20000000003' AND document_type = 'RUC'),
+  (SELECT id FROM tags WHERE name = 'partner')
+);
+
+INSERT INTO entity_contacts (entity_id, full_name, role, is_primary)
+VALUES (
+  (SELECT id FROM entities WHERE document_number = '20000000003' AND document_type = 'RUC'),
   'Partner C',          -- PLACEHOLDER: real owner full name
-  'DNI',
-  '00000003',           -- PLACEHOLDER: real 8-digit DNI
-  false                 -- reference only — no full bank tracking
+  'Owner',
+  true
 );

@@ -19,11 +19,11 @@ import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
 import { LockIcon } from '@/components/ui/lock-icon'
 import { EntityPicker } from '@/components/ui/entity-picker'
-import type { ProjectDetailData, ProjectEntitySummary, PartnerCompanyOption, CategoryOption } from '@/lib/types'
+import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
   detail: ProjectDetailData
-  partnerCompanies: PartnerCompanyOption[]
+  partnerOptions: PartnerOption[]
   categories: CategoryOption[]
 }
 
@@ -182,7 +182,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
 // --- Main Detail View ---
 
-export function ProjectDetailView({ detail, partnerCompanies, categories }: Props) {
+export function ProjectDetailView({ detail, partnerOptions, categories }: Props) {
   const { project, clientName, entities, partners } = detail
   const router = useRouter()
   const [mode, setMode] = useState<'view' | 'edit'>('view')

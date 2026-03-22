@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import type {
   EntitySearchResult,
-  PartnerCompanyOption,
+  PartnerOption,
   CategoryOption,
 } from '../types'
 
@@ -14,7 +14,7 @@ export type BankAccountOption = {
   is_detraccion_account: boolean
 }
 
-export type { PartnerCompanyOption, CategoryOption }
+export type { PartnerOption, CategoryOption }
 
 export async function getProjectsForFilter(): Promise<{ id: string; project_code: string; name: string }[]> {
   const supabase = await createServerSupabaseClient()
@@ -28,13 +28,13 @@ export async function getProjectsForFilter(): Promise<{ id: string; project_code
 }
 
 export async function getBankAccountsForPartner(
-  partnerCompanyId: string
+  partnerId: string
 ): Promise<BankAccountOption[]> {
   const supabase = await createServerSupabaseClient()
   const { data, error } = await supabase
     .from('bank_accounts')
     .select('id, bank_name, account_number_last4, label, currency, is_detraccion_account')
-    .eq('partner_company_id', partnerCompanyId)
+    .eq('partner_id', partnerId)
     .eq('is_active', true)
     .order('label')
   if (error) throw error
@@ -56,15 +56,26 @@ export async function getExchangeRateForDate(
   return { mid_rate: Number(data.mid_rate), rate_date: data.rate_date }
 }
 
-export async function getPartnerCompanies(): Promise<PartnerCompanyOption[]> {
+export async function getPartners(): Promise<PartnerOption[]> {
   const supabase = await createServerSupabaseClient()
+  // Get entities tagged as 'partner'
+  const { data: tagData, error: tagError } = await supabase
+    .from('entity_tags')
+    .select('entity_id, tags!inner(name)')
+    .eq('tags.name', 'partner')
+  if (tagError) throw tagError
+
+  const entityIds = (tagData ?? []).map(t => t.entity_id)
+  if (entityIds.length === 0) return []
+
   const { data, error } = await supabase
-    .from('partner_companies')
-    .select('id, name')
+    .from('entities')
+    .select('id, legal_name')
+    .in('id', entityIds)
     .eq('is_active', true)
-    .order('name')
+    .order('legal_name')
   if (error) throw error
-  return data ?? []
+  return (data ?? []).map(e => ({ id: e.id, name: e.legal_name }))
 }
 
 export async function searchEntities(
@@ -110,4 +121,3 @@ export async function getProjectCategories(): Promise<CategoryOption[]> {
   if (error) throw error
   return data ?? []
 }
-

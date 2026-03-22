@@ -11,11 +11,11 @@ import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
 const CreateLoanModal = dynamic(() => import('./create-loan-modal').then(m => ({ default: m.CreateLoanModal })))
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
-import type { BankTransaction, FinancialPositionData, LoanDetailData, PartnerCompanyOption } from '@/lib/types'
+import type { BankTransaction, FinancialPositionData, LoanDetailData, PartnerOption } from '@/lib/types'
 
 type Props = {
   data: FinancialPositionData
-  partnerCompanies: PartnerCompanyOption[]
+  partners: PartnerOption[]
   projects: { id: string; project_code: string; name: string }[]
 }
 
@@ -23,7 +23,7 @@ function fmt(amount: number, currency: string) {
   return formatCurrency(amount, currency)
 }
 
-export function FPClient({ data, partnerCompanies, projects }: Props) {
+export function FPClient({ data, partners, projects }: Props) {
   const router = useRouter()
   const [showCreateAccount, setShowCreateAccount] = useState(false)
   const [showCreateLoan, setShowCreateLoan] = useState(false)
@@ -354,14 +354,14 @@ export function FPClient({ data, partnerCompanies, projects }: Props) {
       <CreateBankAccountModal
         isOpen={showCreateAccount}
         onClose={() => setShowCreateAccount(false)}
-        partnerCompanies={partnerCompanies}
+        partners={partners}
       />
 
       {/* Create Loan Modal */}
       <CreateLoanModal
         isOpen={showCreateLoan}
         onClose={() => setShowCreateLoan(false)}
-        partnerCompanies={partnerCompanies}
+        partners={partners}
         projects={projects}
       />
     </div>

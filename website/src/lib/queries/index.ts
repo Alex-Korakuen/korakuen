@@ -12,11 +12,11 @@ export {
   getProjectsForFilter,
   getBankAccountsForPartner,
   getExchangeRateForDate,
-  getPartnerCompanies,
+  getPartners,
   searchEntities,
   getNextProjectCode,
   getProjectCategories,
 } from './lookups'
 export type { BankAccountOption } from './lookups'
-export type { PartnerCompanyOption, CategoryOption } from './lookups'
+export type { PartnerOption, CategoryOption } from './lookups'
 export { DEFAULT_CURRENCY, round2, convertToPen } from './shared'

@@ -4,20 +4,20 @@ import { useState, useTransition } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { createBankAccount } from '@/lib/actions'
-import type { PartnerCompanyOption, Currency } from '@/lib/types'
+import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 
 type Props = {
   isOpen: boolean
   onClose: () => void
-  partnerCompanies: PartnerCompanyOption[]
+  partners: PartnerOption[]
 }
 
-export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Props) {
+export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  const [partnerCompanyId, setPartnerCompanyId] = useState('')
+  const [partnerId, setPartnerId] = useState('')
   const [bankName, setBankName] = useState('')
   const [last4, setLast4] = useState('')
   const [label, setLabel] = useState('')
@@ -27,7 +27,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
   const isDetraccion = accountType === 'detraccion'
 
   function resetForm() {
-    setPartnerCompanyId('')
+    setPartnerId('')
     setBankName('')
     setLast4('')
     setLabel('')
@@ -49,12 +49,12 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
   }
 
   function handleSubmit() {
-    if (!partnerCompanyId || !bankName.trim() || last4.length !== 4 || !label.trim()) return
+    if (!partnerId || !bankName.trim() || last4.length !== 4 || !label.trim()) return
     setError(null)
 
     startTransition(async () => {
       const result = await createBankAccount({
-        partner_company_id: partnerCompanyId,
+        partner_id: partnerId,
         bank_name: bankName.trim(),
         account_number_last4: last4,
         label: label.trim(),
@@ -70,21 +70,21 @@ export function CreateBankAccountModal({ isOpen, onClose, partnerCompanies }: Pr
     })
   }
 
-  const canSubmit = partnerCompanyId && bankName.trim() && last4.length === 4 && label.trim()
+  const canSubmit = partnerId && bankName.trim() && last4.length === 4 && label.trim()
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Bank Account">
       <div className="space-y-4">
-        {/* Partner Company */}
+        {/* Partner */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Partner Company *</label>
+          <label className="mb-1 block text-sm font-medium text-ink">Partner *</label>
           <select
-            value={partnerCompanyId}
-            onChange={(e) => setPartnerCompanyId(e.target.value)}
+            value={partnerId}
+            onChange={(e) => setPartnerId(e.target.value)}
             className={inputClass}
           >
             <option value="">Select partner...</option>
-            {partnerCompanies.map((p) => (
+            {partners.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>

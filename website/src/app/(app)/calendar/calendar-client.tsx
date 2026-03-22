@@ -74,7 +74,7 @@ function toInvoicesPageRow(r: ObligationCalendarRow): InvoicesPageRow {
     id: r.invoice_id ?? '',
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
     direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
-    partner_company_id: r.partner_company_id ?? null,
+    partner_id: r.partner_id ?? null,
     project_id: r.project_id ?? null,
     project_code: r.project_code ?? null,
     entity_id: r.entity_id ?? null,

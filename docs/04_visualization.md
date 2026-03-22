@@ -14,7 +14,7 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Single-user system:** All data is visible — no partner filter, no role-based access restrictions. `partner_company_id` on financial records is used for settlement calculations only, not for UI filtering.
+**Single-user system:** All data is visible — no partner filter, no role-based access restrictions. `partner_id` on financial records is used for settlement calculations only, not for UI filtering.
 
 **Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 

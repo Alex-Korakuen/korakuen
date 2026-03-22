@@ -2,7 +2,7 @@ import {
   getInvoicesPage,
   getProjectsForFilter,
   getProjectCategories,
-  getPartnerCompanies,
+  getPartners,
 } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
@@ -32,7 +32,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const [projects, categories, partners] = await Promise.all([
     getProjectsForFilter(),
     getProjectCategories(),
-    getPartnerCompanies(),
+    getPartners(),
   ])
 
   const result = await getInvoicesPage(filters)

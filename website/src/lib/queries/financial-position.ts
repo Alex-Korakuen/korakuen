@@ -30,8 +30,8 @@ export async function getFinancialPosition(): Promise<FinancialPositionData> {
 
   // Build queries
   const bankQuery = supabase.from('v_bank_balances').select('*')
-  const arQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'receivable').neq('payment_status', 'paid')
-  const costQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_company_id').eq('direction', 'payable').neq('payment_status', 'paid')
+  const arQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_id').eq('direction', 'receivable').neq('payment_status', 'paid')
+  const costQuery = supabase.from('v_invoice_balances').select('outstanding, currency, partner_id').eq('direction', 'payable').neq('payment_status', 'paid')
   const loanQuery = supabase.from('v_loan_balances').select('*')
 
   const [
@@ -60,7 +60,7 @@ export async function getFinancialPosition(): Promise<FinancialPositionData> {
   // Bank account cards
   const bankCards: BankAccountCard[] = (bankResult.data ?? []).map(ba => ({
     bankAccountId: ba.bank_account_id ?? '',
-    partnerCompanyId: ba.partner_company_id,
+    partnerId: ba.partner_id,
     partnerName: ba.partner_name,
     bankName: ba.bank_name,
     accountNumberLast4: ba.account_number_last4,

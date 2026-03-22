@@ -69,7 +69,7 @@ createTemplate('quotes-template.xlsx', [
 // ============================================================
 createTemplate('invoices-template.xlsx', [
   { key: 'direction',              description: 'Invoice direction',                      example: 'payable',          valid: 'payable, receivable' },
-  { key: 'partner_company_name',   description: 'Partner company name',                   example: 'Korakuen SAC',     valid: 'Must exist in DB' },
+  { key: 'partner_name',   description: 'Partner name',                   example: 'Korakuen SAC',     valid: 'Must exist in DB' },
   { key: 'invoice_date',           description: 'Invoice date',                           example: '2026-03-15',       valid: 'YYYY-MM-DD' },
   { key: 'title',                  description: 'Invoice title (header)',                 example: 'Road materials',   valid: 'Optional' },
   { key: 'invoice_number',         description: 'Invoice number',                         example: 'F001-00123',       valid: 'Optional' },
@@ -107,7 +107,7 @@ createTemplate('payments-template.xlsx', [
   { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
   { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Required, 2.5–6.0' },
   { key: 'bank_account',           description: 'Bank account (BankName-Last4)',  example: 'BCP-1234',          valid: 'Required for regular/detraccion' },
-  { key: 'partner_company_name',   description: 'Partner company name',           example: 'Korakuen SAC',      valid: 'Must exist in DB' },
+  { key: 'partner_name',   description: 'Partner name',           example: 'Korakuen SAC',      valid: 'Must exist in DB' },
   { key: 'notes',                  description: 'Notes',                          example: '',                  valid: 'Optional' },
 ])
 
@@ -116,7 +116,7 @@ createTemplate('payments-template.xlsx', [
 // ============================================================
 createTemplate('direct-transactions-template.xlsx', [
   { key: 'direction',              description: 'Transaction direction',           example: 'outflow',           valid: 'outflow, inflow' },
-  { key: 'partner_company_name',   description: 'Partner company name',            example: 'Korakuen SAC',      valid: 'Must exist in DB' },
+  { key: 'partner_name',   description: 'Partner name',            example: 'Korakuen SAC',      valid: 'Must exist in DB' },
   { key: 'project_code',           description: 'Project code',                   example: 'PRY001',            valid: 'Must exist in DB' },
   { key: 'date',                   description: 'Transaction date',               example: '2026-03-20',        valid: 'YYYY-MM-DD' },
   { key: 'amount',                 description: 'Amount',                         example: '500.00',            valid: 'Required, > 0' },

@@ -89,7 +89,7 @@ export async function getInvoicesPage(
     id: r.id!,
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
     direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
-    partner_company_id: r.partner_company_id,
+    partner_id: r.partner_id,
     project_id: r.project_id,
     project_code: r.project_code,
     entity_id: r.entity_id,

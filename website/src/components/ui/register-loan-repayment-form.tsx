@@ -14,7 +14,7 @@ type Props = {
   scheduleEntryId: string
   currency: Currency
   outstanding: number
-  partnerCompanyId: string
+  partnerId: string
   onSuccess: () => void
   onCancel: () => void
 }
@@ -25,7 +25,7 @@ export function RegisterLoanRepaymentForm({
   scheduleEntryId,
   currency,
   outstanding,
-  partnerCompanyId,
+  partnerId,
   onSuccess,
   onCancel,
 }: Props) {
@@ -41,11 +41,11 @@ export function RegisterLoanRepaymentForm({
 
   // Fetch bank accounts for the partner, filtered to loan currency (exclude detraccion accounts)
   useEffect(() => {
-    fetchBankAccountsForPayment(partnerCompanyId).then(accounts => {
+    fetchBankAccountsForPayment(partnerId).then(accounts => {
       const filtered = accounts.filter(a => a.currency === currency && !a.is_detraccion_account)
       setBankAccounts(filtered)
     })
-  }, [partnerCompanyId, currency])
+  }, [partnerId, currency])
 
   function handleSubmit() {
     setError(null)
@@ -72,7 +72,7 @@ export function RegisterLoanRepaymentForm({
         amount: parsed,
         currency,
         exchange_rate: exchangeRate,
-        partner_company_id: partnerCompanyId,
+        partner_id: partnerId,
         bank_account_id: bankAccountId || undefined,
       })
 

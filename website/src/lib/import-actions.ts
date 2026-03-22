@@ -166,8 +166,11 @@ export async function importInvoices(
   const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
   const { data: partners } = await supabase
-    .from('partner_companies').select('id, name').eq('is_active', true)
-  const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
+    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
+  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
+  const { data: partnerEntities } = await supabase
+    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
+  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
 
   const { data: quotes } = await supabase
     .from('quotes').select('id, document_ref')
@@ -185,7 +188,7 @@ export async function importInvoices(
     const r = i + 5
 
     const direction = str(row.direction)
-    const partnerName = str(row.partner_company_name)
+    const partnerName = str(row.partner_name)
     const invoiceDate = str(row.invoice_date)
     const currency = str(row.currency)
     const igvRate = num(row.igv_rate)
@@ -201,7 +204,7 @@ export async function importInvoices(
 
     // Required fields
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
-    if (!partnerName) errors.push({ row: r, column: 'partner_company_name', message: 'Required' })
+    if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
     if (!invoiceDate) errors.push({ row: r, column: 'invoice_date', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (igvRate === null) errors.push({ row: r, column: 'igv_rate', message: 'Required' })
@@ -222,7 +225,7 @@ export async function importInvoices(
 
     // FK lookups
     if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_company_name', message: 'Not found in database' })
+      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
     }
     if (projectCode && !projectMap.has(projectCode)) {
       errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
@@ -300,7 +303,7 @@ export async function importInvoices(
     const headerData = {
       direction,
       cost_type: costType,
-      partner_company_id: partnerMap.get(str(first.partner_company_name)!)!,
+      partner_id: partnerMap.get(str(first.partner_name)!)!,
       invoice_date: str(first.invoice_date),
       title: str(first.title),
       invoice_number: str(first.invoice_number),
@@ -367,8 +370,11 @@ export async function importPayments(
 
   // Load lookups
   const { data: partners } = await supabase
-    .from('partner_companies').select('id, name').eq('is_active', true)
-  const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
+    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
+  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
+  const { data: partnerEntities } = await supabase
+    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
+  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
 
   const { data: invoices } = await supabase
     .from('invoices').select('id, document_ref, direction')
@@ -401,7 +407,7 @@ export async function importPayments(
     const currency = str(row.currency)
     const exchangeRate = num(row.exchange_rate)
     const bankAccount = str(row.bank_account)
-    const partnerName = str(row.partner_company_name)
+    const partnerName = str(row.partner_name)
 
     // Required
     if (!invoiceDocRef) errors.push({ row: r, column: 'invoice_document_ref', message: 'Required' })
@@ -411,7 +417,7 @@ export async function importPayments(
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
-    if (!partnerName) errors.push({ row: r, column: 'partner_company_name', message: 'Required' })
+    if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
 
     // Enums
     if (direction && !DIRECTIONS.includes(direction)) {
@@ -429,7 +435,7 @@ export async function importPayments(
       errors.push({ row: r, column: 'invoice_document_ref', message: 'Not found in database' })
     }
     if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_company_name', message: 'Not found in database' })
+      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
     }
 
     // Bank account: required for non-retencion
@@ -483,7 +489,7 @@ export async function importPayments(
       currency: str(row.currency)!,
       exchange_rate: num(row.exchange_rate)!,
       bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
-      partner_company_id: partnerMap.get(str(row.partner_company_name)!)!,
+      partner_id: partnerMap.get(str(row.partner_name)!)!,
       notes: str(row.notes) ?? null,
     }
   })
@@ -515,8 +521,11 @@ export async function importDirectTransactions(
   const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
 
   const { data: partners } = await supabase
-    .from('partner_companies').select('id, name').eq('is_active', true)
-  const partnerMap = new Map((partners ?? []).map(p => [p.name, p.id]))
+    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
+  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
+  const { data: partnerEntities } = await supabase
+    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
+  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
 
   const { data: categories } = await supabase
     .from('categories').select('name, cost_type')
@@ -530,7 +539,7 @@ export async function importDirectTransactions(
     const r = i + 5
 
     const direction = str(row.direction)
-    const partnerName = str(row.partner_company_name)
+    const partnerName = str(row.partner_name)
     const projectCode = str(row.project_code)
     const amount = num(row.amount)
     const currency = str(row.currency)
@@ -540,7 +549,7 @@ export async function importDirectTransactions(
 
     // Required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
-    if (!partnerName) errors.push({ row: r, column: 'partner_company_name', message: 'Required' })
+    if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
     if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
@@ -557,7 +566,7 @@ export async function importDirectTransactions(
 
     // FK lookups
     if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_company_name', message: 'Not found in database' })
+      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
     }
     if (projectCode && !projectMap.has(projectCode)) {
       errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
@@ -590,7 +599,7 @@ export async function importDirectTransactions(
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     const direction = str(row.direction)!
-    const partnerId = partnerMap.get(str(row.partner_company_name)!)!
+    const partnerId = partnerMap.get(str(row.partner_name)!)!
     const projectId = projectMap.get(str(row.project_code)!)!
     const amount = num(row.amount)!
     const currency = str(row.currency)!
@@ -611,7 +620,7 @@ export async function importDirectTransactions(
         direction: invoiceDirection,
         cost_type: costType,
         comprobante_type: 'none',
-        partner_company_id: partnerId,
+        partner_id: partnerId,
         project_id: projectId,
         invoice_date: date,
         due_date: date,
@@ -656,7 +665,7 @@ export async function importDirectTransactions(
         amount,
         currency,
         exchange_rate: exchangeRate,
-        partner_company_id: partnerId,
+        partner_id: partnerId,
         bank_account_id: null,
         notes,
       })

@@ -72,7 +72,7 @@ export type LoanDetailData = {
     scheduled_payments_count: number | null
     paid_schedule_count: number | null
     project_id: string | null
-    partner_company_id: string | null
+    partner_id: string | null
   } | null
   schedule: LoanScheduleEntry[]
   payments: Payment[]
@@ -89,7 +89,7 @@ export type InvoicesPageRow = {
   id: string                          // invoice_id or loan_schedule_id
   type: 'commercial' | 'loan'
   direction: 'payable' | 'receivable'
-  partner_company_id: string | null
+  partner_id: string | null
   project_id: string | null
   project_code: string | null
   entity_id: string | null
@@ -128,7 +128,7 @@ export type PaymentsPageRow = {
   bank_account_id: string | null
   bank_name: string | null
   notes: string | null
-  partner_company_id: string | null
+  partner_id: string | null
 }
 
 export type PaymentsSummary = {
@@ -142,7 +142,7 @@ export type PaymentsSummary = {
 
 export type BankAccountCard = {
   bankAccountId: string
-  partnerCompanyId: string | null
+  partnerId: string | null
   partnerName: string | null
   bankName: string | null
   accountNumberLast4: string | null
@@ -213,14 +213,14 @@ export type ProjectEntitySummary = {
 
 export type ProjectPartnerRow = {
   id: string
-  partnerCompanyId: string
+  partnerId: string
   partnerName: string
   profitSharePct: number
 }
 
 // Settlement data for each partner within a project (all in PEN at transaction-date rates)
 export type ProjectPartnerSettlement = {
-  partnerCompanyId: string
+  partnerId: string
   partnerName: string
   profitSharePct: number
   costsContributed: number   // project costs paid by this partner
@@ -243,7 +243,7 @@ export type ProjectDetailData = {
 // --- Settlement dashboard types ---
 
 export type SettlementPartnerRow = {
-  partnerCompanyId: string
+  partnerId: string
   partnerName: string
   profitSharePct: number | null // null when aggregating across projects with different shares
   costsPaid: number
@@ -326,7 +326,7 @@ export type EntitiesFilterOptions = {
 
 // --- Dropdown option types ---
 
-export type PartnerCompanyOption = { id: string; name: string }
+export type PartnerOption = { id: string; name: string }
 
 export type CategoryOption = { name: string; cost_type: string; sort_order: number }
 

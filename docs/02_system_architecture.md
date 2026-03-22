@@ -49,7 +49,7 @@ Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Da
 ## 4. Key Architectural Decisions
 
 ### 4.1 Single Shared Database
-All three partner companies share one database with a `partner_company` field on every relevant financial record.
+All three partner companies share one database. Partners are regular rows in the `entities` table, identified by the `partner` tag via `entity_tags`. A `partner_id` field (FK to entities) on every relevant financial record identifies which partner is involved.
 
 **Why single:** Shared projects are registered once. Partner balance calculations happen naturally from the data. The website scopes data by partner using the global filter. One source of truth for a collaborative operation.
 
@@ -116,7 +116,7 @@ Every transaction captures the full Peruvian tax reality from day one:
 ### 4.8 Bank Account Tracking
 All three partners' bank accounts are tracked in the system. Every payment references a bank account, so all project-related cash movements are visible for all partners.
 
-**Key distinction:** Partner account balances reflect only project transactions recorded in the system — not full personal banking activity. Partners use personal accounts for mixed personal and business expenses. The `bank_tracking_full` flag on `partner_companies` (true for Alex, false for others) indicates whether full reconciliation against bank statements is expected. Alex's accounts can be fully reconciled; partner accounts show project-level activity only.
+**Key distinction:** Partner account balances reflect only project transactions recorded in the system — not full personal banking activity. Partners use personal accounts for mixed personal and business expenses.
 
 ---
 
@@ -150,14 +150,14 @@ The `invoices` table includes a nullable `purchase_order_id` field reserved for 
 ---
 
 ### 4.12 Single-User Architecture
-This is a single-user system managed by Alex. All data is visible — no role-based access restrictions, no partner filter. `partner_company_id` remains on all financial records for settlement calculations and accountant exports, but there is no UI to filter by partner.
+This is a single-user system managed by Alex. All data is visible — no role-based access restrictions, no partner filter. `partner_id` remains on all financial records for settlement calculations and accountant exports, but there is no UI to filter by partner.
 
 **Intentional data asymmetry:** Korakuen (Alex's company) has full formal invoice registration, bank reconciliation, and SUNAT-compliant records. Other partner companies have lightweight tracking — amounts, dates, and categories sufficient for settlement math. Each partner handles their own formal accounting externally.
 
 ---
 
 ### 4.13 Loans Module
-Tracks loans taken by any partner to fund project contributions. Every loan has a `partner_company_id` identifying which partner borrowed the money.
+Tracks loans taken by any partner to fund project contributions. Every loan has a `partner_id` (FK to entities) identifying which partner borrowed the money.
 
 **Business rule:** 10% return on loans. The borrower keeps the spread between the agreed return rate and what they actually pay the lender.
 
@@ -207,7 +207,7 @@ Identity is stored in Supabase user metadata (set via SQL after invite):
 
 | Field | Type | Purpose |
 |---|---|---|
-| `partner_company_id` | UUID | Links user to their partner_company record |
+| `partner_id` | UUID | Links user to their partner entity record |
 | `display_name` | string | Name shown in header |
 | `password_set` | boolean | Set to `true` when user completes set-password flow |
 

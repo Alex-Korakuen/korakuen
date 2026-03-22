@@ -106,7 +106,7 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
       </div>
 
       {/* Register repayment form */}
-      {showRepaymentForm && selectedEntryId && loan.loan_id && loan.partner_company_id && (
+      {showRepaymentForm && selectedEntryId && loan.loan_id && loan.partner_id && (
         <RegisterLoanRepaymentForm
           loanId={loan.loan_id}
           scheduleEntryId={selectedEntryId}
@@ -114,7 +114,7 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
           outstanding={
             detail.schedule.find(s => s.id === selectedEntryId)?.outstanding ?? 0
           }
-          partnerCompanyId={loan.partner_company_id}
+          partnerId={loan.partner_id}
           onSuccess={() => {
             setShowRepaymentForm(false)
             setSelectedEntryId(null)

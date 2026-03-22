@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       bank_accounts: {
@@ -25,7 +50,7 @@ export type Database = {
           is_active: boolean
           is_detraccion_account: boolean
           label: string
-          partner_company_id: string
+          partner_id: string
           updated_at: string
         }
         Insert: {
@@ -38,7 +63,7 @@ export type Database = {
           is_active?: boolean
           is_detraccion_account?: boolean
           label: string
-          partner_company_id: string
+          partner_id: string
           updated_at?: string
         }
         Update: {
@@ -51,15 +76,15 @@ export type Database = {
           is_active?: boolean
           is_detraccion_account?: boolean
           label?: string
-          partner_company_id?: string
+          partner_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_bank_accounts_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_bank_accounts_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
         ]
@@ -349,7 +374,7 @@ export type Database = {
           is_active: boolean
           is_auto_generated: boolean
           notes: string | null
-          partner_company_id: string
+          partner_id: string
           payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
@@ -378,7 +403,7 @@ export type Database = {
           is_active?: boolean
           is_auto_generated?: boolean
           notes?: string | null
-          partner_company_id: string
+          partner_id: string
           payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
@@ -407,7 +432,7 @@ export type Database = {
           is_active?: boolean
           is_auto_generated?: boolean
           notes?: string | null
-          partner_company_id?: string
+          partner_id?: string
           payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
@@ -427,10 +452,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_invoices_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -509,7 +534,7 @@ export type Database = {
           lender_contact: string | null
           lender_name: string
           notes: string | null
-          partner_company_id: string
+          partner_id: string
           project_id: string | null
           purpose: string
           return_type: string
@@ -529,7 +554,7 @@ export type Database = {
           lender_contact?: string | null
           lender_name: string
           notes?: string | null
-          partner_company_id: string
+          partner_id: string
           project_id?: string | null
           purpose: string
           return_type: string
@@ -549,7 +574,7 @@ export type Database = {
           lender_contact?: string | null
           lender_name?: string
           notes?: string | null
-          partner_company_id?: string
+          partner_id?: string
           project_id?: string | null
           purpose?: string
           return_type?: string
@@ -564,10 +589,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_loans_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_loans_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -578,51 +603,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      partner_companies: {
-        Row: {
-          bank_tracking_full: boolean
-          created_at: string
-          email: string | null
-          id: string
-          is_active: boolean
-          name: string
-          owner_document_number: string
-          owner_document_type: string
-          owner_name: string
-          phone: string | null
-          ruc: string
-          updated_at: string
-        }
-        Insert: {
-          bank_tracking_full?: boolean
-          created_at?: string
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          owner_document_number: string
-          owner_document_type: string
-          owner_name: string
-          phone?: string | null
-          ruc: string
-          updated_at?: string
-        }
-        Update: {
-          bank_tracking_full?: boolean
-          created_at?: string
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          owner_document_number?: string
-          owner_document_type?: string
-          owner_name?: string
-          phone?: string | null
-          ruc?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       payments: {
         Row: {
@@ -635,7 +615,7 @@ export type Database = {
           id: string
           is_active: boolean
           notes: string | null
-          partner_company_id: string
+          partner_id: string
           payment_date: string
           payment_type: string
           related_id: string
@@ -652,7 +632,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
-          partner_company_id: string
+          partner_id: string
           payment_date: string
           payment_type: string
           related_id: string
@@ -669,7 +649,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
-          partner_company_id?: string
+          partner_id?: string
           payment_date?: string
           payment_type?: string
           related_id?: string
@@ -692,10 +672,10 @@ export type Database = {
             referencedColumns: ["bank_account_id"]
           },
           {
-            foreignKeyName: "fk_payments_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_payments_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
         ]
@@ -756,7 +736,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          partner_company_id: string
+          partner_id: string
           profit_share_pct: number
           project_id: string
           updated_at: string
@@ -765,7 +745,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          partner_company_id: string
+          partner_id: string
           profit_share_pct: number
           project_id: string
           updated_at?: string
@@ -774,17 +754,17 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          partner_company_id?: string
+          partner_id?: string
           profit_share_pct?: number
           project_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_project_partners_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_project_partners_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -981,16 +961,16 @@ export type Database = {
           currency: string | null
           is_active: boolean | null
           is_detraccion_account: boolean | null
-          partner_company_id: string | null
+          partner_id: string | null
           partner_name: string | null
           transaction_count: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_bank_accounts_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_bank_accounts_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
         ]
@@ -1058,7 +1038,7 @@ export type Database = {
           net_amount: number | null
           notes: string | null
           outstanding: number | null
-          partner_company_id: string | null
+          partner_id: string | null
           payable_or_receivable: number | null
           payment_method: string | null
           payment_status: string | null
@@ -1082,10 +1062,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_invoices_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -1115,7 +1095,7 @@ export type Database = {
           invoice_id: string | null
           invoice_number: string | null
           notes: string | null
-          partner_company_id: string | null
+          partner_id: string | null
           payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
@@ -1137,10 +1117,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_invoices_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_invoices_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -1182,7 +1162,7 @@ export type Database = {
           invoice_number: string | null
           loan_id: string | null
           outstanding: number | null
-          partner_company_id: string | null
+          partner_id: string | null
           payment_status: string | null
           project_code: string | null
           project_id: string | null
@@ -1206,7 +1186,7 @@ export type Database = {
           loan_id: string | null
           outstanding: number | null
           paid_schedule_count: number | null
-          partner_company_id: string | null
+          partner_id: string | null
           principal: number | null
           project_id: string | null
           purpose: string | null
@@ -1217,10 +1197,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_loans_partner_companies"
-            columns: ["partner_company_id"]
+            foreignKeyName: "fk_loans_partner"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "partner_companies"
+            referencedRelation: "entities"
             referencedColumns: ["id"]
           },
           {
@@ -1253,7 +1233,7 @@ export type Database = {
           invoice_number: string | null
           loan_id: string | null
           outstanding: number | null
-          partner_company_id: string | null
+          partner_id: string | null
           payable: number | null
           payment_status: string | null
           project_code: string | null
@@ -1278,7 +1258,7 @@ export type Database = {
           id: string | null
           invoice_number: string | null
           notes: string | null
-          partner_company_id: string | null
+          partner_id: string | null
           payment_date: string | null
           payment_type: string | null
           project_code: string | null
@@ -1322,6 +1302,7 @@ export type Database = {
         Args: { igv_amount: number; retencion_rate: number; subtotal: number }
         Returns: number
       }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -1450,6 +1431,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

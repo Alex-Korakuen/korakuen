@@ -130,9 +130,9 @@ async function validateLoanScheduleLimit(
 export type { BankAccountOption } from '@/lib/queries'
 
 export async function fetchBankAccountsForPayment(
-  partnerCompanyId: string
+  partnerId: string
 ) {
-  return getBankAccountsForPartner(partnerCompanyId)
+  return getBankAccountsForPartner(partnerId)
 }
 
 export async function fetchExchangeRateForDate(
@@ -150,7 +150,7 @@ export async function registerPayment(input: {
   amount: number
   currency: string
   exchange_rate: number
-  partner_company_id: string
+  partner_id: string
   bank_account_id: string | null
   notes: string | null
 }): Promise<{ error?: string }> {
@@ -192,7 +192,7 @@ export async function registerPayment(input: {
     amount: input.amount,
     currency: input.currency,
     exchange_rate: input.exchange_rate,
-    partner_company_id: input.partner_company_id,
+    partner_id: input.partner_id,
     bank_account_id: input.bank_account_id,
     notes: input.notes,
   })
@@ -344,7 +344,7 @@ export async function deactivateEntity(
 }
 
 export async function createBankAccount(data: {
-  partner_company_id: string
+  partner_id: string
   bank_name: string
   account_number_last4: string
   label: string
@@ -568,7 +568,7 @@ export async function removeProjectBudget(projectId: string, category: string): 
 // --- Loans ---
 
 export async function createLoan(data: {
-  partner_company_id: string
+  partner_id: string
   entity_id: string
   lender_name: string
   amount: number
@@ -594,7 +594,7 @@ export async function createLoan(data: {
   }
 
   const { data: loan, error } = await supabase.from('loans').insert({
-    partner_company_id: data.partner_company_id,
+    partner_id: data.partner_id,
     entity_id: data.entity_id,
     lender_name: data.lender_name.trim(),
     lender_contact: null,
@@ -623,7 +623,7 @@ export async function createLoan(data: {
     amount: data.amount,
     currency: data.currency,
     exchange_rate: data.exchange_rate,
-    partner_company_id: data.partner_company_id,
+    partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
     notes: `Loan disbursement from ${data.lender_name.trim()}`,
   })
@@ -682,7 +682,7 @@ export async function registerLoanRepayment(data: {
   amount: number
   currency: Currency
   exchange_rate: number
-  partner_company_id: string
+  partner_id: string
   bank_account_id?: string
   notes?: string
 }): Promise<{ error?: string }> {
@@ -704,7 +704,7 @@ export async function registerLoanRepayment(data: {
     amount: data.amount,
     currency: data.currency,
     exchange_rate: data.exchange_rate,
-    partner_company_id: data.partner_company_id,
+    partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
     notes: data.notes?.trim() || null,
   })
@@ -865,7 +865,7 @@ export async function updateInvoice(input: {
   // Fetch existing invoice (locked fields + payment check)
   const { data: existing } = await supabase
     .from('invoices')
-    .select('id, direction, partner_company_id, currency, project_id, cost_type, igv_rate, retencion_applicable')
+    .select('id, direction, partner_id, currency, project_id, cost_type, igv_rate, retencion_applicable')
     .eq('id', input.id)
     .eq('is_active', true)
     .single()

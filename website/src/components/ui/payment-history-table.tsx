@@ -16,7 +16,7 @@ type PaymentFormProps = {
   relatedTo: 'invoice'
   relatedId: string
   direction: 'outbound' | 'inbound'
-  partnerCompanyId: string
+  partnerId: string
   currency: string
   outstanding: number
   payable: number

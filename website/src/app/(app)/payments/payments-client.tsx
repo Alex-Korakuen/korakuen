@@ -89,8 +89,8 @@ export function PaymentsClient({
             ? fetchInvoiceDetail(row.related_id)
             : Promise.resolve(null)
 
-      const bankPromise = row.partner_company_id
-        ? fetchBankAccountsForPayment(row.partner_company_id)
+      const bankPromise = row.partner_id
+        ? fetchBankAccountsForPayment(row.partner_id)
         : Promise.resolve([])
 
       const [detail, banks] = await Promise.all([detailPromise, bankPromise])

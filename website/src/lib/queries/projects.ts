@@ -40,7 +40,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   const [partnersResult, budgetResult, costResult, receivableResult] = await Promise.all([
     supabase
       .from('project_partners')
-      .select('project_id, partner_company_id, profit_share_pct')
+      .select('project_id, partner_id, profit_share_pct')
       .in('project_id', projectIds)
       .eq('is_active', true),
     supabase
@@ -49,13 +49,13 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       .in('project_id', projectIds),
     supabase
       .from('v_invoice_totals')
-      .select('project_id, partner_company_id, subtotal, currency, exchange_rate')
+      .select('project_id, partner_id, subtotal, currency, exchange_rate')
       .eq('direction', 'payable')
       .eq('cost_type', 'project_cost')
       .in('project_id', projectIds),
     supabase
       .from('invoices')
-      .select('id, project_id, partner_company_id, currency')
+      .select('id, project_id, partner_id, currency')
       .eq('direction', 'receivable')
       .in('project_id', projectIds)
       .eq('is_active', true),
@@ -85,10 +85,10 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   // 4. Build lookup maps
 
   // Partners grouped by project
-  const partnersByProject = new Map<string, Array<{ partner_company_id: string; profit_share_pct: number }>>()
+  const partnersByProject = new Map<string, Array<{ partner_id: string; profit_share_pct: number }>>()
   for (const pp of partnersResult.data ?? []) {
     const list = partnersByProject.get(pp.project_id) ?? []
-    list.push({ partner_company_id: pp.partner_company_id, profit_share_pct: pp.profit_share_pct })
+    list.push({ partner_id: pp.partner_id, profit_share_pct: pp.profit_share_pct })
     partnersByProject.set(pp.project_id, list)
   }
 
@@ -105,21 +105,21 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   // Costs per project per partner (PEN)
   const costsByProjectPartner = new Map<string, Map<string, number>>()
   for (const ct of costResult.data ?? []) {
-    if (!ct.partner_company_id || !ct.project_id) continue
+    if (!ct.partner_id || !ct.project_id) continue
     const projectMap = costsByProjectPartner.get(ct.project_id) ?? new Map()
     const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
-    projectMap.set(ct.partner_company_id, (projectMap.get(ct.partner_company_id) ?? 0) + amountPen)
+    projectMap.set(ct.partner_id, (projectMap.get(ct.partner_id) ?? 0) + amountPen)
     costsByProjectPartner.set(ct.project_id, projectMap)
   }
 
   // Revenue per project per partner (PEN)
   const revenueByProjectPartner = new Map<string, Map<string, number>>()
   for (const inv of receivableResult.data ?? []) {
-    if (!inv.partner_company_id || !inv.project_id) continue
+    if (!inv.partner_id || !inv.project_id) continue
     const paidAmount = paymentsByReceivable.get(inv.id) ?? 0
     if (paidAmount === 0) continue
     const projectMap = revenueByProjectPartner.get(inv.project_id) ?? new Map()
-    projectMap.set(inv.partner_company_id, (projectMap.get(inv.partner_company_id) ?? 0) + paidAmount)
+    projectMap.set(inv.partner_id, (projectMap.get(inv.partner_id) ?? 0) + paidAmount)
     revenueByProjectPartner.set(inv.project_id, projectMap)
   }
 
@@ -142,8 +142,8 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
 
       isSettled = true
       for (const partner of partners) {
-        const costs = costMap.get(partner.partner_company_id) ?? 0
-        const revenue = revMap.get(partner.partner_company_id) ?? 0
+        const costs = costMap.get(partner.partner_id) ?? 0
+        const revenue = revMap.get(partner.partner_id) ?? 0
         const profit = round2(revenue - costs)
         const shouldReceive = round2(totalProfit * (partner.profit_share_pct / 100))
         const balance = round2(shouldReceive - profit)
@@ -174,7 +174,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
   // 1. Fetch project, project_partners, budget, AR invoices in parallel
   const [projectResult, ppResult, budgetResult] = await Promise.all([
     supabase.from('projects').select('*').eq('id', projectId).eq('is_active', true).single(),
-    supabase.from('project_partners').select('id, partner_company_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
+    supabase.from('project_partners').select('id, partner_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
     supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
   ])
 
@@ -245,24 +245,24 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     clientName = clientEntity?.legal_name || null
   }
 
-  // 5. Partners — build name map from partner_companies
+  // 5. Partners — build name map from entities
   const ppData = ppResult.data ?? []
-  const partnerCompanyIds = [...new Set(ppData.map(pp => pp.partner_company_id))]
+  const partnerIds = [...new Set(ppData.map(pp => pp.partner_id))]
   let partnerNameMap = new Map<string, string>()
-  if (partnerCompanyIds.length > 0) {
+  if (partnerIds.length > 0) {
     const { data: pcData, error: pcError } = await supabase
-      .from('partner_companies')
-      .select('id, name')
-      .in('id', partnerCompanyIds)
+      .from('entities')
+      .select('id, legal_name')
+      .in('id', partnerIds)
     if (pcError) throw pcError
     for (const pc of pcData ?? []) {
-      partnerNameMap.set(pc.id, pc.name)
+      partnerNameMap.set(pc.id, pc.legal_name)
     }
   }
   const partners: ProjectPartnerRow[] = ppData.map(pp => ({
     id: pp.id,
-    partnerCompanyId: pp.partner_company_id,
-    partnerName: partnerNameMap.get(pp.partner_company_id) ?? '—',
+    partnerId: pp.partner_id,
+    partnerName: partnerNameMap.get(pp.partner_id) ?? '—',
     profitSharePct: pp.profit_share_pct,
   }))
 
@@ -272,7 +272,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     // Fetch project costs per partner from v_invoice_totals (project_cost only, SGA excluded)
     const { data: costTotals, error: settlementCostError } = await supabase
       .from('v_invoice_totals')
-      .select('partner_company_id, subtotal, currency, exchange_rate')
+      .select('partner_id, subtotal, currency, exchange_rate')
       .eq('direction', 'payable')
       .eq('project_id', projectId)
       .eq('cost_type', 'project_cost')
@@ -281,15 +281,15 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     // Sum cost contributions per partner in PEN
     const costsByPartner = new Map<string, number>()
     for (const ct of costTotals ?? []) {
-      if (!ct.partner_company_id) continue
+      if (!ct.partner_id) continue
       const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
-      costsByPartner.set(ct.partner_company_id, (costsByPartner.get(ct.partner_company_id) ?? 0) + amountPen)
+      costsByPartner.set(ct.partner_id, (costsByPartner.get(ct.partner_id) ?? 0) + amountPen)
     }
 
     // Get actual AR payments received per partner
     const { data: projectReceivables, error: recvError } = await supabase
       .from('invoices')
-      .select('id, partner_company_id, currency')
+      .select('id, partner_id, currency')
       .eq('direction', 'receivable')
       .eq('project_id', projectId)
       .eq('is_active', true)
@@ -307,10 +307,10 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
         .eq('is_active', true)
       if (arPmtError) throw arPmtError
 
-      const receivablePartnerMap = new Map<string, { partner_company_id: string; currency: string }>()
+      const receivablePartnerMap = new Map<string, { partner_id: string; currency: string }>()
       for (const inv of projectReceivables ?? []) {
-        if (inv.partner_company_id) {
-          receivablePartnerMap.set(inv.id, { partner_company_id: inv.partner_company_id, currency: inv.currency })
+        if (inv.partner_id) {
+          receivablePartnerMap.set(inv.id, { partner_id: inv.partner_id, currency: inv.currency })
         }
       }
 
@@ -319,7 +319,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
         if (!invInfo) continue
         const paymentCurrency = p.currency ?? invInfo.currency
         const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
-        receivedByPartner.set(invInfo.partner_company_id, (receivedByPartner.get(invInfo.partner_company_id) ?? 0) + amountPen)
+        receivedByPartner.set(invInfo.partner_id, (receivedByPartner.get(invInfo.partner_id) ?? 0) + amountPen)
       }
     }
 
@@ -330,13 +330,13 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
 
     // Build settlement rows — one per partner
     partnerSettlements = partners.map(p => {
-      const costsContributed = costsByPartner.get(p.partnerCompanyId) ?? 0
-      const revenueReceived = receivedByPartner.get(p.partnerCompanyId) ?? 0
+      const costsContributed = costsByPartner.get(p.partnerId) ?? 0
+      const revenueReceived = receivedByPartner.get(p.partnerId) ?? 0
       const profit = round2(revenueReceived - costsContributed)
       const shouldReceive = round2(totalProjectProfit * (p.profitSharePct / 100))
       const balance = round2(shouldReceive - profit)
       return {
-        partnerCompanyId: p.partnerCompanyId,
+        partnerId: p.partnerId,
         partnerName: p.partnerName,
         profitSharePct: p.profitSharePct,
         costsContributed,

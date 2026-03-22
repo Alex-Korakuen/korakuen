@@ -151,7 +151,7 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
                 relatedTo: 'invoice',
                 relatedId: invoice.invoice_id,
                 direction,
-                partnerCompanyId: invoice.partner_company_id ?? '',
+                partnerId: invoice.partner_id ?? '',
                 currency,
                 outstanding: invoiceOutstanding,
                 payable: invoicePayable,
@@ -337,7 +337,7 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
         </div>
         <div>
           <span className="block text-[11px] font-medium text-faint mb-1">Partner <LockIcon /></span>
-          <span className="text-sm text-muted">{row.partner_company_id ? '—' : '--'}</span>
+          <span className="text-sm text-muted">{row.partner_id ? '—' : '--'}</span>
         </div>
         <div>
           <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
