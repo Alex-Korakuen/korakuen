@@ -121,7 +121,7 @@ createTemplate('direct-transactions-template.xlsx', [
   { key: 'date',                   description: 'Transaction date',               example: '2026-03-20',        valid: 'YYYY-MM-DD' },
   { key: 'amount',                 description: 'Amount',                         example: '500.00',            valid: 'Required, > 0' },
   { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Required, 2.5–6.0' },
+  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Optional — auto-filled from exchange_rates table if blank' },
   { key: 'category',               description: 'Cost category (outflow only)',   example: 'materials',         valid: 'Required for outflow. Values: materials, labor, subcontractor, equipment_rental, permits_regulatory, other' },
   { key: 'notes',                  description: 'Notes / description',            example: 'Cash for nails',    valid: 'Optional' },
 ])

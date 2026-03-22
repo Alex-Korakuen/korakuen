@@ -533,6 +533,24 @@ export async function importDirectTransactions(
     (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
   )
 
+  // Collect unique dates that need exchange rate lookup
+  const datesToLookup = new Set<string>()
+  for (const row of rows) {
+    if (num(row.exchange_rate) === null && str(row.date)) {
+      datesToLookup.add(str(row.date)!)
+    }
+  }
+  const exchangeRateMap = new Map<string, number>()
+  if (datesToLookup.size > 0) {
+    const { data: rates } = await supabase
+      .from('exchange_rates')
+      .select('rate_date, sell_rate')
+      .in('rate_date', [...datesToLookup])
+    for (const rate of rates ?? []) {
+      exchangeRateMap.set(rate.rate_date, Number(rate.sell_rate))
+    }
+  }
+
   // --- Validate each row ---
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
@@ -543,9 +561,18 @@ export async function importDirectTransactions(
     const projectCode = str(row.project_code)
     const amount = num(row.amount)
     const currency = str(row.currency)
-    const exchangeRate = num(row.exchange_rate)
     const date = str(row.date)
     const category = str(row.category)
+
+    // Auto-fill exchange rate from exchange_rates table if not provided
+    let exchangeRate = num(row.exchange_rate)
+    if (exchangeRate === null && date) {
+      const lookedUp = exchangeRateMap.get(date)
+      if (lookedUp) {
+        exchangeRate = lookedUp
+        row.exchange_rate = lookedUp
+      }
+    }
 
     // Required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
@@ -553,7 +580,7 @@ export async function importDirectTransactions(
     if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
-    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!date) errors.push({ row: r, column: 'date', message: 'Required' })
 
     // Enums
