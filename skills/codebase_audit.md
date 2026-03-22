@@ -21,7 +21,7 @@
 - [ ] Field names in SQL match field names in schema document exactly
 - [ ] Field types in SQL match the types specified in schema document
 - [ ] Every FK in SQL references the correct table and field
-- [ ] The 11 soft-delete tables have `is_active` (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets, project_partners, invoices, payments). All tables have `created_at`. All tables have `updated_at` except `entity_tags`
+- [ ] The 10 soft-delete tables have `is_active` (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets, project_partners, invoices, payments). All tables have `created_at`. All tables have `updated_at` except `entity_tags`
 - [ ] TypeScript types in `database.types.ts` match current schema — regenerate if schema changed
 - [ ] Enum values in `types.ts` match VARCHAR values in schema exactly
 

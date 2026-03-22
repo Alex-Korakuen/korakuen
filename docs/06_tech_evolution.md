@@ -77,7 +77,7 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 **Goal:** Full visualization and data entry website. Unified invoice model. All partner data visible with global filter.
 
 ### Stack
-- PostgreSQL on Supabase (database — 17 tables, 10 views)
+- PostgreSQL on Supabase (database — 16 tables, 10 views)
 - Next.js on Vercel (visualization + data entry website)
 - SharePoint (file storage, external)
 

@@ -95,7 +95,7 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 ### Active Records Only
 
-Views should filter `is_active = true` on joined reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never filter them by `is_active`.
+Views should filter `is_active = true` on joined reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never filter them by `is_active`.
 
 **Exception — financial/historical views:** Views that report on financial history intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 
@@ -145,7 +145,7 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Ordered by payment_date DESC
 
 ### v_bank_balances
-- Source: `payments` grouped by bank_account_id, joined to `bank_accounts` and `partner_companies`
+- Source: `payments` grouped by bank_account_id, joined to `bank_accounts` and `entities`
 - Inbound payments add to balance, outbound payments subtract
 - Shows active accounts OR accounts with non-zero balances
 
@@ -154,7 +154,7 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Three CTEs: `loan_totals` (computes total_owed from return_type/rate), `loan_paid` (aggregates payments), `schedule_stats` (counts entries)
 - Status derived: active (no payments), partially_paid, settled
 - Return amount calculated from `return_type`: percentage applies `agreed_return_rate` to `amount`, fixed uses `agreed_return_amount`
-- Exposes `partner_company_id` for partner filter
+- Exposes `partner_id` for partner filter
 - Loans are permanent records — no `is_active` filter
 
 ### v_budget_vs_actual

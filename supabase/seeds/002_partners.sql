@@ -1,6 +1,6 @@
 -- ============================================================
--- Korakuen Management System — Seed Data: Partner Companies
--- File: 002_partner_companies.sql
+-- Korakuen Management System — Seed Data: Partners
+-- File: 002_partners.sql
 -- Date: 2026-03-22
 --
 -- Seeds partner companies as entities tagged 'partner'.

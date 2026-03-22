@@ -51,7 +51,7 @@ korakuen/
 │   │   └── v_retencion_dashboard.sql
 │   └── seeds/
 │       ├── 001_tags.sql
-│       ├── 002_partner_companies.sql
+│       ├── 002_partners.sql
 │       └── 003_bank_accounts.sql
 ├── website/                → Next.js website (visualization + data entry)
 │   ├── src/app/
@@ -109,7 +109,7 @@ Seed data is not managed as migrations. Run seeds via `psql` or the Supabase SQL
 # Via psql (using your database connection string from Supabase dashboard → Settings → Database)
 psql "postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres" \
   -f supabase/seeds/001_tags.sql \
-  -f supabase/seeds/002_partner_companies.sql \
+  -f supabase/seeds/002_partners.sql \
   -f supabase/seeds/003_bank_accounts.sql
 
 ```

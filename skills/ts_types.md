@@ -34,7 +34,6 @@ import type { Database } from './database.types'
 
 // === Row types (read from database) ===
 
-export type PartnerCompanyRow = Database['public']['Tables']['partner_companies']['Row']
 export type BankAccountRow = Database['public']['Tables']['bank_accounts']['Row']
 export type EntityRow = Database['public']['Tables']['entities']['Row']
 export type TagRow = Database['public']['Tables']['tags']['Row']

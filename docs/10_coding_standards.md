@@ -96,7 +96,7 @@ When retiring a file: delete it, commit with a clear message explaining why, and
 
 ### Naming Conventions
 - **Tables:** snake_case, plural nouns — `invoices`, `invoice_items`, `bank_accounts`
-- **Columns:** snake_case — `partner_company_id`, `is_active`, `created_at`
+- **Columns:** snake_case — `partner_id`, `is_active`, `created_at`
 - **Views:** snake_case, `v_` prefix, descriptive — `v_invoice_totals`, `v_obligation_calendar`, `v_loan_balances`
 - **Indexes:** `idx_[table]_[column]` — `idx_invoices_project_id`
 - **Foreign keys:** `fk_[table]_[referenced_table]` — `fk_invoices_projects`
@@ -106,7 +106,7 @@ When retiring a file: delete it, commit with a clear message explaining why, and
 - Foreign keys: always `[table_singular]_id` — `project_id`, `entity_id`
 - Booleans: always prefix with `is_` or `has_` — `is_active`, `is_detraccion_account`
 - Timestamps: `created_at` and `updated_at` on every table
-- Soft delete: `is_active BOOLEAN DEFAULT true` on reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table — transaction and historical reference tables are permanent records
+- Soft delete: `is_active BOOLEAN DEFAULT true` on reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table — transaction and historical reference tables are permanent records
 - Amounts: `NUMERIC(15,2)` for money, `NUMERIC(15,4)` for quantities and unit prices
 - Rates/percentages: `NUMERIC(5,2)` — e.g. 18.00 for IGV, 4.00 for detraccion
 - Currency: `VARCHAR(3)` — always 'USD' or 'PEN'

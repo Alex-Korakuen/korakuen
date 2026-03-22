@@ -29,22 +29,22 @@
 
 Generate tables in this exact order so foreign keys never reference a table that doesn't exist yet:
 
-1. `partner_companies`
-2. `bank_accounts`
+1. `bank_accounts`
+2. `exchange_rates`
 3. `entities`
-4. `tags`
-5. `entity_tags`
-6. `entity_contacts`
-7. `projects`
-8. `project_partners`
-9. `quotes`
-10. `invoices`
-11. `invoice_items`
-12. `payments`
-13. `loans`
-14. `loan_schedule`
-15. `project_budgets`
-16. `categories`
+4. `categories`
+5. `tags`
+6. `entity_tags`
+7. `entity_contacts`
+8. `projects`
+9. `project_partners`
+10. `quotes`
+11. `invoices`
+12. `invoice_items`
+13. `payments`
+14. `loans`
+15. `loan_schedule`
+16. `project_budgets`
 
 ---
 
@@ -91,7 +91,7 @@ CREATE TRIGGER trg_[table_name]_updated_at
 
 ### Soft Delete
 
-Reference/master data tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table:
+Reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table:
 
 ```sql
 is_active BOOLEAN DEFAULT true NOT NULL
@@ -148,7 +148,6 @@ Known enum values per field:
 
 | Field | Valid Values |
 |---|---|
-| `partner_companies.owner_document_type` | RUC, DNI, CE, Pasaporte |
 | `entities.entity_type` | company, individual |
 | `entities.document_type` | RUC, DNI, CE, Pasaporte |
 | `bank_accounts.account_type` | checking, savings, detraccion |
@@ -189,6 +188,6 @@ After generating the SQL file:
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
 3. All tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 9 soft-delete tables have `is_active` — reference/master tables (partner_companies, bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table
+4. Only the 8 soft-delete tables have `is_active` — reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`
