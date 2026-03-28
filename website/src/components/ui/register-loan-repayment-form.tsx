@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import { registerLoanRepayment, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, formSectionLabel, formFieldLabel } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 import type { Currency } from '@/lib/types'
@@ -97,7 +97,7 @@ export function RegisterLoanRepaymentForm({
     <div className="rounded-[10px] border border-accent/20 bg-accent-bg px-4 py-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-accent">New Repayment</span>
+        <span className={formSectionLabel}>New Repayment</span>
         <button
           type="button"
           onClick={onCancel}
@@ -112,7 +112,7 @@ export function RegisterLoanRepaymentForm({
       <div className="grid grid-cols-2 gap-3">
         {/* Amount */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Amount
           </label>
           <input
@@ -132,7 +132,7 @@ export function RegisterLoanRepaymentForm({
 
         {/* Date */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Date
           </label>
           <input
@@ -147,7 +147,7 @@ export function RegisterLoanRepaymentForm({
       {/* Bank Account */}
       {bankAccounts.length > 0 && (
         <div className="mt-3">
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Bank Account
           </label>
           <select

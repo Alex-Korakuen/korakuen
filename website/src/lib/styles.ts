@@ -10,6 +10,16 @@ export const inputClass =
 export const inputCompactClass =
   'rounded border border-edge px-2 py-1.5 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent'
 
+// ── Form labels ─────────────────────────────────────────────────────
+
+/** Section header label — form titles like "New Payment" */
+export const formSectionLabel =
+  'text-xs font-bold uppercase tracking-wide text-accent'
+
+/** Field label — form inputs with block display and margin */
+export const formFieldLabel =
+  'mb-1 block text-xs font-bold uppercase tracking-wide text-accent'
+
 // ── Buttons ──────────────────────────────────────────────────────────
 
 /** Primary action button — header CTAs, inline actions */

@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import { registerPayment, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
-import { inputCompactClass } from '@/lib/styles'
+import { inputCompactClass, formSectionLabel, formFieldLabel } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 
@@ -158,7 +158,7 @@ export function RegisterPaymentForm({
     <div className="rounded-[10px] border border-accent/20 bg-accent-bg px-4 py-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wide text-accent">New Payment</span>
+        <span className={formSectionLabel}>New Payment</span>
         <button
           type="button"
           onClick={onCancel}
@@ -173,7 +173,7 @@ export function RegisterPaymentForm({
       <div className={`grid gap-3 ${isRetencion ? 'grid-cols-3' : 'grid-cols-4'}`}>
         {/* Amount */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Amount
           </label>
           <input
@@ -193,7 +193,7 @@ export function RegisterPaymentForm({
 
         {/* Payment Type */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Type
           </label>
           <select
@@ -210,7 +210,7 @@ export function RegisterPaymentForm({
         {/* Bank Account (hidden for retencion) */}
         {!isRetencion && (
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+            <label className={formFieldLabel}>
               Account
             </label>
             {loadingAccounts ? (
@@ -238,7 +238,7 @@ export function RegisterPaymentForm({
 
         {/* Date */}
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-accent">
+          <label className={formFieldLabel}>
             Date
           </label>
           <input
