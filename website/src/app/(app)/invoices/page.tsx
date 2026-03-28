@@ -6,6 +6,7 @@ import {
 } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
+import { getMonthDateRange } from '@/lib/date-utils'
 import { InvoicesClient } from './invoices-client'
 
 type Props = {
@@ -16,16 +17,8 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const params = await searchParams
   const { page, sort, dir } = parsePaginationParams(params, { sort: 'due_date', dir: 'desc' })
 
-  // Derive dateFrom/dateTo from month param
   const month = str(params, FK.month)
-  let dateFrom: string | undefined
-  let dateTo: string | undefined
-  if (month) {
-    const [y, m] = month.split('-').map(Number)
-    const lastDay = new Date(y, m, 0).getDate()
-    dateFrom = `${month}-01`
-    dateTo = `${month}-${String(lastDay).padStart(2, '0')}`
-  }
+  const { dateFrom, dateTo } = month ? getMonthDateRange(month) : { dateFrom: undefined, dateTo: undefined }
 
   const filters = {
     direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,

@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { DEFAULT_CURRENCY } from './shared'
+import { DEFAULT_CURRENCY, buildInvoiceCategoryMap } from './shared'
 import { getPartners } from './lookups'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
@@ -61,15 +61,7 @@ export async function getInvoicesPage(
 
   let rows: InvoicesWithLoansRow[] = invoicesResult.data ?? []
 
-  // Build invoice_id → Set<category> mapping for category filter
-  const categoryByInvoice = new Map<string, Set<string>>()
-  for (const item of itemCategoriesResult.data ?? []) {
-    if (!item.category) continue
-    if (!categoryByInvoice.has(item.invoice_id)) {
-      categoryByInvoice.set(item.invoice_id, new Set())
-    }
-    categoryByInvoice.get(item.invoice_id)!.add(item.category)
-  }
+  const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
 
   // Collect unique categories for filter dropdown
   const allCategories = [...new Set(

@@ -6,7 +6,7 @@ import { useUrlFilters } from '@/lib/use-url-filters'
 import { Pagination } from '@/components/ui/pagination'
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderPortal } from '@/components/ui/header-portal'
-import { FK } from '@/lib/filter-keys'
+import { FK, hasActiveFilters } from '@/lib/filter-keys'
 import { importQuotes } from '@/lib/import-actions'
 import { PricesFilters } from './prices-filters'
 import { PricesTable } from './prices-table'
@@ -42,14 +42,7 @@ export function PricesClient({
   const [showImport, setShowImport] = useState(false)
   const { setFilter, clearFilters } = useUrlFilters()
 
-  const hasActiveFilters =
-    currentFilters.category !== '' ||
-    currentFilters.entityId !== '' ||
-    currentFilters.projectId !== '' ||
-    currentFilters.tagId !== '' ||
-    currentFilters.dateFrom !== '' ||
-    currentFilters.dateTo !== '' ||
-    currentFilters.search !== ''
+  const filtersActive = hasActiveFilters(currentFilters)
 
   const handleClearFilters = () => {
     clearFilters([FK.search, FK.category, FK.entity, FK.project, FK.tag, FK.dateFrom, FK.dateTo])
@@ -74,7 +67,7 @@ export function PricesClient({
         currentFilters={currentFilters}
         filterOptions={filterOptions}
         setFilter={setFilter}
-        hasActiveFilters={hasActiveFilters}
+        hasActiveFilters={filtersActive}
         onClearFilters={handleClearFilters}
       />
 

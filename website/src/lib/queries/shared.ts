@@ -56,6 +56,21 @@ export async function buildEntityTagsMap(
   return map
 }
 
+/** Build invoice_id → Set<category> mapping from invoice_items rows */
+export function buildInvoiceCategoryMap(
+  items: { invoice_id: string; category: string | null }[]
+): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>()
+  for (const item of items) {
+    if (!item.category) continue
+    if (!map.has(item.invoice_id)) {
+      map.set(item.invoice_id, new Set())
+    }
+    map.get(item.invoice_id)!.add(item.category)
+  }
+  return map
+}
+
 export async function buildProjectCodeMap(
   supabase: SupabaseClient,
   projectIds: string[]

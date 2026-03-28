@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { getCalendarBucket } from '@/lib/date-utils'
-import { FK } from '@/lib/filter-keys'
+import { FK, hasActiveFilters } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importDirectTransactions } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
@@ -115,12 +115,7 @@ export function CalendarClient({
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
 
-  const hasActiveFilters =
-    currentFilters.projectId !== '' ||
-    currentFilters.entity !== '' ||
-    currentFilters.type !== '' ||
-    currentFilters.currency !== '' ||
-    currentFilters.search !== ''
+  const filtersActive = hasActiveFilters(currentFilters)
 
   const handleClearFilters = () => clearFilters([FK.project, FK.entity, FK.type, FK.currency, FK.search])
 
@@ -245,7 +240,7 @@ export function CalendarClient({
         setFilter={setFilter}
         projects={projects}
         uniqueEntities={uniqueEntities}
-        hasActiveFilters={hasActiveFilters}
+        hasActiveFilters={filtersActive}
         onClearFilters={handleClearFilters}
       />
 

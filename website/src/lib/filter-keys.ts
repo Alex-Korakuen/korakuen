@@ -25,6 +25,11 @@ export const FK = {
   selected: 'selected',
 } as const
 
+/** True if any filter value is non-empty. */
+export function hasActiveFilters(filters: Record<string, string>): boolean {
+  return Object.values(filters).some(v => v !== '')
+}
+
 /** Extract a single string param, returning undefined if missing or an array. */
 export function str(params: Record<string, string | string[] | undefined>, key: string): string | undefined {
   const v = params[key]
