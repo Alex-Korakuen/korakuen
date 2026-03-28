@@ -162,6 +162,8 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       contract_value: p.contract_value,
       contract_currency: p.contract_currency as Currency | null,
       partner_count: partners.length,
+      budget_total: budget ? round2(budget.budgeted) : null,
+      expense_total: budget ? round2(budget.actual) : null,
       budget_pct: budgetPct,
       is_settled: isSettled,
     }

@@ -103,9 +103,19 @@ export function ProjectsGrid({ projects }: Props) {
                   </span>
                 </div>
 
-                {/* Budget bar */}
-                <div className="flex items-center justify-between gap-3 text-sm">
+                {/* Budget */}
+                <div className="flex items-center justify-between text-sm">
                   <span className="text-muted">Budget</span>
+                  <span className="font-mono font-semibold text-ink">
+                    {p.budget_total !== null
+                      ? formatCurrency(p.budget_total, 'PEN')
+                      : <span className="font-sans font-normal text-faint">—</span>}
+                  </span>
+                </div>
+
+                {/* Expense with bar */}
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted">Expense</span>
                   {p.budget_pct !== null ? (
                     <>
                       <div className="flex-1">
@@ -117,7 +127,7 @@ export function ProjectsGrid({ projects }: Props) {
                         </div>
                       </div>
                       <span className={`min-w-[3rem] text-right font-mono text-xs font-semibold ${budgetPctColor(p.budget_pct)}`}>
-                        {p.budget_pct.toFixed(0)}%
+                        {p.expense_total !== null ? formatCurrency(p.expense_total, 'PEN') : '—'}
                       </span>
                     </>
                   ) : (

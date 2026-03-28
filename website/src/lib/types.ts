@@ -201,6 +201,8 @@ export type ProjectListItem = {
 
 export type ProjectCardItem = ProjectListItem & {
   partner_count: number
+  budget_total: number | null     // total budgeted amount in PEN, null if no budget
+  expense_total: number | null    // total actual spending in PEN, null if no budget
   budget_pct: number | null       // actual/budgeted * 100, null if no budget
   is_settled: boolean | null      // null = no partners or no activity
 }
