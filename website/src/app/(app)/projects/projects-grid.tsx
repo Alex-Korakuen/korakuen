@@ -117,18 +117,20 @@ export function ProjectsGrid({ projects, partnerOptions }: Props) {
                 {/* Expense with bar */}
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-muted">Expense</span>
-                  {p.budget_pct !== null ? (
+                  {p.expense_total !== null ? (
                     <>
-                      <div className="flex-1">
-                        <div className="h-1.5 rounded-full bg-edge">
-                          <div
-                            className={`h-1.5 rounded-full ${budgetBarColor(p.budget_pct)}`}
-                            style={{ width: `${Math.min(p.budget_pct, 100)}%` }}
-                          />
+                      {p.budget_pct !== null && (
+                        <div className="flex-1">
+                          <div className="h-1.5 rounded-full bg-edge">
+                            <div
+                              className={`h-1.5 rounded-full ${budgetBarColor(p.budget_pct)}`}
+                              style={{ width: `${Math.min(p.budget_pct, 100)}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <span className={`min-w-[3rem] text-right font-mono text-xs font-semibold ${budgetPctColor(p.budget_pct)}`}>
-                        {p.expense_total !== null ? formatCurrency(p.expense_total, 'PEN') : '—'}
+                      )}
+                      <span className={`font-mono font-semibold ${p.budget_pct !== null ? `min-w-[3rem] text-right text-xs ${budgetPctColor(p.budget_pct)}` : 'text-ink'}`}>
+                        {formatCurrency(p.expense_total, 'PEN')}
                       </span>
                     </>
                   ) : (

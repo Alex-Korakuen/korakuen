@@ -127,14 +127,18 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   return projects.map(p => {
     const partners = partnersByProject.get(p.id) ?? []
     const budget = budgetMap.get(p.id)
+
+    // Expense total: sum all project costs from costsByProjectPartner (independent of budget)
+    const costMap = costsByProjectPartner.get(p.id) ?? new Map()
+    const totalExpense = [...costMap.values()].reduce((sum, v) => sum + v, 0)
+
     const budgetPct = budget && budget.budgeted > 0
-      ? Math.round((budget.actual / budget.budgeted) * 1000) / 10
+      ? Math.round((totalExpense / budget.budgeted) * 1000) / 10
       : null
 
     // Settlement: check if all partner balances are zero
     let isSettled: boolean | null = null
     if (partners.length > 0) {
-      const costMap = costsByProjectPartner.get(p.id) ?? new Map()
       const revMap = revenueByProjectPartner.get(p.id) ?? new Map()
       const totalCosts = [...costMap.values()].reduce((sum, v) => sum + v, 0)
       const totalRevenue = [...revMap.values()].reduce((sum, v) => sum + v, 0)
@@ -163,7 +167,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       contract_currency: p.contract_currency as Currency | null,
       partner_count: partners.length,
       budget_total: budget ? round2(budget.budgeted) : null,
-      expense_total: budget ? round2(budget.actual) : null,
+      expense_total: totalExpense > 0 ? round2(totalExpense) : null,
       budget_pct: budgetPct,
       is_settled: isSettled,
     }
