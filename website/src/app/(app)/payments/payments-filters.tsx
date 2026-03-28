@@ -5,27 +5,23 @@ import { FK } from '@/lib/filter-keys'
 
 type Props = {
   currentFilters: {
+    month: string
+    partnerId: string
+    projectId: string
+    category: string
+    entity: string
+    bankAccountId: string
     direction: string
     paymentType: string
-    category: string
-    projectId: string
-    bankAccountId: string
-    partnerId: string
-    month: string
   }
   setFilter: (key: string, value: string) => void
   projects: { id: string; project_code: string }[]
   bankAccounts: { id: string; label: string }[]
   partners: { id: string; label: string }[]
   categories: { value: string; label: string }[]
+  entities: { value: string; label: string }[]
   hasActiveFilters: boolean
   onClearFilters: () => void
-}
-
-function chipClass(isActive: boolean, activeClass: string): string {
-  return `rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer border ${
-    isActive ? activeClass : 'border-edge bg-white text-muted hover:bg-surface'
-  }`
 }
 
 export function PaymentsFilters({
@@ -35,13 +31,10 @@ export function PaymentsFilters({
   bankAccounts,
   partners,
   categories,
+  entities,
   hasActiveFilters,
   onClearFilters,
 }: Props) {
-  function toggleChip(filterKey: string, currentValue: string, chipValue: string) {
-    setFilter(filterKey, currentValue === chipValue ? '' : chipValue)
-  }
-
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Month picker */}
@@ -52,49 +45,13 @@ export function PaymentsFilters({
         className="rounded border border-edge bg-white px-2 py-1 text-xs text-muted"
       />
 
-      <div className="h-5 w-px bg-edge" />
-
-      {/* Direction chips */}
-      <div className="flex gap-1">
-        <button
-          className={chipClass(currentFilters.direction === 'inbound', 'border-positive/20 bg-positive-bg text-positive')}
-          onClick={() => toggleChip(FK.direction, currentFilters.direction, 'inbound')}
-        >
-          In
-        </button>
-        <button
-          className={chipClass(currentFilters.direction === 'outbound', 'border-negative/20 bg-negative-bg text-negative')}
-          onClick={() => toggleChip(FK.direction, currentFilters.direction, 'outbound')}
-        >
-          Out
-        </button>
-      </div>
-
-      <div className="h-5 w-px bg-edge" />
-
-      {/* Type chips */}
-      <div className="flex gap-1">
-        <button
-          className={chipClass(currentFilters.paymentType === 'regular', 'border-edge-strong bg-edge text-ink')}
-          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'regular')}
-        >
-          Regular
-        </button>
-        <button
-          className={chipClass(currentFilters.paymentType === 'detraccion', 'border-accent/20 bg-accent-bg text-accent')}
-          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'detraccion')}
-        >
-          Det
-        </button>
-        <button
-          className={chipClass(currentFilters.paymentType === 'retencion', 'border-yellow-200 bg-yellow-100 text-yellow-700')}
-          onClick={() => toggleChip(FK.type, currentFilters.paymentType, 'retencion')}
-        >
-          Ret
-        </button>
-      </div>
-
-      <div className="h-5 w-px bg-edge" />
+      {/* Partner dropdown */}
+      <FilterSelect
+        value={currentFilters.partnerId}
+        onChange={(v) => setFilter(FK.partner, v)}
+        options={partners.map((p) => ({ value: p.id, label: p.label }))}
+        placeholder="All partners"
+      />
 
       {/* Project dropdown */}
       <FilterSelect
@@ -102,6 +59,22 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
+      />
+
+      {/* Category dropdown */}
+      <FilterSelect
+        value={currentFilters.category}
+        onChange={(v) => setFilter(FK.category, v)}
+        options={categories}
+        placeholder="All categories"
+      />
+
+      {/* Entity dropdown */}
+      <FilterSelect
+        value={currentFilters.entity}
+        onChange={(v) => setFilter(FK.entity, v)}
+        options={entities}
+        placeholder="All entities"
       />
 
       {/* Bank dropdown */}
@@ -112,20 +85,27 @@ export function PaymentsFilters({
         placeholder="All banks"
       />
 
-      {/* Partner dropdown */}
+      {/* Direction dropdown */}
       <FilterSelect
-        value={currentFilters.partnerId}
-        onChange={(v) => setFilter(FK.partner, v)}
-        options={partners.map((p) => ({ value: p.id, label: p.label }))}
-        placeholder="All partners"
+        value={currentFilters.direction}
+        onChange={(v) => setFilter(FK.direction, v)}
+        options={[
+          { value: 'outbound', label: 'Outflow' },
+          { value: 'inbound', label: 'Inflow' },
+        ]}
+        placeholder="All directions"
       />
 
-      {/* Category dropdown */}
+      {/* Payment Type dropdown */}
       <FilterSelect
-        value={currentFilters.category}
-        onChange={(v) => setFilter(FK.category, v)}
-        options={categories}
-        placeholder="All categories"
+        value={currentFilters.paymentType}
+        onChange={(v) => setFilter(FK.type, v)}
+        options={[
+          { value: 'regular', label: 'Regular' },
+          { value: 'detraccion', label: 'Detracción' },
+          { value: 'retencion', label: 'Retención' },
+        ]}
+        placeholder="All types"
       />
 
       {/* Clear */}

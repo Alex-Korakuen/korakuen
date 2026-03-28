@@ -16,6 +16,7 @@ type PaymentsPageFilters = {
   direction?: 'inbound' | 'outbound'
   paymentType?: 'regular' | 'detraccion' | 'retencion'
   category?: string
+  entity?: string
   projectId?: string
   bankAccountId?: string
   partnerId?: string
@@ -33,6 +34,7 @@ type PaymentsPageResult = {
   uniqueBankAccounts: { id: string; label: string }[]
   uniquePartners: { id: string; label: string }[]
   uniqueCategories: { value: string; label: string }[]
+  uniqueEntities: { value: string; label: string }[]
 }
 
 export async function getPaymentsPage(
@@ -71,14 +73,16 @@ export async function getPaymentsPage(
   )].sort()
   const uniqueCategories = allCategories.map(c => ({ value: c, label: c }))
 
-  // Collect unique projects, bank accounts, and partners for filter dropdowns
+  // Collect unique values for filter dropdowns
   const projectMap = new Map<string, string>()
   const bankMap = new Map<string, string>()
   const partnerMap = new Map<string, string>()
+  const entitySet = new Set<string>()
   for (const r of rows) {
     if (r.project_id && r.project_code) projectMap.set(r.project_id, r.project_code)
     if (r.bank_account_id && r.bank_name) bankMap.set(r.bank_account_id, r.bank_name)
     if (r.partner_id && r.partner_name) partnerMap.set(r.partner_id, r.partner_name)
+    if (r.entity_name) entitySet.add(r.entity_name)
   }
   const uniqueProjects = Array.from(projectMap, ([id, project_code]) => ({ id, project_code }))
     .sort((a, b) => a.project_code.localeCompare(b.project_code))
@@ -86,6 +90,8 @@ export async function getPaymentsPage(
     .sort((a, b) => a.label.localeCompare(b.label))
   const uniquePartners = Array.from(partnerMap, ([id, label]) => ({ id, label }))
     .sort((a, b) => a.label.localeCompare(b.label))
+  const uniqueEntities = Array.from(entitySet).sort()
+    .map(name => ({ value: name, label: name }))
 
   // Apply filters
   if (filters.direction) {
@@ -100,6 +106,9 @@ export async function getPaymentsPage(
       const cats = categoryByInvoice.get(r.related_id)
       return cats?.has(filters.category!) ?? false
     })
+  }
+  if (filters.entity) {
+    rows = rows.filter(r => r.entity_name === filters.entity)
   }
   if (filters.projectId) {
     rows = rows.filter(r => r.project_id === filters.projectId)
@@ -163,5 +172,5 @@ export async function getPaymentsPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page)
 
-  return { paginated, summary, uniqueProjects, uniqueBankAccounts, uniquePartners, uniqueCategories }
+  return { paginated, summary, uniqueProjects, uniqueBankAccounts, uniquePartners, uniqueCategories, uniqueEntities }
 }

@@ -20,9 +20,11 @@ type InvoicesPageFilters = {
   type?: 'commercial' | 'loan'
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
+  partnerId?: string
+  category?: string
   entity?: string
-
-  search?: string
+  dateFrom?: string
+  dateTo?: string
   sort: string
   dir: 'asc' | 'desc'
   page: number
@@ -31,6 +33,7 @@ type InvoicesPageFilters = {
 type InvoicesPageResult = {
   paginated: PaginatedResult<InvoicesPageRow>
   uniqueEntities: string[]
+  uniqueCategories: { value: string; label: string }[]
 }
 
 export async function getInvoicesPage(
@@ -38,16 +41,36 @@ export async function getInvoicesPage(
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  let query = supabase
-    .from('v_invoices_with_loans')
-    .select('*')
-    .order('due_date', { ascending: false, nullsFirst: false })
+  const [invoicesResult, itemCategoriesResult] = await Promise.all([
+    supabase
+      .from('v_invoices_with_loans')
+      .select('*')
+      .order('due_date', { ascending: false, nullsFirst: false }),
+    supabase
+      .from('invoice_items')
+      .select('invoice_id, category')
+      .not('category', 'is', null),
+  ])
 
-  const { data, error } = await query
+  if (invoicesResult.error) throw invoicesResult.error
 
-  if (error) throw error
+  let rows: InvoicesWithLoansRow[] = invoicesResult.data ?? []
 
-  let rows: InvoicesWithLoansRow[] = data ?? []
+  // Build invoice_id → Set<category> mapping for category filter
+  const categoryByInvoice = new Map<string, Set<string>>()
+  for (const item of itemCategoriesResult.data ?? []) {
+    if (!item.category) continue
+    if (!categoryByInvoice.has(item.invoice_id)) {
+      categoryByInvoice.set(item.invoice_id, new Set())
+    }
+    categoryByInvoice.get(item.invoice_id)!.add(item.category)
+  }
+
+  // Collect unique categories for filter dropdown
+  const allCategories = [...new Set(
+    (itemCategoriesResult.data ?? []).map(c => c.category).filter(Boolean) as string[]
+  )].sort()
+  const uniqueCategories = allCategories.map(c => ({ value: c, label: c }))
 
   // Collect unique entity names for filter dropdown
   const entitySet = new Set<string>()
@@ -71,17 +94,24 @@ export async function getInvoicesPage(
   if (filters.projectId) {
     rows = rows.filter(r => r.project_id === filters.projectId)
   }
-  if (filters.entity) {
-    const search = filters.entity.toLowerCase()
-    rows = rows.filter(r => (r.entity_name ?? '').toLowerCase().includes(search))
+  if (filters.partnerId) {
+    rows = rows.filter(r => r.partner_id === filters.partnerId)
   }
-
-  if (filters.search) {
-    const term = filters.search.toLowerCase()
-    rows = rows.filter(r =>
-      (r.invoice_number ?? '').toLowerCase().includes(term) ||
-      (r.entity_name ?? '').toLowerCase().includes(term)
-    )
+  if (filters.category) {
+    rows = rows.filter(r => {
+      if (r.type !== 'commercial') return false
+      const cats = categoryByInvoice.get(r.id!)
+      return cats?.has(filters.category!) ?? false
+    })
+  }
+  if (filters.entity) {
+    rows = rows.filter(r => r.entity_name === filters.entity)
+  }
+  if (filters.dateFrom) {
+    rows = rows.filter(r => (r.invoice_date ?? '') >= filters.dateFrom!)
+  }
+  if (filters.dateTo) {
+    rows = rows.filter(r => (r.invoice_date ?? '') <= filters.dateTo!)
   }
 
   // Map to InvoicesPageRow
@@ -111,7 +141,7 @@ export async function getInvoicesPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page, 10)
 
-  return { paginated, uniqueEntities }
+  return { paginated, uniqueEntities, uniqueCategories }
 }
 
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {

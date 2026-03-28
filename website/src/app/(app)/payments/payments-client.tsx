@@ -30,14 +30,16 @@ type Props = {
   bankAccounts: { id: string; label: string }[]
   partners: { id: string; label: string }[]
   categories: { value: string; label: string }[]
+  entities: { value: string; label: string }[]
   currentFilters: {
+    month: string
+    partnerId: string
+    projectId: string
+    category: string
+    entity: string
+    bankAccountId: string
     direction: string
     paymentType: string
-    category: string
-    projectId: string
-    bankAccountId: string
-    partnerId: string
-    month: string
   }
 }
 
@@ -51,6 +53,7 @@ export function PaymentsClient({
   bankAccounts,
   partners,
   categories,
+  entities,
   currentFilters,
 }: Props) {
   const router = useRouter()
@@ -64,17 +67,18 @@ export function PaymentsClient({
   const [modalBankAccounts, setModalBankAccounts] = useState<BankAccountOption[]>([])
 
   const hasActiveFilters =
-    currentFilters.direction !== '' ||
-    currentFilters.paymentType !== '' ||
-    currentFilters.category !== '' ||
-    currentFilters.projectId !== '' ||
-    currentFilters.bankAccountId !== '' ||
+    currentFilters.month !== '' ||
     currentFilters.partnerId !== '' ||
-    currentFilters.month !== ''
+    currentFilters.projectId !== '' ||
+    currentFilters.category !== '' ||
+    currentFilters.entity !== '' ||
+    currentFilters.bankAccountId !== '' ||
+    currentFilters.direction !== '' ||
+    currentFilters.paymentType !== ''
 
   const handleClearFilters = () => clearFilters([
-    FK.direction, FK.type, FK.category, FK.project, FK.bank, FK.partner,
-    FK.month,
+    FK.month, FK.partner, FK.project, FK.category, FK.entity, FK.bank,
+    FK.direction, FK.type,
   ])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
@@ -149,6 +153,7 @@ export function PaymentsClient({
         bankAccounts={bankAccounts}
         partners={partners}
         categories={categories}
+        entities={entities}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
       />

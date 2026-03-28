@@ -26,6 +26,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
     direction: str(params, FK.direction) as 'inbound' | 'outbound' | undefined,
     paymentType: str(params, FK.type) as 'regular' | 'detraccion' | 'retencion' | undefined,
     category: str(params, FK.category),
+    entity: str(params, FK.entity),
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
     partnerId: str(params, FK.partner),
@@ -49,14 +50,16 @@ export default async function PaymentsPage({ searchParams }: Props) {
       bankAccounts={result.uniqueBankAccounts}
       partners={result.uniquePartners}
       categories={result.uniqueCategories}
+      entities={result.uniqueEntities}
       currentFilters={{
+        month: month ?? '',
+        partnerId: filters.partnerId ?? '',
+        projectId: filters.projectId ?? '',
+        category: filters.category ?? '',
+        entity: filters.entity ?? '',
+        bankAccountId: filters.bankAccountId ?? '',
         direction: filters.direction ?? '',
         paymentType: filters.paymentType ?? '',
-        category: filters.category ?? '',
-        projectId: filters.projectId ?? '',
-        bankAccountId: filters.bankAccountId ?? '',
-        partnerId: filters.partnerId ?? '',
-        month: month ?? '',
       }}
     />
   )

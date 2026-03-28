@@ -32,15 +32,18 @@ type Props = {
   pageSize: number
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
+  uniqueCategories: { value: string; label: string }[]
   categories: CategoryOption[]
   partners: PartnerOption[]
   currentFilters: {
+    month: string
+    partnerId: string
+    projectId: string
+    category: string
+    entity: string
     direction: string
     type: string
     status: string
-    projectId: string
-    entity: string
-    search: string
   }
 }
 
@@ -51,6 +54,7 @@ export function InvoicesClient({
   pageSize,
   projects,
   uniqueEntities,
+  uniqueCategories,
   categories,
   partners,
   currentFilters,
@@ -65,14 +69,19 @@ export function InvoicesClient({
   const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
 
   const hasActiveFilters =
+    currentFilters.month !== '' ||
+    currentFilters.partnerId !== '' ||
+    currentFilters.projectId !== '' ||
+    currentFilters.category !== '' ||
+    currentFilters.entity !== '' ||
     currentFilters.direction !== '' ||
     currentFilters.type !== '' ||
-    currentFilters.status !== '' ||
-    currentFilters.projectId !== '' ||
-    currentFilters.entity !== '' ||
-    currentFilters.search !== ''
+    currentFilters.status !== ''
 
-  const handleClearFilters = () => clearFilters([FK.direction, FK.type, FK.status, FK.project, FK.entity, FK.search])
+  const handleClearFilters = () => clearFilters([
+    FK.month, FK.partner, FK.project, FK.category, FK.entity,
+    FK.direction, FK.type, FK.status,
+  ])
 
   const fetchDetail = useCallback(async (row: InvoicesPageRow) => {
     setModalDetail(null)
@@ -139,11 +148,13 @@ export function InvoicesClient({
 
       <InvoicesFilters
         currentFilters={currentFilters}
+        setFilter={setFilter}
         projects={projects}
+        partners={partners}
         uniqueEntities={uniqueEntities}
+        uniqueCategories={uniqueCategories}
         hasActiveFilters={hasActiveFilters}
         onClearFilters={handleClearFilters}
-        setFilter={setFilter}
       />
 
       <SectionCard className="mt-4 overflow-hidden">
