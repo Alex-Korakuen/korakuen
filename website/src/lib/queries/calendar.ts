@@ -17,8 +17,6 @@ type ObligationCalendarResult = {
   uniqueSuppliers: string[]
 }
 
-export { getCalendarBucket }
-
 export async function getObligationCalendar(
   filters: ObligationCalendarFilters,
 ): Promise<ObligationCalendarResult> {

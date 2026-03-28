@@ -14,15 +14,14 @@ export function getCalendarBucket(
   return 'later'
 }
 
-/** Maps a payment date to a recency bucket (past-looking). */
-export function getPaymentBucket(dateStr: string): 'today' | 'last-7' | 'last-30' | 'previous' {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const d = new Date(dateStr + 'T00:00:00')
-  const daysAgo = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
-  if (daysAgo <= 0) return 'today'
-  if (daysAgo <= 7) return 'last-7'
-  if (daysAgo <= 30) return 'last-30'
-  return 'previous'
+/** Converts a "YYYY-MM" month string to dateFrom/dateTo range. */
+export function getMonthDateRange(month: string): { dateFrom: string; dateTo: string } {
+  const [y, m] = month.split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate()
+  return {
+    dateFrom: `${month}-01`,
+    dateTo: `${month}-${String(lastDay).padStart(2, '0')}`,
+  }
 }
+
 
