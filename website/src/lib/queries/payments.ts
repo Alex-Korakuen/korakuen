@@ -161,6 +161,7 @@ export async function getPaymentsPage(
     related_to: (r.related_to ?? 'invoice') as PaymentRelatedTo,
     related_id: r.related_id,
     invoice_number: r.invoice_number,
+    document_ref: r.document_ref,
     bank_account_id: r.bank_account_id,
     bank_name: r.bank_name,
     notes: r.notes,

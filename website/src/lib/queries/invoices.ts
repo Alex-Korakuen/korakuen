@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { DEFAULT_CURRENCY } from './shared'
+import { getPartners } from './lookups'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -41,7 +42,7 @@ export async function getInvoicesPage(
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  const [invoicesResult, itemCategoriesResult] = await Promise.all([
+  const [invoicesResult, itemCategoriesResult, partners] = await Promise.all([
     supabase
       .from('v_invoices_with_loans')
       .select('*')
@@ -50,7 +51,11 @@ export async function getInvoicesPage(
       .from('invoice_items')
       .select('invoice_id, category')
       .not('category', 'is', null),
+    getPartners(),
   ])
+
+  // Build partner_id → name map
+  const partnerNameMap = new Map(partners.map(p => [p.id, p.name]))
 
   if (invoicesResult.error) throw invoicesResult.error
 
@@ -120,6 +125,7 @@ export async function getInvoicesPage(
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
     direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
     partner_id: r.partner_id,
+    partner_name: r.partner_id ? partnerNameMap.get(r.partner_id) ?? null : null,
     project_id: r.project_id,
     project_code: r.project_code,
     entity_id: r.entity_id,
