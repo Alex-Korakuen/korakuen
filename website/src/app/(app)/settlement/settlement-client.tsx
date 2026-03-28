@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { formatCurrency, formatCurrencyCompact } from '@/lib/formatters'
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
+import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
 import type {
   ProjectListItem,
   SettlementDashboardData,
@@ -30,25 +31,12 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
   const [data, setData] = useState(initialData)
   const [isPending, startTransition] = useTransition()
 
-  const activeProjects = projects.filter(p => p.status === 'active')
-  const completedProjects = projects.filter(p => p.status === 'completed')
-  const allProjects = [...activeProjects, ...completedProjects]
+  const projectOptions = projects.map(p => ({
+    value: p.id,
+    label: `${p.project_code} — ${p.name}`,
+  }))
 
-  const isAllActive = selectedIds.length === activeProjects.length &&
-    activeProjects.every(p => selectedIds.includes(p.id))
-
-  function toggleProject(projectId: string) {
-    const newIds = selectedIds.includes(projectId)
-      ? selectedIds.filter(id => id !== projectId)
-      : [...selectedIds, projectId]
-    // At least one must remain selected
-    if (newIds.length === 0) return
-    setSelectedIds(newIds)
-    refreshData(newIds)
-  }
-
-  function selectAllActive() {
-    const ids = activeProjects.map(p => p.id)
+  function handleProjectChange(ids: string[]) {
     setSelectedIds(ids)
     refreshData(ids)
   }
@@ -73,36 +61,14 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
         <span className="text-sm font-medium text-ink">Settlement</span>
       </HeaderTitlePortal>
 
-      {/* Project chips */}
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted mr-1">Projects</span>
-        <button
-          onClick={selectAllActive}
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-            isAllActive
-              ? 'border-positive/30 bg-positive-bg text-positive'
-              : 'border-edge bg-white text-muted hover:border-edge-strong hover:text-ink'
-          }`}
-        >
-          All active
-        </button>
-        {allProjects.map(p => {
-          const isSelected = selectedIds.includes(p.id)
-          return (
-            <button
-              key={p.id}
-              onClick={() => toggleProject(p.id)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                isSelected
-                  ? 'border-edge-strong bg-surface text-ink'
-                  : 'border-edge bg-white text-faint hover:border-edge-strong hover:text-muted'
-              }`}
-            >
-              <span className="font-mono text-[11px] mr-1">{p.project_code}</span>
-              {p.name}
-            </button>
-          )
-        })}
+      {/* Project filter */}
+      <div className="mb-6">
+        <FilterMultiSelect
+          values={selectedIds}
+          onChange={handleProjectChange}
+          options={projectOptions}
+          placeholder="All projects"
+        />
       </div>
 
       {/* Summary strip */}
