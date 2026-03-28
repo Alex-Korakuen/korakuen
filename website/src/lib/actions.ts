@@ -492,11 +492,21 @@ export async function createProject(data: {
   expected_end_date?: string
   location?: string
   notes?: string
+  partners?: { partnerId: string; profitSharePct: number }[]
 }): Promise<{ error?: string }> {
+  // Validate partner shares if provided
+  if (data.partners && data.partners.length > 0) {
+    const total = data.partners.reduce((s, p) => s + p.profitSharePct, 0)
+    if (Math.abs(total - 100) > 0.01) return { error: `Partner percentages must sum to 100% (currently ${total.toFixed(1)}%)` }
+    for (const p of data.partners) {
+      if (p.profitSharePct < 0) return { error: 'Percentages cannot be negative' }
+    }
+  }
+
   const projectCode = await getNextProjectCode()
 
   const supabase = await createServerSupabaseClient()
-  const { error } = await supabase.from('projects').insert({
+  const { data: project, error } = await supabase.from('projects').insert({
     project_code: projectCode,
     name: data.name,
     project_type: data.project_type,
@@ -508,35 +518,58 @@ export async function createProject(data: {
     expected_end_date: data.expected_end_date || null,
     location: data.location || null,
     notes: data.notes || null,
-  })
+  }).select('id').single()
   if (error) return { error: handleDbError(error, 'Failed to create project') }
+
+  // Insert project partners if provided
+  if (data.partners && data.partners.length > 0) {
+    const { error: ppError } = await supabase.from('project_partners').insert(
+      data.partners.map(p => ({
+        project_id: project.id,
+        partner_id: p.partnerId,
+        profit_share_pct: p.profitSharePct,
+      }))
+    )
+    if (ppError) return { error: handleDbError(ppError, 'Failed to add partners') }
+  }
+
   revalidatePath('/projects', 'layout')
   return {}
 }
 
 
-// --- Update Partner Shares ---
+// --- Set Project Partners (add/edit/remove) ---
 
-export async function updatePartnerShares(
+export async function setProjectPartners(
   projectId: string,
-  shares: { id: string; profitSharePct: number }[]
+  partners: { partnerId: string; profitSharePct: number }[]
 ): Promise<{ error?: string }> {
-  const total = shares.reduce((s, p) => s + p.profitSharePct, 0)
-  if (Math.abs(total - 100) > 0.01) return { error: `Percentages must sum to 100% (currently ${total}%)` }
-  for (const s of shares) {
-    if (s.profitSharePct < 0) return { error: 'Percentages cannot be negative' }
+  if (partners.length === 0) return { error: 'At least one partner is required' }
+  const total = partners.reduce((s, p) => s + p.profitSharePct, 0)
+  if (Math.abs(total - 100) > 0.01) return { error: `Percentages must sum to 100% (currently ${total.toFixed(1)}%)` }
+  for (const p of partners) {
+    if (p.profitSharePct < 0) return { error: 'Percentages cannot be negative' }
   }
 
   const supabase = await createServerSupabaseClient()
-  for (const s of shares) {
-    const { error } = await supabase
-      .from('project_partners')
-      .update({ profit_share_pct: s.profitSharePct })
-      .eq('id', s.id)
-      .eq('project_id', projectId)
-      .eq('is_active', true)
-    if (error) return { error: handleDbError(error, 'Failed to update partner shares') }
-  }
+
+  // Soft-delete existing active partners
+  const { error: delError } = await supabase
+    .from('project_partners')
+    .update({ is_active: false })
+    .eq('project_id', projectId)
+    .eq('is_active', true)
+  if (delError) return { error: handleDbError(delError, 'Failed to update partners') }
+
+  // Insert new partner rows
+  const { error: insError } = await supabase.from('project_partners').insert(
+    partners.map(p => ({
+      project_id: projectId,
+      partner_id: p.partnerId,
+      profit_share_pct: p.profitSharePct,
+    }))
+  )
+  if (insError) return { error: handleDbError(insError, 'Failed to set partners') }
 
   revalidatePath('/projects', 'layout')
   revalidatePath('/settlement')

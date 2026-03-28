@@ -15,7 +15,7 @@ import { HeaderPortal } from '@/components/ui/header-portal'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { NotesDisplay } from '@/components/ui/notes-display'
 import { ProjectBudgetForm } from '../project-budget-form'
-import { updateProject, updatePartnerShares } from '@/lib/actions'
+import { updateProject, setProjectPartners } from '@/lib/actions'
 import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
 
 import { SectionCard } from '@/components/ui/section-card'
@@ -190,33 +190,52 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
 // --- Partners Row (inline-editable) ---
 
-function PartnersRow({ partners, projectId }: { partners: ProjectDetailData['partners']; projectId: string }) {
+type PartnerEditEntry = { partnerId: string; profitSharePct: string }
+
+function PartnersRow({ partners, projectId, partnerOptions }: {
+  partners: ProjectDetailData['partners']
+  projectId: string
+  partnerOptions: PartnerOption[]
+}) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
-  const [pcts, setPcts] = useState<Record<string, string>>({})
+  const [entries, setEntries] = useState<PartnerEditEntry[]>([])
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  const total = entries.reduce((s, e) => s + (parseFloat(e.profitSharePct) || 0), 0)
+  const availablePartners = partnerOptions.filter(po => !entries.some(e => e.partnerId === po.id))
+
   function startEdit() {
-    const initial: Record<string, string> = {}
-    for (const p of partners) initial[p.id] = String(p.profitSharePct)
-    setPcts(initial)
+    setEntries(partners.map(p => ({
+      partnerId: p.partnerId,
+      profitSharePct: String(p.profitSharePct),
+    })))
     setError(null)
     setEditing(true)
   }
 
-  const total = editing
-    ? partners.reduce((s, p) => s + (parseFloat(pcts[p.id] || '0') || 0), 0)
-    : 0
+  function addPartner() {
+    if (availablePartners.length === 0) return
+    setEntries(prev => [...prev, { partnerId: availablePartners[0].id, profitSharePct: '' }])
+  }
+
+  function removeEntry(index: number) {
+    setEntries(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function updateEntry(index: number, field: keyof PartnerEditEntry, value: string) {
+    setEntries(prev => prev.map((e, i) => i === index ? { ...e, [field]: value } : e))
+  }
 
   function handleSave() {
-    const shares = partners.map(p => ({
-      id: p.id,
-      profitSharePct: parseFloat(pcts[p.id] || '0') || 0,
+    const parsed = entries.map(e => ({
+      partnerId: e.partnerId,
+      profitSharePct: parseFloat(e.profitSharePct) || 0,
     }))
     setError(null)
     startTransition(async () => {
-      const result = await updatePartnerShares(projectId, shares)
+      const result = await setProjectPartners(projectId, parsed)
       if (result.error) {
         setError(result.error)
       } else {
@@ -231,37 +250,58 @@ function PartnersRow({ partners, projectId }: { partners: ProjectDetailData['par
       <div className="border-t border-edge px-4 py-3 space-y-2">
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
-          <span className={`text-[11px] font-medium ${Math.abs(total - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
-            Total: {total}%
-          </span>
+          {entries.length > 0 && (
+            <span className={`text-[11px] font-medium ${Math.abs(total - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
+              Total: {total.toFixed(1)}%
+            </span>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {partners.map((p) => {
-            const isYou = p.partnerName.toLowerCase().includes('korakuen')
-            return (
-              <div
-                key={p.id}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
-                  isYou
-                    ? 'border-positive/30 bg-positive-bg text-positive'
-                    : 'border-edge bg-surface text-ink'
-                }`}
+        <div className="space-y-2">
+          {entries.map((e, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <select
+                value={e.partnerId}
+                onChange={(ev) => updateEntry(i, 'partnerId', ev.target.value)}
+                className="rounded border border-edge bg-white px-2 py-1 text-xs text-ink flex-1"
               >
-                {p.partnerName}
-                <input
-                  type="number"
-                  value={pcts[p.id] ?? ''}
-                  onChange={(e) => setPcts(prev => ({ ...prev, [p.id]: e.target.value }))}
-                  className="w-14 rounded border border-edge bg-white px-1.5 py-0.5 text-center text-xs font-mono focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-                <span className="text-[10px]">%</span>
-              </div>
-            )
-          })}
+                {partnerOptions
+                  .filter(po => po.id === e.partnerId || !entries.some(ee => ee.partnerId === po.id))
+                  .map(po => (
+                    <option key={po.id} value={po.id}>{po.name}</option>
+                  ))}
+              </select>
+              <input
+                type="number"
+                value={e.profitSharePct}
+                onChange={(ev) => updateEntry(i, 'profitSharePct', ev.target.value)}
+                className="w-16 rounded border border-edge bg-white px-1.5 py-1 text-center text-xs font-mono focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="0"
+              />
+              <span className="text-[10px] text-muted">%</span>
+              <button
+                type="button"
+                onClick={() => removeEntry(i)}
+                className="rounded p-1 text-faint transition-colors hover:text-negative"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+              </button>
+            </div>
+          ))}
         </div>
+        {availablePartners.length > 0 && (
+          <button
+            type="button"
+            onClick={addPartner}
+            className="text-xs font-medium text-accent hover:text-accent-hover"
+          >
+            + Add partner
+          </button>
+        )}
         {error && <p className="text-xs font-medium text-negative">{error}</p>}
         <div className="flex items-center gap-2">
           <button
@@ -273,12 +313,26 @@ function PartnersRow({ partners, projectId }: { partners: ProjectDetailData['par
           </button>
           <button
             onClick={handleSave}
-            disabled={isPending || Math.abs(total - 100) > 0.01}
+            disabled={isPending || entries.length === 0 || Math.abs(total - 100) > 0.01}
             className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending ? 'Saving...' : 'Save'}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  if (partners.length === 0) {
+    return (
+      <div className="flex items-center gap-3 border-t border-edge px-4 py-3">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
+        <button
+          onClick={startEdit}
+          className="text-xs font-medium text-accent hover:text-accent-hover"
+        >
+          + Add partners
+        </button>
       </div>
     )
   }
@@ -460,9 +514,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
             </div>
 
             {/* Partners row */}
-            {partners.length > 0 && (
-              <PartnersRow partners={partners} projectId={project.id} />
-            )}
+            <PartnersRow partners={partners} projectId={project.id} partnerOptions={partnerOptions} />
           </SectionCard>
 
           {/* Dashboard grid: Budget + Entities side by side */}

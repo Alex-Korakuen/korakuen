@@ -14,10 +14,11 @@ import { btnPrimary, selectClass } from '@/lib/styles'
 
 const CreateProjectModal = dynamic(() => import('./create-project-modal').then(m => ({ default: m.CreateProjectModal })))
 
-import type { ProjectCardItem, ProjectStatusFilter } from '@/lib/types'
+import type { ProjectCardItem, ProjectStatusFilter, PartnerOption } from '@/lib/types'
 
 type Props = {
   projects: ProjectCardItem[]
+  partnerOptions: PartnerOption[]
 }
 
 function budgetBarColor(pct: number): string {
@@ -32,7 +33,7 @@ function budgetPctColor(pct: number): string {
   return 'text-positive'
 }
 
-export function ProjectsGrid({ projects }: Props) {
+export function ProjectsGrid({ projects, partnerOptions }: Props) {
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all')
   const [showCreate, setShowCreate] = useState(false)
 
@@ -141,7 +142,7 @@ export function ProjectsGrid({ projects }: Props) {
         </div>
       )}
 
-      <CreateProjectModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      <CreateProjectModal isOpen={showCreate} onClose={() => setShowCreate(false)} partnerOptions={partnerOptions} />
     </>
   )
 }

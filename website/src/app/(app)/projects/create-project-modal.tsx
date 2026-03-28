@@ -6,14 +6,17 @@ import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createProject } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
-import type { Currency } from '@/lib/types'
+import type { Currency, PartnerOption } from '@/lib/types'
+
+type PartnerEntry = { partnerId: string; profitSharePct: string }
 
 type Props = {
   isOpen: boolean
   onClose: () => void
+  partnerOptions: PartnerOption[]
 }
 
-export function CreateProjectModal({ isOpen, onClose }: Props) {
+export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +31,23 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
   const [expectedEndDate, setExpectedEndDate] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
+  const [partners, setPartners] = useState<PartnerEntry[]>([])
+
+  const partnerTotal = partners.reduce((s, p) => s + (parseFloat(p.profitSharePct) || 0), 0)
+  const availablePartners = partnerOptions.filter(po => !partners.some(p => p.partnerId === po.id))
+
+  function addPartner() {
+    if (availablePartners.length === 0) return
+    setPartners(prev => [...prev, { partnerId: availablePartners[0].id, profitSharePct: '' }])
+  }
+
+  function removePartner(index: number) {
+    setPartners(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function updatePartner(index: number, field: keyof PartnerEntry, value: string) {
+    setPartners(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p))
+  }
 
   function resetForm() {
     setName('')
@@ -41,6 +61,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
     setExpectedEndDate('')
     setLocation('')
     setNotes('')
+    setPartners([])
     setError(null)
   }
 
@@ -55,6 +76,10 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
 
     const parsedValue = contractValue ? parseFloat(contractValue) : undefined
 
+    const parsedPartners = partners.length > 0
+      ? partners.map(p => ({ partnerId: p.partnerId, profitSharePct: parseFloat(p.profitSharePct) || 0 }))
+      : undefined
+
     startTransition(async () => {
       const result = await createProject({
         name: name.trim(),
@@ -67,6 +92,7 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
         expected_end_date: expectedEndDate || undefined,
         location: location.trim() || undefined,
         notes: notes.trim() || undefined,
+        partners: parsedPartners,
       })
       if (result.error) {
         setError(result.error)
@@ -76,7 +102,8 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
     })
   }
 
-  const canSubmit = name.trim()
+  const partnersValid = partners.length === 0 || Math.abs(partnerTotal - 100) < 0.01
+  const canSubmit = name.trim() && partnersValid
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Project">
@@ -218,6 +245,69 @@ export function CreateProjectModal({ isOpen, onClose }: Props) {
             rows={2}
             className={inputClass}
           />
+        </div>
+
+        {/* Partners */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink">Partners</label>
+          {partners.length > 0 && (
+            <div className="space-y-2 mb-2">
+              {partners.map((p, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    value={p.partnerId}
+                    onChange={(e) => updatePartner(i, 'partnerId', e.target.value)}
+                    className={`${inputClass} flex-1`}
+                  >
+                    {partnerOptions
+                      .filter(po => po.id === p.partnerId || !partners.some(pp => pp.partnerId === po.id))
+                      .map(po => (
+                        <option key={po.id} value={po.id}>{po.name}</option>
+                      ))}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={p.profitSharePct}
+                      onChange={(e) => updatePartner(i, 'profitSharePct', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className={`${inputClass} w-20 text-right font-mono`}
+                    />
+                    <span className="text-sm text-muted">%</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePartner(i)}
+                    className="rounded p-1 text-faint transition-colors hover:text-negative"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`font-medium ${Math.abs(partnerTotal - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
+                  Total: {partnerTotal.toFixed(1)}%
+                </span>
+                {Math.abs(partnerTotal - 100) >= 0.01 && (
+                  <span className="text-faint">(must be 100%)</span>
+                )}
+              </div>
+            </div>
+          )}
+          {availablePartners.length > 0 && (
+            <button
+              type="button"
+              onClick={addPartner}
+              className="text-xs font-medium text-accent hover:text-accent-hover"
+            >
+              + Add partner
+            </button>
+          )}
         </div>
 
         {/* Error */}
