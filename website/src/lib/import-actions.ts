@@ -24,6 +24,46 @@ function num(val: unknown): number | null {
   return isNaN(n) ? null : n
 }
 
+async function loadExchangeRateMap(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  rows: Record<string, unknown>[],
+  dateField: string
+): Promise<Map<string, number>> {
+  const dates = new Set<string>()
+  for (const row of rows) {
+    if (num(row.exchange_rate) === null && str(row[dateField])) {
+      dates.add(str(row[dateField])!)
+    }
+  }
+  const rateMap = new Map<string, number>()
+  if (dates.size > 0) {
+    const { data: rates } = await supabase
+      .from('exchange_rates')
+      .select('rate_date, mid_rate')
+      .in('rate_date', [...dates])
+    for (const rate of rates ?? []) {
+      rateMap.set(rate.rate_date, Number(rate.mid_rate))
+    }
+  }
+  return rateMap
+}
+
+function autoFillExchangeRate(
+  row: Record<string, unknown>,
+  rateMap: Map<string, number>,
+  dateValue: string | null
+): number | null {
+  let rate = num(row.exchange_rate)
+  if (rate === null && dateValue) {
+    const lookedUp = rateMap.get(dateValue)
+    if (lookedUp) {
+      rate = lookedUp
+      row.exchange_rate = lookedUp
+    }
+  }
+  return rate
+}
+
 // ============================================================
 // Quotes Import
 // ============================================================
@@ -43,23 +83,7 @@ export async function importQuotes(
     .from('entities').select('id, document_number').eq('is_active', true)
   const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
-  // Auto-fill exchange rates from DB when not provided
-  const quoteDatesToLookup = new Set<string>()
-  for (const row of rows) {
-    if (num(row.exchange_rate) === null && str(row.date_received)) {
-      quoteDatesToLookup.add(str(row.date_received)!)
-    }
-  }
-  const quoteRateMap = new Map<string, number>()
-  if (quoteDatesToLookup.size > 0) {
-    const { data: rates } = await supabase
-      .from('exchange_rates')
-      .select('rate_date, mid_rate')
-      .in('rate_date', [...quoteDatesToLookup])
-    for (const rate of rates ?? []) {
-      quoteRateMap.set(rate.rate_date, Number(rate.mid_rate))
-    }
-  }
+  const rateMap = await loadExchangeRateMap(supabase, rows, 'date_received')
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
@@ -74,15 +98,7 @@ export async function importQuotes(
     const currency = str(row.currency)
     const status = str(row.status)
 
-    // Auto-fill exchange rate from exchange_rates table if not provided
-    let exchangeRate = num(row.exchange_rate)
-    if (exchangeRate === null && dateReceived) {
-      const lookedUp = quoteRateMap.get(dateReceived)
-      if (lookedUp) {
-        exchangeRate = lookedUp
-        row.exchange_rate = lookedUp
-      }
-    }
+    const exchangeRate = autoFillExchangeRate(row, rateMap, dateReceived)
 
     // Required
     if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
@@ -209,23 +225,7 @@ export async function importInvoices(
     .from('categories').select('name')
   const categorySet = new Set((categories ?? []).map(c => c.name))
 
-  // Auto-fill exchange rates from DB when not provided
-  const invoiceDatesToLookup = new Set<string>()
-  for (const row of rows) {
-    if (num(row.exchange_rate) === null && str(row.invoice_date)) {
-      invoiceDatesToLookup.add(str(row.invoice_date)!)
-    }
-  }
-  const invoiceRateMap = new Map<string, number>()
-  if (invoiceDatesToLookup.size > 0) {
-    const { data: rates } = await supabase
-      .from('exchange_rates')
-      .select('rate_date, mid_rate')
-      .in('rate_date', [...invoiceDatesToLookup])
-    for (const rate of rates ?? []) {
-      invoiceRateMap.set(rate.rate_date, Number(rate.mid_rate))
-    }
-  }
+  const rateMap = await loadExchangeRateMap(supabase, rows, 'invoice_date')
 
   // --- Validate each row ---
   for (let i = 0; i < rows.length; i++) {
@@ -246,15 +246,7 @@ export async function importInvoices(
     const category = str(row.category)
     const subtotal = num(row.subtotal)
 
-    // Auto-fill exchange rate from exchange_rates table if not provided
-    let exchangeRate = num(row.exchange_rate)
-    if (exchangeRate === null && invoiceDate) {
-      const lookedUp = invoiceRateMap.get(invoiceDate)
-      if (lookedUp) {
-        exchangeRate = lookedUp
-        row.exchange_rate = lookedUp
-      }
-    }
+    const exchangeRate = autoFillExchangeRate(row, rateMap, invoiceDate)
 
     // Required fields
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
@@ -449,23 +441,7 @@ export async function importPayments(
   const DIRECTIONS = ['inbound', 'outbound']
   const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion']
 
-  // Auto-fill exchange rates from DB when not provided
-  const paymentDatesToLookup = new Set<string>()
-  for (const row of rows) {
-    if (num(row.exchange_rate) === null && str(row.payment_date)) {
-      paymentDatesToLookup.add(str(row.payment_date)!)
-    }
-  }
-  const paymentRateMap = new Map<string, number>()
-  if (paymentDatesToLookup.size > 0) {
-    const { data: rates } = await supabase
-      .from('exchange_rates')
-      .select('rate_date, mid_rate')
-      .in('rate_date', [...paymentDatesToLookup])
-    for (const rate of rates ?? []) {
-      paymentRateMap.set(rate.rate_date, Number(rate.mid_rate))
-    }
-  }
+  const rateMap = await loadExchangeRateMap(supabase, rows, 'payment_date')
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
@@ -480,15 +456,7 @@ export async function importPayments(
     const bankAccount = str(row.bank_account)
     const partnerName = str(row.partner_name)
 
-    // Auto-fill exchange rate from exchange_rates table if not provided
-    let exchangeRate = num(row.exchange_rate)
-    if (exchangeRate === null && paymentDate) {
-      const lookedUp = paymentRateMap.get(paymentDate)
-      if (lookedUp) {
-        exchangeRate = lookedUp
-        row.exchange_rate = lookedUp
-      }
-    }
+    const exchangeRate = autoFillExchangeRate(row, rateMap, paymentDate)
 
     // Required
     if (!invoiceDocRef) errors.push({ row: r, column: 'invoice_document_ref', message: 'Required' })
@@ -615,23 +583,7 @@ export async function importDirectTransactions(
     (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
   )
 
-  // Collect unique dates that need exchange rate lookup
-  const datesToLookup = new Set<string>()
-  for (const row of rows) {
-    if (num(row.exchange_rate) === null && str(row.date)) {
-      datesToLookup.add(str(row.date)!)
-    }
-  }
-  const exchangeRateMap = new Map<string, number>()
-  if (datesToLookup.size > 0) {
-    const { data: rates } = await supabase
-      .from('exchange_rates')
-      .select('rate_date, mid_rate')
-      .in('rate_date', [...datesToLookup])
-    for (const rate of rates ?? []) {
-      exchangeRateMap.set(rate.rate_date, Number(rate.mid_rate))
-    }
-  }
+  const rateMap = await loadExchangeRateMap(supabase, rows, 'date')
 
   // --- Validate each row ---
   for (let i = 0; i < rows.length; i++) {
@@ -646,15 +598,7 @@ export async function importDirectTransactions(
     const date = str(row.date)
     const category = str(row.category)
 
-    // Auto-fill exchange rate from exchange_rates table if not provided
-    let exchangeRate = num(row.exchange_rate)
-    if (exchangeRate === null && date) {
-      const lookedUp = exchangeRateMap.get(date)
-      if (lookedUp) {
-        exchangeRate = lookedUp
-        row.exchange_rate = lookedUp
-      }
-    }
+    const exchangeRate = autoFillExchangeRate(row, rateMap, date)
 
     // Required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
