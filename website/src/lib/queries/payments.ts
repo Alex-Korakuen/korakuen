@@ -15,7 +15,7 @@ import type {
 type PaymentsPageFilters = {
   direction?: 'inbound' | 'outbound'
   paymentType?: 'regular' | 'detraccion' | 'retencion'
-  relatedTo?: 'invoice' | 'loan_schedule'
+  category?: string
   projectId?: string
   bankAccountId?: string
   partnerId?: string
@@ -32,6 +32,7 @@ type PaymentsPageResult = {
   uniqueProjects: { id: string; project_code: string }[]
   uniqueBankAccounts: { id: string; label: string }[]
   uniquePartners: { id: string; label: string }[]
+  uniqueCategories: { value: string; label: string }[]
 }
 
 export async function getPaymentsPage(
@@ -39,16 +40,36 @@ export async function getPaymentsPage(
 ): Promise<PaymentsPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  let paymentsQuery = supabase
-    .from('v_payments_enriched')
-    .select('*')
-    .order('payment_date', { ascending: false })
+  const [paymentsResult, itemCategoriesResult] = await Promise.all([
+    supabase
+      .from('v_payments_enriched')
+      .select('*')
+      .order('payment_date', { ascending: false }),
+    supabase
+      .from('invoice_items')
+      .select('invoice_id, category')
+      .not('category', 'is', null),
+  ])
 
-  const { data, error } = await paymentsQuery
+  if (paymentsResult.error) throw paymentsResult.error
 
-  if (error) throw error
+  let rows = paymentsResult.data ?? []
 
-  let rows = data ?? []
+  // Build invoice_id → Set<category> mapping for category filter
+  const categoryByInvoice = new Map<string, Set<string>>()
+  for (const item of itemCategoriesResult.data ?? []) {
+    if (!item.category) continue
+    if (!categoryByInvoice.has(item.invoice_id)) {
+      categoryByInvoice.set(item.invoice_id, new Set())
+    }
+    categoryByInvoice.get(item.invoice_id)!.add(item.category)
+  }
+
+  // Collect unique categories for filter dropdown
+  const allCategories = [...new Set(
+    (itemCategoriesResult.data ?? []).map(c => c.category).filter(Boolean) as string[]
+  )].sort()
+  const uniqueCategories = allCategories.map(c => ({ value: c, label: c }))
 
   // Collect unique projects, bank accounts, and partners for filter dropdowns
   const projectMap = new Map<string, string>()
@@ -73,13 +94,12 @@ export async function getPaymentsPage(
   if (filters.paymentType) {
     rows = rows.filter(r => r.payment_type === filters.paymentType)
   }
-  if (filters.relatedTo) {
-    // "Loan" chip matches both disbursements (related_to='loan') and repayments (related_to='loan_schedule')
-    if (filters.relatedTo === 'loan_schedule') {
-      rows = rows.filter(r => r.related_to === 'loan_schedule' || r.related_to === 'loan')
-    } else {
-      rows = rows.filter(r => r.related_to === filters.relatedTo)
-    }
+  if (filters.category) {
+    rows = rows.filter(r => {
+      if (r.related_to !== 'invoice' || !r.related_id) return false
+      const cats = categoryByInvoice.get(r.related_id)
+      return cats?.has(filters.category!) ?? false
+    })
   }
   if (filters.projectId) {
     rows = rows.filter(r => r.project_id === filters.projectId)
@@ -143,5 +163,5 @@ export async function getPaymentsPage(
   const sorted = sortRows(mapped, filters.sort, filters.dir)
   const paginated = paginateArray(sorted, filters.page)
 
-  return { paginated, summary, uniqueProjects, uniqueBankAccounts, uniquePartners }
+  return { paginated, summary, uniqueProjects, uniqueBankAccounts, uniquePartners, uniqueCategories }
 }

@@ -7,7 +7,7 @@ type Props = {
   currentFilters: {
     direction: string
     paymentType: string
-    relatedTo: string
+    category: string
     projectId: string
     bankAccountId: string
     partnerId: string
@@ -17,6 +17,7 @@ type Props = {
   projects: { id: string; project_code: string }[]
   bankAccounts: { id: string; label: string }[]
   partners: { id: string; label: string }[]
+  categories: { value: string; label: string }[]
   hasActiveFilters: boolean
   onClearFilters: () => void
 }
@@ -33,6 +34,7 @@ export function PaymentsFilters({
   projects,
   bankAccounts,
   partners,
+  categories,
   hasActiveFilters,
   onClearFilters,
 }: Props) {
@@ -94,24 +96,6 @@ export function PaymentsFilters({
 
       <div className="h-5 w-px bg-edge" />
 
-      {/* Related-to chips */}
-      <div className="flex gap-1">
-        <button
-          className={chipClass(currentFilters.relatedTo === 'invoice', 'border-indigo-200 bg-indigo-100 text-indigo-700')}
-          onClick={() => toggleChip(FK.related, currentFilters.relatedTo, 'invoice')}
-        >
-          Invoice
-        </button>
-        <button
-          className={chipClass(currentFilters.relatedTo === 'loan_schedule', 'border-indigo-200 bg-indigo-100 text-indigo-700')}
-          onClick={() => toggleChip(FK.related, currentFilters.relatedTo, 'loan_schedule')}
-        >
-          Loan
-        </button>
-      </div>
-
-      <div className="h-5 w-px bg-edge" />
-
       {/* Project dropdown */}
       <FilterSelect
         value={currentFilters.projectId}
@@ -134,6 +118,14 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.partner, v)}
         options={partners.map((p) => ({ value: p.id, label: p.label }))}
         placeholder="All partners"
+      />
+
+      {/* Category dropdown */}
+      <FilterSelect
+        value={currentFilters.category}
+        onChange={(v) => setFilter(FK.category, v)}
+        options={categories}
+        placeholder="All categories"
       />
 
       {/* Clear */}

@@ -25,7 +25,7 @@ export default async function PaymentsPage({ searchParams }: Props) {
   const filters = {
     direction: str(params, FK.direction) as 'inbound' | 'outbound' | undefined,
     paymentType: str(params, FK.type) as 'regular' | 'detraccion' | 'retencion' | undefined,
-    relatedTo: str(params, FK.related) as 'invoice' | 'loan_schedule' | undefined,
+    category: str(params, FK.category),
     projectId: str(params, FK.project),
     bankAccountId: str(params, FK.bank),
     partnerId: str(params, FK.partner),
@@ -48,10 +48,11 @@ export default async function PaymentsPage({ searchParams }: Props) {
       projects={result.uniqueProjects}
       bankAccounts={result.uniqueBankAccounts}
       partners={result.uniquePartners}
+      categories={result.uniqueCategories}
       currentFilters={{
         direction: filters.direction ?? '',
         paymentType: filters.paymentType ?? '',
-        relatedTo: filters.relatedTo ?? '',
+        category: filters.category ?? '',
         projectId: filters.projectId ?? '',
         bankAccountId: filters.bankAccountId ?? '',
         partnerId: filters.partnerId ?? '',
