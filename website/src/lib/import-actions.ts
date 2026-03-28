@@ -43,6 +43,24 @@ export async function importQuotes(
     .from('entities').select('id, document_number').eq('is_active', true)
   const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
+  // Auto-fill exchange rates from DB when not provided
+  const quoteDatesToLookup = new Set<string>()
+  for (const row of rows) {
+    if (num(row.exchange_rate) === null && str(row.date_received)) {
+      quoteDatesToLookup.add(str(row.date_received)!)
+    }
+  }
+  const quoteRateMap = new Map<string, number>()
+  if (quoteDatesToLookup.size > 0) {
+    const { data: rates } = await supabase
+      .from('exchange_rates')
+      .select('rate_date, mid_rate')
+      .in('rate_date', [...quoteDatesToLookup])
+    for (const rate of rates ?? []) {
+      quoteRateMap.set(rate.rate_date, Number(rate.mid_rate))
+    }
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     const r = i + 5
@@ -54,8 +72,17 @@ export async function importQuotes(
     const subtotal = num(row.subtotal)
     const total = num(row.total)
     const currency = str(row.currency)
-    const exchangeRate = num(row.exchange_rate)
     const status = str(row.status)
+
+    // Auto-fill exchange rate from exchange_rates table if not provided
+    let exchangeRate = num(row.exchange_rate)
+    if (exchangeRate === null && dateReceived) {
+      const lookedUp = quoteRateMap.get(dateReceived)
+      if (lookedUp) {
+        exchangeRate = lookedUp
+        row.exchange_rate = lookedUp
+      }
+    }
 
     // Required
     if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
@@ -65,7 +92,7 @@ export async function importQuotes(
     if (subtotal === null) errors.push({ row: r, column: 'subtotal', message: 'Required' })
     if (total === null) errors.push({ row: r, column: 'total', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
-    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!status) errors.push({ row: r, column: 'status', message: 'Required' })
 
     // Enums
@@ -182,6 +209,24 @@ export async function importInvoices(
     .from('categories').select('name')
   const categorySet = new Set((categories ?? []).map(c => c.name))
 
+  // Auto-fill exchange rates from DB when not provided
+  const invoiceDatesToLookup = new Set<string>()
+  for (const row of rows) {
+    if (num(row.exchange_rate) === null && str(row.invoice_date)) {
+      invoiceDatesToLookup.add(str(row.invoice_date)!)
+    }
+  }
+  const invoiceRateMap = new Map<string, number>()
+  if (invoiceDatesToLookup.size > 0) {
+    const { data: rates } = await supabase
+      .from('exchange_rates')
+      .select('rate_date, mid_rate')
+      .in('rate_date', [...invoiceDatesToLookup])
+    for (const rate of rates ?? []) {
+      invoiceRateMap.set(rate.rate_date, Number(rate.mid_rate))
+    }
+  }
+
   // --- Validate each row ---
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
@@ -192,7 +237,6 @@ export async function importInvoices(
     const invoiceDate = str(row.invoice_date)
     const currency = str(row.currency)
     const igvRate = num(row.igv_rate)
-    const exchangeRate = num(row.exchange_rate)
     const projectCode = str(row.project_code)
     const entityDocNum = str(row.entity_document_number)
     const docRef = str(row.document_ref)
@@ -202,13 +246,23 @@ export async function importInvoices(
     const category = str(row.category)
     const subtotal = num(row.subtotal)
 
+    // Auto-fill exchange rate from exchange_rates table if not provided
+    let exchangeRate = num(row.exchange_rate)
+    if (exchangeRate === null && invoiceDate) {
+      const lookedUp = invoiceRateMap.get(invoiceDate)
+      if (lookedUp) {
+        exchangeRate = lookedUp
+        row.exchange_rate = lookedUp
+      }
+    }
+
     // Required fields
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
     if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
     if (!invoiceDate) errors.push({ row: r, column: 'invoice_date', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (igvRate === null) errors.push({ row: r, column: 'igv_rate', message: 'Required' })
-    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!itemTitle) errors.push({ row: r, column: 'item_title', message: 'Required' })
     if (subtotal === null) errors.push({ row: r, column: 'subtotal', message: 'Required' })
 
@@ -395,6 +449,24 @@ export async function importPayments(
   const DIRECTIONS = ['inbound', 'outbound']
   const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion']
 
+  // Auto-fill exchange rates from DB when not provided
+  const paymentDatesToLookup = new Set<string>()
+  for (const row of rows) {
+    if (num(row.exchange_rate) === null && str(row.payment_date)) {
+      paymentDatesToLookup.add(str(row.payment_date)!)
+    }
+  }
+  const paymentRateMap = new Map<string, number>()
+  if (paymentDatesToLookup.size > 0) {
+    const { data: rates } = await supabase
+      .from('exchange_rates')
+      .select('rate_date, mid_rate')
+      .in('rate_date', [...paymentDatesToLookup])
+    for (const rate of rates ?? []) {
+      paymentRateMap.set(rate.rate_date, Number(rate.mid_rate))
+    }
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     const r = i + 5
@@ -405,9 +477,18 @@ export async function importPayments(
     const paymentDate = str(row.payment_date)
     const amount = num(row.amount)
     const currency = str(row.currency)
-    const exchangeRate = num(row.exchange_rate)
     const bankAccount = str(row.bank_account)
     const partnerName = str(row.partner_name)
+
+    // Auto-fill exchange rate from exchange_rates table if not provided
+    let exchangeRate = num(row.exchange_rate)
+    if (exchangeRate === null && paymentDate) {
+      const lookedUp = paymentRateMap.get(paymentDate)
+      if (lookedUp) {
+        exchangeRate = lookedUp
+        row.exchange_rate = lookedUp
+      }
+    }
 
     // Required
     if (!invoiceDocRef) errors.push({ row: r, column: 'invoice_document_ref', message: 'Required' })
@@ -416,7 +497,7 @@ export async function importPayments(
     if (!paymentDate) errors.push({ row: r, column: 'payment_date', message: 'Required' })
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
-    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required' })
+    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
 
     // Enums
