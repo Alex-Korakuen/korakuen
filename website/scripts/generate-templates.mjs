@@ -18,7 +18,7 @@ import { dirname, join } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(__dirname, '..', 'public', 'templates')
 
-function createTemplate(filename, columns) {
+function createTemplate(filename, columns, instructions) {
   const headers = columns.map(c => c.key)
   const descriptions = columns.map(c => c.description)
   const examples = columns.map(c => c.example ?? '')
@@ -37,7 +37,24 @@ function createTemplate(filename, columns) {
     return { wch: Math.min(Math.max(maxLen + 2, 12), 40) }
   })
 
+  // Instructions sheet
+  const instructionRows = [
+    ['Instructions'],
+    [],
+    ['Sheet structure (in the Data sheet):'],
+    ['  Row 1: Column headers (do not modify)'],
+    ['  Row 2: Column descriptions'],
+    ['  Row 3: Example values'],
+    ['  Row 4: Valid values / constraints'],
+    ['  Row 5+: Enter your data here'],
+    [],
+    ...instructions.map(line => [line]),
+  ]
+  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionRows)
+  wsInstructions['!cols'] = [{ wch: 80 }]
+
   const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions')
   XLSX.utils.book_append_sheet(wb, ws, 'Data')
   XLSX.writeFile(wb, join(OUT_DIR, filename))
   console.log(`  ✓ ${filename}`)
@@ -62,6 +79,13 @@ createTemplate('quotes-template.xlsx', [
   { key: 'status',                 description: 'Quote status',                   example: 'pending',      valid: 'pending, accepted, rejected' },
   { key: 'document_ref',           description: 'Document reference',             example: 'COT-001',      valid: 'Optional' },
   { key: 'notes',                  description: 'Notes',                          example: '',             valid: 'Optional' },
+], [
+  'Quotes import:',
+  '  - project_code and entity_document_number must already exist in the database',
+  '  - If quantity and unit_price are provided: subtotal must equal quantity × unit_price',
+  '  - igv_amount must equal subtotal × 18% (auto-calculated if left blank)',
+  '  - total must equal subtotal + igv_amount',
+  '  - exchange_rate must be between 2.5 and 6.0',
 ])
 
 // ============================================================
@@ -93,6 +117,16 @@ createTemplate('invoices-template.xlsx', [
   { key: 'quantity',               description: 'Line item quantity',                     example: '200',              valid: 'Optional, number' },
   { key: 'unit_of_measure',        description: 'Unit of measure',                        example: 'bags',             valid: 'Optional' },
   { key: 'unit_price',             description: 'Unit price',                             example: '25.00',            valid: 'Optional, number' },
+], [
+  'Invoices import:',
+  '  - Rows with the same document_ref are grouped into one invoice with multiple line items',
+  '  - partner_name must match an entity tagged as "partner" in the database',
+  '  - Payable invoices require: document_ref, item_title, category, subtotal',
+  '  - Receivable invoices require: project_code, entity_document_number, item_title, subtotal',
+  '  - Detracción only applies to PEN invoices',
+  '  - Retención only applies to receivable invoices',
+  '  - comprobante_type values: factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none',
+  '  - category values: materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga',
 ])
 
 // ============================================================
@@ -112,6 +146,16 @@ createTemplate('payments-template.xlsx', [
   { key: 'category',               description: 'Cost category (direct txn only)',example: 'materials',         valid: 'Required for outbound direct transactions' },
   { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
   { key: 'notes',                  description: 'Notes',                          example: '',                  valid: 'Optional' },
+], [
+  'Payments import:',
+  '  - If invoice_document_ref is provided: links payment to an existing invoice',
+  '  - If invoice_document_ref is blank: creates a direct transaction (auto-generates invoice + payment)',
+  '  - partner_name must match an entity tagged as "partner" in the database',
+  '  - bank_account format: BankName-Last4 (e.g., BCP-1234) — must exist in the database',
+  '  - bank_account is required for regular and detraccion payments linked to an invoice',
+  '  - Retención only applies to receivable invoices',
+  '  - For direct transactions: category is required for outbound, project_code is optional',
+  '  - exchange_rate is auto-filled from the database if left blank',
 ])
 
 console.log(`\nAll templates written to: ${OUT_DIR}`)
