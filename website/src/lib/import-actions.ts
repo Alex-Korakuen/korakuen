@@ -582,6 +582,9 @@ export async function importDirectTransactions(
   const projectCostCategories = new Set(
     (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
   )
+  const sgaCategories = new Set(
+    (categories ?? []).filter(c => c.cost_type === 'sga').map(c => c.name)
+  )
 
   const rateMap = await loadExchangeRateMap(supabase, rows, 'date')
 
@@ -603,7 +606,9 @@ export async function importDirectTransactions(
     // Required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
     if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
-    if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
+    if (direction === 'inflow' && !projectCode) {
+      errors.push({ row: r, column: 'project_code', message: 'Required for inflow' })
+    }
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
@@ -625,12 +630,16 @@ export async function importDirectTransactions(
       errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
     }
 
-    // Category: required for outflows, must exist in project_cost categories
+    // Category: required for outflows, validated against project_cost or sga depending on project
     if (direction === 'outflow' && !category) {
       errors.push({ row: r, column: 'category', message: 'Required for outflow' })
     }
-    if (category && !projectCostCategories.has(category)) {
-      errors.push({ row: r, column: 'category', message: 'Not found in project_cost categories' })
+    if (category) {
+      const validCategories = projectCode ? projectCostCategories : sgaCategories
+      const label = projectCode ? 'project_cost' : 'sga'
+      if (!validCategories.has(category)) {
+        errors.push({ row: r, column: 'category', message: `Not found in ${label} categories` })
+      }
     }
 
     // Amount positive
@@ -653,7 +662,8 @@ export async function importDirectTransactions(
     const row = rows[i]
     const direction = str(row.direction)!
     const partnerId = partnerMap.get(str(row.partner_name)!)!
-    const projectId = projectMap.get(str(row.project_code)!)!
+    const projectCode = str(row.project_code)
+    const projectId = projectCode ? projectMap.get(projectCode)! : null
     const amount = num(row.amount)!
     const currency = str(row.currency)!
     const exchangeRate = num(row.exchange_rate)!
@@ -664,7 +674,9 @@ export async function importDirectTransactions(
 
     const invoiceDirection = direction === 'outflow' ? 'payable' : 'receivable'
     const paymentDirection = direction === 'outflow' ? 'outbound' : 'inbound'
-    const costType = direction === 'outflow' ? 'project_cost' : null
+    const costType = direction === 'outflow'
+      ? (projectId ? 'project_cost' : 'sga')
+      : null
     const title = notes || `Direct transaction — ${date}`
 
     // 1. Create auto-generated invoice
