@@ -402,7 +402,9 @@ export async function importInvoices(
 }
 
 // ============================================================
-// Payments Import
+// Payments Import (handles both invoice payments and direct transactions)
+// If invoice_document_ref is provided → payment against existing invoice
+// If invoice_document_ref is blank → direct transaction (auto-creates invoice + item + payment)
 // ============================================================
 
 export async function importPayments(
@@ -435,6 +437,20 @@ export async function importPayments(
     (bankAccounts ?? []).map(ba => [`${ba.bank_name}-${ba.account_number_last4}`, ba])
   )
 
+  // Projects + categories (needed for direct transactions)
+  const { data: projects } = await supabase
+    .from('projects').select('id, project_code').eq('is_active', true)
+  const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
+
+  const { data: categories } = await supabase
+    .from('categories').select('name, cost_type')
+  const projectCostCategories = new Set(
+    (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
+  )
+  const sgaCategories = new Set(
+    (categories ?? []).filter(c => c.cost_type === 'sga').map(c => c.name)
+  )
+
   const DIRECTIONS = ['inbound', 'outbound']
   const PAYMENT_TYPES = ['regular', 'detraccion', 'retencion']
 
@@ -446,19 +462,19 @@ export async function importPayments(
 
     const invoiceDocRef = str(row.invoice_document_ref)
     const direction = str(row.direction)
-    const paymentType = str(row.payment_type)
+    const paymentType = str(row.payment_type) || 'regular'
     const paymentDate = str(row.payment_date)
     const amount = num(row.amount)
     const currency = str(row.currency)
     const bankAccount = str(row.bank_account)
     const partnerName = str(row.partner_name)
+    const projectCode = str(row.project_code)
+    const category = str(row.category)
 
     const exchangeRate = autoFillExchangeRate(row, rateMap, paymentDate)
 
-    // Required
-    if (!invoiceDocRef) errors.push({ row: r, column: 'invoice_document_ref', message: 'Required' })
+    // Always required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
-    if (!paymentType) errors.push({ row: r, column: 'payment_type', message: 'Required' })
     if (!paymentDate) errors.push({ row: r, column: 'payment_date', message: 'Required' })
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
@@ -469,44 +485,16 @@ export async function importPayments(
     if (direction && !DIRECTIONS.includes(direction)) {
       errors.push({ row: r, column: 'direction', message: 'Must be: inbound, outbound' })
     }
-    if (paymentType && !PAYMENT_TYPES.includes(paymentType)) {
+    if (str(row.payment_type) && !PAYMENT_TYPES.includes(str(row.payment_type)!)) {
       errors.push({ row: r, column: 'payment_type', message: 'Must be: regular, detraccion, retencion' })
     }
     if (currency && !['USD', 'PEN'].includes(currency)) {
       errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
     }
 
-    // FK lookups
-    if (invoiceDocRef && !invoiceMap.has(invoiceDocRef)) {
-      errors.push({ row: r, column: 'invoice_document_ref', message: 'Not found in database' })
-    }
+    // FK: partner (always)
     if (partnerName && !partnerMap.has(partnerName)) {
       errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
-    }
-
-    // Bank account: required for non-retencion
-    if (paymentType !== 'retencion') {
-      if (!bankAccount) {
-        errors.push({ row: r, column: 'bank_account', message: 'Required for regular and detraccion payments' })
-      } else if (!bankMap.has(bankAccount)) {
-        errors.push({ row: r, column: 'bank_account', message: 'Not found — use format: BankName-Last4 (e.g. BCP-1234)' })
-      } else {
-        const ba = bankMap.get(bankAccount)!
-        if (ba.currency !== currency) {
-          errors.push({ row: r, column: 'bank_account', message: `Currency mismatch — account is ${ba.currency}, payment is ${currency}` })
-        }
-        if (paymentType === 'detraccion' && !ba.is_detraccion_account) {
-          errors.push({ row: r, column: 'bank_account', message: 'Must be a Banco de la Nación detracción account' })
-        }
-        if (paymentType === 'regular' && ba.is_detraccion_account) {
-          errors.push({ row: r, column: 'bank_account', message: 'Cannot use detracción account for regular payments' })
-        }
-      }
-    }
-
-    // Retencion only on receivable invoices (Korakuen is NOT a retencion agent)
-    if (paymentType === 'retencion' && invoiceDocRef && invoiceDirectionMap.get(invoiceDocRef) === 'payable') {
-      errors.push({ row: r, column: 'payment_type', message: 'Retencion payments only apply to receivable invoices' })
     }
 
     // Amount positive
@@ -518,142 +506,93 @@ export async function importPayments(
     if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
       errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
     }
-  }
 
-  if (errors.length > 0) return { errors }
+    if (invoiceDocRef) {
+      // ---- Invoice payment path ----
+      if (!invoiceMap.has(invoiceDocRef)) {
+        errors.push({ row: r, column: 'invoice_document_ref', message: 'Not found in database' })
+      }
 
-  const records = rows.map(row => {
-    const paymentType = str(row.payment_type)!
-    const bankRef = str(row.bank_account)
-    return {
-      related_to: 'invoice' as const,
-      related_id: invoiceMap.get(str(row.invoice_document_ref)!)!,
-      direction: str(row.direction)!,
-      payment_type: paymentType,
-      payment_date: str(row.payment_date)!,
-      amount: num(row.amount)!,
-      currency: str(row.currency)!,
-      exchange_rate: num(row.exchange_rate)!,
-      bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
-      partner_id: partnerMap.get(str(row.partner_name)!)!,
-      document_ref: str(row.document_ref) ?? null,
-      notes: str(row.notes) ?? null,
-    }
-  })
+      // Bank account: required for non-retencion
+      if (paymentType !== 'retencion') {
+        if (!bankAccount) {
+          errors.push({ row: r, column: 'bank_account', message: 'Required for regular and detraccion payments' })
+        } else if (!bankMap.has(bankAccount)) {
+          errors.push({ row: r, column: 'bank_account', message: 'Not found — use format: BankName-Last4 (e.g. BCP-1234)' })
+        } else {
+          const ba = bankMap.get(bankAccount)!
+          if (ba.currency !== currency) {
+            errors.push({ row: r, column: 'bank_account', message: `Currency mismatch — account is ${ba.currency}, payment is ${currency}` })
+          }
+          if (paymentType === 'detraccion' && !ba.is_detraccion_account) {
+            errors.push({ row: r, column: 'bank_account', message: 'Must be a Banco de la Nación detracción account' })
+          }
+          if (paymentType === 'regular' && ba.is_detraccion_account) {
+            errors.push({ row: r, column: 'bank_account', message: 'Cannot use detracción account for regular payments' })
+          }
+        }
+      }
 
-  const { error, data } = await supabase.from('payments').insert(records).select('id')
-  if (error) return { error: handleDbError(error, 'Failed to import payments') }
+      // Retencion only on receivable invoices (Korakuen is NOT a retencion agent)
+      if (paymentType === 'retencion' && invoiceDirectionMap.get(invoiceDocRef) === 'payable') {
+        errors.push({ row: r, column: 'payment_type', message: 'Retencion payments only apply to receivable invoices' })
+      }
+    } else {
+      // ---- Direct transaction path ----
+      if (projectCode && !projectMap.has(projectCode)) {
+        errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
+      }
 
-  revalidatePath('/payments')
-  revalidatePath('/invoices')
-  revalidatePath('/calendar')
-  revalidatePath('/financial-position')
-
-  return { success: data.length }
-}
-
-// ============================================================
-// Direct Transactions Import (invoice + item + payment per row)
-// ============================================================
-
-export async function importDirectTransactions(
-  rows: Record<string, unknown>[]
-): Promise<ImportResult> {
-  const supabase = await createServerSupabaseClient()
-  const errors: ImportError[] = []
-
-  // Load lookups
-  const { data: projects } = await supabase
-    .from('projects').select('id, project_code').eq('is_active', true)
-  const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
-
-  const { data: partners } = await supabase
-    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
-  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
-  const { data: partnerEntities } = await supabase
-    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
-  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
-
-  const { data: categories } = await supabase
-    .from('categories').select('name, cost_type')
-  const projectCostCategories = new Set(
-    (categories ?? []).filter(c => c.cost_type === 'project_cost').map(c => c.name)
-  )
-  const sgaCategories = new Set(
-    (categories ?? []).filter(c => c.cost_type === 'sga').map(c => c.name)
-  )
-
-  const rateMap = await loadExchangeRateMap(supabase, rows, 'date')
-
-  // --- Validate each row ---
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i]
-    const r = i + 5
-
-    const direction = str(row.direction)
-    const partnerName = str(row.partner_name)
-    const projectCode = str(row.project_code)
-    const amount = num(row.amount)
-    const currency = str(row.currency)
-    const date = str(row.date)
-    const category = str(row.category)
-
-    const exchangeRate = autoFillExchangeRate(row, rateMap, date)
-
-    // Required
-    if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
-    if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
-    if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
-    if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
-    if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
-    if (!date) errors.push({ row: r, column: 'date', message: 'Required' })
-
-    // Enums
-    if (direction && !['outflow', 'inflow'].includes(direction)) {
-      errors.push({ row: r, column: 'direction', message: 'Must be: outflow, inflow' })
-    }
-    if (currency && !['USD', 'PEN'].includes(currency)) {
-      errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
-    }
-
-    // FK lookups
-    if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
-    }
-    if (projectCode && !projectMap.has(projectCode)) {
-      errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
-    }
-
-    // Category: required for outflows, validated against project_cost or sga depending on project
-    if (direction === 'outflow' && !category) {
-      errors.push({ row: r, column: 'category', message: 'Required for outflow' })
-    }
-    if (category) {
-      const validCategories = projectCode ? projectCostCategories : sgaCategories
-      const label = projectCode ? 'project_cost' : 'sga'
-      if (!validCategories.has(category)) {
-        errors.push({ row: r, column: 'category', message: `Not found in ${label} categories` })
+      // Category required for outbound direct transactions
+      if (direction === 'outbound' && !category) {
+        errors.push({ row: r, column: 'category', message: 'Required for outbound direct transactions' })
+      }
+      if (category) {
+        const validCategories = projectCode ? projectCostCategories : sgaCategories
+        const label = projectCode ? 'project_cost' : 'sga'
+        if (!validCategories.has(category)) {
+          errors.push({ row: r, column: 'category', message: `Not found in ${label} categories` })
+        }
       }
     }
-
-    // Amount positive
-    if (amount !== null && amount <= 0) {
-      errors.push({ row: r, column: 'amount', message: 'Must be greater than 0' })
-    }
-
-    // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
-      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
-    }
   }
 
   if (errors.length > 0) return { errors }
 
-  // --- Insert each row as invoice + item + payment ---
+  // Split into two groups
+  const invoicePaymentRows = rows.filter(row => str(row.invoice_document_ref))
+  const directTransactionRows = rows.filter(row => !str(row.invoice_document_ref))
+
   let successCount = 0
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i]
+  // --- Invoice payments: bulk insert ---
+  if (invoicePaymentRows.length > 0) {
+    const records = invoicePaymentRows.map(row => {
+      const paymentType = str(row.payment_type) || 'regular'
+      const bankRef = str(row.bank_account)
+      return {
+        related_to: 'invoice' as const,
+        related_id: invoiceMap.get(str(row.invoice_document_ref)!)!,
+        direction: str(row.direction)!,
+        payment_type: paymentType,
+        payment_date: str(row.payment_date)!,
+        amount: num(row.amount)!,
+        currency: str(row.currency)!,
+        exchange_rate: num(row.exchange_rate)!,
+        bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
+        partner_id: partnerMap.get(str(row.partner_name)!)!,
+        document_ref: str(row.document_ref) ?? null,
+        notes: str(row.notes) ?? null,
+      }
+    })
+
+    const { error, data } = await supabase.from('payments').insert(records).select('id')
+    if (error) return { error: handleDbError(error, 'Failed to import payments') }
+    successCount += data.length
+  }
+
+  // --- Direct transactions: sequential insert (invoice + item + payment per row) ---
+  for (const row of directTransactionRows) {
     const direction = str(row.direction)!
     const partnerId = partnerMap.get(str(row.partner_name)!)!
     const projectCode = str(row.project_code)
@@ -661,14 +600,14 @@ export async function importDirectTransactions(
     const amount = num(row.amount)!
     const currency = str(row.currency)!
     const exchangeRate = num(row.exchange_rate)!
-    const date = str(row.date)!
+    const date = str(row.payment_date)!
     const category = str(row.category)
     const documentRef = str(row.document_ref)
     const notes = str(row.notes)
 
-    const invoiceDirection = direction === 'outflow' ? 'payable' : 'receivable'
-    const paymentDirection = direction === 'outflow' ? 'outbound' : 'inbound'
-    const costType = direction === 'outflow'
+    // Map unified direction to invoice direction
+    const invoiceDirection = direction === 'outbound' ? 'payable' : 'receivable'
+    const costType = direction === 'outbound'
       ? (projectId ? 'project_cost' : 'sga')
       : null
     const title = notes || `Direct transaction — ${date}`
@@ -695,7 +634,7 @@ export async function importDirectTransactions(
       .single()
 
     if (invError) {
-      return { error: handleDbError(invError, `Failed to create invoice for row ${i + 5}`) }
+      return { error: handleDbError(invError, `Failed to create invoice for direct transaction`) }
     }
 
     // 2. Create invoice item
@@ -705,12 +644,12 @@ export async function importDirectTransactions(
         invoice_id: invoice.id,
         title,
         subtotal: amount,
-        category: direction === 'outflow' ? category : null,
+        category: direction === 'outbound' ? category : null,
       })
 
     if (itemError) {
       await supabase.from('invoices').delete().eq('id', invoice.id)
-      return { error: handleDbError(itemError, `Failed to create invoice item for row ${i + 5}`) }
+      return { error: handleDbError(itemError, `Failed to create invoice item for direct transaction`) }
     }
 
     // 3. Create payment (fully paid)
@@ -719,7 +658,7 @@ export async function importDirectTransactions(
       .insert({
         related_to: 'invoice',
         related_id: invoice.id,
-        direction: paymentDirection,
+        direction,
         payment_type: 'regular',
         payment_date: date,
         amount,
@@ -732,14 +671,14 @@ export async function importDirectTransactions(
       })
 
     if (pmtError) {
-      return { error: handleDbError(pmtError, `Failed to create payment for row ${i + 5}`) }
+      return { error: handleDbError(pmtError, `Failed to create payment for direct transaction`) }
     }
 
     successCount++
   }
 
-  revalidatePath('/invoices')
   revalidatePath('/payments')
+  revalidatePath('/invoices')
   revalidatePath('/calendar')
   revalidatePath('/financial-position')
   revalidatePath('/projects', 'layout')

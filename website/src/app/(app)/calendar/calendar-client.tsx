@@ -1,17 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { getCalendarBucket } from '@/lib/date-utils'
 import { FK, hasActiveFilters } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
-import { importDirectTransactions } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
-import { HeaderPortal } from '@/components/ui/header-portal'
-
-const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
 import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarFilters } from './calendar-filters'
@@ -104,9 +99,6 @@ export function CalendarClient({
 }: Props) {
   const router = useRouter()
   const { setFilter, clearFilters } = useUrlFilters()
-
-  // Import modal
-  const [showImport, setShowImport] = useState(false)
 
   // Modal state
   const [modalRow, setModalRow] = useState<ObligationCalendarRow | null>(null)
@@ -224,17 +216,6 @@ export function CalendarClient({
 
   return (
     <div className="pb-16">
-      <HeaderPortal>
-        <button onClick={() => setShowImport(true)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-edge-strong px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-ink">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
-            <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
-          </svg>
-          Import
-        </button>
-      </HeaderPortal>
-
       <CalendarFilters
         currentFilters={currentFilters}
         setFilter={setFilter}
@@ -250,8 +231,6 @@ export function CalendarClient({
         {renderModalContent()}
       </Modal>
 
-      <ImportModal isOpen={showImport} onClose={() => setShowImport(false)}
-        title="Import Direct Transactions" onImport={importDirectTransactions} />
     </div>
   )
 }

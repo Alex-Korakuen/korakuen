@@ -96,36 +96,22 @@ createTemplate('invoices-template.xlsx', [
 ])
 
 // ============================================================
-// Payments Template
+// Payments Template (handles both invoice payments and direct transactions)
 // ============================================================
 createTemplate('payments-template.xlsx', [
-  { key: 'invoice_document_ref',   description: 'Invoice document_ref to pay',    example: 'PRY001-AP-001',     valid: 'Must exist in DB' },
+  { key: 'invoice_document_ref',   description: 'Invoice document_ref (blank = direct transaction)', example: 'PRY001-AP-001', valid: 'Must exist in DB if provided' },
   { key: 'direction',              description: 'Cash flow direction',             example: 'outbound',          valid: 'inbound, outbound' },
-  { key: 'payment_type',           description: 'Payment type',                   example: 'regular',           valid: 'regular, detraccion, retencion' },
+  { key: 'partner_name',           description: 'Partner name',                   example: 'Korakuen SAC',      valid: 'Must exist in DB' },
   { key: 'payment_date',           description: 'Payment date',                   example: '2026-03-20',        valid: 'YYYY-MM-DD' },
   { key: 'amount',                 description: 'Payment amount',                 example: '5000.00',           valid: 'Required, > 0' },
   { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Required, 2.5–6.0' },
-  { key: 'bank_account',           description: 'Bank account (BankName-Last4)',  example: 'BCP-1234',          valid: 'Required for regular/detraccion' },
-  { key: 'partner_name',   description: 'Partner name',           example: 'Korakuen SAC',      valid: 'Must exist in DB' },
+  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Auto-filled if blank, 2.5–6.0' },
+  { key: 'payment_type',           description: 'Payment type',                   example: 'regular',           valid: 'regular, detraccion, retencion (default: regular)' },
+  { key: 'bank_account',           description: 'Bank account (BankName-Last4)',  example: 'BCP-1234',          valid: 'Required for regular/detraccion with invoice_document_ref' },
+  { key: 'project_code',           description: 'Project code (direct txn only)', example: 'PRY001',            valid: 'Optional, must exist in DB' },
+  { key: 'category',               description: 'Cost category (direct txn only)',example: 'materials',         valid: 'Required for outbound direct transactions' },
   { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
   { key: 'notes',                  description: 'Notes',                          example: '',                  valid: 'Optional' },
-])
-
-// ============================================================
-// Direct Transactions Template
-// ============================================================
-createTemplate('direct-transactions-template.xlsx', [
-  { key: 'direction',              description: 'Transaction direction',           example: 'outflow',           valid: 'outflow, inflow' },
-  { key: 'partner_name',   description: 'Partner name',            example: 'Korakuen SAC',      valid: 'Must exist in DB' },
-  { key: 'project_code',           description: 'Project code',                   example: 'PRY001',            valid: 'Must exist in DB' },
-  { key: 'date',                   description: 'Transaction date',               example: '2026-03-20',        valid: 'YYYY-MM-DD' },
-  { key: 'amount',                 description: 'Amount',                         example: '500.00',            valid: 'Required, > 0' },
-  { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Optional — auto-filled from exchange_rates table if blank' },
-  { key: 'category',               description: 'Cost category (outflow only)',   example: 'materials',         valid: 'Required for outflow. Values: materials, labor, subcontractor, equipment_rental, housing_food, other' },
-  { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
-  { key: 'notes',                  description: 'Notes / description',            example: 'Cash for nails',    valid: 'Optional' },
 ])
 
 console.log(`\nAll templates written to: ${OUT_DIR}`)
