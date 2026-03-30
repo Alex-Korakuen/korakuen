@@ -6,7 +6,7 @@ import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { btnDangerOutline, iconTrash } from '@/lib/styles'
-import { updatePaymentField, deactivatePayment } from '@/lib/actions'
+import { updatePaymentField, deactivatePayment, promotePhantomInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PaymentsPageRow, InvoiceDetailData, LoanDetailData } from '@/lib/types'
@@ -22,10 +22,42 @@ type Props = {
 }
 
 // --- View Mode (with inline editing) ---
-function ViewContent({ row, relatedDetail, onSetMode, bankAccounts }: {
+function PhantomInvoiceSection({ invoiceId, onPromoted }: { invoiceId: string; onPromoted: () => void }) {
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function handlePromote() {
+    setError(null)
+    startTransition(async () => {
+      const result = await promotePhantomInvoice(invoiceId)
+      if (result.error) setError(result.error)
+      else onPromoted()
+    })
+  }
+
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-ink">Related Invoice</h3>
+      <div className="flex items-center gap-3 rounded border border-edge px-4 py-3 text-sm">
+        <span className="text-muted">None</span>
+        <button
+          onClick={handlePromote}
+          disabled={isPending}
+          className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
+        >
+          {isPending ? 'Linking...' : 'Link to Invoice'}
+        </button>
+        {error && <span className="text-xs text-negative">{error}</span>}
+      </div>
+    </div>
+  )
+}
+
+function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAccounts }: {
   row: PaymentsPageRow
   relatedDetail: InvoiceDetailData | LoanDetailData | null
   onSetMode: (mode: 'view' | 'delete') => void
+  onMutationSuccess: () => void
   bankAccounts: BankAccountOption[]
 }) {
   const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
@@ -140,15 +172,19 @@ function ViewContent({ row, relatedDetail, onSetMode, bankAccounts }: {
 
       {/* Related invoice/loan summary */}
       {relatedDetail && row.related_to === 'invoice' && 'invoice' in relatedDetail && relatedDetail.invoice && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-ink">Related Invoice</h3>
-          <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
-            <DetailField label="Title" value={relatedDetail.invoice.title ?? '--'} />
-            <DetailField label="Invoice #" value={relatedDetail.invoice.invoice_number ?? '--'} />
-            <DetailField label="Total" value={formatCurrency(relatedDetail.invoice.total ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
-            <DetailField label="Outstanding" value={formatCurrency(relatedDetail.invoice.outstanding ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
+        relatedDetail.is_auto_generated ? (
+          <PhantomInvoiceSection invoiceId={row.related_id!} onPromoted={onMutationSuccess} />
+        ) : (
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-ink">Related Invoice</h3>
+            <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
+              <DetailField label="Title" value={relatedDetail.invoice.title ?? '--'} />
+              <DetailField label="Invoice #" value={relatedDetail.invoice.invoice_number ?? '--'} />
+              <DetailField label="Total" value={formatCurrency(relatedDetail.invoice.total ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
+              <DetailField label="Outstanding" value={formatCurrency(relatedDetail.invoice.outstanding ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {relatedDetail && (row.related_to === 'loan_schedule' || row.related_to === 'loan') && 'loan' in relatedDetail && relatedDetail.loan && (
@@ -245,6 +281,7 @@ export function PaymentExpandContent({ row, relatedDetail, mode, onSetMode, onMu
       row={row}
       relatedDetail={relatedDetail}
       onSetMode={onSetMode}
+      onMutationSuccess={onMutationSuccess}
       bankAccounts={bankAccounts}
     />
   )

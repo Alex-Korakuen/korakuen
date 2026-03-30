@@ -40,6 +40,7 @@ export type InvoiceDetailData = {
   invoice: InvoiceBalanceRow | null
   items: InvoiceItem[]
   payments: Payment[]
+  is_auto_generated: boolean
 }
 
 export type LoanScheduleEntry = {

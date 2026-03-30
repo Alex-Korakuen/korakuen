@@ -874,6 +874,28 @@ export async function deactivateInvoice(
   return {}
 }
 
+// --- Promote phantom invoice (make auto-generated invoice visible in invoices list) ---
+
+export async function promotePhantomInvoice(
+  invoiceId: string
+): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  const supabase = await createServerSupabaseClient()
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({ is_auto_generated: false })
+    .eq('id', invoiceId)
+    .eq('is_auto_generated', true)
+    .eq('is_active', true)
+
+  if (error) return { error: handleDbError(error, 'Failed to promote invoice') }
+
+  revalidateFinancialPages()
+  return {}
+}
+
 // --- Invoice Item granular actions ---
 
 const ITEM_EDITABLE_FIELDS = ['title', 'category', 'quantity', 'unit_of_measure', 'unit_price'] as const
