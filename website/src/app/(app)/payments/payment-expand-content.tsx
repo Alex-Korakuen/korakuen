@@ -180,12 +180,6 @@ function EditContent({ row, bankAccounts, invoiceLabel, onCancel, onSuccess }: {
       return
     }
 
-    // Validate invoice link for invoice-related payments
-    if (isInvoiceRelated && !linkedInvoiceId) {
-      setError('Select an invoice to link this payment to')
-      return
-    }
-
     startTransition(async () => {
       const updateData: Parameters<typeof updatePayment>[0] = {
         id: row.id,
@@ -195,7 +189,7 @@ function EditContent({ row, bankAccounts, invoiceLabel, onCancel, onSuccess }: {
         bank_account_id: isRetencion ? null : bankAccountId,
         notes: notes.trim() || null,
       }
-      // Only send related_id when the user changed the linked invoice
+      // Only send related_id when the user actually selected a different invoice
       if (isInvoiceRelated && linkedInvoiceId && linkedInvoiceId !== row.related_id) {
         updateData.related_id = linkedInvoiceId
       }
