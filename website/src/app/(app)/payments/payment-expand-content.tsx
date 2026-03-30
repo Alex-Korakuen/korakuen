@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTrash } from '@/lib/styles'
 import { updatePayment, deactivatePayment, fetchExchangeRateForDate } from '@/lib/actions'
 import { LockIcon } from '@/components/ui/lock-icon'
+import { InvoicePicker } from '@/components/ui/invoice-picker'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { NotesDisplay } from '@/components/ui/notes-display'
 import type { BankAccountOption } from '@/lib/actions'
@@ -134,6 +135,12 @@ function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
   const [notes, setNotes] = useState(row.notes ?? '')
   const [error, setError] = useState<string | null>(null)
 
+  // Invoice linking state
+  const isInvoiceRelated = row.related_to === 'invoice'
+  const initialInvoiceLabel = row.invoice_number ?? row.document_ref ?? null
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(row.related_id)
+  const [linkedInvoiceLabel, setLinkedInvoiceLabel] = useState<string | null>(initialInvoiceLabel)
+
   const isRetencion = row.payment_type === 'retencion'
   const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
 
@@ -173,15 +180,26 @@ function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
       return
     }
 
+    // Validate invoice link for invoice-related payments
+    if (isInvoiceRelated && !linkedInvoiceId) {
+      setError('Select an invoice to link this payment to')
+      return
+    }
+
     startTransition(async () => {
-      const result = await updatePayment({
+      const updateData: Parameters<typeof updatePayment>[0] = {
         id: row.id,
         payment_date: paymentDate,
         amount: parsedAmount,
         exchange_rate: parsedRate,
         bank_account_id: isRetencion ? null : bankAccountId,
         notes: notes.trim() || null,
-      })
+      }
+      // Only send related_id when the user changed the linked invoice
+      if (isInvoiceRelated && linkedInvoiceId && linkedInvoiceId !== row.related_id) {
+        updateData.related_id = linkedInvoiceId
+      }
+      const result = await updatePayment(updateData)
 
       if (result.error) {
         setError(result.error)
@@ -207,12 +225,24 @@ function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
           <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
           <span className="text-sm text-muted">{paymentCurrency}</span>
         </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Related <LockIcon /></span>
-          <span className="text-sm text-muted">
-            {(row.related_to === 'loan_schedule' || row.related_to === 'loan') ? 'Loan' : row.invoice_number ?? 'Invoice'}
-          </span>
-        </div>
+        {isInvoiceRelated ? (
+          <div>
+            <label className="block text-[11px] font-medium text-muted mb-1">Linked Invoice</label>
+            <InvoicePicker
+              value={linkedInvoiceId}
+              displayLabel={linkedInvoiceLabel}
+              onChange={(id, label) => {
+                setLinkedInvoiceId(id)
+                setLinkedInvoiceLabel(label)
+              }}
+            />
+          </div>
+        ) : (
+          <div>
+            <span className="block text-[11px] font-medium text-faint mb-1">Related <LockIcon /></span>
+            <span className="text-sm text-muted">Loan</span>
+          </div>
+        )}
       </div>
 
       {/* Editable fields */}

@@ -14,6 +14,7 @@ export {
   getExchangeRateForDate,
   getPartners,
   searchEntities,
+  searchInvoices,
   getNextProjectCode,
   getProjectCategories,
 } from './lookups'

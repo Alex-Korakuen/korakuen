@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
+import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, searchInvoices, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 
@@ -375,6 +375,10 @@ export async function createBankAccount(data: {
 
 export async function searchEntitiesAction(query: string) {
   return searchEntities(query)
+}
+
+export async function searchInvoicesAction(query: string) {
+  return searchInvoices(query)
 }
 
 // --- Create Entity ---
@@ -785,6 +789,7 @@ export async function updatePayment(input: {
   exchange_rate: number
   bank_account_id: string | null
   notes: string | null
+  related_id?: string
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
@@ -810,10 +815,25 @@ export async function updatePayment(input: {
     return { error: 'Bank account is required for this payment type' }
   }
 
+  // Validate new related_id if changing the linked invoice
+  const effectiveRelatedId = input.related_id ?? existing.related_id
+  if (input.related_id && existing.related_to === 'invoice') {
+    const { data: newInvoice } = await supabase
+      .from('invoices')
+      .select('id, is_active')
+      .eq('id', input.related_id)
+      .eq('is_active', true)
+      .single()
+    if (!newInvoice) return { error: 'Selected invoice not found' }
+  }
+
   // Amount ceiling — max = current outstanding + this payment's original amount
   if (existing.related_to === 'invoice') {
+    const targetInvoiceId = input.related_id ?? existing.related_id
+    // When changing invoice, the original payment amount is not "returned" to the old invoice for ceiling calc
+    const originalAmount = input.related_id ? 0 : existing.amount
     const invErr = await validateInvoicePaymentLimit(
-      supabase, existing.related_id, existing.payment_type, input.amount, existing.amount,
+      supabase, targetInvoiceId, existing.payment_type, input.amount, originalAmount,
     )
     if (invErr) return { error: invErr }
   } else if (existing.related_to === 'loan_schedule') {
@@ -832,15 +852,20 @@ export async function updatePayment(input: {
     }
   }
 
+  const updateData: Record<string, unknown> = {
+    payment_date: input.payment_date,
+    amount: input.amount,
+    exchange_rate: input.exchange_rate,
+    bank_account_id: input.bank_account_id,
+    notes: input.notes,
+  }
+  if (input.related_id) {
+    updateData.related_id = input.related_id
+  }
+
   const { error } = await supabase
     .from('payments')
-    .update({
-      payment_date: input.payment_date,
-      amount: input.amount,
-      exchange_rate: input.exchange_rate,
-      bank_account_id: input.bank_account_id,
-      notes: input.notes,
-    })
+    .update(updateData)
     .eq('id', input.id)
     .eq('is_active', true)
 

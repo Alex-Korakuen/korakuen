@@ -341,6 +341,16 @@ export type EntitySearchResult = {
   document_number: string
 }
 
+export type InvoiceSearchResult = {
+  id: string
+  document_ref: string | null
+  invoice_number: string | null
+  title: string | null
+  direction: InvoiceDirection
+  currency: Currency
+  entity_name: string | null
+}
+
 // --- Prices browse types ---
 
 export type PriceHistoryRow = {
