@@ -186,7 +186,7 @@ Read these documents for context on specific tasks:
 
 **Settlement dashboard.** Dedicated `/settlement` page aggregates partner balances across projects. Project detail shows partners as read-only chips; settlement math lives in its own page. Intercompany invoices (`cost_type = 'intercompany'`) are excluded from settlement totals to avoid distorting project economics.
 
-**Direct transactions.** Partners' informal cash payments (no comprobante) are recorded via "Direct transaction" — auto-generates an invoice + payment in one step. Supports both outflow (costs) and inflow (revenue). Can be promoted to a formal invoice later when the comprobante arrives.
+**Direct transactions.** Partners' informal cash payments (no comprobante) are recorded via the payments import — leaving `invoice_document_ref` blank auto-generates an invoice + payment in one step. Supports both outflow (costs) and inflow (revenue). Can be promoted to a formal invoice later when the comprobante arrives.
 
 **Loans are partner-owned.** Every loan has a `partner_id` (FK to entities). Business rule: 10% return on loans, borrower keeps the spread between agreed return and what they pay the lender.
 

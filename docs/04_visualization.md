@@ -135,8 +135,6 @@ Detraccion deposits pending — outbound detracciones that need to be deposited 
 
 **Data source:** Invoices table filtered to unpaid/partial status, sorted by due date (via v_obligation_calendar, v_invoice_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
 
-**Actions:** `+ Direct transaction` button in header opens modal to record informal partner transactions (see Direct Transactions below).
-
 ---
 
 ### Settlement Dashboard
@@ -169,13 +167,11 @@ Total row at bottom. Balance shows `—` in total row.
 
 **Purpose:** Record informal partner transactions (cash payments without comprobante) in either direction — outflow (cost) or inflow (revenue).
 
-**Modal form fields:** Partner, Direction (Outflow/Inflow), Project, Amount, Currency, Exchange Rate, Date, Category (outflow only), Notes.
+**How to enter:** Via the payments import template. When `invoice_document_ref` is left blank, the system auto-creates an invoice + item + payment in one step.
 
-**Under the hood:** Auto-generates an invoice (`is_auto_generated = true`, `comprobante_type = 'none'`) + immediate payment in one step. Data model is identical to a formal invoice + payment — all existing queries and settlement logic work without modification.
+**Under the hood:** Auto-generates an invoice (`is_auto_generated = true`, `comprobante_type = 'none'`) + immediate payment. Data model is identical to a formal invoice + payment — all existing queries and settlement logic work without modification.
 
 **Promoting to formal:** When a comprobante arrives later, the auto-generated invoice can be edited in place via the existing invoice edit flow. `is_auto_generated` stays `true` as a historical marker.
-
-**Available on:** Invoices page header, Calendar page header.
 
 ---
 
