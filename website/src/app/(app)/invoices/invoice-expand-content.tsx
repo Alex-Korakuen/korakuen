@@ -130,12 +130,6 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
 
       {/* Editable header fields */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <InlineEdit
-          label="Title"
-          inputType="text"
-          value={invoice.title}
-          onSave={saveField('title')}
-        />
         <DetailField label="Entity" value={row.entity_name ?? 'Informal'} />
         <InlineEdit
           label="Date"
