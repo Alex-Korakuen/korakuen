@@ -105,7 +105,7 @@ export function CalendarClient({
   const [modalPageRow, setModalPageRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
 
   const filtersActive = hasActiveFilters(currentFilters)
 
@@ -168,11 +168,9 @@ export function CalendarClient({
   const modalTitle = modalRow
     ? modalRow.type === 'loan'
       ? 'Loan Detail'
-      : modalMode === 'edit'
-        ? 'Edit Invoice'
-        : modalRow.invoice_number
-          ? `Invoice ${modalRow.invoice_number}`
-          : 'Invoice Detail'
+      : modalRow.invoice_number
+        ? `Invoice ${modalRow.invoice_number}`
+        : 'Invoice Detail'
     : ''
 
   function renderModalContent() {

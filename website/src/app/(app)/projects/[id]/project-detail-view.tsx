@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useCallback, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -15,12 +15,10 @@ import { HeaderPortal } from '@/components/ui/header-portal'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { NotesDisplay } from '@/components/ui/notes-display'
 import { ProjectBudgetForm } from '../project-budget-form'
-import { updateProject, setProjectPartners } from '@/lib/actions'
-import { inputCompactClass, btnEditIcon, iconPencil } from '@/lib/styles'
+import { updateProjectField, setProjectPartners } from '@/lib/actions'
 
 import { SectionCard } from '@/components/ui/section-card'
-import { LockIcon } from '@/components/ui/lock-icon'
-import { EntityPicker } from '@/components/ui/entity-picker'
+import { InlineEdit } from '@/components/ui/inline-edit'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -373,77 +371,28 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
   )
 }
 
+// --- Status options for select ---
+const STATUS_OPTIONS = [
+  { value: 'prospect', label: 'Prospect' },
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+]
+
 // --- Main Detail View ---
 
 export function ProjectDetailView({ detail, partnerOptions, categories }: Props) {
   const { project, clientName, entities, partners } = detail
-  const router = useRouter()
-  const [mode, setMode] = useState<'view' | 'edit'>('view')
-  const [isPending, startTransition] = useTransition()
 
   const contractValue = project.contract_value ?? null
   const contractCurrency = project.contract_currency ?? 'PEN'
 
-  // Edit form state
-  const [editName, setEditName] = useState('')
-  const [editStatus, setEditStatus] = useState('')
-  const [editContractValue, setEditContractValue] = useState('')
-  const [editStartDate, setEditStartDate] = useState('')
-  const [editExpectedEnd, setEditExpectedEnd] = useState('')
-  const [editActualEnd, setEditActualEnd] = useState('')
-  const [editClientEntityId, setEditClientEntityId] = useState<string | null>(null)
-  const [editClientName, setEditClientName] = useState<string | null>(null)
-  const [editLocation, setEditLocation] = useState('')
-  const [editNotes, setEditNotes] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  function startEdit() {
-    setEditName(project.name)
-    setEditStatus(project.status)
-    setEditContractValue(project.contract_value?.toString() ?? '')
-    setEditStartDate(project.start_date ?? '')
-    setEditExpectedEnd(project.expected_end_date ?? '')
-    setEditActualEnd(project.actual_end_date ?? '')
-    setEditClientEntityId(project.client_entity_id ?? null)
-    setEditClientName(clientName ?? null)
-    setEditLocation(project.location ?? '')
-    setEditNotes(project.notes ?? '')
-    setError(null)
-    setMode('edit')
-  }
-
-  function handleSave() {
-    if (!editName.trim()) {
-      setError('Project name is required')
-      return
-    }
-    setError(null)
-    const parsedValue = editContractValue ? parseFloat(editContractValue) : undefined
-    if (editContractValue && (isNaN(parsedValue!) || parsedValue! <= 0)) {
-      setError('Contract value must be a positive number')
-      return
-    }
-
-    startTransition(async () => {
-      const result = await updateProject(project.id, {
-        name: editName.trim(),
-        status: editStatus,
-        client_entity_id: editClientEntityId || undefined,
-        contract_value: parsedValue,
-        start_date: editStartDate || undefined,
-        expected_end_date: editExpectedEnd || undefined,
-        actual_end_date: editActualEnd || undefined,
-        location: editLocation.trim() || undefined,
-        notes: editNotes.trim() || undefined,
-      })
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setMode('view')
-        router.refresh()
-      }
-    })
-  }
+  const saveField = useCallback(
+    (field: string) =>
+      (value: string | number | null) =>
+        updateProjectField(project.id, field, value),
+    [project.id],
+  )
 
   return (
     <div>
@@ -466,241 +415,147 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
         <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
       </HeaderTitlePortal>
 
-      {/* Right side of header: edit button */}
-      {mode === 'view' && (
-        <HeaderPortal>
-          <button
-            onClick={startEdit}
-            className={`${btnEditIcon}`}
-            title="Edit project"
-            aria-label="Edit project"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path d={iconPencil} />
-            </svg>
-          </button>
-        </HeaderPortal>
-      )}
-
-      {/* View mode: dashboard */}
-      {mode === 'view' && (
-        <div className="space-y-6">
-          {/* Metadata card */}
-          <SectionCard>
-            {/* Metadata grid */}
-            <div className="grid grid-cols-2 divide-x divide-edge sm:grid-cols-3 lg:grid-cols-5">
-              <div className="p-4">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Client</span>
-                <p className="text-sm text-ink">{clientName || '—'}</p>
-              </div>
-              <div className="p-4">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Contract Value</span>
-                <p className="text-sm font-mono font-medium text-ink">
-                  {contractValue !== null ? formatCurrency(contractValue, contractCurrency) : '—'}
-                </p>
-              </div>
-              <div className="p-4">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Start Date</span>
-                <p className="text-sm text-ink">{project.start_date ? formatDate(project.start_date) : '—'}</p>
-              </div>
-              <div className="p-4">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Expected End</span>
-                <p className="text-sm text-ink">{project.expected_end_date ? formatDate(project.expected_end_date) : '—'}</p>
-              </div>
-              <div className="p-4">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Location</span>
-                <p className="text-sm text-ink">{project.location || '—'}</p>
-              </div>
+      <div className="space-y-6">
+        {/* Metadata card with inline editing */}
+        <SectionCard>
+          <div className="grid grid-cols-2 divide-x divide-edge sm:grid-cols-3 lg:grid-cols-5">
+            <div className="p-4">
+              <InlineEdit
+                label="Name"
+                inputType="text"
+                value={project.name}
+                onSave={saveField('name')}
+              />
             </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Status"
+                inputType="select"
+                options={STATUS_OPTIONS}
+                value={project.status}
+                displayValue={formatProjectStatus(project.status)}
+                onSave={saveField('status')}
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Contract Value"
+                inputType="number"
+                value={contractValue}
+                displayValue={contractValue !== null ? formatCurrency(contractValue, contractCurrency) : null}
+                onSave={saveField('contract_value')}
+                align="right"
+                mono
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Start Date"
+                inputType="date"
+                value={project.start_date}
+                displayValue={project.start_date ? formatDate(project.start_date) : null}
+                onSave={saveField('start_date')}
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Expected End"
+                inputType="date"
+                value={project.expected_end_date}
+                displayValue={project.expected_end_date ? formatDate(project.expected_end_date) : null}
+                onSave={saveField('expected_end_date')}
+              />
+            </div>
+          </div>
 
-            {/* Partners row */}
-            <PartnersRow partners={partners} projectId={project.id} partnerOptions={partnerOptions} />
+          <div className="grid grid-cols-2 divide-x divide-edge border-t border-edge sm:grid-cols-3 lg:grid-cols-5">
+            <div className="p-4">
+              <InlineEdit
+                label="Location"
+                inputType="text"
+                value={project.location}
+                placeholder="--"
+                onSave={saveField('location')}
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Actual End"
+                inputType="date"
+                value={project.actual_end_date}
+                displayValue={project.actual_end_date ? formatDate(project.actual_end_date) : null}
+                onSave={saveField('actual_end_date')}
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Project Code"
+                inputType="text"
+                value={project.project_code}
+                locked
+                mono
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Type"
+                inputType="text"
+                value={formatProjectType(project.project_type)}
+                locked
+              />
+            </div>
+            <div className="p-4">
+              <InlineEdit
+                label="Currency"
+                inputType="text"
+                value={contractCurrency}
+                locked
+              />
+            </div>
+          </div>
+
+          {/* Partners row */}
+          <PartnersRow partners={partners} projectId={project.id} partnerOptions={partnerOptions} />
+        </SectionCard>
+
+        {/* Dashboard grid: Budget + Entities side by side */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Costs & Budget */}
+          <SectionCard>
+            <div className="px-4 pt-4 pb-2">
+              <h3 className="text-sm font-semibold text-ink">Costs & Budget</h3>
+            </div>
+            <ProjectBudgetForm
+              projectId={project.id}
+              budgetRows={detail.budget}
+              contractValue={contractValue}
+              contractCurrency={contractCurrency}
+              categories={categories}
+              actualCostsByCategory={detail.actualCostsByCategory}
+            />
           </SectionCard>
 
-          {/* Dashboard grid: Budget + Entities side by side */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Costs & Budget */}
-            <SectionCard>
-              <div className="px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-ink">Costs & Budget</h3>
-              </div>
-              <ProjectBudgetForm
-                projectId={project.id}
-                budgetRows={detail.budget}
-                contractValue={contractValue}
-                contractCurrency={contractCurrency}
-                categories={categories}
-                actualCostsByCategory={detail.actualCostsByCategory}
-              />
-            </SectionCard>
-
-            {/* Entities & Suppliers */}
-            <SectionCard className="flex flex-col">
-              <EntitiesPaginated entities={entities} />
-            </SectionCard>
-          </div>
-
-          {/* Notes */}
-          {project.notes && (
-            <SectionCard>
-              <div className="px-4 pt-4 pb-2">
-                <h3 className="text-sm font-semibold text-ink">Notes</h3>
-              </div>
-              <div className="px-4 pb-4">
-                <NotesDisplay notes={project.notes} />
-              </div>
-            </SectionCard>
-          )}
+          {/* Entities & Suppliers */}
+          <SectionCard className="flex flex-col">
+            <EntitiesPaginated entities={entities} />
+          </SectionCard>
         </div>
-      )}
 
-      {/* Edit mode */}
-      {mode === 'edit' && (
-        <div>
-          <div className="rounded-[10px] border border-edge p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-ink">Edit Project — {project.project_code}</h3>
-
-            {/* Locked fields */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Code <LockIcon /></span>
-                <span className="text-sm font-mono font-semibold text-muted">{project.project_code}</span>
-              </div>
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Type <LockIcon /></span>
-                <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
-              </div>
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
-                <span className="text-sm text-muted">{contractCurrency}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-edge" />
-
-            {/* Editable fields */}
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Project Name</label>
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className={`${inputCompactClass} w-full bg-white`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Client</label>
-              <EntityPicker
-                value={editClientEntityId}
-                displayName={editClientName}
-                onChange={(id, name) => { setEditClientEntityId(id); setEditClientName(name) }}
-                placeholder="Search for client entity..."
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Status</label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className={`${inputCompactClass} w-full bg-white`}
-                >
-                  <option value="prospect">Prospect</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Contract Value</label>
-                <input
-                  type="number"
-                  value={editContractValue}
-                  onChange={(e) => setEditContractValue(e.target.value)}
-                  className={`${inputCompactClass} w-full bg-white font-mono text-right`}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={editStartDate}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  className={`${inputCompactClass} w-full bg-white`}
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Expected End Date</label>
-                <input
-                  type="date"
-                  value={editExpectedEnd}
-                  onChange={(e) => setEditExpectedEnd(e.target.value)}
-                  className={`${inputCompactClass} w-full bg-white`}
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Actual End Date</label>
-                <input
-                  type="date"
-                  value={editActualEnd}
-                  onChange={(e) => setEditActualEnd(e.target.value)}
-                  className={`${inputCompactClass} w-full bg-white`}
-                />
-                <span className="text-[10px] text-faint mt-0.5 block">Set when project completes</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Location</label>
-              <input
-                type="text"
-                value={editLocation}
-                onChange={(e) => setEditLocation(e.target.value)}
-                className={`${inputCompactClass} w-full bg-white`}
-                placeholder="City, region"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
-              <textarea
-                rows={2}
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                className={`${inputCompactClass} w-full bg-white resize-none`}
-                placeholder="Optional notes..."
-              />
-            </div>
-
-            {error && <p className="text-xs font-medium text-negative">{error}</p>}
-
-            <div className="flex items-center justify-between border-t border-edge pt-3">
-              <button
-                onClick={() => setMode('view')}
-                disabled={isPending}
-                className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isPending || !editName.trim()}
-                className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-              >
-                {isPending ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
+        {/* Notes */}
+        <SectionCard>
+          <div className="px-4 pt-4 pb-2">
+            <InlineEdit
+              label="Notes"
+              inputType="textarea"
+              value={project.notes}
+              placeholder="No notes"
+              onSave={saveField('notes')}
+            />
           </div>
-        </div>
-      )}
+        </SectionCard>
+      </div>
     </div>
   )
 }

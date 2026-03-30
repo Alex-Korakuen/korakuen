@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useCallback, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -11,12 +11,11 @@ import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { EntityTagsDropdown } from '../entity-tags-dropdown'
 import { EntityContactsForm } from '../entity-contacts-form'
 import { LedgerTable } from '../ledger-table'
-import { updateEntity, deactivateEntity } from '@/lib/actions'
+import { updateEntityField, deactivateEntity } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
-import { NotesDisplay } from '@/components/ui/notes-display'
-import { inputCompactClass, btnEditIcon, btnDangerIcon, iconPencil, iconTrash } from '@/lib/styles'
+import { InlineEdit } from '@/components/ui/inline-edit'
+import { btnDangerIcon, iconTrash } from '@/lib/styles'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
-import { LockIcon } from '@/components/ui/lock-icon'
 import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
 
 const TransactionModal = dynamic(() => import('../entities-transaction-modal').then(m => ({ default: m.TransactionModal })))
@@ -41,8 +40,9 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export function EntityDetailView({ detail, availableTags }: Props) {
   const router = useRouter()
-  const [mode, setMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [mode, setMode] = useState<'view' | 'delete'>('view')
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
   const [modalGroup, setModalGroup] = useState<EntityLedgerGroup | null>(null)
 
   // Collapsible section state
@@ -50,45 +50,15 @@ export function EntityDetailView({ detail, availableTags }: Props) {
   const [receivablesOpen, setReceivablesOpen] = useState(detail.receivablesByProject.length > 0)
   const [contactsOpen, setContactsOpen] = useState(true)
 
-  // Edit form state
-  const [editLegalName, setEditLegalName] = useState('')
-  const [editCity, setEditCity] = useState('')
-  const [editRegion, setEditRegion] = useState('')
-  const [editNotes, setEditNotes] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
   const { entity } = detail
 
-  function startEdit() {
-    setEditLegalName(entity.legal_name)
-    setEditCity(entity.city ?? '')
-    setEditRegion(entity.region ?? '')
-    setEditNotes(entity.notes ?? '')
-    setError(null)
-    setMode('edit')
-  }
-
-  function handleSave() {
-    if (!editLegalName.trim()) {
-      setError('Legal name is required')
-      return
-    }
-    setError(null)
-    startTransition(async () => {
-      const result = await updateEntity(entity.id, {
-        legal_name: editLegalName.trim(),
-        city: editCity.trim() || undefined,
-        region: editRegion.trim() || undefined,
-        notes: editNotes.trim() || undefined,
-      })
-      if (result.error) {
-        setError(result.error)
-      } else {
-        setMode('view')
-        router.refresh()
-      }
-    })
-  }
+  // Inline edit save handler — curried by field name
+  const saveField = useCallback(
+    (field: 'legal_name' | 'city' | 'region' | 'notes') =>
+      (value: string | number | null) =>
+        updateEntityField(entity.id, field, value as string | null),
+    [entity.id],
+  )
 
   function handleDeactivate() {
     setError(null)
@@ -145,19 +115,9 @@ export function EntityDetailView({ detail, availableTags }: Props) {
         </span>
       </HeaderTitlePortal>
 
-      {/* Header right: edit + deactivate buttons */}
+      {/* Header right: deactivate button only */}
       {mode === 'view' && (
         <HeaderPortal>
-          <button
-            onClick={startEdit}
-            className={`${btnEditIcon}`}
-            title="Edit entity"
-            aria-label="Edit entity"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path d={iconPencil} />
-            </svg>
-          </button>
           <button
             onClick={() => { setError(null); setMode('delete') }}
             className={`${btnDangerIcon}`}
@@ -172,79 +132,57 @@ export function EntityDetailView({ detail, availableTags }: Props) {
       )}
 
       <div className="space-y-5">
-        {/* ===== View Mode Metadata — no duplicate title, shown in header breadcrumb ===== */}
+        {/* ===== Metadata with Inline Editing ===== */}
         {mode === 'view' && (
           <div>
+            {/* Locked fields + editable name on one line */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
               <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
               {entity.document_number && (
                 <span>{entity.document_type}: {entity.document_number}</span>
               )}
-              {(entity.city || entity.region) && (
-                <span>{[entity.city, entity.region].filter(Boolean).join(', ')}</span>
-              )}
             </div>
+
+            {/* Editable fields */}
+            <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+              <InlineEdit
+                label="Legal Name"
+                inputType="text"
+                value={entity.legal_name}
+                onSave={saveField('legal_name')}
+                className="col-span-2"
+              />
+              <InlineEdit
+                label="City"
+                inputType="text"
+                value={entity.city}
+                placeholder="--"
+                onSave={saveField('city')}
+              />
+              <InlineEdit
+                label="Region"
+                inputType="text"
+                value={entity.region}
+                placeholder="--"
+                onSave={saveField('region')}
+              />
+            </div>
+
+            <div className="mt-2">
+              <InlineEdit
+                label="Notes"
+                inputType="textarea"
+                value={entity.notes}
+                placeholder="No notes"
+                onSave={saveField('notes')}
+              />
+            </div>
+
             <EntityTagsDropdown
               entityId={entity.id}
               currentTags={detail.tags}
               availableTags={availableTags}
             />
-          </div>
-        )}
-
-        {/* ===== Edit Mode ===== */}
-        {mode === 'edit' && (
-          <div className="rounded-[10px] border border-edge p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-ink">Edit Entity</h3>
-
-            {/* Locked fields */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Type <LockIcon /></span>
-                <StatusBadge label={formatEntityType(entity.entity_type)} variant="zinc" />
-              </div>
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Doc Type <LockIcon /></span>
-                <span className="text-sm text-muted">{entity.document_type}</span>
-              </div>
-              <div>
-                <span className="block text-[11px] font-medium text-faint mb-1">Doc Number <LockIcon /></span>
-                <span className="text-sm font-mono text-muted">{entity.document_number}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-edge" />
-
-            {/* Editable fields */}
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Legal Name</label>
-              <input type="text" value={editLegalName} onChange={(e) => setEditLegalName(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">City</label>
-                <input type="text" value={editCity} onChange={(e) => setEditCity(e.target.value)} className={`${inputCompactClass} w-full bg-white`} />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-muted mb-1">Region</label>
-                <input type="text" value={editRegion} onChange={(e) => setEditRegion(e.target.value)} className={`${inputCompactClass} w-full bg-white`} placeholder="Department" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
-              <textarea rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className={`${inputCompactClass} w-full bg-white resize-none`} placeholder="Optional notes..." />
-            </div>
-
-            {error && <p className="text-xs font-medium text-negative">{error}</p>}
-
-            <div className="flex items-center justify-between border-t border-edge pt-3">
-              <button onClick={() => setMode('view')} disabled={isPending} className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface">
-                Cancel
-              </button>
-              <button onClick={handleSave} disabled={isPending || !editLegalName.trim()} className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
-                {isPending ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
           </div>
         )}
 
@@ -377,14 +315,6 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 <EntityContactsForm entityId={entity.id} contacts={detail.contacts} />
               </div>
             )}
-          </SectionCard>
-        )}
-
-        {/* ===== Notes ===== */}
-        {mode === 'view' && entity.notes && (
-          <SectionCard className="p-4">
-            <h3 className="mb-2 text-sm font-semibold text-ink">Notes</h3>
-            <NotesDisplay notes={entity.notes} />
           </SectionCard>
         )}
       </div>

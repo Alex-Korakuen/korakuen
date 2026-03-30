@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useCallback, useTransition } from 'react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTrash } from '@/lib/styles'
-import { updatePayment, deactivatePayment, fetchExchangeRateForDate } from '@/lib/actions'
-import { LockIcon } from '@/components/ui/lock-icon'
-import { InvoicePicker } from '@/components/ui/invoice-picker'
+import { InlineEdit } from '@/components/ui/inline-edit'
+import { btnDangerOutline, iconTrash } from '@/lib/styles'
+import { updatePaymentField, deactivatePayment } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
-import { NotesDisplay } from '@/components/ui/notes-display'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PaymentsPageRow, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 import { getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
@@ -17,42 +15,106 @@ import { getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
 type Props = {
   row: PaymentsPageRow
   relatedDetail: InvoiceDetailData | LoanDetailData | null
-  mode: 'view' | 'edit' | 'delete'
-  onSetMode: (mode: 'view' | 'edit' | 'delete') => void
+  mode: 'view' | 'delete'
+  onSetMode: (mode: 'view' | 'delete') => void
   onMutationSuccess: () => void
   bankAccounts: BankAccountOption[]
 }
 
-// --- View Mode ---
-function ViewContent({ row, relatedDetail, onSetMode }: {
+// --- View Mode (with inline editing) ---
+function ViewContent({ row, relatedDetail, onSetMode, bankAccounts }: {
   row: PaymentsPageRow
   relatedDetail: InvoiceDetailData | LoanDetailData | null
-  onSetMode: (mode: 'view' | 'edit' | 'delete') => void
+  onSetMode: (mode: 'view' | 'delete') => void
+  bankAccounts: BankAccountOption[]
 }) {
+  const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
+
+  // Filter bank accounts by currency and payment type
+  const filteredAccounts = bankAccounts.filter(ba => {
+    if (ba.currency !== paymentCurrency) return false
+    if (row.payment_type === 'detraccion') return ba.is_detraccion_account
+    return !ba.is_detraccion_account
+  })
+  const bankOptions = filteredAccounts.map(ba => ({
+    value: ba.id,
+    label: `${ba.label} (${ba.currency})`,
+  }))
+
+  // Curried save handler
+  const saveField = useCallback(
+    (field: string) =>
+      (value: string | number | null) =>
+        updatePaymentField(row.id, field, value),
+    [row.id],
+  )
+
+  const isRetencion = row.payment_type === 'retencion'
+
   return (
     <div className="space-y-4">
       {/* Payment info */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <DetailField label="Date" value={row.payment_date ? formatDate(row.payment_date) : '--'} />
-        <DetailField label="Direction" value={row.direction === 'inbound' ? 'Inbound' : 'Outbound'} />
+        <InlineEdit
+          label="Date"
+          inputType="date"
+          value={row.payment_date}
+          displayValue={row.payment_date ? formatDate(row.payment_date) : '--'}
+          onSave={saveField('payment_date')}
+        />
+        <InlineEdit
+          label="Direction"
+          inputType="text"
+          value={row.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+          locked
+        />
         <div>
-          <span className="mb-1 block text-xs font-medium text-faint">Type</span>
+          <span className="mb-1 block text-[11px] font-medium text-faint">Type</span>
           <StatusBadge label={getPaymentTypeLabel(row.payment_type)} variant={getPaymentTypeBadgeVariant(row.payment_type)} />
         </div>
-        <DetailField label="Bank Account" value={row.bank_name ?? '--'} />
+        {isRetencion ? (
+          <InlineEdit
+            label="Bank Account"
+            inputType="text"
+            value="N/A"
+            locked
+          />
+        ) : (
+          <InlineEdit
+            label="Bank Account"
+            inputType="select"
+            value={row.bank_account_id}
+            displayValue={row.bank_name ?? '--'}
+            onSave={saveField('bank_account_id')}
+            options={bankOptions}
+          />
+        )}
       </div>
 
       <div className="rounded border border-edge bg-panel px-4 py-3">
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
           <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="font-medium text-ink">Amount</span>
-              <span className="font-mono font-semibold text-ink">{formatCurrency(row.amount, row.currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Exchange Rate</span>
-              <span className="font-mono text-ink">{row.exchange_rate?.toFixed(3) ?? '--'}</span>
-            </div>
+            <InlineEdit
+              label="Amount"
+              inputType="number"
+              value={row.amount}
+              displayValue={formatCurrency(row.amount, row.currency)}
+              onSave={saveField('amount')}
+              align="right"
+              mono
+              step="0.01"
+              min="0"
+            />
+            <InlineEdit
+              label="Exchange Rate"
+              inputType="number"
+              value={row.exchange_rate}
+              displayValue={row.exchange_rate?.toFixed(3) ?? '--'}
+              onSave={saveField('exchange_rate')}
+              mono
+              step="0.001"
+              min="0"
+            />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -65,12 +127,15 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
             </div>
           </div>
         </div>
-        {row.notes && (
-          <div className="mt-2 border-t border-edge pt-2">
-            <span className="text-xs text-faint">Notes:</span>
-            <NotesDisplay notes={row.notes} />
-          </div>
-        )}
+        <div className="mt-2 border-t border-edge pt-2">
+          <InlineEdit
+            label="Notes"
+            inputType="textarea"
+            value={row.notes}
+            placeholder="No notes"
+            onSave={saveField('notes')}
+          />
+        </div>
       </div>
 
       {/* Related invoice/loan summary */}
@@ -99,236 +164,13 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
       )}
 
       {/* Action footer */}
-      <div className="flex items-center justify-between border-t border-edge pt-3">
+      <div className="flex items-center justify-start border-t border-edge pt-3">
         <button
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
           Delete
-        </button>
-        <button
-          onClick={() => onSetMode('edit')}
-          className={`inline-flex items-center gap-1.5 rounded-md ${btnPrimaryLg} transition-colors`}
-        >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d={iconPencil} /></svg>
-          Edit
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// --- Edit Mode ---
-function EditContent({ row, bankAccounts, invoiceLabel, onCancel, onSuccess }: {
-  row: PaymentsPageRow
-  bankAccounts: BankAccountOption[]
-  invoiceLabel: string | null
-  onCancel: () => void
-  onSuccess: () => void
-}) {
-  const [isPending, startTransition] = useTransition()
-
-  const [paymentDate, setPaymentDate] = useState(row.payment_date)
-  const [amount, setAmount] = useState(row.amount.toString())
-  const [bankAccountId, setBankAccountId] = useState(row.bank_account_id ?? '')
-  const [exchangeRate, setExchangeRate] = useState(row.exchange_rate?.toString() ?? '')
-  const [notes, setNotes] = useState(row.notes ?? '')
-  const [error, setError] = useState<string | null>(null)
-
-  // Invoice linking state
-  const isInvoiceRelated = row.related_to === 'invoice'
-  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(row.related_id)
-  const [linkedInvoiceLabel, setLinkedInvoiceLabel] = useState<string | null>(invoiceLabel)
-
-  const isRetencion = row.payment_type === 'retencion'
-  const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
-
-  // Filter bank accounts by payment currency and type
-  const filteredAccounts = bankAccounts.filter(ba => {
-    if (ba.currency !== paymentCurrency) return false
-    if (row.payment_type === 'detraccion') return ba.is_detraccion_account
-    return !ba.is_detraccion_account
-  })
-
-  // Auto-fetch exchange rate when date changes (only if date differs from original)
-  useEffect(() => {
-    if (paymentDate !== row.payment_date) {
-      fetchExchangeRateForDate(paymentDate)
-        .then(rate => {
-          if (rate?.mid_rate) setExchangeRate(rate.mid_rate.toString())
-        })
-        .catch(() => {})
-    }
-  }, [paymentDate, row.payment_date])
-
-  function handleSubmit() {
-    setError(null)
-
-    const parsedAmount = parseFloat(amount)
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Enter a valid amount greater than 0')
-      return
-    }
-    if (!isRetencion && !bankAccountId) {
-      setError('Select a bank account')
-      return
-    }
-    const parsedRate = parseFloat(exchangeRate)
-    if (isNaN(parsedRate) || parsedRate <= 0) {
-      setError('Enter a valid exchange rate')
-      return
-    }
-
-    startTransition(async () => {
-      const updateData: Parameters<typeof updatePayment>[0] = {
-        id: row.id,
-        payment_date: paymentDate,
-        amount: parsedAmount,
-        exchange_rate: parsedRate,
-        bank_account_id: isRetencion ? null : bankAccountId,
-        notes: notes.trim() || null,
-      }
-      // Send related_id when the user changed or cleared the linked invoice
-      if (isInvoiceRelated && linkedInvoiceId !== row.related_id) {
-        updateData.related_id = linkedInvoiceId
-      }
-      const result = await updatePayment(updateData)
-
-      if (result.error) {
-        setError(result.error)
-      } else {
-        onSuccess()
-      }
-    })
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Locked fields row */}
-      <div className="grid grid-cols-4 gap-4">
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Direction <LockIcon /></span>
-          <span className="text-sm text-muted">{row.direction === 'inbound' ? 'Inbound' : 'Outbound'}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Type <LockIcon /></span>
-          <StatusBadge label={getPaymentTypeLabel(row.payment_type)} variant={getPaymentTypeBadgeVariant(row.payment_type)} />
-        </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
-          <span className="text-sm text-muted">{paymentCurrency}</span>
-        </div>
-        {isInvoiceRelated ? (
-          <div>
-            <label className="block text-[11px] font-medium text-muted mb-1">Linked Invoice</label>
-            <InvoicePicker
-              value={linkedInvoiceId}
-              displayLabel={linkedInvoiceLabel}
-              onChange={(id, label) => {
-                setLinkedInvoiceId(id)
-                setLinkedInvoiceLabel(label)
-              }}
-            />
-          </div>
-        ) : (
-          <div>
-            <span className="block text-[11px] font-medium text-faint mb-1">Related <LockIcon /></span>
-            <span className="text-sm text-muted">Loan</span>
-          </div>
-        )}
-      </div>
-
-      {/* Editable fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Date</label>
-          <input
-            type="date"
-            value={paymentDate}
-            onChange={e => setPaymentDate(e.target.value)}
-            className={`${inputCompactClass} w-full bg-white`}
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Amount</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            className={`${inputCompactClass} w-full bg-white font-mono text-right`}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {!isRetencion && (
-          <div>
-            <label className="block text-[11px] font-medium text-muted mb-1">Bank Account</label>
-            {filteredAccounts.length === 0 ? (
-              <p className="py-1.5 text-xs text-faint">No matching accounts</p>
-            ) : (
-              <select
-                value={bankAccountId}
-                onChange={e => setBankAccountId(e.target.value)}
-                className={`${inputCompactClass} w-full bg-white`}
-              >
-                <option value="">Select...</option>
-                {filteredAccounts.map(ba => (
-                  <option key={ba.id} value={ba.id}>
-                    {ba.label} ({ba.currency})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Exchange Rate</label>
-          <input
-            type="number"
-            step="0.001"
-            min="0"
-            value={exchangeRate}
-            onChange={e => setExchangeRate(e.target.value)}
-            className={`${inputCompactClass} w-full bg-white font-mono`}
-          />
-          <span className="text-[10px] text-faint mt-0.5 block">Auto-fetched on date change</span>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
-        <textarea
-          rows={2}
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          className={`${inputCompactClass} w-full bg-white resize-none`}
-          placeholder="Optional notes..."
-        />
-      </div>
-
-      {error && (
-        <p className="text-xs font-medium text-negative">{error}</p>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-edge pt-3">
-        <button
-          onClick={onCancel}
-          disabled={isPending}
-          className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-        >
-          {isPending ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>
@@ -388,23 +230,6 @@ function DeleteContent({ row, onCancel, onSuccess }: {
 
 // --- Main Component ---
 export function PaymentExpandContent({ row, relatedDetail, mode, onSetMode, onMutationSuccess, bankAccounts }: Props) {
-  // Derive linked invoice label from the actual related invoice, not the payment's document_ref
-  const invoiceLabel = relatedDetail && 'invoice' in relatedDetail && relatedDetail.invoice
-    ? (relatedDetail.invoice.document_ref ?? relatedDetail.invoice.invoice_number ?? relatedDetail.invoice.title ?? null)
-    : null
-
-  if (mode === 'edit') {
-    return (
-      <EditContent
-        row={row}
-        bankAccounts={bankAccounts}
-        invoiceLabel={invoiceLabel}
-        onCancel={() => onSetMode('view')}
-        onSuccess={onMutationSuccess}
-      />
-    )
-  }
-
   if (mode === 'delete') {
     return (
       <DeleteContent
@@ -420,6 +245,7 @@ export function PaymentExpandContent({ row, relatedDetail, mode, onSetMode, onMu
       row={row}
       relatedDetail={relatedDetail}
       onSetMode={onSetMode}
+      bankAccounts={bankAccounts}
     />
   )
 }

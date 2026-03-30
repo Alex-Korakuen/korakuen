@@ -291,32 +291,34 @@ export async function updateEntityContact(
 
 // --- Update & Deactivate Entity ---
 
-export async function updateEntity(
-  entityId: string,
-  data: {
-    legal_name: string
-    city?: string
-    region?: string
-    notes?: string
-  }
+// --- Granular field-level updates (thin wrappers over shared helper) ---
+
+export async function updateEntityField(
+  entityId: string, field: string, value: string | number | null,
 ): Promise<{ error?: string }> {
-  if (!data.legal_name.trim()) return { error: 'Legal name is required' }
+  const { updateRecordField, ENTITY_CONFIG } = await import('@/lib/field-update')
+  return updateRecordField(ENTITY_CONFIG, entityId, field, value)
+}
 
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
-    .from('entities')
-    .update({
-      legal_name: data.legal_name.trim(),
-      city: data.city?.trim() || null,
-      region: data.region?.trim() || null,
-      notes: data.notes?.trim() || null,
-    })
-    .eq('id', entityId)
-    .eq('is_active', true)
+export async function updateProjectField(
+  projectId: string, field: string, value: string | number | null,
+): Promise<{ error?: string }> {
+  const { updateRecordField, PROJECT_CONFIG } = await import('@/lib/field-update')
+  return updateRecordField(PROJECT_CONFIG, projectId, field, value)
+}
 
-  if (error) return { error: handleDbError(error, 'Failed to update entity') }
-  revalidatePath('/entities')
-  return {}
+export async function updateInvoiceField(
+  invoiceId: string, field: string, value: string | number | null,
+): Promise<{ error?: string }> {
+  const { updateRecordField, INVOICE_CONFIG } = await import('@/lib/field-update')
+  return updateRecordField(INVOICE_CONFIG, invoiceId, field, value)
+}
+
+export async function updatePaymentField(
+  paymentId: string, field: string, value: string | number | null,
+): Promise<{ error?: string }> {
+  const { updateRecordField, PAYMENT_CONFIG } = await import('@/lib/field-update')
+  return updateRecordField(PAYMENT_CONFIG, paymentId, field, value)
 }
 
 export async function deactivateEntity(
@@ -443,45 +445,6 @@ export async function createEntity(data: {
 }
 
 // --- Update Project ---
-
-export async function updateProject(
-  projectId: string,
-  data: {
-    name: string
-    status: string
-    contract_value?: number
-    start_date?: string
-    expected_end_date?: string
-    actual_end_date?: string
-    client_entity_id?: string
-    location?: string
-    notes?: string
-  }
-): Promise<{ error?: string }> {
-  if (!data.name.trim()) return { error: 'Project name is required' }
-
-  const supabase = await createServerSupabaseClient()
-  const { error } = await supabase
-    .from('projects')
-    .update({
-      name: data.name.trim(),
-      status: data.status,
-      contract_value: data.contract_value ?? null,
-      start_date: data.start_date || null,
-      expected_end_date: data.expected_end_date || null,
-      actual_end_date: data.actual_end_date || null,
-      client_entity_id: data.client_entity_id || null,
-      location: data.location?.trim() || null,
-      notes: data.notes?.trim() || null,
-    })
-    .eq('id', projectId)
-    .eq('is_active', true)
-
-  if (error) return { error: handleDbError(error, 'Failed to update project') }
-  revalidatePath('/projects', 'layout')
-  revalidateFinancialPages()
-  return {}
-}
 
 // --- Create Project ---
 
@@ -782,99 +745,6 @@ export async function registerLoanRepayment(data: {
 
 // --- Update & Deactivate Payment ---
 
-export async function updatePayment(input: {
-  id: string
-  payment_date: string
-  amount: number
-  exchange_rate: number
-  bank_account_id: string | null
-  notes: string | null
-  related_id?: string | null
-}): Promise<{ error?: string }> {
-  const supabase = await createServerSupabaseClient()
-
-  if (input.amount <= 0) return { error: 'Amount must be greater than 0' }
-
-  // Fetch existing payment to get locked fields
-  const { data: existing } = await supabase
-    .from('payments')
-    .select('id, related_to, related_id, direction, payment_type, currency, amount')
-    .eq('id', input.id)
-    .eq('is_active', true)
-    .single()
-  if (!existing) return { error: 'Payment not found' }
-
-  // Bank account currency match
-  if (input.bank_account_id) {
-    const bankErr = await validateBankCurrency(supabase, input.bank_account_id, existing.currency)
-    if (bankErr) return { error: bankErr }
-  }
-
-  // Bank account required unless retencion
-  if (existing.payment_type !== 'retencion' && !input.bank_account_id) {
-    return { error: 'Bank account is required for this payment type' }
-  }
-
-  // Validate new related_id if changing the linked invoice
-  const unlinking = input.related_id === null
-  if (input.related_id && existing.related_to === 'invoice') {
-    const { data: newInvoice } = await supabase
-      .from('invoices')
-      .select('id, is_active')
-      .eq('id', input.related_id)
-      .eq('is_active', true)
-      .single()
-    if (!newInvoice) return { error: 'Selected invoice not found' }
-  }
-
-  // Amount ceiling — max = current outstanding + this payment's original amount
-  if (existing.related_to === 'invoice' && !unlinking) {
-    const targetInvoiceId = input.related_id ?? existing.related_id
-    // When changing invoice, the original payment amount is not "returned" to the old invoice for ceiling calc
-    const originalAmount = input.related_id ? 0 : existing.amount
-    const invErr = await validateInvoicePaymentLimit(
-      supabase, targetInvoiceId, existing.payment_type, input.amount, originalAmount,
-    )
-    if (invErr) return { error: invErr }
-  } else if (existing.related_to === 'loan_schedule') {
-    const lsErr = await validateLoanScheduleLimit(supabase, existing.related_id, input.amount, input.id)
-    if (lsErr) return { error: lsErr }
-  } else if (existing.related_to === 'loan') {
-    // Loan disbursement — cap at loan principal
-    const { data: loan } = await supabase
-      .from('loans')
-      .select('amount')
-      .eq('id', existing.related_id)
-      .single()
-    if (!loan) return { error: 'Related loan not found' }
-    if (input.amount > loan.amount) {
-      return { error: `Amount exceeds loan principal (${loan.amount.toFixed(2)})` }
-    }
-  }
-
-  const updateData: Record<string, unknown> = {
-    payment_date: input.payment_date,
-    amount: input.amount,
-    exchange_rate: input.exchange_rate,
-    bank_account_id: input.bank_account_id,
-    notes: input.notes,
-  }
-  if (input.related_id !== undefined) {
-    updateData.related_id = input.related_id
-  }
-
-  const { error } = await supabase
-    .from('payments')
-    .update(updateData)
-    .eq('id', input.id)
-    .eq('is_active', true)
-
-  if (error) return { error: handleDbError(error, 'Failed to update payment') }
-
-  revalidateFinancialPages()
-  return {}
-}
-
 export async function deactivatePayment(
   paymentId: string
 ): Promise<{ error?: string }> {
@@ -920,119 +790,6 @@ export async function deactivatePayment(
 
 // --- Update & Deactivate Invoice ---
 
-export async function updateInvoice(input: {
-  id: string
-  title: string | null
-  entity_id: string | null
-  invoice_date: string
-  due_date: string | null
-  comprobante_type: string | null
-  invoice_number: string | null
-  document_ref: string | null
-  payment_method: string | null
-  exchange_rate: number
-  detraccion_rate: number | null
-  retencion_rate: number | null
-  notes: string | null
-  items: Array<{
-    title: string
-    category: string | null
-    quantity: number | null
-    unit_of_measure: string | null
-    unit_price: number | null
-    subtotal: number
-  }>
-}): Promise<{ error?: string }> {
-  if (!input.items.length) return { error: 'At least one line item is required' }
-  if (input.exchange_rate <= 0) return { error: 'Exchange rate must be greater than 0' }
-
-  const supabase = await createServerSupabaseClient()
-
-  // Fetch existing invoice (locked fields + payment check)
-  const { data: existing } = await supabase
-    .from('invoices')
-    .select('id, direction, partner_id, currency, project_id, cost_type, igv_rate, retencion_applicable')
-    .eq('id', input.id)
-    .eq('is_active', true)
-    .single()
-  if (!existing) return { error: 'Invoice not found or already deactivated' }
-
-  // Compute new total from items
-  const newSubtotal = input.items.reduce((sum, item) => sum + item.subtotal, 0)
-  if (newSubtotal <= 0) return { error: 'Total must be greater than 0' }
-
-  // Check if invoice has payments — validate new total >= amount_paid
-  const { data: paymentAgg } = await supabase
-    .from('payments')
-    .select('amount, currency, exchange_rate')
-    .eq('related_to', 'invoice')
-    .eq('related_id', input.id)
-    .eq('is_active', true)
-
-  if (paymentAgg && paymentAgg.length > 0) {
-    const amountPaid = paymentAgg.reduce((sum, p) => {
-      if (p.currency === existing.currency) return sum + p.amount
-      return sum + p.amount / (p.exchange_rate || 1)
-    }, 0)
-    const igvAmount = round2(newSubtotal * (existing.igv_rate / 100))
-    const newTotal = newSubtotal + igvAmount
-    if (newTotal < amountPaid) {
-      return { error: `New total (${newTotal.toFixed(2)}) cannot be less than amount already paid (${amountPaid.toFixed(2)})` }
-    }
-  }
-
-  // Update invoice header (editable fields only)
-  const { error: updateError } = await supabase
-    .from('invoices')
-    .update({
-      title: input.title?.trim() || null,
-      entity_id: input.entity_id || null,
-      invoice_date: input.invoice_date,
-      due_date: input.due_date || null,
-      comprobante_type: input.comprobante_type || null,
-      invoice_number: input.invoice_number?.trim() || null,
-      document_ref: input.document_ref?.trim() || null,
-      payment_method: input.payment_method || null,
-      exchange_rate: input.exchange_rate,
-      detraccion_rate: input.detraccion_rate ?? null,
-      retencion_rate: existing.retencion_applicable ? (input.retencion_rate ?? null) : null,
-      notes: input.notes?.trim() || null,
-    })
-    .eq('id', input.id)
-    .eq('is_active', true)
-
-  if (updateError) return { error: handleDbError(updateError, 'Failed to update invoice') }
-
-  // Delete all existing invoice_items and reinsert
-  const { error: deleteError } = await supabase
-    .from('invoice_items')
-    .delete()
-    .eq('invoice_id', input.id)
-
-  if (deleteError) return { error: handleDbError(deleteError, 'Failed to update invoice items') }
-
-  const { error: insertError } = await supabase
-    .from('invoice_items')
-    .insert(
-      input.items.map(item => ({
-        invoice_id: input.id,
-        title: item.title.trim(),
-        category: item.category || null,
-        quantity: item.quantity ?? null,
-        unit_of_measure: item.unit_of_measure?.trim() || null,
-        unit_price: item.unit_price ?? null,
-        subtotal: item.subtotal,
-      }))
-    )
-
-  if (insertError) return { error: handleDbError(insertError, 'Failed to update invoice items') }
-
-  revalidateFinancialPages()
-  revalidatePath('/projects', 'layout')
-  revalidatePath('/prices')
-  return {}
-}
-
 export async function deactivateInvoice(
   invoiceId: string
 ): Promise<{ error?: string }> {
@@ -1053,35 +810,159 @@ export async function deactivateInvoice(
 
   if (error) return { error: handleDbError(error, 'Failed to deactivate invoice') }
 
-  // Cascade: deactivate all related payments
-  const { data: relatedPayments } = await supabase
+  // Unlink related payments (keep them active, just remove the link)
+  await supabase
     .from('payments')
-    .select('id, payment_type')
+    .update({ related_id: null as unknown as string })
     .eq('related_to', 'invoice')
     .eq('related_id', invoiceId)
     .eq('is_active', true)
 
-  if (relatedPayments && relatedPayments.length > 0) {
-    await supabase
-      .from('payments')
-      .update({ is_active: false })
-      .eq('related_to', 'invoice')
-      .eq('related_id', invoiceId)
-      .eq('is_active', true)
-  }
-
-  // Un-verify retencion if applicable
-  const hadRetencion = relatedPayments?.some(p => p.payment_type === 'retencion')
-  if (hadRetencion) {
-    await supabase
-      .from('invoices')
-      .update({ retencion_verified: false })
-      .eq('id', invoiceId)
-  }
-
   revalidateFinancialPages()
   revalidatePath('/projects', 'layout')
   revalidatePath('/prices')
+  return {}
+}
+
+// --- Invoice Item granular actions ---
+
+const ITEM_EDITABLE_FIELDS = ['title', 'category', 'quantity', 'unit_of_measure', 'unit_price'] as const
+
+/** Revalidate all pages affected by invoice item changes. */
+function revalidateInvoicePages() {
+  revalidateFinancialPages()
+  revalidatePath('/projects', 'layout')
+  revalidatePath('/prices')
+}
+
+/**
+ * Check that the invoice total (after item changes) is still >= amount_paid.
+ * Returns error string or null.
+ */
+async function validateInvoiceTotalAfterItemChange(
+  supabase: ServerSupabase,
+  invoiceId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('v_invoice_balances')
+    .select('total, amount_paid')
+    .eq('invoice_id', invoiceId)
+    .single()
+  if (!data) return null
+  const total = data.total ?? 0
+  const amountPaid = data.amount_paid ?? 0
+  if (total < amountPaid) {
+    return `New total (${total.toFixed(2)}) cannot be less than amount already paid (${amountPaid.toFixed(2)})`
+  }
+  return null
+}
+
+export async function updateInvoiceItemField(
+  itemId: string,
+  field: string,
+  value: string | number | null,
+): Promise<{ error?: string }> {
+  if (!(ITEM_EDITABLE_FIELDS as readonly string[]).includes(field)) {
+    return { error: `Field '${field}' is not editable` }
+  }
+
+  const supabase = await createServerSupabaseClient()
+
+  const { data: item } = await supabase
+    .from('invoice_items')
+    .select('id, invoice_id, quantity, unit_price')
+    .eq('id', itemId)
+    .single()
+  if (!item) return { error: 'Item not found' }
+
+  let normalized: string | number | null = value
+  if (typeof normalized === 'string') normalized = normalized.trim() || null
+
+  if (field === 'title' && !normalized) return { error: 'Title is required' }
+
+  // Recompute subtotal when quantity or unit_price changes
+  const updateData: Record<string, unknown> = { [field]: normalized }
+  if (field === 'quantity' || field === 'unit_price') {
+    const qty = field === 'quantity' ? (normalized as number | null) : item.quantity
+    const price = field === 'unit_price' ? (normalized as number | null) : item.unit_price
+    if (qty != null && price != null && qty > 0 && price > 0) {
+      updateData.subtotal = round2(qty * price)
+    }
+  }
+
+  const { error } = await supabase
+    .from('invoice_items')
+    .update(updateData)
+    .eq('id', itemId)
+
+  if (error) return { error: handleDbError(error, 'Failed to update item') }
+
+  const totalErr = await validateInvoiceTotalAfterItemChange(supabase, item.invoice_id)
+  if (totalErr) return { error: totalErr }
+
+  revalidateInvoicePages()
+  return {}
+}
+
+export async function addInvoiceItem(
+  invoiceId: string,
+  data: { title: string; category?: string; quantity?: number; unit_of_measure?: string; unit_price?: number; subtotal: number },
+): Promise<{ error?: string }> {
+  if (!data.title.trim()) return { error: 'Title is required' }
+  if (data.subtotal <= 0) return { error: 'Subtotal must be greater than 0' }
+
+  const supabase = await createServerSupabaseClient()
+
+  const { error } = await supabase
+    .from('invoice_items')
+    .insert({
+      invoice_id: invoiceId,
+      title: data.title.trim(),
+      category: data.category || null,
+      quantity: data.quantity ?? null,
+      unit_of_measure: data.unit_of_measure?.trim() || null,
+      unit_price: data.unit_price ?? null,
+      subtotal: data.subtotal,
+    })
+
+  if (error) return { error: handleDbError(error, 'Failed to add item') }
+
+  const totalErr = await validateInvoiceTotalAfterItemChange(supabase, invoiceId)
+  if (totalErr) return { error: totalErr }
+
+  revalidateInvoicePages()
+  return {}
+}
+
+export async function removeInvoiceItem(
+  itemId: string,
+): Promise<{ error?: string }> {
+  const supabase = await createServerSupabaseClient()
+
+  const { data: item } = await supabase
+    .from('invoice_items')
+    .select('id, invoice_id')
+    .eq('id', itemId)
+    .single()
+  if (!item) return { error: 'Item not found' }
+
+  const { count } = await supabase
+    .from('invoice_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('invoice_id', item.invoice_id)
+  if ((count ?? 0) <= 1) return { error: 'Invoice must have at least one line item' }
+
+  const { error } = await supabase
+    .from('invoice_items')
+    .delete()
+    .eq('id', itemId)
+
+  if (error) return { error: handleDbError(error, 'Failed to remove item') }
+
+  const totalErr = await validateInvoiceTotalAfterItemChange(supabase, item.invoice_id)
+  if (totalErr) return { error: totalErr }
+
+  revalidateInvoicePages()
   return {}
 }
 

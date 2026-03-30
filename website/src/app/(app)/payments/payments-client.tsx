@@ -64,7 +64,7 @@ export function PaymentsClient({
   const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
-  const [modalMode, setModalMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
   const [modalBankAccounts, setModalBankAccounts] = useState<BankAccountOption[]>([])
 
   const filtersActive = hasActiveFilters(currentFilters)
@@ -119,9 +119,7 @@ export function PaymentsClient({
     router.refresh()
   }
 
-  const modalTitle = modalMode === 'edit' ? 'Edit Payment'
-    : modalMode === 'delete' ? 'Payment Detail'
-    : 'Payment Detail'
+  const modalTitle = 'Payment Detail'
 
   return (
     <div>

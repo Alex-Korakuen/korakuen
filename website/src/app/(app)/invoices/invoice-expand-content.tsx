@@ -1,46 +1,62 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
-import { formatCurrency, formatDate, formatComprobanteType } from '@/lib/formatters'
-import { DetailField } from '@/components/ui/detail-field'
+import { useState, useCallback, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { formatCurrency, formatDate, formatComprobanteType, formatCategory } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
+import { InlineEdit } from '@/components/ui/inline-edit'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTrash } from '@/lib/styles'
-import { updateInvoice, deactivateInvoice, fetchExchangeRateForDate } from '@/lib/actions'
-import { LockIcon } from '@/components/ui/lock-icon'
-import { EntityPicker } from '@/components/ui/entity-picker'
+import { btnDangerOutline, iconTrash } from '@/lib/styles'
+import { updateInvoiceField, updateInvoiceItemField, addInvoiceItem, removeInvoiceItem, deactivateInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
+import { DetailField } from '@/components/ui/detail-field'
 import type { InvoiceDetailData, InvoicesPageRow, CategoryOption } from '@/lib/types'
-import { round2 } from '@/lib/queries/shared'
 
 type Props = {
   detail: InvoiceDetailData
   row: InvoicesPageRow
-  mode: 'view' | 'edit' | 'delete'
-  onSetMode: (mode: 'view' | 'edit' | 'delete') => void
+  mode: 'view' | 'delete'
+  onSetMode: (mode: 'view' | 'delete') => void
   onMutationSuccess: () => void
   onPaymentSuccess: () => void
   categories: CategoryOption[]
 }
 
-type EditItem = {
-  key: number
-  title: string
-  category: string
-  quantity: string
-  unit_of_measure: string
-  unit_price: string
-  subtotal: string
+const COMPROBANTE_OPTIONS = [
+  { value: '', label: '--' },
+  { value: 'factura', label: 'Factura' },
+  { value: 'boleta', label: 'Boleta' },
+  { value: 'recibo_por_honorarios', label: 'Recibo por Honorarios' },
+  { value: 'liquidacion_de_compra', label: 'Liquidacion de Compra' },
+  { value: 'planilla_jornales', label: 'Planilla de Jornales' },
+]
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: '', label: '--' },
+  { value: 'bank_transfer', label: 'Transferencia' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'check', label: 'Cheque' },
+]
+
+function formatPaymentMethod(method: string | null): string {
+  if (!method) return '--'
+  const map: Record<string, string> = {
+    bank_transfer: 'Transferencia',
+    cash: 'Efectivo',
+    check: 'Cheque',
+  }
+  return map[method] ?? method
 }
 
-let itemKeyCounter = 0
-
-// --- View Mode ---
-function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
+// --- View Mode (with inline editing) ---
+function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
   detail: InvoiceDetailData
-  onSetMode: (mode: 'view' | 'edit' | 'delete') => void
+  row: InvoicesPageRow
+  categories: CategoryOption[]
+  onSetMode: (mode: 'view' | 'delete') => void
   onPaymentSuccess: () => void
 }) {
+  const router = useRouter()
   const invoice = detail.invoice!
   const currency = invoice.currency ?? 'PEN'
   const invoiceDetraccion = invoice.detraccion_amount ?? 0
@@ -51,55 +67,246 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
   const retencionOutstanding = invoice.retencion_outstanding ?? 0
   const invoicePayable = invoice.payable_or_receivable ?? 0
   const direction = invoice.direction === 'receivable' ? 'inbound' as const : 'outbound' as const
+  const isReceivable = invoice.direction === 'receivable'
+
+  // Curried save handler for header fields
+  const saveField = useCallback(
+    (field: string) =>
+      (value: string | number | null) =>
+        updateInvoiceField(invoice.invoice_id!, field, value),
+    [invoice.invoice_id],
+  )
+
+  // Curried save handler for line item fields
+  const saveItemField = useCallback(
+    (itemId: string, field: string) =>
+      (value: string | number | null) =>
+        updateInvoiceItemField(itemId, field, value),
+    [],
+  )
+
+  // Category options for InlineEdit select
+  const categoryOptions = categories.map(c => ({ value: c.name, label: c.name }))
+
+  // Add a new line item
+  async function handleAddItem() {
+    const result = await addInvoiceItem(invoice.invoice_id!, { title: 'New item', subtotal: 0.01 })
+    if (!result.error) router.refresh()
+  }
+
+  // Remove a line item
+  async function handleRemoveItem(itemId: string) {
+    const result = await removeInvoiceItem(itemId)
+    if (!result.error) router.refresh()
+  }
 
   return (
     <div className="space-y-4 px-4 py-3">
-      {/* Header info */}
+      {/* Locked fields */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <DetailField label="Title" value={invoice.title ?? '--'} />
-        <DetailField label="Entity" value={invoice.entity_id ? '—' : 'Informal'} />
-        <DetailField label="Date" value={invoice.invoice_date ? formatDate(invoice.invoice_date) : '--'} />
-        <DetailField label="Due Date" value={invoice.due_date ? formatDate(invoice.due_date) : '--'} />
-        <DetailField label="Comprobante" value={formatComprobanteType(invoice.comprobante_type)} />
-        <DetailField label="Invoice #" value={invoice.invoice_number ?? '--'} />
-        <DetailField label="Document Ref" value={invoice.document_ref ?? '--'} />
-        <DetailField label="Payment Method" value={invoice.payment_method ?? '--'} />
+        <div>
+          <span className="mb-1 block text-[11px] font-medium text-faint">Direction</span>
+          <StatusBadge label={isReceivable ? 'Receivable' : 'Payable'} variant={isReceivable ? 'green' : 'blue'} />
+        </div>
+        <InlineEdit
+          label="Partner"
+          inputType="text"
+          value={row.partner_name ?? '--'}
+          locked
+        />
+        <InlineEdit
+          label="Currency"
+          inputType="text"
+          value={currency}
+          locked
+        />
+        <InlineEdit
+          label="Project"
+          inputType="text"
+          value={row.project_code ?? '--'}
+          locked
+        />
       </div>
 
+      {/* Editable header fields */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <InlineEdit
+          label="Title"
+          inputType="text"
+          value={invoice.title}
+          onSave={saveField('title')}
+        />
+        <DetailField label="Entity" value={row.entity_name ?? 'Informal'} />
+        <InlineEdit
+          label="Date"
+          inputType="date"
+          value={invoice.invoice_date}
+          displayValue={invoice.invoice_date ? formatDate(invoice.invoice_date) : null}
+          onSave={saveField('invoice_date')}
+        />
+        <InlineEdit
+          label="Due Date"
+          inputType="date"
+          value={invoice.due_date}
+          displayValue={invoice.due_date ? formatDate(invoice.due_date) : null}
+          onSave={saveField('due_date')}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <InlineEdit
+          label="Comprobante"
+          inputType="select"
+          value={invoice.comprobante_type}
+          displayValue={formatComprobanteType(invoice.comprobante_type)}
+          onSave={saveField('comprobante_type')}
+          options={COMPROBANTE_OPTIONS}
+        />
+        <InlineEdit
+          label="Invoice #"
+          inputType="text"
+          value={invoice.invoice_number}
+          onSave={saveField('invoice_number')}
+        />
+        <InlineEdit
+          label="Document Ref"
+          inputType="text"
+          value={invoice.document_ref}
+          onSave={saveField('document_ref')}
+        />
+        <InlineEdit
+          label="Payment Method"
+          inputType="select"
+          value={invoice.payment_method}
+          displayValue={formatPaymentMethod(invoice.payment_method)}
+          onSave={saveField('payment_method')}
+          options={PAYMENT_METHOD_OPTIONS}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <InlineEdit
+          label="Exchange Rate"
+          inputType="number"
+          value={invoice.exchange_rate}
+          displayValue={invoice.exchange_rate?.toFixed(3) ?? '--'}
+          onSave={saveField('exchange_rate')}
+          mono
+          step="0.001"
+          min="0"
+        />
+        <InlineEdit
+          label="Detraccion %"
+          inputType="number"
+          value={invoice.detraccion_rate}
+          onSave={saveField('detraccion_rate')}
+          mono
+          step="0.01"
+          min="0"
+          max="100"
+        />
+        {isReceivable && (
+          <InlineEdit
+            label="Retencion %"
+            inputType="number"
+            value={invoice.retencion_rate}
+            onSave={saveField('retencion_rate')}
+            mono
+            step="0.01"
+            min="0"
+            max="100"
+          />
+        )}
+      </div>
+
+      <InlineEdit
+        label="Notes"
+        inputType="textarea"
+        value={invoice.notes}
+        placeholder="No notes"
+        onSave={saveField('notes')}
+      />
+
       {/* Line items */}
-      {detail.items.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-ink">Line Items</h3>
-          <div className="overflow-x-auto rounded border border-edge">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-panel text-muted">
-                <tr>
-                  <th className="px-3 py-2">Title</th>
-                  <th className="px-3 py-2 text-right">Qty</th>
-                  <th className="px-3 py-2">Unit</th>
-                  <th className="px-3 py-2 text-right">Unit Price</th>
-                  <th className="px-3 py-2 text-right">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-edge">
-                {detail.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-3 py-2 text-ink">{item.title}</td>
-                    <td className="px-3 py-2 text-right text-muted">{item.quantity ?? '--'}</td>
-                    <td className="px-3 py-2 text-muted">{item.unit_of_measure ?? '--'}</td>
-                    <td className="px-3 py-2 text-right font-mono text-muted">
-                      {item.unit_price != null ? formatCurrency(item.unit_price, currency) : '--'}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono text-ink">
-                      {formatCurrency(item.subtotal, currency)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-ink">Line Items</h3>
+          <button onClick={handleAddItem} className="rounded border border-edge-strong px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-surface">+ Add item</button>
         </div>
-      )}
+        <div className="overflow-x-auto rounded border border-edge">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-panel text-muted">
+              <tr>
+                <th className="px-3 py-2">Title</th>
+                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2 text-right">Qty</th>
+                <th className="px-3 py-2">Unit</th>
+                <th className="px-3 py-2 text-right">Unit Price</th>
+                <th className="px-3 py-2 text-right">Subtotal</th>
+                <th className="px-3 py-2 w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-edge">
+              {detail.items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-1 py-1">
+                    <InlineEdit
+                      inputType="text"
+                      value={item.title}
+                      onSave={saveItemField(item.id, 'title')}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <InlineEdit
+                      inputType="select"
+                      value={item.category}
+                      displayValue={formatCategory(item.category)}
+                      onSave={saveItemField(item.id, 'category')}
+                      options={categoryOptions}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <InlineEdit
+                      inputType="number"
+                      value={item.quantity}
+                      onSave={saveItemField(item.id, 'quantity')}
+                      align="right"
+                      mono
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <InlineEdit
+                      inputType="text"
+                      value={item.unit_of_measure}
+                      onSave={saveItemField(item.id, 'unit_of_measure')}
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <InlineEdit
+                      inputType="number"
+                      value={item.unit_price}
+                      displayValue={item.unit_price != null ? formatCurrency(item.unit_price, currency) : null}
+                      onSave={saveItemField(item.id, 'unit_price')}
+                      align="right"
+                      mono
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-ink">
+                    {formatCurrency(item.subtotal, currency)}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {detail.items.length > 1 && (
+                      <button onClick={() => handleRemoveItem(item.id)} className="rounded border border-negative/20 p-0.5 text-negative/60 hover:bg-negative-bg hover:text-negative">
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Totals */}
       <div className="rounded border border-edge bg-panel px-4 py-3">
@@ -167,390 +374,14 @@ function ViewContent({ detail, onSetMode, onPaymentSuccess }: {
         }
       />
 
-      {/* Action footer */}
-      <div className="flex items-center justify-between border-t border-edge pt-3">
+      {/* Action footer — delete only */}
+      <div className="flex items-center justify-start border-t border-edge pt-3">
         <button
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
           Delete
-        </button>
-        <button
-          onClick={() => onSetMode('edit')}
-          className={`inline-flex items-center gap-1.5 rounded-md ${btnPrimaryLg} transition-colors`}
-        >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d={iconPencil} /></svg>
-          Edit
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// --- Edit Mode ---
-function EditContent({ detail, row, categories, onCancel, onSuccess }: {
-  detail: InvoiceDetailData
-  row: InvoicesPageRow
-  categories: CategoryOption[]
-  onCancel: () => void
-  onSuccess: () => void
-}) {
-  const invoice = detail.invoice!
-  const [isPending, startTransition] = useTransition()
-  const currency = invoice.currency ?? 'PEN'
-  const isReceivable = invoice.direction === 'receivable'
-
-  // Header fields
-  const [title, setTitle] = useState(invoice.title ?? '')
-  const [entityId, setEntityId] = useState(invoice.entity_id ?? '')
-  const [entityName, setEntityName] = useState(row.entity_name ?? '')
-  const [invoiceDate, setInvoiceDate] = useState(invoice.invoice_date ?? '')
-  const [dueDate, setDueDate] = useState(invoice.due_date ?? '')
-  const [comprobanteType, setComprobanteType] = useState(invoice.comprobante_type ?? '')
-  const [invoiceNumber, setInvoiceNumber] = useState(invoice.invoice_number ?? '')
-  const [documentRef, setDocumentRef] = useState(invoice.document_ref ?? '')
-  const [paymentMethod, setPaymentMethod] = useState(invoice.payment_method ?? '')
-  const [exchangeRate, setExchangeRate] = useState(invoice.exchange_rate?.toString() ?? '')
-  const [detraccionRate, setDetraccionRate] = useState(invoice.detraccion_rate?.toString() ?? '')
-  const [retencionRate, setRetencionRate] = useState(invoice.retencion_rate?.toString() ?? '')
-  const [notes, setNotes] = useState(invoice.notes ?? '')
-  const [error, setError] = useState<string | null>(null)
-
-  // Line items
-  const [items, setItems] = useState<EditItem[]>(() =>
-    detail.items.map(item => ({
-      key: ++itemKeyCounter,
-      title: item.title,
-      category: item.category ?? '',
-      quantity: item.quantity?.toString() ?? '',
-      unit_of_measure: item.unit_of_measure ?? '',
-      unit_price: item.unit_price?.toString() ?? '',
-      subtotal: item.subtotal.toString(),
-    }))
-  )
-
-  const hasPayments = detail.payments.length > 0
-  const amountPaid = invoice.amount_paid ?? 0
-
-  // Auto-fetch exchange rate when date changes
-  useEffect(() => {
-    if (invoiceDate && invoiceDate !== invoice.invoice_date) {
-      fetchExchangeRateForDate(invoiceDate)
-        .then(rate => {
-          if (rate?.mid_rate) setExchangeRate(rate.mid_rate.toString())
-        })
-        .catch(() => {})
-    }
-  }, [invoiceDate, invoice.invoice_date])
-
-  // Computed totals
-  const computedSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0)
-  const igvRate = invoice.igv_rate ?? 18
-  const computedIgv = round2(computedSubtotal * (igvRate / 100))
-  const computedTotal = computedSubtotal + computedIgv
-  const parsedDetraccion = parseFloat(detraccionRate) || 0
-  const computedDetraccion = parsedDetraccion > 0 ? round2((computedSubtotal + computedIgv) * parsedDetraccion / 100) : 0
-
-  function updateItem(key: number, field: keyof EditItem, value: string) {
-    setItems(prev => prev.map(item => {
-      if (item.key !== key) return item
-      const updated = { ...item, [field]: value }
-      // Auto-compute subtotal from qty * unit_price
-      if (field === 'quantity' || field === 'unit_price') {
-        const qty = parseFloat(field === 'quantity' ? value : updated.quantity)
-        const price = parseFloat(field === 'unit_price' ? value : updated.unit_price)
-        if (!isNaN(qty) && !isNaN(price) && qty > 0 && price > 0) {
-          updated.subtotal = round2(qty * price).toString()
-        }
-      }
-      return updated
-    }))
-  }
-
-  function addItem() {
-    setItems(prev => [...prev, {
-      key: ++itemKeyCounter,
-      title: '',
-      category: '',
-      quantity: '',
-      unit_of_measure: '',
-      unit_price: '',
-      subtotal: '',
-    }])
-  }
-
-  function removeItem(key: number) {
-    setItems(prev => prev.filter(item => item.key !== key))
-  }
-
-  function handleSubmit() {
-    setError(null)
-    if (items.length === 0) { setError('At least one line item is required'); return }
-    const parsedRate = parseFloat(exchangeRate)
-    if (isNaN(parsedRate) || parsedRate <= 0) { setError('Enter a valid exchange rate'); return }
-
-    const parsedItems = items.map(item => ({
-      title: item.title.trim(),
-      category: item.category || null,
-      quantity: item.quantity ? parseFloat(item.quantity) : null,
-      unit_of_measure: item.unit_of_measure.trim() || null,
-      unit_price: item.unit_price ? parseFloat(item.unit_price) : null,
-      subtotal: parseFloat(item.subtotal) || 0,
-    }))
-
-    if (parsedItems.some(i => !i.title)) { setError('All items must have a title'); return }
-    if (parsedItems.some(i => i.subtotal <= 0)) { setError('All items must have a subtotal > 0'); return }
-
-    startTransition(async () => {
-      const result = await updateInvoice({
-        id: invoice.invoice_id!,
-        title: title.trim() || null,
-        entity_id: entityId || null,
-        invoice_date: invoiceDate,
-        due_date: dueDate || null,
-        comprobante_type: comprobanteType || null,
-        invoice_number: invoiceNumber.trim() || null,
-        document_ref: documentRef.trim() || null,
-        payment_method: paymentMethod || null,
-        exchange_rate: parsedRate,
-        detraccion_rate: parsedDetraccion > 0 ? parsedDetraccion : null,
-        retencion_rate: isReceivable && retencionRate ? parseFloat(retencionRate) : null,
-        notes: notes.trim() || null,
-        items: parsedItems,
-      })
-      if (result.error) {
-        setError(result.error)
-      } else {
-        onSuccess()
-      }
-    })
-  }
-
-  const inputCls = `${inputCompactClass} w-full bg-white`
-
-  return (
-    <div className="space-y-4 px-4 py-3">
-      {/* Locked fields */}
-      <div className="grid grid-cols-4 gap-4">
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Direction <LockIcon /></span>
-          <StatusBadge label={invoice.direction === 'receivable' ? 'Receivable' : 'Payable'} variant={invoice.direction === 'receivable' ? 'green' : 'blue'} />
-        </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Partner <LockIcon /></span>
-          <span className="text-sm text-muted">{row.partner_id ? '—' : '--'}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Currency <LockIcon /></span>
-          <span className="text-sm text-muted">{currency}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-medium text-faint mb-1">Project <LockIcon /></span>
-          <span className="text-sm text-muted">{row.project_code ?? '--'}</span>
-        </div>
-      </div>
-
-      {hasPayments && (
-        <div className="rounded border border-caution/20 bg-caution-bg px-3 py-2 text-xs text-caution">
-          This invoice has <strong>{detail.payments.length} payment{detail.payments.length !== 1 ? 's' : ''}</strong> totaling <strong className="font-mono">{formatCurrency(amountPaid, currency)}</strong>. The new total cannot be less than the amount paid.
-        </div>
-      )}
-
-      {/* Editable header fields */}
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Title</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Entity</label>
-          <EntityPicker
-            value={entityId || null}
-            displayName={entityName || null}
-            onChange={(id, name) => { setEntityId(id ?? ''); setEntityName(name ?? '') }}
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Invoice #</label>
-          <input type="text" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={inputCls} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Invoice Date</label>
-          <input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Due Date</label>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Comprobante</label>
-          <select value={comprobanteType} onChange={e => setComprobanteType(e.target.value)} className={inputCls}>
-            <option value="">None</option>
-            <option value="factura">Factura</option>
-            <option value="boleta">Boleta</option>
-            <option value="recibo_por_honorarios">Recibo por Honorarios</option>
-            <option value="liquidacion_de_compra">Liquidacion de Compra</option>
-            <option value="planilla_jornales">Planilla de Jornales</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Payment Method</label>
-          <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className={inputCls}>
-            <option value="">--</option>
-            <option value="bank_transfer">Transferencia</option>
-            <option value="cash">Efectivo</option>
-            <option value="check">Cheque</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Document Ref</label>
-          <input type="text" value={documentRef} onChange={e => setDocumentRef(e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Exchange Rate</label>
-          <input type="number" step="0.001" min="0" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
-          <span className="text-[10px] text-faint mt-0.5 block">Auto-fetched on date change</span>
-        </div>
-        <div>
-          <label className="block text-[11px] font-medium text-muted mb-1">Detraccion %</label>
-          <input type="number" step="0.01" min="0" max="100" value={detraccionRate} onChange={e => setDetraccionRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
-        </div>
-        {isReceivable && (
-          <div>
-            <label className="block text-[11px] font-medium text-muted mb-1">Retencion %</label>
-            <input type="number" step="0.01" min="0" max="100" value={retencionRate} onChange={e => setRetencionRate(e.target.value)} className={`${inputCls} font-mono text-right`} />
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-[11px] font-medium text-muted mb-1">Notes</label>
-        <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} className={`${inputCls} resize-none`} placeholder="Optional notes..." />
-      </div>
-
-      {/* Editable line items */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-ink">Line Items</span>
-          <button onClick={addItem} className="rounded border border-edge-strong px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-surface">+ Add item</button>
-        </div>
-        <div className="overflow-x-auto rounded border border-edge">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-panel text-muted">
-              <tr>
-                <th className="px-2 py-2">Title</th>
-                <th className="px-2 py-2">Category</th>
-                <th className="px-2 py-2 text-right w-16">Qty</th>
-                <th className="px-2 py-2 w-16">Unit</th>
-                <th className="px-2 py-2 text-right w-20">Unit Price</th>
-                <th className="px-2 py-2 text-right w-24">Subtotal</th>
-                <th className="px-2 py-2 w-8"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-edge">
-              {items.map(item => (
-                <tr key={item.key}>
-                  <td className="px-2 py-1.5">
-                    <input type="text" value={item.title} onChange={e => updateItem(item.key, 'title', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none" />
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <select value={item.category} onChange={e => updateItem(item.key, 'category', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none">
-                      <option value="">--</option>
-                      {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <input type="number" value={item.quantity} onChange={e => updateItem(item.key, 'quantity', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono focus:border-accent focus:outline-none" />
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <input type="text" value={item.unit_of_measure} onChange={e => updateItem(item.key, 'unit_of_measure', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs focus:border-accent focus:outline-none" />
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <input type="number" step="0.01" value={item.unit_price} onChange={e => updateItem(item.key, 'unit_price', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono focus:border-accent focus:outline-none" />
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <input type="number" step="0.01" value={item.subtotal} onChange={e => updateItem(item.key, 'subtotal', e.target.value)}
-                      className="w-full rounded border border-edge px-1.5 py-1 text-xs text-right font-mono font-semibold focus:border-accent focus:outline-none" />
-                  </td>
-                  <td className="px-2 py-1.5 text-center">
-                    {items.length > 1 && (
-                      <button onClick={() => removeItem(item.key)} className="rounded border border-negative/20 p-0.5 text-negative/60 hover:bg-negative-bg hover:text-negative">
-                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Computed totals (read-only) */}
-      <div className="rounded border border-edge bg-panel px-4 py-3">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted">Subtotal</span>
-              <span className="font-mono text-ink">{formatCurrency(computedSubtotal, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">IGV ({igvRate}%)</span>
-              <span className="font-mono text-ink">{formatCurrency(computedIgv, currency)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium text-ink">Total</span>
-              <span className="font-mono font-semibold text-ink">{formatCurrency(computedTotal, currency)}</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            {computedDetraccion > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted">Detraccion ({parsedDetraccion}%)</span>
-                <span className="font-mono text-ink">{formatCurrency(computedDetraccion, currency)}</span>
-              </div>
-            )}
-            {hasPayments && (
-              <>
-                <div className="flex justify-between">
-                  <span className="font-medium text-muted">Paid</span>
-                  <span className="font-mono text-ink">{formatCurrency(amountPaid, currency)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-muted">Outstanding</span>
-                  <span className="font-mono font-semibold text-negative">{formatCurrency(Math.max(0, computedTotal - amountPaid), currency)}</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="text-[10px] text-faint mt-1.5">Totals auto-calculated from line items.</div>
-      </div>
-
-      {error && <p className="text-xs font-medium text-negative">{error}</p>}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-edge pt-3">
-        <button onClick={onCancel} disabled={isPending}
-          className="rounded-md border border-edge-strong px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface">
-          Cancel
-        </button>
-        <button onClick={handleSubmit} disabled={isPending}
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
-          {isPending ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>
@@ -597,7 +428,7 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
       <DeleteConfirmation
         title="Deactivate this invoice?"
         message={paymentCount > 0 ? (
-          <>This will also deactivate <strong>{paymentCount} related payment{paymentCount !== 1 ? 's' : ''}</strong> totaling <strong className="font-mono">{formatCurrency(paymentTotal, currency)}</strong>. The entity&apos;s balance will be adjusted.</>
+          <><strong>{paymentCount} related payment{paymentCount !== 1 ? 's' : ''}</strong> totaling <strong className="font-mono">{formatCurrency(paymentTotal, currency)}</strong> will be unlinked from this invoice but remain active.</>
         ) : (
           <>This invoice has no payments. It will be removed from all views and calculations.</>
         )}
@@ -614,18 +445,6 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
 export function InvoiceExpandContent({ detail, row, mode, onSetMode, onMutationSuccess, onPaymentSuccess, categories }: Props) {
   if (!detail.invoice) return <p className="py-2 text-sm text-faint">No detail available.</p>
 
-  if (mode === 'edit') {
-    return (
-      <EditContent
-        detail={detail}
-        row={row}
-        categories={categories}
-        onCancel={() => onSetMode('view')}
-        onSuccess={onMutationSuccess}
-      />
-    )
-  }
-
   if (mode === 'delete') {
     return (
       <DeleteContent
@@ -639,6 +458,8 @@ export function InvoiceExpandContent({ detail, row, mode, onSetMode, onMutationS
   return (
     <ViewContent
       detail={detail}
+      row={row}
+      categories={categories}
       onSetMode={onSetMode}
       onPaymentSuccess={onPaymentSuccess}
     />
