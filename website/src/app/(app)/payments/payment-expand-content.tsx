@@ -120,9 +120,10 @@ function ViewContent({ row, relatedDetail, onSetMode }: {
 }
 
 // --- Edit Mode ---
-function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
+function EditContent({ row, bankAccounts, invoiceLabel, onCancel, onSuccess }: {
   row: PaymentsPageRow
   bankAccounts: BankAccountOption[]
+  invoiceLabel: string | null
   onCancel: () => void
   onSuccess: () => void
 }) {
@@ -137,9 +138,8 @@ function EditContent({ row, bankAccounts, onCancel, onSuccess }: {
 
   // Invoice linking state
   const isInvoiceRelated = row.related_to === 'invoice'
-  const initialInvoiceLabel = row.invoice_number ?? row.document_ref ?? null
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(row.related_id)
-  const [linkedInvoiceLabel, setLinkedInvoiceLabel] = useState<string | null>(initialInvoiceLabel)
+  const [linkedInvoiceLabel, setLinkedInvoiceLabel] = useState<string | null>(invoiceLabel)
 
   const isRetencion = row.payment_type === 'retencion'
   const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
@@ -394,11 +394,17 @@ function DeleteContent({ row, onCancel, onSuccess }: {
 
 // --- Main Component ---
 export function PaymentExpandContent({ row, relatedDetail, mode, onSetMode, onMutationSuccess, bankAccounts }: Props) {
+  // Derive linked invoice label from the actual related invoice, not the payment's document_ref
+  const invoiceLabel = relatedDetail && 'invoice' in relatedDetail && relatedDetail.invoice
+    ? (relatedDetail.invoice.document_ref ?? relatedDetail.invoice.invoice_number ?? relatedDetail.invoice.title ?? null)
+    : null
+
   if (mode === 'edit') {
     return (
       <EditContent
         row={row}
         bankAccounts={bankAccounts}
+        invoiceLabel={invoiceLabel}
         onCancel={() => onSetMode('view')}
         onSuccess={onMutationSuccess}
       />
