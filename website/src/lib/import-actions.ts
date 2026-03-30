@@ -554,6 +554,21 @@ export async function importPayments(
           errors.push({ row: r, column: 'category', message: `Not found in ${label} categories` })
         }
       }
+
+      // Bank account: optional for direct transactions
+      if (bankAccount) {
+        if (!bankMap.has(bankAccount)) {
+          errors.push({ row: r, column: 'bank_account', message: 'Not found — use format: BankName-Last4 (e.g. BCP-1234)' })
+        } else {
+          const ba = bankMap.get(bankAccount)!
+          if (ba.currency !== currency) {
+            errors.push({ row: r, column: 'bank_account', message: `Currency mismatch — account is ${ba.currency}, payment is ${currency}` })
+          }
+          if (ba.is_detraccion_account) {
+            errors.push({ row: r, column: 'bank_account', message: 'Cannot use detracción account for direct transactions' })
+          }
+        }
+      }
     }
   }
 
@@ -602,6 +617,7 @@ export async function importPayments(
     const exchangeRate = num(row.exchange_rate)!
     const date = str(row.payment_date)!
     const category = str(row.category)
+    const bankAccount = str(row.bank_account)
     const documentRef = str(row.document_ref)
     const notes = str(row.notes)
 
@@ -665,7 +681,7 @@ export async function importPayments(
         currency,
         exchange_rate: exchangeRate,
         partner_id: partnerId,
-        bank_account_id: null,
+        bank_account_id: bankAccount ? bankMap.get(bankAccount)!.id : null,
         document_ref: documentRef,
         notes,
       })

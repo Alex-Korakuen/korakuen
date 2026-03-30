@@ -18,7 +18,7 @@ import { dirname, join } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(__dirname, '..', 'public', 'templates')
 
-function createTemplate(filename, columns, instructions) {
+function createTemplate(filename, columns, notes) {
   const headers = columns.map(c => c.key)
   const descriptions = columns.map(c => c.description)
   const examples = columns.map(c => c.example ?? '')
@@ -37,21 +37,23 @@ function createTemplate(filename, columns, instructions) {
     return { wch: Math.min(Math.max(maxLen + 2, 12), 40) }
   })
 
-  // Instructions sheet
+  // Instructions sheet — structured table with all fields
   const instructionRows = [
-    ['Instructions'],
-    [],
-    ['Sheet structure (in the Data sheet):'],
+    ['Data sheet structure:'],
     ['  Row 1: Column headers (do not modify)'],
     ['  Row 2: Column descriptions'],
     ['  Row 3: Example values'],
     ['  Row 4: Valid values / constraints'],
     ['  Row 5+: Enter your data here'],
     [],
-    ...instructions.map(line => [line]),
+    // Field reference table
+    ['Field', 'Required', 'Description', 'Valid Values'],
+    ...columns.map(c => [c.key, c.required ?? '', c.description, c.valid ?? '']),
+    [],
+    ...(notes ?? []).map(line => [line]),
   ]
   const wsInstructions = XLSX.utils.aoa_to_sheet(instructionRows)
-  wsInstructions['!cols'] = [{ wch: 80 }]
+  wsInstructions['!cols'] = [{ wch: 28 }, { wch: 44 }, { wch: 44 }, { wch: 60 }]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions')
@@ -64,97 +66,89 @@ function createTemplate(filename, columns, instructions) {
 // Quotes Template
 // ============================================================
 createTemplate('quotes-template.xlsx', [
-  { key: 'project_code',            description: 'Project code',                  example: 'PRY001',       valid: 'Must exist in DB' },
-  { key: 'entity_document_number',  description: 'Supplier RUC/DNI',              example: '20123456789',  valid: 'Must exist in DB' },
-  { key: 'date_received',           description: 'Date received',                 example: '2026-03-15',   valid: 'YYYY-MM-DD' },
-  { key: 'title',                   description: 'Quote title',                   example: 'Cement supply Q1', valid: 'Required' },
-  { key: 'quantity',                description: 'Quantity',                       example: '100',          valid: 'Optional, number' },
-  { key: 'unit_of_measure',        description: 'Unit of measure',                example: 'bags',         valid: 'Optional' },
-  { key: 'unit_price',             description: 'Unit price',                     example: '25.50',        valid: 'Optional, number' },
-  { key: 'subtotal',               description: 'Subtotal (before IGV)',          example: '2550.00',      valid: 'Required, number' },
-  { key: 'igv_amount',             description: 'IGV amount (18% of subtotal)',   example: '459.00',       valid: 'Optional, number' },
-  { key: 'total',                  description: 'Total (subtotal + IGV)',         example: '3009.00',      valid: 'Required, number' },
-  { key: 'currency',               description: 'Currency code',                  example: 'PEN',          valid: 'USD, PEN' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',         valid: 'Required, 2.5–6.0' },
-  { key: 'status',                 description: 'Quote status',                   example: 'pending',      valid: 'pending, accepted, rejected' },
-  { key: 'document_ref',           description: 'Document reference',             example: 'COT-001',      valid: 'Optional' },
-  { key: 'notes',                  description: 'Notes',                          example: '',             valid: 'Optional' },
+  { key: 'project_code',            required: 'Yes',  description: 'Project code',                  example: 'PRY001',           valid: 'Must exist in DB' },
+  { key: 'entity_document_number',  required: 'Yes',  description: 'Supplier RUC/DNI',              example: '20123456789',      valid: 'Must exist in DB' },
+  { key: 'date_received',           required: 'Yes',  description: 'Date received',                 example: '2026-03-15',       valid: 'YYYY-MM-DD' },
+  { key: 'title',                   required: 'Yes',  description: 'Quote title',                   example: 'Cement supply Q1' },
+  { key: 'quantity',                required: 'No',   description: 'Quantity',                       example: '100',              valid: 'Number' },
+  { key: 'unit_of_measure',        required: 'No',   description: 'Unit of measure',                example: 'bags' },
+  { key: 'unit_price',             required: 'No',   description: 'Unit price',                     example: '25.50',            valid: 'Number' },
+  { key: 'subtotal',               required: 'Yes',  description: 'Subtotal (before IGV)',          example: '2550.00',          valid: 'Number, > 0' },
+  { key: 'igv_amount',             required: 'No',   description: 'IGV amount (18% of subtotal)',   example: '459.00',           valid: 'Number (auto-calculated if blank)' },
+  { key: 'total',                  required: 'Yes',  description: 'Total (subtotal + IGV)',         example: '3009.00',          valid: 'Number, > 0' },
+  { key: 'currency',               required: 'Yes',  description: 'Currency code',                  example: 'PEN',              valid: 'USD, PEN' },
+  { key: 'exchange_rate',          required: 'Yes',  description: 'Exchange rate (PEN per USD)',     example: '3.72',             valid: '2.5–6.0' },
+  { key: 'status',                 required: 'Yes',  description: 'Quote status',                   example: 'pending',          valid: 'pending, accepted, rejected' },
+  { key: 'document_ref',           required: 'No',   description: 'Document reference',             example: 'COT-001' },
+  { key: 'notes',                  required: 'No',   description: 'Notes',                          example: '' },
 ], [
-  'Quotes import:',
+  'Notes:',
   '  - project_code and entity_document_number must already exist in the database',
   '  - If quantity and unit_price are provided: subtotal must equal quantity × unit_price',
   '  - igv_amount must equal subtotal × 18% (auto-calculated if left blank)',
   '  - total must equal subtotal + igv_amount',
-  '  - exchange_rate must be between 2.5 and 6.0',
 ])
 
 // ============================================================
 // Invoices Template
 // ============================================================
 createTemplate('invoices-template.xlsx', [
-  { key: 'direction',              description: 'Invoice direction',                      example: 'payable',          valid: 'payable, receivable' },
-  { key: 'partner_name',   description: 'Partner name',                   example: 'Korakuen SAC',     valid: 'Must exist in DB' },
-  { key: 'invoice_date',           description: 'Invoice date',                           example: '2026-03-15',       valid: 'YYYY-MM-DD' },
-  { key: 'title',                  description: 'Invoice title (header)',                 example: 'Road materials',   valid: 'Optional' },
-  { key: 'invoice_number',         description: 'Invoice number',                         example: 'F001-00123',       valid: 'Optional' },
-  { key: 'currency',               description: 'Currency code',                          example: 'PEN',              valid: 'USD, PEN' },
-  { key: 'igv_rate',               description: 'IGV rate',                               example: '0.18',             valid: 'Required, 0 or 0.18' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',             example: '3.72',             valid: 'Required, 2.5–6.0' },
-  { key: 'project_code',           description: 'Project code',                           example: 'PRY001',           valid: 'Required for receivable' },
-  { key: 'entity_document_number', description: 'Entity RUC/DNI',                         example: '20123456789',      valid: 'Required for receivable' },
-  { key: 'comprobante_type',       description: 'Comprobante type',                       example: 'factura',          valid: 'factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none' },
-  { key: 'document_ref',           description: 'Document reference (grouping key)',      example: 'PRY001-AP-001',    valid: 'Required for payable' },
-  { key: 'due_date',               description: 'Due date',                               example: '2026-04-15',       valid: 'Optional, YYYY-MM-DD' },
-  { key: 'detraccion_rate',        description: 'Detracción rate',                        example: '0.12',             valid: 'Optional, PEN only' },
-  { key: 'retencion_applicable',   description: 'Retención applies?',                     example: 'false',            valid: 'true/false, receivable only' },
-  { key: 'retencion_rate',         description: 'Retención rate',                         example: '0.03',             valid: 'Optional' },
-  { key: 'payment_method',         description: 'Payment method',                         example: 'transfer',         valid: 'Optional' },
-  { key: 'quote_document_ref',     description: 'Linked quote document_ref',              example: 'COT-001',          valid: 'Optional, must exist in DB' },
-  { key: 'notes',                  description: 'Notes',                                  example: '',                 valid: 'Optional' },
-  { key: 'item_title',             description: 'Line item title',                        example: 'Cement bags',      valid: 'Required' },
-  { key: 'category',               description: 'Line item category',                     example: 'materials',        valid: 'Required for payable. Values: materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga' },
-  { key: 'subtotal',               description: 'Line item subtotal (before IGV)',        example: '5000.00',          valid: 'Required, number' },
-  { key: 'quantity',               description: 'Line item quantity',                     example: '200',              valid: 'Optional, number' },
-  { key: 'unit_of_measure',        description: 'Unit of measure',                        example: 'bags',             valid: 'Optional' },
-  { key: 'unit_price',             description: 'Unit price',                             example: '25.00',            valid: 'Optional, number' },
+  { key: 'direction',              required: 'Yes',                          description: 'Invoice direction',                      example: 'payable',          valid: 'payable, receivable' },
+  { key: 'partner_name',           required: 'Yes',                          description: 'Partner name',                           example: 'Korakuen SAC',     valid: 'Must exist in DB' },
+  { key: 'invoice_date',           required: 'Yes',                          description: 'Invoice date',                           example: '2026-03-15',       valid: 'YYYY-MM-DD' },
+  { key: 'title',                  required: 'No',                           description: 'Invoice title (header)',                 example: 'Road materials' },
+  { key: 'invoice_number',         required: 'No',                           description: 'Invoice number',                         example: 'F001-00123' },
+  { key: 'currency',               required: 'Yes',                          description: 'Currency code',                          example: 'PEN',              valid: 'USD, PEN' },
+  { key: 'igv_rate',               required: 'Yes',                          description: 'IGV rate',                               example: '0.18',             valid: '0 or 0.18' },
+  { key: 'exchange_rate',          required: 'Yes',                          description: 'Exchange rate (PEN per USD)',             example: '3.72',             valid: '2.5–6.0' },
+  { key: 'project_code',           required: 'Yes, for receivable',          description: 'Project code',                           example: 'PRY001',           valid: 'Must exist in DB' },
+  { key: 'entity_document_number', required: 'Yes, for receivable',          description: 'Entity RUC/DNI',                         example: '20123456789',      valid: 'Must exist in DB' },
+  { key: 'comprobante_type',       required: 'Yes',                          description: 'Comprobante type',                       example: 'factura',          valid: 'factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none' },
+  { key: 'document_ref',           required: 'Yes, for payable',             description: 'Document reference (grouping key)',      example: 'PRY001-AP-001' },
+  { key: 'due_date',               required: 'No',                           description: 'Due date',                               example: '2026-04-15',       valid: 'YYYY-MM-DD' },
+  { key: 'detraccion_rate',        required: 'No',                           description: 'Detracción rate',                        example: '0.12',             valid: 'PEN invoices only' },
+  { key: 'retencion_applicable',   required: 'No',                           description: 'Retención applies?',                     example: 'false',            valid: 'true/false, receivable only' },
+  { key: 'retencion_rate',         required: 'No',                           description: 'Retención rate',                         example: '0.03' },
+  { key: 'payment_method',         required: 'No',                           description: 'Payment method',                         example: 'transfer' },
+  { key: 'quote_document_ref',     required: 'No',                           description: 'Linked quote document_ref',              example: 'COT-001',          valid: 'Must exist in DB' },
+  { key: 'notes',                  required: 'No',                           description: 'Notes',                                  example: '' },
+  { key: 'item_title',             required: 'Yes',                          description: 'Line item title',                        example: 'Cement bags' },
+  { key: 'category',               required: 'Yes, for payable',             description: 'Line item category',                     example: 'materials',        valid: 'materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga' },
+  { key: 'subtotal',               required: 'Yes',                          description: 'Line item subtotal (before IGV)',        example: '5000.00',          valid: 'Number, > 0' },
+  { key: 'quantity',               required: 'No',                           description: 'Line item quantity',                     example: '200',              valid: 'Number' },
+  { key: 'unit_of_measure',        required: 'No',                           description: 'Unit of measure',                        example: 'bags' },
+  { key: 'unit_price',             required: 'No',                           description: 'Unit price',                             example: '25.00',            valid: 'Number' },
 ], [
-  'Invoices import:',
+  'Notes:',
   '  - Rows with the same document_ref are grouped into one invoice with multiple line items',
   '  - partner_name must match an entity tagged as "partner" in the database',
-  '  - Payable invoices require: document_ref, item_title, category, subtotal',
-  '  - Receivable invoices require: project_code, entity_document_number, item_title, subtotal',
   '  - Detracción only applies to PEN invoices',
   '  - Retención only applies to receivable invoices',
-  '  - comprobante_type values: factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none',
-  '  - category values: materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga',
 ])
 
 // ============================================================
 // Payments Template (handles both invoice payments and direct transactions)
 // ============================================================
 createTemplate('payments-template.xlsx', [
-  { key: 'invoice_document_ref',   description: 'Invoice document_ref (blank = direct transaction)', example: 'PRY001-AP-001', valid: 'Must exist in DB if provided' },
-  { key: 'direction',              description: 'Cash flow direction',             example: 'outbound',          valid: 'inbound, outbound' },
-  { key: 'partner_name',           description: 'Partner name',                   example: 'Korakuen SAC',      valid: 'Must exist in DB' },
-  { key: 'payment_date',           description: 'Payment date',                   example: '2026-03-20',        valid: 'YYYY-MM-DD' },
-  { key: 'amount',                 description: 'Payment amount',                 example: '5000.00',           valid: 'Required, > 0' },
-  { key: 'currency',               description: 'Currency code',                  example: 'PEN',               valid: 'USD, PEN' },
-  { key: 'exchange_rate',          description: 'Exchange rate (PEN per USD)',     example: '3.72',              valid: 'Auto-filled if blank, 2.5–6.0' },
-  { key: 'payment_type',           description: 'Payment type',                   example: 'regular',           valid: 'regular, detraccion, retencion (default: regular)' },
-  { key: 'bank_account',           description: 'Bank account (BankName-Last4)',  example: 'BCP-1234',          valid: 'Required for regular/detraccion with invoice_document_ref' },
-  { key: 'project_code',           description: 'Project code (direct txn only)', example: 'PRY001',            valid: 'Optional, must exist in DB' },
-  { key: 'category',               description: 'Cost category (direct txn only)',example: 'materials',         valid: 'Required for outbound direct transactions' },
-  { key: 'document_ref',           description: 'Payment receipt reference',      example: 'PRY001-PY-001',     valid: 'Optional' },
-  { key: 'notes',                  description: 'Notes',                          example: '',                  valid: 'Optional' },
+  { key: 'invoice_document_ref',   required: 'No',                                            description: 'Links payment to an existing invoice. Leave blank to create a direct transaction',  example: 'PRY001-AP-001', valid: 'Must exist in DB if provided' },
+  { key: 'direction',              required: 'Yes',                                            description: 'Cash flow direction',                          example: 'outbound',          valid: 'inbound, outbound' },
+  { key: 'partner_name',           required: 'Yes',                                            description: 'Partner name',                                 example: 'Korakuen SAC',      valid: 'Must exist in DB' },
+  { key: 'payment_date',           required: 'Yes',                                            description: 'Payment date',                                 example: '2026-03-20',        valid: 'YYYY-MM-DD' },
+  { key: 'amount',                 required: 'Yes',                                            description: 'Payment amount',                               example: '5000.00',           valid: 'Number, > 0' },
+  { key: 'currency',               required: 'Yes',                                            description: 'Currency code',                                example: 'PEN',               valid: 'USD, PEN' },
+  { key: 'exchange_rate',          required: 'No',                                             description: 'Exchange rate (PEN per USD). Auto-filled from DB if blank', example: '3.72', valid: '2.5–6.0' },
+  { key: 'payment_type',           required: 'No',                                             description: 'Payment type. Defaults to regular if blank',   example: 'regular',           valid: 'regular, detraccion, retencion' },
+  { key: 'bank_account',           required: 'Yes, for invoice regular/detraccion payments',   description: 'Bank account in BankName-Last4 format. Currency must match payment', example: 'BCP-1234', valid: 'Must exist in DB' },
+  { key: 'project_code',           required: 'No (direct transactions only)',                  description: 'Project code for direct transactions',         example: 'PRY001',            valid: 'Must exist in DB' },
+  { key: 'category',               required: 'Yes, for outbound direct transactions',          description: 'Cost category for direct transactions',        example: 'materials',         valid: 'Must match cost_type (project_cost if project_code given, sga otherwise)' },
+  { key: 'document_ref',           required: 'No',                                             description: 'Payment receipt reference',                    example: 'PRY001-PY-001' },
+  { key: 'notes',                  required: 'No',                                             description: 'Notes',                                       example: '' },
 ], [
-  'Payments import:',
+  'Notes:',
   '  - If invoice_document_ref is provided: links payment to an existing invoice',
   '  - If invoice_document_ref is blank: creates a direct transaction (auto-generates invoice + payment)',
   '  - partner_name must match an entity tagged as "partner" in the database',
-  '  - bank_account format: BankName-Last4 (e.g., BCP-1234) — must exist in the database',
-  '  - bank_account is required for regular and detraccion payments linked to an invoice',
   '  - Retención only applies to receivable invoices',
-  '  - For direct transactions: category is required for outbound, project_code is optional',
   '  - exchange_rate is auto-filled from the database if left blank',
 ])
 
