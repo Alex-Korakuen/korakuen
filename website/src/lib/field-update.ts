@@ -102,7 +102,7 @@ export const INVOICE_CONFIG: FieldUpdateConfig = {
   table: 'invoices',
   allowedFields: [
     'title', 'entity_id', 'invoice_date', 'due_date', 'comprobante_type',
-    'invoice_number', 'document_ref', 'payment_method', 'exchange_rate',
+    'invoice_number', 'document_ref', 'exchange_rate',
     'detraccion_rate', 'retencion_rate', 'notes',
   ],
   validate: (field, value) => {

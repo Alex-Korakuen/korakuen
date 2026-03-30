@@ -350,7 +350,6 @@ export type Database = {
           is_auto_generated: boolean
           notes: string | null
           partner_id: string
-          payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
           quote_id: string | null
@@ -379,7 +378,6 @@ export type Database = {
           is_auto_generated?: boolean
           notes?: string | null
           partner_id: string
-          payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
           quote_id?: string | null
@@ -408,7 +406,6 @@ export type Database = {
           is_auto_generated?: boolean
           notes?: string | null
           partner_id?: string
-          payment_method?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
           quote_id?: string | null
@@ -1018,7 +1015,6 @@ export type Database = {
           outstanding: number | null
           partner_id: string | null
           payable_or_receivable: number | null
-          payment_method: string | null
           payment_status: string | null
           project_id: string | null
           retencion_amount: number | null
@@ -1074,7 +1070,6 @@ export type Database = {
           invoice_number: string | null
           notes: string | null
           partner_id: string | null
-          payment_method: string | null
           project_id: string | null
           purchase_order_id: string | null
           quote_id: string | null

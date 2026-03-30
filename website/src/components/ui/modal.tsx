@@ -6,10 +6,14 @@ type ModalProps = {
   isOpen: boolean
   onClose: () => void
   title: string
+  /** Optional content rendered to the right of the title, before the close button */
+  headerRight?: React.ReactNode
+  /** Optional content rendered to the left of the title */
+  headerLeft?: React.ReactNode
   children: React.ReactNode
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, headerLeft, headerRight, children }: ModalProps) {
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -62,7 +66,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-edge px-6 py-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-ink">{title}</h2>
+          <div className="flex items-center gap-2.5">
+            {headerLeft}
+            <h2 id="modal-title" className="text-lg font-semibold text-ink">{title}</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            {headerRight}
           <button
             type="button"
             onClick={onClose}
@@ -84,6 +93,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+          </div>
         </div>
 
         {/* Scrollable content */}

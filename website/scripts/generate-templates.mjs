@@ -109,7 +109,6 @@ createTemplate('invoices-template.xlsx', [
   { key: 'detraccion_rate',        required: 'No',                           description: 'Detracción rate',                        example: '0.12',             valid: 'PEN invoices only' },
   { key: 'retencion_applicable',   required: 'No',                           description: 'Retención applies?',                     example: 'false',            valid: 'true/false, receivable only' },
   { key: 'retencion_rate',         required: 'No',                           description: 'Retención rate',                         example: '0.03' },
-  { key: 'payment_method',         required: 'No',                           description: 'Payment method',                         example: 'transfer' },
   { key: 'quote_document_ref',     required: 'No',                           description: 'Linked quote document_ref',              example: 'COT-001',          valid: 'Must exist in DB' },
   { key: 'notes',                  required: 'No',                           description: 'Notes',                                  example: '' },
   { key: 'item_title',             required: 'Yes',                          description: 'Line item title',                        example: 'Cement bags' },

@@ -310,7 +310,6 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 | retencion_applicable | BOOLEAN | NO | default false — receivable only |
 | retencion_rate | NUMERIC(5,2) | YES | default 3 if applicable — receivable only |
 | retencion_verified | BOOLEAN | NO | default false — receivable only |
-| payment_method | VARCHAR | YES | bank_transfer, cash, check — payable only |
 | is_auto_generated | BOOLEAN | NO | default false — true for invoices created via Direct Transaction (informal partner cash payments). Can be promoted to formal invoice by editing in place |
 | notes | TEXT | YES | free-form context |
 | created_at | TIMESTAMPTZ | NO | auto |

@@ -29,7 +29,6 @@ WITH item_sums AS (
     i.currency,
     i.exchange_rate,
     i.comprobante_type,
-    i.payment_method,
     i.document_ref,
     i.notes,
     COALESCE(SUM(ii.subtotal), 0) AS subtotal
@@ -42,7 +41,7 @@ WITH item_sums AS (
     i.title, i.invoice_number, i.invoice_date, i.due_date,
     i.igv_rate, i.detraccion_rate, i.retencion_applicable,
     i.retencion_rate, i.retencion_verified, i.currency,
-    i.exchange_rate, i.comprobante_type, i.payment_method,
+    i.exchange_rate, i.comprobante_type,
     i.document_ref, i.notes
 ),
 with_igv AS (
@@ -72,7 +71,6 @@ SELECT
   currency,
   exchange_rate,
   comprobante_type,
-  payment_method,
   document_ref,
   notes,
   subtotal,

@@ -364,7 +364,6 @@ export async function importInvoices(
       retencion_applicable: String(first.retencion_applicable ?? '').toLowerCase() === 'true',
       retencion_rate: num(first.retencion_rate),
       comprobante_type: str(first.comprobante_type),
-      payment_method: str(first.payment_method),
       document_ref: str(first.document_ref),
       due_date: str(first.due_date),
       notes: str(first.notes),

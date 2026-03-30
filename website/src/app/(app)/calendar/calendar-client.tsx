@@ -7,6 +7,7 @@ import { getCalendarBucket } from '@/lib/date-utils'
 import { FK, hasActiveFilters } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { Modal } from '@/components/ui/modal'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
 import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarFilters } from './calendar-filters'
@@ -225,7 +226,20 @@ export function CalendarClient({
 
       <CalendarTable groups={groups} grandTotals={grandTotals} onRowClick={handleRowClick} />
 
-      <Modal isOpen={!!modalRow} onClose={handleCloseModal} title={modalTitle}>
+      <Modal
+        isOpen={!!modalRow}
+        onClose={handleCloseModal}
+        title={modalTitle}
+        headerLeft={modalRow && modalRow.type !== 'loan' ? (
+          <StatusBadge
+            label={modalRow.direction === 'receivable' ? 'Receivable' : 'Payable'}
+            variant={modalRow.direction === 'receivable' ? 'green' : 'blue'}
+          />
+        ) : undefined}
+        headerRight={modalRow && modalRow.type !== 'loan' ? (
+          <span className="text-xs font-medium text-muted">{modalRow.currency}</span>
+        ) : undefined}
+      >
         {renderModalContent()}
       </Modal>
 

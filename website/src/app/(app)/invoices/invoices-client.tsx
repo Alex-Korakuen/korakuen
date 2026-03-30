@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useUrlFilters } from '@/lib/use-url-filters'
@@ -8,6 +8,7 @@ import { FK, hasActiveFilters } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importInvoices } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { ImportButton } from '@/components/ui/import-button'
 import { Pagination } from '@/components/ui/pagination'
@@ -68,6 +69,15 @@ export function InvoicesClient({
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
+
+  // Keep modal row in sync after router.refresh() updates the data prop
+  useEffect(() => {
+    if (modalRow) {
+      const updated = data.find(r => r.id === modalRow.id)
+      if (updated) setModalRow(updated)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
   const filtersActive = hasActiveFilters(currentFilters)
 
@@ -149,7 +159,20 @@ export function InvoicesClient({
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
       </SectionCard>
 
-      <Modal isOpen={modalRow !== null} onClose={handleCloseModal} title={modalTitle}>
+      <Modal
+        isOpen={modalRow !== null}
+        onClose={handleCloseModal}
+        title={modalTitle}
+        headerLeft={modalRow && modalRow.type !== 'loan' ? (
+          <StatusBadge
+            label={modalRow.direction === 'receivable' ? 'Receivable' : 'Payable'}
+            variant={modalRow.direction === 'receivable' ? 'green' : 'blue'}
+          />
+        ) : undefined}
+        headerRight={modalRow && modalRow.type !== 'loan' ? (
+          <span className="text-xs font-medium text-muted">{modalRow.currency}</span>
+        ) : undefined}
+      >
         {modalLoading ? (
           <div className="flex items-center justify-center py-6">
             <span className="text-sm text-faint">Loading detail...</span>

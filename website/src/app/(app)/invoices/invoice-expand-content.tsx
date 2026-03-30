@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatCurrency, formatDate, formatComprobanteType, formatCategory, formatPaymentMethod, formatExchangeRate } from '@/lib/formatters'
-import { StatusBadge } from '@/components/ui/status-badge'
+import { formatCurrency, formatDate, formatComprobanteType, formatCategory, formatExchangeRate } from '@/lib/formatters'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
 import { btnDangerOutline, iconTrash } from '@/lib/styles'
@@ -29,13 +28,6 @@ const COMPROBANTE_OPTIONS = [
   { value: 'recibo_por_honorarios', label: 'Recibo por Honorarios' },
   { value: 'liquidacion_de_compra', label: 'Liquidacion de Compra' },
   { value: 'planilla_jornales', label: 'Planilla de Jornales' },
-]
-
-const PAYMENT_METHOD_OPTIONS = [
-  { value: '', label: '--' },
-  { value: 'bank_transfer', label: 'Transferencia' },
-  { value: 'cash', label: 'Efectivo' },
-  { value: 'check', label: 'Cheque' },
 ]
 
 // --- View Mode (with inline editing) ---
@@ -92,34 +84,14 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
 
   return (
     <div className="space-y-4 px-4 py-3">
-      {/* Locked fields */}
+      {/* Header fields */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div>
-          <span className="mb-1 block text-[11px] font-medium text-faint">Direction</span>
-          <StatusBadge label={isReceivable ? 'Receivable' : 'Payable'} variant={isReceivable ? 'green' : 'blue'} />
-        </div>
         <InlineEdit
           label="Partner"
           inputType="text"
           value={row.partner_name ?? '--'}
           locked
         />
-        <InlineEdit
-          label="Currency"
-          inputType="text"
-          value={currency}
-          locked
-        />
-        <InlineEdit
-          label="Project"
-          inputType="text"
-          value={row.project_code ?? '--'}
-          locked
-        />
-      </div>
-
-      {/* Editable header fields */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <DetailField label="Entity" value={row.entity_name ?? 'Informal'} />
         <InlineEdit
           label="Date"
@@ -158,14 +130,14 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
           value={invoice.document_ref}
           onSave={saveField('document_ref')}
         />
-        <InlineEdit
-          label="Payment Method"
-          inputType="select"
-          value={invoice.payment_method}
-          displayValue={formatPaymentMethod(invoice.payment_method)}
-          onSave={saveField('payment_method')}
-          options={PAYMENT_METHOD_OPTIONS}
-        />
+        {row.project_code && (
+          <InlineEdit
+            label="Project"
+            inputType="text"
+            value={row.project_code}
+            locked
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -28,7 +28,6 @@ SELECT
   it.currency,
   it.exchange_rate,
   it.comprobante_type,
-  it.payment_method,
   it.document_ref,
   it.notes,
   it.subtotal,
@@ -129,6 +128,6 @@ GROUP BY
   it.partner_id, it.cost_type, it.title, it.invoice_number,
   it.invoice_date, it.due_date, it.igv_rate, it.detraccion_rate,
   it.retencion_applicable, it.retencion_rate, it.retencion_verified,
-  it.currency, it.exchange_rate, it.comprobante_type, it.payment_method,
+  it.currency, it.exchange_rate, it.comprobante_type,
   it.document_ref, it.notes, it.subtotal, it.igv_amount, it.total,
   it.detraccion_amount, it.retencion_amount;
