@@ -302,9 +302,6 @@ export async function importInvoices(
     if (direction === 'payable' && !docRef) {
       errors.push({ row: r, column: 'document_ref', message: 'Required for payable (grouping key)' })
     }
-    if (direction === 'receivable' && !projectCode) {
-      errors.push({ row: r, column: 'project_code', message: 'Required for receivable' })
-    }
     if (direction === 'receivable' && !entityDocNum) {
       errors.push({ row: r, column: 'entity_document_number', message: 'Required for receivable' })
     }
@@ -606,9 +603,6 @@ export async function importDirectTransactions(
     // Required
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
     if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
-    if (direction === 'inflow' && !projectCode) {
-      errors.push({ row: r, column: 'project_code', message: 'Required for inflow' })
-    }
     if (amount === null) errors.push({ row: r, column: 'amount', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
