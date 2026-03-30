@@ -789,7 +789,7 @@ export async function updatePayment(input: {
   exchange_rate: number
   bank_account_id: string | null
   notes: string | null
-  related_id?: string
+  related_id?: string | null
 }): Promise<{ error?: string }> {
   const supabase = await createServerSupabaseClient()
 
@@ -816,7 +816,7 @@ export async function updatePayment(input: {
   }
 
   // Validate new related_id if changing the linked invoice
-  const effectiveRelatedId = input.related_id ?? existing.related_id
+  const unlinking = input.related_id === null
   if (input.related_id && existing.related_to === 'invoice') {
     const { data: newInvoice } = await supabase
       .from('invoices')
@@ -828,7 +828,7 @@ export async function updatePayment(input: {
   }
 
   // Amount ceiling — max = current outstanding + this payment's original amount
-  if (existing.related_to === 'invoice') {
+  if (existing.related_to === 'invoice' && !unlinking) {
     const targetInvoiceId = input.related_id ?? existing.related_id
     // When changing invoice, the original payment amount is not "returned" to the old invoice for ceiling calc
     const originalAmount = input.related_id ? 0 : existing.amount
@@ -859,7 +859,7 @@ export async function updatePayment(input: {
     bank_account_id: input.bank_account_id,
     notes: input.notes,
   }
-  if (input.related_id) {
+  if (input.related_id !== undefined) {
     updateData.related_id = input.related_id
   }
 

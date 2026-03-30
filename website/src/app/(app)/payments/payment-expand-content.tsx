@@ -189,8 +189,8 @@ function EditContent({ row, bankAccounts, invoiceLabel, onCancel, onSuccess }: {
         bank_account_id: isRetencion ? null : bankAccountId,
         notes: notes.trim() || null,
       }
-      // Only send related_id when the user actually selected a different invoice
-      if (isInvoiceRelated && linkedInvoiceId && linkedInvoiceId !== row.related_id) {
+      // Send related_id when the user changed or cleared the linked invoice
+      if (isInvoiceRelated && linkedInvoiceId !== row.related_id) {
         updateData.related_id = linkedInvoiceId
       }
       const result = await updatePayment(updateData)
