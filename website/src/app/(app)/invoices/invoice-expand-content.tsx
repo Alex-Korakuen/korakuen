@@ -8,6 +8,7 @@ import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
 import { inputCompactClass, btnDangerOutline, btnPrimaryLg, iconPencil, iconTrash } from '@/lib/styles'
 import { updateInvoice, deactivateInvoice, fetchExchangeRateForDate } from '@/lib/actions'
 import { LockIcon } from '@/components/ui/lock-icon'
+import { EntityPicker } from '@/components/ui/entity-picker'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import type { InvoiceDetailData, InvoicesPageRow, CategoryOption } from '@/lib/types'
 import { round2 } from '@/lib/queries/shared'
@@ -203,6 +204,7 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
   // Header fields
   const [title, setTitle] = useState(invoice.title ?? '')
   const [entityId, setEntityId] = useState(invoice.entity_id ?? '')
+  const [entityName, setEntityName] = useState(row.entity_name ?? '')
   const [invoiceDate, setInvoiceDate] = useState(invoice.invoice_date ?? '')
   const [dueDate, setDueDate] = useState(invoice.due_date ?? '')
   const [comprobanteType, setComprobanteType] = useState(invoice.comprobante_type ?? '')
@@ -356,10 +358,19 @@ function EditContent({ detail, row, categories, onCancel, onSuccess }: {
       )}
 
       {/* Editable header fields */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="block text-[11px] font-medium text-muted mb-1">Title</label>
           <input type="text" value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-muted mb-1">Entity</label>
+          <EntityPicker
+            value={entityId || null}
+            displayName={entityName || null}
+            onChange={(id, name) => { setEntityId(id ?? ''); setEntityName(name ?? '') }}
+            className={inputCls}
+          />
         </div>
         <div>
           <label className="block text-[11px] font-medium text-muted mb-1">Invoice #</label>

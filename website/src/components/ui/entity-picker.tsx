@@ -11,9 +11,10 @@ type Props = {
   displayName: string | null
   onChange: (entityId: string | null, entityName: string | null) => void
   placeholder?: string
+  className?: string
 }
 
-export function EntityPicker({ value, displayName, onChange, placeholder = 'Search entities...' }: Props) {
+export function EntityPicker({ value, displayName, onChange, placeholder = 'Search entities...', className }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<EntitySearchResult[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -78,7 +79,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder={placeholder}
-        className={inputClass}
+        className={className ?? inputClass}
       />
       {isPending && (
         <span className="absolute right-3 top-2.5 text-xs text-faint">...</span>
