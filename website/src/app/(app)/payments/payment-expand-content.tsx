@@ -121,10 +121,22 @@ function ViewContent({ row, relatedDetail, onSetMode, bankAccounts }: {
               <span className="text-muted">Related To</span>
               <span className="text-ink">{row.related_to === 'loan' ? 'Loan Disbursement' : row.related_to === 'loan_schedule' ? 'Loan Repayment' : 'Invoice'}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Invoice #</span>
-              <span className="font-mono text-ink">{row.invoice_number ?? '--'}</span>
-            </div>
+            {row.related_to === 'invoice' && row.related_id ? (
+              <InlineEdit
+                label="Invoice #"
+                inputType="select"
+                value={row.related_id}
+                displayValue={row.invoice_number ?? '--'}
+                onSave={saveField('related_id')}
+                options={[{ value: row.related_id, label: row.invoice_number ?? '(no number)' }]}
+                mono
+              />
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-muted">Invoice #</span>
+                <span className="font-mono text-ink">{row.invoice_number ?? '--'}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-2 border-t border-edge pt-2">

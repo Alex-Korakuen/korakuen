@@ -120,7 +120,7 @@ export const INVOICE_CONFIG: FieldUpdateConfig = {
 
 export const PAYMENT_CONFIG: FieldUpdateConfig = {
   table: 'payments',
-  allowedFields: ['payment_date', 'amount', 'exchange_rate', 'bank_account_id', 'notes'],
+  allowedFields: ['payment_date', 'amount', 'exchange_rate', 'bank_account_id', 'related_id', 'notes'],
   validate: (field, value) => {
     if (field === 'amount' && (value === null || (typeof value === 'number' && value <= 0))) {
       return 'Amount must be greater than 0'
