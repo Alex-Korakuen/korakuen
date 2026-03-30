@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useTransition } from 'react'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatExchangeRate } from '@/lib/formatters'
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InlineEdit } from '@/components/ui/inline-edit'
@@ -109,7 +109,7 @@ function ViewContent({ row, relatedDetail, onSetMode, bankAccounts }: {
               label="Exchange Rate"
               inputType="number"
               value={row.exchange_rate}
-              displayValue={row.exchange_rate?.toFixed(3) ?? '--'}
+              displayValue={formatExchangeRate(row.exchange_rate)}
               onSave={saveField('exchange_rate')}
               mono
               step="0.001"

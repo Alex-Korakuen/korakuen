@@ -6,6 +6,7 @@ import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createProject } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
+import { formatPercentage } from '@/lib/formatters'
 import type { Currency, PartnerOption } from '@/lib/types'
 
 type PartnerEntry = { partnerId: string; profitSharePct: string }
@@ -291,7 +292,7 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
               ))}
               <div className="flex items-center gap-2 text-xs">
                 <span className={`font-medium ${Math.abs(partnerTotal - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
-                  Total: {partnerTotal.toFixed(1)}%
+                  Total: {formatPercentage(partnerTotal)}
                 </span>
                 {Math.abs(partnerTotal - 100) >= 0.01 && (
                   <span className="text-faint">(must be 100%)</span>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { formatCurrency, formatCurrencyCompact } from '@/lib/formatters'
+import { formatCurrency, formatCurrencyCompact, formatPercentage } from '@/lib/formatters'
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
@@ -112,7 +112,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
                     </td>
                     <td className="px-4 py-3 text-right text-muted">
                       {isSingleProject && p.profitSharePct !== null
-                        ? `${p.profitSharePct.toFixed(1)}%`
+                        ? formatPercentage(p.profitSharePct)
                         : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-ink">

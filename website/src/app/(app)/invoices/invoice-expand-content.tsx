@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatCurrency, formatDate, formatComprobanteType, formatCategory } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatComprobanteType, formatCategory, formatPaymentMethod, formatExchangeRate } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
@@ -37,16 +37,6 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'check', label: 'Cheque' },
 ]
-
-function formatPaymentMethod(method: string | null): string {
-  if (!method) return '--'
-  const map: Record<string, string> = {
-    bank_transfer: 'Transferencia',
-    cash: 'Efectivo',
-    check: 'Cheque',
-  }
-  return map[method] ?? method
-}
 
 // --- View Mode (with inline editing) ---
 function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
@@ -183,7 +173,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
           label="Exchange Rate"
           inputType="number"
           value={invoice.exchange_rate}
-          displayValue={invoice.exchange_rate?.toFixed(3) ?? '--'}
+          displayValue={formatExchangeRate(invoice.exchange_rate)}
           onSave={saveField('exchange_rate')}
           mono
           step="0.001"

@@ -6,6 +6,11 @@ export async function getCurrentUser() {
   return user
 }
 
+export async function isAdmin(): Promise<boolean> {
+  const user = await getCurrentUser()
+  return user?.app_metadata?.role === 'admin'
+}
+
 export async function getPartnerName(): Promise<string> {
   const user = await getCurrentUser()
   return user?.user_metadata?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'User'

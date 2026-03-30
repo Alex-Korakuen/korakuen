@@ -542,7 +542,7 @@ Layer 7 (project extensions):
 
 | View | Reason |
 |---|---|
-| `v_cash_flow` | Multi-table aggregation with category breakdown and currency conversion too complex for a single SQL view. Computed in `queries.ts`. |
+| `v_cash_flow` | Cash Flow page removed — system operates on a cash basis with no separate cash flow report. Financial Position page covers bank balances. |
 | `v_project_pl` / `v_company_pl` | P&L views existed early on but were dropped. The system operates on a cash basis — no accrual-based P&L page. |
 | `v_partner_ledger` | Settlement logic is computed in application layer (`queries.ts`) using `v_invoice_totals` directly. Dropped in migration `20260312000001`. |
 

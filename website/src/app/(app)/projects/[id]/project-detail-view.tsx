@@ -9,6 +9,7 @@ import {
   formatProjectStatus,
   projectStatusBadgeVariant,
   formatProjectType,
+  formatPercentage,
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
@@ -250,7 +251,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
           {entries.length > 0 && (
             <span className={`text-[11px] font-medium ${Math.abs(total - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
-              Total: {total.toFixed(1)}%
+              Total: {formatPercentage(total)}
             </span>
           )}
         </div>
@@ -355,7 +356,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
               <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
                 isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
               }`}>
-                {p.profitSharePct.toFixed(1)}%
+                {formatPercentage(p.profitSharePct)}
               </span>
             </button>
           )

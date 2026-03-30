@@ -5,6 +5,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, searchInvoices, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
+import { isAdmin } from '@/lib/auth'
+
+async function requireAdmin(): Promise<{ error: string } | null> {
+  return (await isAdmin()) ? null : { error: 'Admin access required' }
+}
 
 /** Revalidate all financial pages that share cross-cutting data. */
 function revalidateFinancialPages() {
@@ -154,6 +159,8 @@ export async function registerPayment(input: {
   bank_account_id: string | null
   notes: string | null
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   // Basic validations
@@ -201,10 +208,11 @@ export async function registerPayment(input: {
 
   // Auto-verify retencion on the invoice when a retencion payment is registered
   if (input.payment_type === 'retencion' && input.related_to === 'invoice') {
-    await supabase
+    const { error: verifyErr } = await supabase
       .from('invoices')
       .update({ retencion_verified: true })
       .eq('id', input.related_id)
+    if (verifyErr) return { error: handleDbError(verifyErr, 'Payment registered but failed to auto-verify retencion on invoice') }
   }
 
   revalidateFinancialPages()
@@ -214,6 +222,8 @@ export async function registerPayment(input: {
 // --- Mutation actions ---
 
 export async function addEntityTag(entityId: string, tagId: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_tags')
@@ -224,6 +234,8 @@ export async function addEntityTag(entityId: string, tagId: string): Promise<{ e
 }
 
 export async function removeEntityTag(entityId: string, tagId: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_tags')
@@ -239,6 +251,8 @@ export async function addEntityContact(
   entityId: string,
   data: { full_name: string; phone?: string; email?: string; role?: string }
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase
@@ -256,6 +270,8 @@ export async function addEntityContact(
 }
 
 export async function removeEntityContact(contactId: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('entity_contacts')
@@ -270,6 +286,8 @@ export async function updateEntityContact(
   contactId: string,
   data: { full_name: string; phone?: string; email?: string; role?: string }
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   if (!data.full_name.trim()) return { error: 'Name is required' }
 
   const supabase = await createServerSupabaseClient()
@@ -296,6 +314,8 @@ export async function updateEntityContact(
 export async function updateEntityField(
   entityId: string, field: string, value: string | number | null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const { updateRecordField, ENTITY_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(ENTITY_CONFIG, entityId, field, value)
 }
@@ -303,6 +323,8 @@ export async function updateEntityField(
 export async function updateProjectField(
   projectId: string, field: string, value: string | number | null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const { updateRecordField, PROJECT_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(PROJECT_CONFIG, projectId, field, value)
 }
@@ -310,6 +332,8 @@ export async function updateProjectField(
 export async function updateInvoiceField(
   invoiceId: string, field: string, value: string | number | null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const { updateRecordField, INVOICE_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(INVOICE_CONFIG, invoiceId, field, value)
 }
@@ -317,6 +341,8 @@ export async function updateInvoiceField(
 export async function updatePaymentField(
   paymentId: string, field: string, value: string | number | null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const { updateRecordField, PAYMENT_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(PAYMENT_CONFIG, paymentId, field, value)
 }
@@ -324,6 +350,8 @@ export async function updatePaymentField(
 export async function deactivateEntity(
   entityId: string
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   const { data: existing } = await supabase
@@ -354,6 +382,8 @@ export async function createBankAccount(data: {
   currency: Currency
   is_detraccion_account: boolean
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   // Check label uniqueness
@@ -394,6 +424,8 @@ export async function createEntity(data: {
   region?: string
   notes?: string
 }): Promise<{ error?: string; field?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   // Validate entity_type / document_type consistency
@@ -461,6 +493,8 @@ export async function createProject(data: {
   notes?: string
   partners?: { partnerId: string; profitSharePct: number }[]
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   // Validate partner shares if provided
   if (data.partners && data.partners.length > 0) {
     const total = data.partners.reduce((s, p) => s + p.profitSharePct, 0)
@@ -511,6 +545,8 @@ export async function setProjectPartners(
   projectId: string,
   partners: { partnerId: string; profitSharePct: number }[]
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   if (partners.length === 0) return { error: 'At least one partner is required' }
   const total = partners.reduce((s, p) => s + p.profitSharePct, 0)
   if (Math.abs(total - 100) > 0.01) return { error: `Percentages must sum to 100% (currently ${total.toFixed(1)}%)` }
@@ -551,6 +587,8 @@ export async function upsertProjectBudget(
   budgetedAmount: number,
   currency: string
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   // Check if budget row already exists for this project+category (active or soft-deleted)
@@ -581,6 +619,8 @@ export async function upsertProjectBudget(
 }
 
 export async function removeProjectBudget(projectId: string, category: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const { error } = await supabase
     .from('project_budgets')
@@ -611,6 +651,8 @@ export async function createLoan(data: {
   notes?: string
   bank_account_id?: string
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
@@ -668,6 +710,8 @@ export async function addLoanScheduleEntry(data: {
   scheduled_amount: number
   exchange_rate: number
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   if (data.scheduled_amount <= 0) return { error: 'Amount must be greater than 0' }
@@ -714,6 +758,8 @@ export async function registerLoanRepayment(data: {
   bank_account_id?: string
   notes?: string
 }): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
@@ -748,6 +794,8 @@ export async function registerLoanRepayment(data: {
 export async function deactivatePayment(
   paymentId: string
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   // Verify payment exists and is active
@@ -793,6 +841,8 @@ export async function deactivatePayment(
 export async function deactivateInvoice(
   invoiceId: string
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   const { data: existing } = await supabase
@@ -862,6 +912,8 @@ export async function updateInvoiceItemField(
   field: string,
   value: string | number | null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   if (!(ITEM_EDITABLE_FIELDS as readonly string[]).includes(field)) {
     return { error: `Field '${field}' is not editable` }
   }
@@ -908,6 +960,8 @@ export async function addInvoiceItem(
   invoiceId: string,
   data: { title: string; category?: string; quantity?: number; unit_of_measure?: string; unit_price?: number; subtotal: number },
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   if (!data.title.trim()) return { error: 'Title is required' }
   if (data.subtotal <= 0) return { error: 'Subtotal must be greater than 0' }
 
@@ -937,6 +991,8 @@ export async function addInvoiceItem(
 export async function removeInvoiceItem(
   itemId: string,
 ): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   const { data: item } = await supabase

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { formatCurrency, formatCategory } from '@/lib/formatters'
+import { formatCurrency, formatCategory, formatPercentage } from '@/lib/formatters'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow, CategoryOption } from '@/lib/types'
 import { iconTrash } from '@/lib/styles'
@@ -171,7 +171,7 @@ export function ProjectBudgetForm({
                       )}`}
                     >
                       {b.budgeted_amount !== null && b.budgeted_amount > 0
-                        ? `${(b.pct_used ?? 0).toFixed(1)}%`
+                        ? formatPercentage(b.pct_used ?? 0)
                         : '--'}
                     </td>
                   )}
@@ -213,7 +213,7 @@ export function ProjectBudgetForm({
                   }`}
                 >
                   {totalBudgeted !== null && totalBudgeted > 0
-                    ? `${((totalActual / totalBudgeted) * 100).toFixed(1)}%`
+                    ? formatPercentage((totalActual / totalBudgeted) * 100)
                     : '--'}
                 </td>
               )}

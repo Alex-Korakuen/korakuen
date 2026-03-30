@@ -69,6 +69,24 @@ export function formatCategory(category: string | null): string {
     .join(' ')
 }
 
+export function formatExchangeRate(rate: number | null): string {
+  return rate?.toFixed(3) ?? '--'
+}
+
+export function formatPercentage(value: number, decimals = 1): string {
+  return `${value.toFixed(decimals)}%`
+}
+
+export function formatPaymentMethod(method: string | null): string {
+  if (!method) return '--'
+  const map: Record<string, string> = {
+    bank_transfer: 'Transferencia',
+    cash: 'Efectivo',
+    check: 'Cheque',
+  }
+  return map[method] ?? method
+}
+
 export function formatComprobanteType(type: string | null): string {
   if (!type) return '--'
   const map: Record<string, string> = {
