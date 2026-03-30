@@ -42,7 +42,7 @@ export async function getInvoicesPage(
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  const [invoicesResult, itemCategoriesResult, partners, autoGenResult] = await Promise.all([
+  const [invoicesResult, itemCategoriesResult, partners] = await Promise.all([
     supabase
       .from('v_invoices_with_loans')
       .select('*')
@@ -52,11 +52,6 @@ export async function getInvoicesPage(
       .select('invoice_id, category')
       .not('category', 'is', null),
     getPartners(),
-    supabase
-      .from('invoices')
-      .select('id')
-      .eq('is_auto_generated', true)
-      .eq('is_active', true),
   ])
 
   // Build partner_id → name map
@@ -64,10 +59,9 @@ export async function getInvoicesPage(
 
   if (invoicesResult.error) throw invoicesResult.error
 
-  // Exclude phantom (auto-generated) invoices from the browse list
-  const autoGenIds = new Set((autoGenResult.data ?? []).map(r => r.id))
+  // Exclude phantom invoices (comprobante_type = 'none') from the browse list
   let rows: InvoicesWithLoansRow[] = (invoicesResult.data ?? []).filter(
-    r => r.type !== 'commercial' || !autoGenIds.has(r.id!)
+    r => r.type !== 'commercial' || r.comprobante_type !== 'none'
   )
 
   const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
@@ -154,7 +148,7 @@ export async function getInvoicesPage(
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailData> {
   const supabase = await createServerSupabaseClient()
 
-  const [invoiceResult, itemsResult, paymentsResult, invoiceFlagsResult] = await Promise.all([
+  const [invoiceResult, itemsResult, paymentsResult] = await Promise.all([
     supabase
       .from('v_invoice_balances')
       .select('*')
@@ -172,11 +166,6 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
       .eq('related_to', 'invoice')
       .eq('is_active', true)
       .order('payment_date'),
-    supabase
-      .from('invoices')
-      .select('is_auto_generated')
-      .eq('id', invoiceId)
-      .single(),
   ])
 
   if (invoiceResult.error) throw invoiceResult.error
@@ -187,7 +176,6 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
     invoice: invoiceResult.data as InvoiceBalanceRow | null,
     items: (itemsResult.data ?? []) as InvoiceItem[],
     payments: (paymentsResult.data ?? []) as Payment[],
-    is_auto_generated: invoiceFlagsResult.data?.is_auto_generated ?? false,
   }
 }
 

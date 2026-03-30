@@ -172,7 +172,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
 
       {/* Related invoice/loan summary */}
       {relatedDetail && row.related_to === 'invoice' && 'invoice' in relatedDetail && relatedDetail.invoice && (
-        relatedDetail.is_auto_generated ? (
+        relatedDetail.invoice.comprobante_type === 'none' ? (
           <PhantomInvoiceSection invoiceId={row.related_id!} onPromoted={onMutationSuccess} />
         ) : (
           <div>

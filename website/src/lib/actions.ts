@@ -885,9 +885,9 @@ export async function promotePhantomInvoice(
 
   const { error } = await supabase
     .from('invoices')
-    .update({ is_auto_generated: false })
+    .update({ is_auto_generated: false, comprobante_type: 'factura' })
     .eq('id', invoiceId)
-    .eq('is_auto_generated', true)
+    .eq('comprobante_type', 'none')
     .eq('is_active', true)
 
   if (error) return { error: handleDbError(error, 'Failed to promote invoice') }
