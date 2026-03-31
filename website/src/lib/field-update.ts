@@ -1,5 +1,3 @@
-'use server'
-
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { handleDbError } from '@/lib/server-utils'
@@ -47,27 +45,30 @@ export async function updateRecordField(
     if (err) return { error: err }
   }
 
-  // 4. Update + verify via separate read
-  const supabase = await createServerSupabaseClient()
+  // 4. Update the record
+  try {
+    const supabase = await createServerSupabaseClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
-  const { error: updateErr } = await (supabase as any).from(config.table)
-    .update({ [field]: normalized })
-    .eq('id', recordId)
-    .eq('is_active', true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+    const { error: updateErr } = await (supabase as any).from(config.table)
+      .update({ [field]: normalized })
+      .eq('id', recordId)
+      .eq('is_active', true)
 
-  if (updateErr) return { error: handleDbError(updateErr, `Failed to update ${config.table}`) }
+    if (updateErr) return { error: handleDbError(updateErr, `Failed to update ${config.table}`) }
 
-  // Verify the write actually landed (catches silent RLS blocks)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
-  const { data: check } = await (supabase as any).from(config.table)
-    .select(field)
-    .eq('id', recordId)
-    .eq('is_active', true)
-    .single()
+    // Verify the write actually landed (catches silent RLS blocks)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+    const { data: rows } = await (supabase as any).from(config.table)
+      .select(field)
+      .eq('id', recordId)
+      .eq('is_active', true)
 
-  if (!check || check[field] !== normalized) {
-    return { error: 'Update failed — check permissions or try again' }
+    if (!rows || rows.length === 0 || rows[0][field] !== normalized) {
+      return { error: 'Update failed — check permissions or try again' }
+    }
+  } catch (e) {
+    return { error: handleDbError(e, `Failed to update ${config.table}`) }
   }
 
   // 5. Revalidate

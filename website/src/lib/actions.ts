@@ -6,6 +6,7 @@ import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, s
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 import { isAdmin } from '@/lib/auth'
+import { updateRecordField, ENTITY_CONFIG, PROJECT_CONFIG, INVOICE_CONFIG, PAYMENT_CONFIG } from '@/lib/field-update'
 
 async function requireAdmin(): Promise<{ error: string } | null> {
   return (await isAdmin()) ? null : { error: 'Admin access required' }
@@ -318,7 +319,6 @@ export async function updateEntityField(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const { updateRecordField, ENTITY_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(ENTITY_CONFIG, entityId, field, value)
 }
 
@@ -327,7 +327,6 @@ export async function updateProjectField(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const { updateRecordField, PROJECT_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(PROJECT_CONFIG, projectId, field, value)
 }
 
@@ -336,7 +335,6 @@ export async function updateInvoiceField(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const { updateRecordField, INVOICE_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(INVOICE_CONFIG, invoiceId, field, value)
 }
 
@@ -345,7 +343,6 @@ export async function updatePaymentField(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const { updateRecordField, PAYMENT_CONFIG } = await import('@/lib/field-update')
   return updateRecordField(PAYMENT_CONFIG, paymentId, field, value)
 }
 
