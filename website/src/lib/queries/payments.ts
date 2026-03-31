@@ -156,6 +156,7 @@ export async function getPaymentsPage(
     document_ref: r.document_ref,
     bank_account_id: r.bank_account_id,
     bank_name: r.bank_name,
+    title: r.title,
     notes: r.notes,
     partner_id: r.partner_id,
     partner_name: r.partner_name,

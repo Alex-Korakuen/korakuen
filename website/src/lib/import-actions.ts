@@ -376,7 +376,6 @@ export async function importInvoices(
       quantity: num(row.quantity),
       unit_of_measure: str(row.unit_of_measure),
       unit_price: num(row.unit_price),
-      notes: null,
     }))
 
     const { error } = await supabase.rpc('fn_create_invoice_with_items', {
@@ -584,10 +583,14 @@ export async function importPayments(
     const records = invoicePaymentRows.map(row => {
       const paymentType = str(row.payment_type) || 'regular'
       const bankRef = str(row.bank_account)
+      const direction = str(row.direction)!
+      const defaultTitle = paymentType === 'detraccion' ? 'Detraccion'
+        : paymentType === 'retencion' ? 'Retencion'
+        : direction === 'inbound' ? 'Cobro' : 'Pago'
       return {
         related_to: 'invoice' as const,
         related_id: invoiceMap.get(str(row.invoice_document_ref)!)!,
-        direction: str(row.direction)!,
+        direction,
         payment_type: paymentType,
         payment_date: str(row.payment_date)!,
         amount: num(row.amount)!,
@@ -596,6 +599,7 @@ export async function importPayments(
         bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
         partner_id: partnerMap.get(str(row.partner_name)!)!,
         document_ref: str(row.document_ref) ?? null,
+        title: str(row.title) || defaultTitle,
         notes: str(row.notes) ?? null,
       }
     })
@@ -668,6 +672,7 @@ export async function importPayments(
     }
 
     // 3. Create payment (fully paid)
+    const paymentTitle = str(row.title) || (direction === 'inbound' ? 'Cobro' : 'Pago')
     const { error: pmtError } = await supabase
       .from('payments')
       .insert({
@@ -682,6 +687,7 @@ export async function importPayments(
         partner_id: partnerId,
         bank_account_id: bankAccount ? bankMap.get(bankAccount)!.id : null,
         document_ref: documentRef,
+        title: paymentTitle,
         notes,
       })
 

@@ -22,6 +22,7 @@ SELECT
   p.partner_id,
   p.bank_account_id,
   p.document_ref,
+  p.title,
   p.notes,
   -- Enriched from invoice
   i.invoice_number,
@@ -57,6 +58,7 @@ SELECT
   p.partner_id,
   p.bank_account_id,
   p.document_ref,
+  p.title,
   p.notes,
   -- No invoice number for loans
   NULL::VARCHAR AS invoice_number,
@@ -92,6 +94,7 @@ SELECT
   p.partner_id,
   p.bank_account_id,
   p.document_ref,
+  p.title,
   p.notes,
   -- No invoice number for loans
   NULL::VARCHAR AS invoice_number,

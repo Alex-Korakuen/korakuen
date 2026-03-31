@@ -35,6 +35,7 @@ export function RegisterLoanRepaymentForm({
 
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
+  const [title, setTitle] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
   const exchangeRate = useExchangeRate(paymentDate)
@@ -74,6 +75,7 @@ export function RegisterLoanRepaymentForm({
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: bankAccountId || undefined,
+        title: title.trim() || 'Pago de prestamo',
       })
 
       if (result.error) {
@@ -106,6 +108,18 @@ export function RegisterLoanRepaymentForm({
         >
           &times;
         </button>
+      </div>
+
+      {/* Title */}
+      <div className="mb-3">
+        <label className={formFieldLabel}>Title</label>
+        <input
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Pago de prestamo"
+          className={`${inputCompactClass} w-full bg-white`}
+        />
       </div>
 
       {/* Fields grid — 2 columns */}

@@ -187,7 +187,6 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 **Key attributes — `invoice_items` (line items, one or many per invoice):**
 - Line item title
 - Category (references categories table)
-- Description (nullable)
 - Quantity
 - Unit of measure (nullable)
 - Unit price

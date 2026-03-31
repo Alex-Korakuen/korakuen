@@ -45,6 +45,7 @@ export function RegisterPaymentForm({
   const [paymentType, setPaymentType] = useState<typeof PAYMENT_TYPES[number]>('regular')
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
+  const [title, setTitle] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -120,6 +121,10 @@ export function RegisterPaymentForm({
       return
     }
 
+    const defaultTitle = paymentType === 'detraccion' ? 'Detraccion'
+      : paymentType === 'retencion' ? 'Retencion'
+      : direction === 'inbound' ? 'Cobro' : 'Pago'
+
     startTransition(async () => {
       const result = await registerPayment({
         related_to: relatedTo,
@@ -132,6 +137,7 @@ export function RegisterPaymentForm({
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: isRetencion ? null : bankAccountId,
+        title: title.trim() || defaultTitle,
         notes: null,
       })
 
@@ -167,6 +173,18 @@ export function RegisterPaymentForm({
         >
           &times;
         </button>
+      </div>
+
+      {/* Title */}
+      <div className="mb-3">
+        <label className={formFieldLabel}>Title</label>
+        <input
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder={paymentType === 'detraccion' ? 'Detraccion' : paymentType === 'retencion' ? 'Retencion' : direction === 'inbound' ? 'Cobro' : 'Pago'}
+          className={`${inputCompactClass} w-full bg-white`}
+        />
       </div>
 
       {/* Fields grid */}

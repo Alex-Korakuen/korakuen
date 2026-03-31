@@ -258,7 +258,6 @@ export type Database = {
           created_at: string
           id: string
           invoice_id: string
-          notes: string | null
           quantity: number | null
           subtotal: number
           title: string
@@ -271,7 +270,6 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id: string
-          notes?: string | null
           quantity?: number | null
           subtotal: number
           title: string
@@ -284,7 +282,6 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_id?: string
-          notes?: string | null
           quantity?: number | null
           subtotal?: number
           title?: string
@@ -593,6 +590,7 @@ export type Database = {
           payment_type: string
           related_id: string
           related_to: string
+          title: string
           updated_at: string
         }
         Insert: {
@@ -611,6 +609,7 @@ export type Database = {
           payment_type: string
           related_id: string
           related_to: string
+          title: string
           updated_at?: string
         }
         Update: {
@@ -629,6 +628,7 @@ export type Database = {
           payment_type?: string
           related_id?: string
           related_to?: string
+          title?: string
           updated_at?: string
         }
         Relationships: [
@@ -1240,6 +1240,7 @@ export type Database = {
           project_id: string | null
           related_id: string | null
           related_to: string | null
+          title: string | null
         }
         Relationships: []
       }

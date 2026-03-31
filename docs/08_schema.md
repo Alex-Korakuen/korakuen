@@ -340,7 +340,6 @@ One or many rows per invoice. Holds the detail of what was purchased or invoiced
 | unit_of_measure | VARCHAR | YES | meters, units, hours, kg, days, etc. |
 | unit_price | NUMERIC(15,4) | YES | null for lump sum lines |
 | subtotal | NUMERIC(15,2) | NO | quantity × unit_price or entered directly |
-| notes | TEXT | YES | |
 | created_at | TIMESTAMPTZ | NO | auto |
 | updated_at | TIMESTAMPTZ | NO | auto |
 
@@ -386,7 +385,8 @@ The unified payments table. Every actual movement of money — both inbound and 
 | bank_account_id | UUID | YES | nullable — retencion never hits an account |
 | partner_id | UUID | NO | references entities (must be tagged as partner) — which partner's account was involved, required because retencion has no bank account |
 | document_ref | VARCHAR(100) | YES | e.g. PRY001-PY-001 — links to payment receipt in SharePoint |
-| notes | TEXT | YES | |
+| title | TEXT | NO | what appears on the bank app — defaults: Pago, Cobro, Detraccion, Retencion |
+| notes | TEXT | YES | free-form context |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 

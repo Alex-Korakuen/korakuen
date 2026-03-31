@@ -157,6 +157,7 @@ export async function registerPayment(input: {
   exchange_rate: number
   partner_id: string
   bank_account_id: string | null
+  title: string
   notes: string | null
 }): Promise<{ error?: string }> {
   const guard = await requireAdmin()
@@ -201,6 +202,7 @@ export async function registerPayment(input: {
     exchange_rate: input.exchange_rate,
     partner_id: input.partner_id,
     bank_account_id: input.bank_account_id,
+    title: input.title,
     notes: input.notes,
   })
 
@@ -695,6 +697,7 @@ export async function createLoan(data: {
     exchange_rate: data.exchange_rate,
     partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
+    title: `Desembolso de prestamo`,
     notes: `Loan disbursement from ${data.lender_name.trim()}`,
   })
 
@@ -756,6 +759,7 @@ export async function registerLoanRepayment(data: {
   exchange_rate: number
   partner_id: string
   bank_account_id?: string
+  title: string
   notes?: string
 }): Promise<{ error?: string }> {
   const guard = await requireAdmin()
@@ -780,6 +784,7 @@ export async function registerLoanRepayment(data: {
     exchange_rate: data.exchange_rate,
     partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
+    title: data.title,
     notes: data.notes?.trim() || null,
   })
 

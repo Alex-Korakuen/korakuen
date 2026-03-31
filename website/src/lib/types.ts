@@ -129,6 +129,7 @@ export type PaymentsPageRow = {
   document_ref: string | null
   bank_account_id: string | null
   bank_name: string | null
+  title: string | null
   notes: string | null
   partner_id: string | null
   partner_name: string | null

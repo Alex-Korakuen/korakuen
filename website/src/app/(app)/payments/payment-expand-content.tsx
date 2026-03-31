@@ -85,6 +85,15 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
 
   return (
     <div className="space-y-4">
+      {/* Title */}
+      <InlineEdit
+        label="Title"
+        inputType="text"
+        value={row.title}
+        placeholder="No title"
+        onSave={saveField('title')}
+      />
+
       {/* Payment info */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <InlineEdit
