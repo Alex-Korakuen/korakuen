@@ -47,7 +47,7 @@ export async function updateRecordField(
     if (err) return { error: err }
   }
 
-  // 4. Single-column update — .select('id').single() detects silent RLS/filter failures
+  // 4. Single-column update — .select('id') detects silent RLS/filter failures (0 rows updated)
   const supabase = await createServerSupabaseClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
   const { data, error } = await (supabase.from as any)(config.table)
@@ -55,10 +55,9 @@ export async function updateRecordField(
     .eq('id', recordId)
     .eq('is_active', true)
     .select('id')
-    .single()
 
   if (error) return { error: handleDbError(error, `Failed to update ${config.table}`) }
-  if (!data) return { error: 'Record not found or update blocked by permissions' }
+  if (!data || data.length === 0) return { error: 'Update failed — check permissions or try again' }
 
   // 5. Revalidate
   for (const path of config.revalidatePaths) {
