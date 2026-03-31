@@ -47,22 +47,27 @@ export async function updateRecordField(
     if (err) return { error: err }
   }
 
-  // 4. Single-column update + verify via returned rows
+  // 4. Update + verify via separate read
   const supabase = await createServerSupabaseClient()
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
-    const res = await (supabase as any).from(config.table)
-      .update({ [field]: normalized })
-      .eq('id', recordId)
-      .eq('is_active', true)
-      .select('id')
 
-    if (res.error) return { error: handleDbError(res.error, `Failed to update ${config.table}`) }
-    if (!res.data || res.data.length === 0) {
-      return { error: 'Update failed — record not found or blocked by permissions' }
-    }
-  } catch (e) {
-    return { error: handleDbError(e, `Failed to update ${config.table}`) }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+  const { error: updateErr } = await (supabase as any).from(config.table)
+    .update({ [field]: normalized })
+    .eq('id', recordId)
+    .eq('is_active', true)
+
+  if (updateErr) return { error: handleDbError(updateErr, `Failed to update ${config.table}`) }
+
+  // Verify the write actually landed (catches silent RLS blocks)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+  const { data: check } = await (supabase as any).from(config.table)
+    .select(field)
+    .eq('id', recordId)
+    .eq('is_active', true)
+    .single()
+
+  if (!check || check[field] !== normalized) {
+    return { error: 'Update failed — check permissions or try again' }
   }
 
   // 5. Revalidate
