@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useUrlFilters } from '@/lib/use-url-filters'
@@ -66,6 +66,15 @@ export function PaymentsClient({
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
   const [modalBankAccounts, setModalBankAccounts] = useState<BankAccountOption[]>([])
+
+  // Keep modal row in sync after router.refresh() updates the data prop
+  useEffect(() => {
+    if (modalRow) {
+      const updated = data.find(r => r.id === modalRow.id)
+      if (updated) setModalRow(updated)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
   const filtersActive = hasActiveFilters(currentFilters)
 

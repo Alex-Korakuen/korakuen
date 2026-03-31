@@ -137,15 +137,20 @@ export function InlineEdit(props: InlineEditProps) {
       return
     }
 
-    const result = await onSave(parsed)
-    setSaving(false)
+    try {
+      const result = await onSave(parsed)
+      setSaving(false)
 
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setEditing(false)
-      router.refresh()
-      onAfterSave?.()
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setEditing(false)
+        router.refresh()
+        onAfterSave?.()
+      }
+    } catch {
+      setSaving(false)
+      setError('Save failed — please try again')
     }
   }, [draft, inputType, value, onSave, onAfterSave, router])
 
