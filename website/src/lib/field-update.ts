@@ -47,17 +47,23 @@ export async function updateRecordField(
     if (err) return { error: err }
   }
 
-  // 4. Single-column update — .select('id') detects silent RLS/filter failures (0 rows updated)
+  // 4. Single-column update + verify via returned rows
   const supabase = await createServerSupabaseClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
-  const { data, error } = await (supabase.from as any)(config.table)
-    .update({ [field]: normalized })
-    .eq('id', recordId)
-    .eq('is_active', true)
-    .select('id')
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+    const res = await (supabase as any).from(config.table)
+      .update({ [field]: normalized })
+      .eq('id', recordId)
+      .eq('is_active', true)
+      .select('id')
 
-  if (error) return { error: handleDbError(error, `Failed to update ${config.table}`) }
-  if (!data || data.length === 0) return { error: 'Update failed — check permissions or try again' }
+    if (res.error) return { error: handleDbError(res.error, `Failed to update ${config.table}`) }
+    if (!res.data || res.data.length === 0) {
+      return { error: 'Update failed — record not found or blocked by permissions' }
+    }
+  } catch (e) {
+    return { error: handleDbError(e, `Failed to update ${config.table}`) }
+  }
 
   // 5. Revalidate
   for (const path of config.revalidatePaths) {
