@@ -11,14 +11,15 @@ type Props = {
   onChange: (value: string) => void
   options: FilterSelectOption[]
   placeholder?: string
+  className?: string
 }
 
-export function FilterSelect({ label, value, onChange, options, placeholder = 'All' }: Props) {
+export function FilterSelect({ label, value, onChange, options, placeholder = 'All', className }: Props) {
   const select = (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={selectClass}
+      className={`${selectClass} ${className ?? ''}`}
     >
       <option value="">{placeholder}</option>
       {options.map((opt) => (
