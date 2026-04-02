@@ -4,7 +4,7 @@
 
 **Input:**
 - All files in `supabase/`
-- All files in `website/lib/` and `website/app/`
+- All files in `website/src/lib/` and `website/src/app/`
 - `docs/08_schema.md` — the source of truth
 - `docs/10_coding_standards.md` — the conventions to check against
 - `CLAUDE.md` — the never-do list
@@ -29,13 +29,13 @@
 
 - [ ] All view SQL files have header comments
 - [ ] All TypeScript files use no `any` types
-- [ ] All query functions in `website/lib/queries.ts` — not inline in components
+- [ ] All query functions in `website/src/lib/queries/` — not inline in components
 
 ### Category 3 — DRY Violations
 
-- [ ] No duplicated query logic across website pages — all in `lib/queries.ts`
-- [ ] No duplicated currency formatting — all in `lib/formatters.ts`
-- [ ] No duplicated TypeScript types — all in `lib/types.ts`
+- [ ] No duplicated query logic across website pages — all in `src/lib/queries/`
+- [ ] No duplicated currency formatting — all in `src/lib/formatters.ts`
+- [ ] No duplicated TypeScript types — all in `src/lib/types.ts`
 
 ### Category 4 — Security
 
@@ -54,9 +54,9 @@
 ### Category 6 — Dead Files
 
 - [ ] No commented-out code blocks anywhere in the codebase
-- [ ] No unused query functions in `website/lib/queries.ts`
-- [ ] No unused TypeScript types in `website/lib/types.ts`
-- [ ] No unused React components in `website/components/`
+- [ ] No unused query functions in `website/src/lib/queries/`
+- [ ] No unused TypeScript types in `website/src/lib/types.ts`
+- [ ] No unused React components in `website/src/components/`
 - [ ] No build-time documents that have served their purpose (e.g. `docs/12_skills.md` if skills are already built)
 - [ ] No stale skill files in `/skills/` — every skill must match current conventions exactly
 - [ ] No superseded migration files outside of `supabase/migrations/` numbered sequence

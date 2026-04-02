@@ -14,7 +14,7 @@ Supabase Auth with email/password — one login per partner company (3 accounts)
 
 **Why not Power BI:** Power BI requires paid licensing and Microsoft ecosystem dependency. Vercel is free. Next.js is already known from the personal finance tracker project. A custom website gives full control with no vendor lock-in.
 
-**Single-user system:** All data is visible — no partner filter, no role-based access restrictions. `partner_id` on financial records is used for settlement calculations only, not for UI filtering.
+**Access model:** All data is visible to all authenticated users — no row-level read filtering. Write access restricted to admin via RLS `is_admin()` check. Per-page partner filters (URL-based search params) let users scope data on invoices, payments, and other pages.
 
 **Reporting currency:** Consolidated views (Financial Position) include a reporting currency selector (PEN default, USD option). Transactions in the other currency are converted at display time using the stored `exchange_rate` field on each transaction. Converted amounts are visually marked (lighter text or asterisk) to indicate conversion. Storage rule unchanged — amounts always stored in natural currency, never converted at storage time.
 
@@ -199,7 +199,7 @@ Net receivable shown prominently — in Peru with detraccion and retencion, the 
 
 Two sections:
 
-1. **Retenciones:** Has the client paid the 3% retencion to SUNAT? Table of AR invoices where retencion_applicable = true. Columns: project, client, invoice_number, invoice_date, days_since_invoice, retencion_amount, verification_status (verified/unverified). Sorted: unverified first, then by oldest. Color-coded by age for unverified items. Filterable by project, client, status.
+1. **Retenciones:** Has the client paid the 3% retencion to SUNAT? Table of AR invoices where retencion_applicable = true. Columns: project_code, client_name, invoice_number, invoice_date, due_date, gross_total, retencion_amount, currency, retencion_verified (boolean), days_since_invoice. Sorted: unverified first, then by oldest. Color-coded by age for unverified items. Filterable by project, client, status.
 
 2. **Detracciones:** Has the client deposited to our Banco de la Nacion? Table showing inbound detraccion payments — received vs expected. Columns: project, client, invoice_number, detraccion_amount, received/pending. Data from payments where direction = inbound, payment_type = detraccion.
 
@@ -219,7 +219,7 @@ Two sections:
 
 **Assets section:**
 
-- Cash in Bank: card per account showing bank_name, last4, account_type, currency, calculated balance. Banco de la Nacion detraccion account flagged with note that balance is for tax payments only. Click any account card to expand recent transactions below (date, direction, entity, amount). Partner accounts shown as net contribution position only.
+- Cash in Bank: card per account showing bank_name, last4, account_type, currency, calculated balance. Deactivated accounts with zero balance are hidden; deactivated accounts with non-zero balance still appear (via `v_bank_balances` HAVING clause). Banco de la Nacion detraccion account flagged with note that balance is for tax payments only. Click any account card to expand recent transactions below (date, direction, entity, amount). Partner accounts shown as net contribution position only.
 - Accounts Receivable: total outstanding AR invoices.
 - Tax Credits: IGV Paid (credito fiscal from invoices with igv_rate > 0), Retenciones Unverified (withheld by clients, pending SUNAT verification).
 - Total Assets.
@@ -244,7 +244,7 @@ Two sections:
 - Next.js app hosted on Vercel free tier
 - Reads from Supabase PostgreSQL via Supabase JavaScript client
 - Authentication — Supabase Auth with email/password, invite-only (3 accounts)
-- All data visible to all users — no partner filter, no role-based visibility restrictions
+- All data visible to all authenticated users — per-page partner filters via URL search params, write access restricted to admin via RLS
 - Reporting currency: consolidated views include a currency selector (PEN default). Transactions in the other currency converted at display time using stored exchange_rate. Converted amounts visually marked
 - All views are filterable and sortable
 - Consistent interaction patterns: split-panel for browse pages, summary cards + table for dashboards, tabs for sub-sections, modals for row detail

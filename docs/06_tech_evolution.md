@@ -41,13 +41,14 @@ The website provides dashboards, browse pages, and inline data entry forms. Part
 ### Why Vercel instead of Power BI
 Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel hosting is free. Next.js is already known from the personal finance tracker project. A custom website gives full control over display and behavior with no vendor lock-in. The Supabase JavaScript client makes read queries simple and direct.
 
-### Website — 7 pages
+### Website — 8 sidebar pages + detail/settings routes
 - Projects — project detail with budget, invoices, and partner settlement
 - Entities & contacts — supplier/client directory with transaction history
 - Prices — historical unit price reference
 - Invoices — unified AP/AR invoices with aging buckets
 - Payments — payment history with period summaries
 - Calendar — upcoming payment obligations (invoices + loan schedule)
+- Settlement — partner contribution balances across projects
 - Financial position — bank balances, outstanding, IGV, retenciones
 
 ### Website data entry
@@ -86,7 +87,7 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 - Unified invoice model — `costs`, `cost_items`, `ar_invoices` merged into `invoices` + `invoice_items` with `direction` column
 - Loan simplification — `loan_payments` table dropped, repayments go through universal `payments` table
 - `project_entities` table dropped — entity-project relationships inferred from invoices/quotes
-- Universal partner filter (cookie-based) replaces dual-view model
+- Per-page partner filters (URL-based search params) replace dual-view model
 - 8 sidebar pages + settings page
 
 ### When to move to V2

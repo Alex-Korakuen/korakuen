@@ -180,7 +180,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** Database (16 tables, 10 views) and website (8 pages) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
+**Development complete.** Database (16 tables, 10 views) and website (8 sidebar pages + project detail, entity detail, and settings routes) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
 
 **Role-based write access.** Alex is the admin (`app_metadata.role = 'admin'`) — full read/write. Partners have read-only access enforced via RLS `is_admin()` check on all write policies. All data is visible to everyone — no row-level read filtering. Partners are regular entities tagged with `partner` via `entity_tags` — no separate partner_companies table. `partner_id` on invoices and payments identifies which partner incurred the cost or received the revenue.
 

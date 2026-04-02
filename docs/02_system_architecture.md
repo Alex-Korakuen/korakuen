@@ -51,7 +51,7 @@ Schema changes (migrations, views, indexes) are applied via the Supabase CLI. Da
 ### 4.1 Single Shared Database
 All three partner companies share one database. Partners are regular rows in the `entities` table, identified by the `partner` tag via `entity_tags`. A `partner_id` field (FK to entities) on every relevant financial record identifies which partner is involved.
 
-**Why single:** Shared projects are registered once. Partner balance calculations happen naturally from the data. The website scopes data by partner using the global filter. One source of truth for a collaborative operation.
+**Why single:** Shared projects are registered once. Partner balance calculations happen naturally from the data. The website provides per-page partner filters (URL-based search params) so users can scope data as needed. One source of truth for a collaborative operation.
 
 **Tradeoff:** All partners see each other's data. Accepted — transparency is appropriate and desired given the collaboration structure.
 
@@ -91,7 +91,7 @@ All nullable. No transaction is blocked from being registered due to missing for
 
 **Comprobante types** cover the full spectrum of Peruvian document reality: `factura`, `boleta`, `recibo_por_honorarios`, `liquidacion_de_compra`, `planilla_jornales`, `none`. The type tells the accountant why IGV is zero — no special boolean flag needed. `igv_rate = 0` naturally excludes informal costs from IGV tax credits.
 
-**Payment method** (`bank_transfer`, `cash`, `check`) on payments indicates the payment channel. Cash payments are the informal economy indicator — useful for the accountant to understand what portion of transactions have no banking trail.
+**Cash vs banked:** Whether a payment has a `bank_account_id` indicates the payment channel. Payments without a bank account (e.g., retencion withheld by client) are distinguishable from banked transactions. The payment `title` field (defaults: Pago, Cobro, Detraccion, Retencion) and `operation_number` provide the banking trail.
 
 ---
 
@@ -149,8 +149,8 @@ The `invoices` table includes a nullable `purchase_order_id` field reserved for 
 
 ---
 
-### 4.12 Single-User Architecture
-This is a single-user system managed by Alex. All data is visible — no role-based access restrictions, no partner filter. `partner_id` remains on all financial records for settlement calculations and accountant exports, but there is no UI to filter by partner.
+### 4.12 Multi-User Architecture with Role-Based Write Access
+All data is visible to all authenticated users — no row-level read filtering. Write access is restricted to admin users via RLS `is_admin()` check on all write policies — partners have read-only access. The website provides per-page partner filters (URL-based search params on invoices, payments, and other pages) so users can scope data by partner.
 
 **Intentional data asymmetry:** Korakuen (Alex's company) has full formal invoice registration, bank reconciliation, and SUNAT-compliant records. Other partner companies have lightweight tracking — amounts, dates, and categories sufficient for settlement math. Each partner handles their own formal accounting externally.
 
@@ -207,11 +207,12 @@ Identity is stored in Supabase user metadata (set via SQL after invite):
 
 | Field | Type | Purpose |
 |---|---|---|
-| `partner_id` | UUID | Links user to their partner entity record |
 | `display_name` | string | Name shown in header |
 | `password_set` | boolean | Set to `true` when user completes set-password flow |
 
-`auth.ts` exposes helpers: `getCurrentUser()`, `getPartnerName()`. All data is visible — no role-based access restrictions.
+**Note:** `app_metadata.role` (set to `'admin'` for Alex) controls write access via the `is_admin()` RLS function. `user_metadata.partner_id` was planned but is not used in application code — partner filtering is handled via URL search params per page, not user identity.
+
+`auth.ts` exposes helpers: `getCurrentUser()`, `getPartnerName()`, `isAdmin()`. Write access requires admin role — partners are read-only.
 
 ### 5.4 Supabase Clients
 Two client factories, both typed against auto-generated `database.types.ts`:

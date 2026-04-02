@@ -7,8 +7,8 @@
 - `docs/11_environment_setup.md` — Supabase project setup
 
 **Output:**
-- `website/lib/database.types.ts` — auto-generated, never hand-edited
-- `website/lib/types.ts` — human-friendly types, enums, and composite types
+- `website/src/lib/database.types.ts` — auto-generated, never hand-edited
+- `website/src/lib/types.ts` — human-friendly types, enums, and composite types
 
 ---
 
@@ -20,7 +20,7 @@
 npx supabase gen types typescript \
   --project-id [project-ref] \
   --schema public \
-  > website/lib/database.types.ts
+  > website/src/lib/database.types.ts
 ```
 
 This produces the raw generated file. **Never edit `database.types.ts` directly** — it gets overwritten on every regeneration.
@@ -73,15 +73,16 @@ export type AccountType = 'checking' | 'savings' | 'detraccion'
 export type Currency = 'USD' | 'PEN'
 export type ProjectType = 'subcontractor' | 'oxi'
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
-export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 export type CostType = 'project_cost' | 'sga' | 'intercompany'
-export type PaymentMethod = 'bank_transfer' | 'cash' | 'check'
 export type InvoiceDirection = 'payable' | 'receivable'
 export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
-export type PaymentStatus = 'pending' | 'partial' | 'paid'
-export type LoanReturnType = 'percentage' | 'fixed'
+
+// Optional — add when used in application code:
+// export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
+// export type PaymentStatus = 'pending' | 'partial' | 'paid'
+// export type LoanReturnType = 'percentage' | 'fixed'
 
 // Cost item categories — values come from the `categories` table
 // project_cost: materials, labor, subcontractor, equipment_rental, housing_food, other

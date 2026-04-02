@@ -388,6 +388,7 @@ The unified payments table. Every actual movement of money — both inbound and 
 | document_ref | VARCHAR(100) | YES | e.g. PRY001-PY-001 — links to payment receipt in SharePoint |
 | title | TEXT | NO | what appears on the bank app — defaults: Pago, Cobro, Detraccion, Retencion |
 | notes | TEXT | YES | free-form context |
+| is_active | BOOLEAN | NO | default true, soft delete |
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
@@ -551,7 +552,7 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables (invoices, invoice_items, payments, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on invoices.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.

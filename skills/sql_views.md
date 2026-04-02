@@ -95,7 +95,7 @@ COALESCE(SUM(p.amount), 0) AS amount_paid
 
 ### Active Records Only
 
-Views should filter `is_active = true` on joined reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects). Transaction tables (invoices, invoice_items, payments) and historical reference tables (quotes) are permanent records — never filter them by `is_active`.
+Views should filter `is_active = true` on joined reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects) and on transaction tables that support soft deletes (`invoices`, `payments`). Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent records — never filter them by `is_active`.
 
 **Exception — financial/historical views:** Views that report on financial history intentionally skip `is_active` filters on joined reference tables. Deactivating a project or entity must not hide its historical transactions from reports. Filtering in these views should be handled at the application layer via optional toggles, not forced in SQL.
 
@@ -139,8 +139,8 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Both directions (AP + AR) — Calendar page filters by direction at query time
 
 ### v_payments_enriched
-- Source: `payments` UNION (invoice-related payments JOIN invoices/entities/projects, loan-related payments JOIN loan_schedule/loans/entities)
-- Three-part UNION handles different join paths for invoice, loan_schedule, and loan disbursement payments
+- Source: Three-part UNION — invoice payments (JOIN invoices/entities/projects), loan_schedule payments (JOIN loan_schedule/loans), and loan disbursement payments (JOIN loans/entities)
+- Each UNION part handles a different `related_to` value with its own join path
 - Exposes `payments.document_ref` (e.g. PRY001-PY-001 — links to payment receipt in SharePoint)
 - Enriches with entity_name, project_code, invoice_number, bank_name
 - Ordered by payment_date DESC
@@ -162,6 +162,7 @@ Views never convert between currencies. When a view aggregates amounts, it shoul
 - Source: `project_budgets` LEFT JOIN `invoice_items` + `invoices` (grouped by category)
 - Only includes payable invoices where `cost_type = 'project_cost'`
 - Compares budgeted_amount vs actual (SUM of invoice_items.subtotal) per project per category
+- **Cross-currency conversion:** USD actuals are converted to PEN using the invoice's `exchange_rate` (mid-rate) so actuals can be compared against PEN budgets. Output includes `budgeted_currency` from project_budgets
 - Includes variance (budgeted - actual) and pct_used
 
 ### v_igv_position

@@ -115,6 +115,4 @@ LEFT JOIN LATERAL (
     AND pm.related_id = ls.id
     AND pm.is_active = true
 ) pay ON true
-LEFT JOIN projects p ON p.id = l.project_id
-
-ORDER BY due_date DESC NULLS LAST;
+LEFT JOIN projects p ON p.id = l.project_id;

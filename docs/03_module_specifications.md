@@ -143,6 +143,8 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 
 **V1 unification:** Previously two separate tables (`costs` + `ar_invoices`). Merged in V1 into `invoices` with `direction = 'payable' | 'receivable'`, and `cost_items` became `invoice_items` serving both directions.
 
+**Data entry:** Invoices are created via Excel import (bulk) or auto-generated as part of direct transactions (informal partner cash payments). There is no single-invoice creation form in the UI. Auto-generated invoices (`is_auto_generated = true`, `comprobante_type = 'none'`) can be promoted to formal invoices by editing in place when the comprobante arrives.
+
 **Business rules:**
 - `direction` column: `'payable'` (expense) or `'receivable'` (income)
 - Project field is nullable — null means SG&A (company-level expense, not tied to a project)
@@ -169,6 +171,7 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 - Direction: payable or receivable
 - Partner (references Entities — must be tagged as partner)
 - Project (nullable — null if SG&A)
+- Cost type: project_cost, sga, or intercompany (payable only, null for receivable) — determines settlement inclusion. Intercompany invoices are settlement transfers between partners, excluded from settlement totals
 - Entity (nullable — references Entities)
 - Quote reference (nullable — references Quotes)
 - Purchase order reference (nullable — reserved for future PO module)
@@ -206,6 +209,8 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 ## Module 4: Quotes Received
 
 **Purpose:** Price references gathered from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the resulting invoice. Rejected quotes remain permanently as market reference data.
+
+**Current status:** Quote data entry is via Excel import only — no browse page, status management UI, or CRUD forms in the website. Quote records appear in the Prices page for historical reference. Status management (accept/reject) and linking to invoices is not yet implemented in the UI.
 
 **Business rules:**
 - Every quote is linked to a project and an entity
