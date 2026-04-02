@@ -35,7 +35,8 @@ export async function getPriceHistory(
       .select('id, entity_id, project_id, invoice_date, currency')
       .eq('direction', 'payable')
       .eq('cost_type', 'project_cost')
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .neq('comprobante_type', 'none'),
     supabase.from('quotes').select('id, entity_id, project_id, date_received, title, quantity, unit_of_measure, unit_price, currency'),
   ])
 
@@ -161,7 +162,7 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
 
   // Get entities that appear in payable invoices or quotes
   const [invoiceEntitiesResult, quoteEntitiesResult] = await Promise.all([
-    supabase.from('invoices').select('entity_id').eq('direction', 'payable').eq('cost_type', 'project_cost').eq('is_active', true).not('entity_id', 'is', null),
+    supabase.from('invoices').select('entity_id').eq('direction', 'payable').eq('cost_type', 'project_cost').eq('is_active', true).neq('comprobante_type', 'none').not('entity_id', 'is', null),
     supabase.from('quotes').select('entity_id').not('entity_id', 'is', null),
   ])
 
