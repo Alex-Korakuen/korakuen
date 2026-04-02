@@ -313,6 +313,7 @@ export async function importInvoices(
     if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
       errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
     }
+
   }
 
   if (errors.length > 0) return { errors }

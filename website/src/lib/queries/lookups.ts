@@ -1,7 +1,6 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import type {
   EntitySearchResult,
-  InvoiceSearchResult,
   PartnerOption,
   CategoryOption,
 } from '../types'
@@ -94,31 +93,6 @@ export async function searchEntities(
     .limit(10)
   if (error) throw error
   return data ?? []
-}
-
-export async function searchInvoices(
-  query: string
-): Promise<InvoiceSearchResult[]> {
-  if (!query || query.trim().length < 2) return []
-  const supabase = await createServerSupabaseClient()
-  const pattern = `%${query.trim()}%`
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('id, document_ref, invoice_number, title, direction, currency, entity:entities!entity_id(legal_name)')
-    .eq('is_active', true)
-    .or(`document_ref.ilike.${pattern},invoice_number.ilike.${pattern},title.ilike.${pattern}`)
-    .order('invoice_date', { ascending: false })
-    .limit(10)
-  if (error) throw error
-  return (data ?? []).map(row => ({
-    id: row.id,
-    document_ref: row.document_ref,
-    invoice_number: row.invoice_number,
-    title: row.title,
-    direction: row.direction as InvoiceSearchResult['direction'],
-    currency: row.currency as InvoiceSearchResult['currency'],
-    entity_name: (row.entity as { legal_name: string } | null)?.legal_name ?? null,
-  }))
 }
 
 export async function getNextProjectCode(): Promise<string> {

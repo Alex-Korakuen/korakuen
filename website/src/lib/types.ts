@@ -24,13 +24,10 @@ export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual'
 // --- Enums matching schema VARCHAR values ---
 export type Currency = 'PEN' | 'USD'
 export type InvoiceDirection = 'payable' | 'receivable'
-export type CostType = 'project_cost' | 'sga' | 'intercompany'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
-export type ProjectType = 'subcontractor' | 'oxi'
 export type EntityType = 'company' | 'individual'
 export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
-export type AccountType = 'checking' | 'savings' | 'detraccion'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 
@@ -81,8 +78,6 @@ export type LoanDetailData = {
 // --- Calendar types (forward-looking urgency buckets) ---
 
 export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'next-7' | 'next-30' | 'later'
-
-export type BucketValue = { count: number; pen: number; usd: number }
 
 // Invoices page row — UNION of commercial invoices + loan schedule entries
 export type InvoicesPageRow = {
@@ -342,16 +337,6 @@ export type EntitySearchResult = {
   id: string
   legal_name: string
   document_number: string
-}
-
-export type InvoiceSearchResult = {
-  id: string
-  document_ref: string | null
-  invoice_number: string | null
-  title: string | null
-  direction: InvoiceDirection
-  currency: Currency
-  entity_name: string | null
 }
 
 // --- Prices browse types ---

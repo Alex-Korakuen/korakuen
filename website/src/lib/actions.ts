@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, searchInvoices, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
+import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, getNextProjectCode, getBankAccountsForPartner, getExchangeRateForDate, round2 } from '@/lib/queries'
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 import { isAdmin } from '@/lib/auth'
@@ -411,10 +411,6 @@ export async function createBankAccount(data: {
 
 export async function searchEntitiesAction(query: string) {
   return searchEntities(query)
-}
-
-export async function searchInvoicesAction(query: string) {
-  return searchInvoices(query)
 }
 
 // --- Create Entity ---
