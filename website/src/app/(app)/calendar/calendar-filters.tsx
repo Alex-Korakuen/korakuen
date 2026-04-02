@@ -26,7 +26,7 @@ export function CalendarFilters({
   onClearFilters,
 }: Props) {
   return (
-    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+    <div className="mt-4 flex items-end gap-2">
       <FilterSelect
         label="Type"
         value={currentFilters.type}
@@ -36,6 +36,7 @@ export function CalendarFilters({
           { value: 'loan', label: 'Loan' },
         ]}
         placeholder="All types"
+        className="w-32"
       />
 
       <FilterSelect
@@ -44,6 +45,7 @@ export function CalendarFilters({
         onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
+        className="w-32"
       />
 
       <FilterSelect
@@ -52,6 +54,7 @@ export function CalendarFilters({
         onChange={(v) => setFilter(FK.entity, v)}
         options={uniqueEntities.map((name) => ({ value: name, label: name }))}
         placeholder="All entities"
+        className="w-32"
       />
 
       <FilterSelect
@@ -63,6 +66,7 @@ export function CalendarFilters({
           { value: 'USD', label: 'USD' },
         ]}
         placeholder="All"
+        className="w-32"
       />
 
       <SearchInput

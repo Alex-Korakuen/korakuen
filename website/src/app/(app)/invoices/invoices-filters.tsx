@@ -34,13 +34,13 @@ export function InvoicesFilters({
   onClearFilters,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex items-center gap-2">
       {/* Month picker */}
       <input
         type="month"
         defaultValue={currentFilters.month}
         onChange={(e) => setFilter(FK.month, e.target.value)}
-        className="rounded border border-edge bg-white px-2 py-1 text-xs text-muted"
+        className="w-32 rounded border border-edge bg-white px-2 py-1.5 text-xs text-muted"
       />
 
       {/* Partner dropdown */}
@@ -49,6 +49,7 @@ export function InvoicesFilters({
         onChange={(v) => setFilter(FK.partner, v)}
         options={partners.map((p) => ({ value: p.id, label: p.name }))}
         placeholder="All partners"
+        className="w-32"
       />
 
       {/* Project dropdown */}
@@ -57,6 +58,7 @@ export function InvoicesFilters({
         onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
+        className="w-32"
       />
 
       {/* Category dropdown */}
@@ -65,6 +67,7 @@ export function InvoicesFilters({
         onChange={(v) => setFilter(FK.category, v)}
         options={uniqueCategories}
         placeholder="All categories"
+        className="w-32"
       />
 
       {/* Entity dropdown */}
@@ -73,6 +76,7 @@ export function InvoicesFilters({
         onChange={(v) => setFilter(FK.entity, v)}
         options={uniqueEntities.map((name) => ({ value: name, label: name }))}
         placeholder="All entities"
+        className="w-32"
       />
 
       {/* Direction dropdown */}
@@ -93,6 +97,7 @@ export function InvoicesFilters({
           { value: 'loan', label: 'Loan' },
         ]}
         placeholder="All directions"
+        className="w-32"
       />
 
       {/* Status dropdown */}
@@ -106,6 +111,7 @@ export function InvoicesFilters({
           { value: 'overdue', label: 'Overdue' },
         ]}
         placeholder="All statuses"
+        className="w-32"
       />
 
       {/* Clear */}

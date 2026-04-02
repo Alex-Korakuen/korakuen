@@ -36,13 +36,13 @@ export function PaymentsFilters({
   onClearFilters,
 }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex items-center gap-2">
       {/* Month picker */}
       <input
         type="month"
         defaultValue={currentFilters.month}
         onChange={(e) => setFilter(FK.month, e.target.value)}
-        className="rounded border border-edge bg-white px-2 py-1 text-xs text-muted"
+        className="w-32 rounded border border-edge bg-white px-2 py-1.5 text-xs text-muted"
       />
 
       {/* Partner dropdown */}
@@ -51,7 +51,7 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.partner, v)}
         options={partners.map((p) => ({ value: p.id, label: p.label }))}
         placeholder="All partners"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Project dropdown */}
@@ -60,7 +60,7 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.project, v)}
         options={projects.map((p) => ({ value: p.id, label: p.project_code }))}
         placeholder="All projects"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Category dropdown */}
@@ -69,7 +69,7 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.category, v)}
         options={categories}
         placeholder="All categories"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Entity dropdown */}
@@ -78,7 +78,7 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.entity, v)}
         options={entities}
         placeholder="All entities"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Bank dropdown */}
@@ -87,7 +87,7 @@ export function PaymentsFilters({
         onChange={(v) => setFilter(FK.bank, v)}
         options={bankAccounts.map((b) => ({ value: b.id, label: b.label }))}
         placeholder="All banks"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Direction dropdown */}
@@ -99,7 +99,7 @@ export function PaymentsFilters({
           { value: 'inbound', label: 'Inflow' },
         ]}
         placeholder="All directions"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Payment Type dropdown */}
@@ -112,7 +112,7 @@ export function PaymentsFilters({
           { value: 'retencion', label: 'Retención' },
         ]}
         placeholder="All types"
-        className="w-36"
+        className="w-32"
       />
 
       {/* Clear */}
