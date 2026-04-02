@@ -1,8 +1,10 @@
--- View: v_payments_enriched
--- Purpose: Enriches payments with entity name, partner name, project code, invoice number, and bank account label.
---          Uses UNION to handle invoice-related and loan_schedule-related payments separately.
--- Source tables: payments, invoices, entities, projects, loan_schedule, loans, bank_accounts
--- Used by: Payments page (browse)
+-- ============================================================
+-- Migration: Add bank_label to v_payments_enriched
+-- Purpose: Expose bank_accounts.label (BANK-LAST4 format) so the
+--          payments table displays the standard convention everywhere.
+-- ============================================================
+
+DROP VIEW IF EXISTS v_payments_enriched;
 
 CREATE VIEW v_payments_enriched
 WITH (security_invoker = on)

@@ -137,7 +137,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
             label="Bank Account"
             inputType="select"
             value={row.bank_account_id}
-            displayValue={row.bank_name ?? '--'}
+            displayValue={row.bank_label ?? '--'}
             onSave={saveField('bank_account_id')}
             options={bankOptions}
           />

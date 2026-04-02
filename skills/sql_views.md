@@ -18,7 +18,7 @@
 | `v_invoice_balances.sql` | `v_invoice_balances` | amount_paid, outstanding, payment_status per invoice with detraccion/retencion payment splits |
 | `v_invoices_with_loans.sql` | `v_invoices_with_loans` | UNION of commercial invoices + loan schedule entries with aging buckets — all statuses (Invoices browse page) |
 | `v_obligation_calendar.sql` | `v_obligation_calendar` | Unpaid/partial invoices and loan schedule entries sorted by due date with days_remaining (Calendar page) |
-| `v_payments_enriched.sql` | `v_payments_enriched` | Payments enriched with document_ref, entity name, project code, invoice number, bank name (Payments browse page) |
+| `v_payments_enriched.sql` | `v_payments_enriched` | Payments enriched with document_ref, entity name, project code, invoice number, bank label (Payments browse page) |
 | `v_bank_balances.sql` | `v_bank_balances` | Calculated balance per bank account from payment movements |
 | `v_loan_balances.sql` | `v_loan_balances` | Borrowed, total owed, paid, outstanding, derived status per loan |
 | `v_budget_vs_actual.sql` | `v_budget_vs_actual` | Budgeted vs actual per project per category |

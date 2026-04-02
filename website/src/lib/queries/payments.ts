@@ -72,7 +72,7 @@ export async function getPaymentsPage(
   const entitySet = new Set<string>()
   for (const r of rows) {
     if (r.project_id && r.project_code) projectMap.set(r.project_id, r.project_code)
-    if (r.bank_account_id && r.bank_name) bankMap.set(r.bank_account_id, r.bank_name)
+    if (r.bank_account_id && r.bank_label) bankMap.set(r.bank_account_id, r.bank_label)
     if (r.partner_id && r.partner_name) partnerMap.set(r.partner_id, r.partner_name)
     if (r.entity_name) entitySet.add(r.entity_name)
   }
@@ -157,6 +157,7 @@ export async function getPaymentsPage(
     document_ref: r.document_ref,
     bank_account_id: r.bank_account_id,
     bank_name: r.bank_name,
+    bank_label: r.bank_label,
     title: r.title,
     notes: r.notes,
     partner_id: r.partner_id,

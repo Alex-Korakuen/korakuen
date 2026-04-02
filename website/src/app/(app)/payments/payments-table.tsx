@@ -55,9 +55,9 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
-              onClick={() => handleSort('bank_name')}
+              onClick={() => handleSort('bank_label')}
             >
-              Bank <SortIndicator column="bank_name" sortColumn={sortColumn} sortDirection={sortDirection} />
+              Bank <SortIndicator column="bank_label" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
@@ -97,7 +97,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                   {row.operation_number ?? '—'}
                 </td>
                 <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-muted">
-                  {row.bank_name ?? '--'}
+                  {row.bank_label ?? '--'}
                 </td>
                 <td className={`whitespace-nowrap px-3 py-3 text-center font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>
                   {formatSignedAmount(row.amount, row.currency, row.direction)}
