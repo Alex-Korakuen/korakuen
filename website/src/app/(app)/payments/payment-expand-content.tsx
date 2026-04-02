@@ -85,29 +85,27 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
 
   return (
     <div className="space-y-4">
-      {/* Title */}
-      <InlineEdit
-        label="Title"
-        inputType="text"
-        value={row.title}
-        placeholder="No title"
-        onSave={saveField('title')}
-      />
-
-      {/* Operation Number (not shown for retencion) */}
-      {!isRetencion && (
-        <InlineEdit
-          label="Operation #"
-          inputType="text"
-          value={row.operation_number}
-          placeholder="No operation number"
-          onSave={saveField('operation_number')}
-          mono
-        />
-      )}
-
-      {/* Payment info */}
+      {/* Row 1: Title + Operation # + Date */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className={isRetencion ? 'sm:col-span-3' : 'sm:col-span-2'}>
+          <InlineEdit
+            label="Title"
+            inputType="text"
+            value={row.title}
+            placeholder="No title"
+            onSave={saveField('title')}
+          />
+        </div>
+        {!isRetencion && (
+          <InlineEdit
+            label="Operation #"
+            inputType="text"
+            value={row.operation_number}
+            placeholder="--"
+            onSave={saveField('operation_number')}
+            mono
+          />
+        )}
         <InlineEdit
           label="Date"
           inputType="date"
@@ -115,6 +113,10 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           displayValue={row.payment_date ? formatDate(row.payment_date) : '--'}
           onSave={saveField('payment_date')}
         />
+      </div>
+
+      {/* Row 2: Direction + Type + Bank Account + Exchange Rate */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <InlineEdit
           label="Direction"
           inputType="text"
@@ -142,54 +144,51 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
             options={bankOptions}
           />
         )}
+        <InlineEdit
+          label="Exchange Rate"
+          inputType="number"
+          value={row.exchange_rate}
+          displayValue={formatExchangeRate(row.exchange_rate)}
+          onSave={saveField('exchange_rate')}
+          mono
+          step="0.001"
+          min="0"
+        />
       </div>
 
+      {/* Row 3: Financial summary panel */}
       <div className="rounded border border-edge bg-panel px-4 py-3">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-          <div className="space-y-1">
-            <InlineEdit
-              label="Amount"
-              inputType="number"
-              value={row.amount}
-              displayValue={formatCurrency(row.amount, row.currency)}
-              onSave={saveField('amount')}
-              align="right"
-              mono
-              step="0.01"
-              min="0"
-            />
-            <InlineEdit
-              label="Exchange Rate"
-              inputType="number"
-              value={row.exchange_rate}
-              displayValue={formatExchangeRate(row.exchange_rate)}
-              onSave={saveField('exchange_rate')}
-              mono
-              step="0.001"
-              min="0"
-            />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted">Related To</span>
-              <span className="text-ink">{row.related_to === 'loan' ? 'Loan Disbursement' : row.related_to === 'loan_schedule' ? 'Loan Repayment' : 'Invoice'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted">Invoice #</span>
-              <span className="font-mono text-ink">{row.invoice_number ?? '--'}</span>
-            </div>
-          </div>
-        </div>
-        <div className="mt-2 border-t border-edge pt-2">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-3">
           <InlineEdit
-            label="Notes"
-            inputType="textarea"
-            value={row.notes}
-            placeholder="No notes"
-            onSave={saveField('notes')}
+            label="Amount"
+            inputType="number"
+            value={row.amount}
+            displayValue={formatCurrency(row.amount, row.currency)}
+            onSave={saveField('amount')}
+            align="right"
+            mono
+            step="0.01"
+            min="0"
           />
+          <div>
+            <span className="mb-1 block text-[11px] font-medium text-faint">Related To</span>
+            <span className="text-sm text-ink">{row.related_to === 'loan' ? 'Loan Disbursement' : row.related_to === 'loan_schedule' ? 'Loan Repayment' : 'Invoice'}</span>
+          </div>
+          <div>
+            <span className="mb-1 block text-[11px] font-medium text-faint">Invoice #</span>
+            <span className="text-sm font-mono text-ink">{row.invoice_number ?? '--'}</span>
+          </div>
         </div>
       </div>
+
+      {/* Row 4: Notes */}
+      <InlineEdit
+        label="Notes"
+        inputType="textarea"
+        value={row.notes}
+        placeholder="No notes"
+        onSave={saveField('notes')}
+      />
 
       {/* Related invoice/loan summary */}
       {relatedDetail && row.related_to === 'invoice' && 'invoice' in relatedDetail && relatedDetail.invoice && (
