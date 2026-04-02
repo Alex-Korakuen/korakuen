@@ -435,10 +435,14 @@ export async function importPayments(
     (bankAccounts ?? []).map(ba => [`${ba.bank_name}-${ba.account_number_last4}`, ba])
   )
 
-  // Projects + categories (needed for direct transactions)
+  // Projects, categories, entities (needed for direct transactions)
   const { data: projects } = await supabase
     .from('projects').select('id, project_code').eq('is_active', true)
   const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
+
+  const { data: entities } = await supabase
+    .from('entities').select('id, document_number').eq('is_active', true)
+  const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
   const { data: categories } = await supabase
     .from('categories').select('name, cost_type')
@@ -543,6 +547,10 @@ export async function importPayments(
       }
     } else {
       // ---- Direct transaction path ----
+      const entityDocNum = str(row.entity_document_number)
+      if (entityDocNum && !entityMap.has(entityDocNum)) {
+        errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
+      }
       if (projectCode && !projectMap.has(projectCode)) {
         errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
       }
@@ -631,6 +639,8 @@ export async function importPayments(
     const operationNumber = str(row.operation_number)
     const documentRef = str(row.document_ref)
     const notes = str(row.notes)
+    const entityDocNum = str(row.entity_document_number)
+    const entityId = entityDocNum ? entityMap.get(entityDocNum)! : null
 
     // Map unified direction to invoice direction
     const invoiceDirection = direction === 'outbound' ? 'payable' : 'receivable'
@@ -647,6 +657,7 @@ export async function importPayments(
         cost_type: costType,
         comprobante_type: 'none',
         partner_id: partnerId,
+        entity_id: entityId,
         project_id: projectId,
         invoice_date: date,
         due_date: date,
