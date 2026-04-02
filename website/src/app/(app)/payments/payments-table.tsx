@@ -37,9 +37,9 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
-              onClick={() => handleSort('project_code')}
+              onClick={() => handleSort('title')}
             >
-              Project <SortIndicator column="project_code" sortColumn={sortColumn} sortDirection={sortDirection} />
+              Title <SortIndicator column="title" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
@@ -87,8 +87,8 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 <td className="max-w-[140px] truncate px-3 py-3 text-center text-xs text-muted">
                   {row.partner_name ?? '--'}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
-                  {row.project_code ?? '--'}
+                <td className="max-w-[200px] truncate px-3 py-3 text-center text-xs text-muted">
+                  {row.title ?? '--'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                   {row.document_ref ?? '—'}
