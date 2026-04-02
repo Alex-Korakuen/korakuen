@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { inputCompactClass, iconCheck, iconX } from '@/lib/styles'
 import { LockIcon } from './lock-icon'
+import { NotesDisplay } from './notes-display'
 
 type BaseProps = {
   /** Current raw value */
@@ -270,15 +271,27 @@ export function InlineEdit(props: InlineEditProps) {
       {label && (
         <span className="mb-1 block text-[11px] font-medium text-faint">{label}</span>
       )}
-      <span
-        onClick={onSave ? startEdit : undefined}
-        className={`inline-block rounded px-1 py-0.5 text-sm transition-colors ${onSave ? 'cursor-pointer hover:bg-accent-bg' : ''} ${alignCls} ${monoCls} ${isEmpty ? 'text-faint italic' : 'text-ink'}`}
-        role={onSave ? 'button' : undefined}
-        tabIndex={onSave ? 0 : undefined}
-        onKeyDown={onSave ? (e => { if (e.key === 'Enter') startEdit() }) : undefined}
-      >
-        {displayText}
-      </span>
+      {inputType === 'textarea' && !isEmpty ? (
+        <div
+          onClick={onSave ? startEdit : undefined}
+          className={`rounded px-1 py-0.5 text-sm transition-colors ${onSave ? 'cursor-pointer hover:bg-accent-bg' : ''}`}
+          role={onSave ? 'button' : undefined}
+          tabIndex={onSave ? 0 : undefined}
+          onKeyDown={onSave ? (e => { if (e.key === 'Enter') startEdit() }) : undefined}
+        >
+          <NotesDisplay notes={showValue} />
+        </div>
+      ) : (
+        <span
+          onClick={onSave ? startEdit : undefined}
+          className={`inline-block rounded px-1 py-0.5 text-sm transition-colors ${onSave ? 'cursor-pointer hover:bg-accent-bg' : ''} ${alignCls} ${monoCls} ${isEmpty ? 'text-faint italic' : 'text-ink'}`}
+          role={onSave ? 'button' : undefined}
+          tabIndex={onSave ? 0 : undefined}
+          onKeyDown={onSave ? (e => { if (e.key === 'Enter') startEdit() }) : undefined}
+        >
+          {displayText}
+        </span>
+      )}
     </div>
   )
 }
