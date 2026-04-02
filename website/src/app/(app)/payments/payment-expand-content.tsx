@@ -115,18 +115,8 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
         />
       </div>
 
-      {/* Row 2: Direction + Type + Bank Account + Exchange Rate */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <InlineEdit
-          label="Direction"
-          inputType="text"
-          value={row.direction === 'inbound' ? 'Inbound' : 'Outbound'}
-          locked
-        />
-        <div>
-          <span className="mb-1 block text-[11px] font-medium text-faint">Type</span>
-          <StatusBadge label={getPaymentTypeLabel(row.payment_type)} variant={getPaymentTypeBadgeVariant(row.payment_type)} />
-        </div>
+      {/* Row 2: Bank Account + Exchange Rate */}
+      <div className="grid grid-cols-2 gap-4">
         {isRetencion ? (
           <InlineEdit
             label="Bank Account"

@@ -10,6 +10,7 @@ import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
 import { DualAmount } from '@/components/ui/dual-amount'
 import { Modal } from '@/components/ui/modal'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { ImportButton } from '@/components/ui/import-button'
 import { Pagination } from '@/components/ui/pagination'
@@ -17,6 +18,7 @@ import { SectionCard } from '@/components/ui/section-card'
 import { PaymentsFilters } from './payments-filters'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
+import { getDirectionColorClass, getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
 import type { PaymentsPageRow, PaymentsSummary, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 
 const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
@@ -129,6 +131,14 @@ export function PaymentsClient({
   }
 
   const modalTitle = 'Payment Detail'
+  const modalHeaderRight = modalRow ? (
+    <div className="flex items-center gap-1.5">
+      <span className={`inline-block rounded-full px-2 py-[3px] text-[10px] font-medium uppercase tracking-[0.04em] ${getDirectionColorClass(modalRow.direction)}`}>
+        {modalRow.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+      </span>
+      <StatusBadge label={getPaymentTypeLabel(modalRow.payment_type)} variant={getPaymentTypeBadgeVariant(modalRow.payment_type)} />
+    </div>
+  ) : undefined
 
   return (
     <div>
@@ -183,6 +193,7 @@ export function PaymentsClient({
         isOpen={modalRow !== null}
         onClose={handleCloseModal}
         title={modalTitle}
+        headerRight={modalHeaderRight}
       >
         {modalLoading ? (
           <div className="flex items-center justify-center py-6">
