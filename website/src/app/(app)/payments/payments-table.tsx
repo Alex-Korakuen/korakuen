@@ -3,11 +3,8 @@
 import { formatDate } from '@/lib/formatters'
 import { useUrlSort } from '@/lib/use-url-sort'
 import { SortIndicator } from '@/components/ui/sort-indicator'
-import { StatusBadge } from '@/components/ui/status-badge'
 import { tableHead, tableRowHover } from '@/lib/styles'
 import {
-  getPaymentTypeLabel,
-  getPaymentTypeBadgeVariant,
   formatSignedAmount,
   getSignedAmountColorClass,
 } from './helpers'
@@ -46,12 +43,6 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
-              onClick={() => handleSort('entity_name')}
-            >
-              Entity <SortIndicator column="entity_name" sortColumn={sortColumn} sortDirection={sortDirection} />
-            </th>
-            <th
-              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('document_ref')}
             >
               Code <SortIndicator column="document_ref" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -74,13 +65,12 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             >
               Amount <SortIndicator column="amount" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
-            <th className="px-3 py-3 text-center">Type</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-4 py-8 text-center text-faint">
+              <td colSpan={7} className="px-4 py-8 text-center text-faint">
                 No payments found
               </td>
             </tr>
@@ -100,9 +90,6 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                   {row.project_code ?? '--'}
                 </td>
-                <td className="max-w-[200px] truncate px-3 py-3 text-center text-ink">
-                  {row.entity_name ?? '--'}
-                </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                   {row.document_ref ?? '—'}
                 </td>
@@ -114,12 +101,6 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 </td>
                 <td className={`whitespace-nowrap px-3 py-3 text-center font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>
                   {formatSignedAmount(row.amount, row.currency, row.direction)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-center">
-                  <StatusBadge
-                    label={getPaymentTypeLabel(row.payment_type)}
-                    variant={getPaymentTypeBadgeVariant(row.payment_type)}
-                  />
                 </td>
               </tr>
             ))
