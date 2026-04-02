@@ -35,6 +35,7 @@ export function RegisterLoanRepaymentForm({
 
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
+  const [operationNumber, setOperationNumber] = useState('')
   const [title, setTitle] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
@@ -60,6 +61,10 @@ export function RegisterLoanRepaymentForm({
       setError(`Amount cannot exceed outstanding balance (${formatCurrency(outstanding, currency)})`)
       return
     }
+    if (!operationNumber.trim()) {
+      setError('Operation number is required')
+      return
+    }
     if (exchangeRate === null) {
       setError('Exchange rate not available for this date')
       return
@@ -75,6 +80,7 @@ export function RegisterLoanRepaymentForm({
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: bankAccountId || undefined,
+        operation_number: operationNumber.trim(),
         title: title.trim() || 'Pago de prestamo',
       })
 
@@ -119,6 +125,18 @@ export function RegisterLoanRepaymentForm({
           onChange={e => setTitle(e.target.value)}
           placeholder="Pago de prestamo"
           className={`${inputCompactClass} w-full bg-white`}
+        />
+      </div>
+
+      {/* Operation Number */}
+      <div className="mb-3">
+        <label className={formFieldLabel}>Operation #</label>
+        <input
+          type="text"
+          value={operationNumber}
+          onChange={e => setOperationNumber(e.target.value)}
+          placeholder="Numero de operacion"
+          className={`${inputCompactClass} w-full bg-white font-mono`}
         />
       </div>
 

@@ -465,6 +465,7 @@ export async function importPayments(
     const amount = num(row.amount)
     const currency = str(row.currency)
     const bankAccount = str(row.bank_account)
+    const operationNumber = str(row.operation_number)
     const partnerName = str(row.partner_name)
     const projectCode = str(row.project_code)
     const category = str(row.category)
@@ -498,6 +499,11 @@ export async function importPayments(
     // Amount positive
     if (amount !== null && amount <= 0) {
       errors.push({ row: r, column: 'amount', message: 'Must be greater than 0' })
+    }
+
+    // Operation number required for non-retencion
+    if (paymentType !== 'retencion' && !operationNumber) {
+      errors.push({ row: r, column: 'operation_number', message: 'Required for regular and detraccion payments' })
     }
 
     // Exchange rate range
@@ -598,6 +604,7 @@ export async function importPayments(
         exchange_rate: num(row.exchange_rate)!,
         bank_account_id: paymentType === 'retencion' ? null : bankMap.get(bankRef!)!.id,
         partner_id: partnerMap.get(str(row.partner_name)!)!,
+        operation_number: str(row.operation_number) || null,
         document_ref: str(row.document_ref) ?? null,
         title: str(row.title) || defaultTitle,
         notes: str(row.notes) ?? null,
@@ -621,6 +628,7 @@ export async function importPayments(
     const date = str(row.payment_date)!
     const category = str(row.category)
     const bankAccount = str(row.bank_account)
+    const operationNumber = str(row.operation_number)
     const documentRef = str(row.document_ref)
     const notes = str(row.notes)
 
@@ -686,6 +694,7 @@ export async function importPayments(
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: bankAccount ? bankMap.get(bankAccount)!.id : null,
+        operation_number: operationNumber || null,
         document_ref: documentRef,
         title: paymentTitle,
         notes,

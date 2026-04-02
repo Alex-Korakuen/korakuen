@@ -585,6 +585,7 @@ export type Database = {
           id: string
           is_active: boolean
           notes: string | null
+          operation_number: string | null
           partner_id: string
           payment_date: string
           payment_type: string
@@ -604,6 +605,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          operation_number?: string | null
           partner_id: string
           payment_date: string
           payment_type: string
@@ -623,6 +625,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           notes?: string | null
+          operation_number?: string | null
           partner_id?: string
           payment_date?: string
           payment_type?: string
@@ -1232,6 +1235,7 @@ export type Database = {
           id: string | null
           invoice_number: string | null
           notes: string | null
+          operation_number: string | null
           partner_id: string | null
           partner_name: string | null
           payment_date: string | null

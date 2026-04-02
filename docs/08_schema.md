@@ -384,6 +384,7 @@ The unified payments table. Every actual movement of money — both inbound and 
 | exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
 | bank_account_id | UUID | YES | nullable — retencion never hits an account |
 | partner_id | UUID | NO | references entities (must be tagged as partner) — which partner's account was involved, required because retencion has no bank account |
+| operation_number | VARCHAR(50) | YES | bank operation/transaction number (numero de operacion) — NOT NULL for regular and detraccion, nullable for retencion |
 | document_ref | VARCHAR(100) | YES | e.g. PRY001-PY-001 — links to payment receipt in SharePoint |
 | title | TEXT | NO | what appears on the bank app — defaults: Pago, Cobro, Detraccion, Retencion |
 | notes | TEXT | YES | free-form context |

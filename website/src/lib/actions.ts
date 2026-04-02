@@ -158,6 +158,7 @@ export async function registerPayment(input: {
   exchange_rate: number
   partner_id: string
   bank_account_id: string | null
+  operation_number: string | null
   title: string
   notes: string | null
 }): Promise<{ error?: string }> {
@@ -172,6 +173,9 @@ export async function registerPayment(input: {
   }
   if (input.payment_type === 'detraccion' && input.currency !== 'PEN') {
     return { error: 'Detraccion payments must be in PEN' }
+  }
+  if (input.payment_type !== 'retencion' && !input.operation_number?.trim()) {
+    return { error: 'Operation number is required' }
   }
 
   // Bank account currency match
@@ -203,6 +207,7 @@ export async function registerPayment(input: {
     exchange_rate: input.exchange_rate,
     partner_id: input.partner_id,
     bank_account_id: input.bank_account_id,
+    operation_number: input.operation_number?.trim() || null,
     title: input.title,
     notes: input.notes,
   })
@@ -649,12 +654,14 @@ export async function createLoan(data: {
   due_date?: string
   notes?: string
   bank_account_id?: string
+  operation_number: string
 }): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
   const supabase = await createServerSupabaseClient()
 
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
+  if (!data.operation_number?.trim()) return { error: 'Operation number is required for disbursement' }
   if (data.return_type === 'percentage' && (data.agreed_return_rate == null || data.agreed_return_rate < 0)) {
     return { error: 'Agreed return rate is required for percentage return type' }
   }
@@ -694,6 +701,7 @@ export async function createLoan(data: {
     exchange_rate: data.exchange_rate,
     partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
+    operation_number: data.operation_number.trim(),
     title: `Desembolso de prestamo`,
     notes: `Loan disbursement from ${data.lender_name.trim()}`,
   })
@@ -756,6 +764,7 @@ export async function registerLoanRepayment(data: {
   exchange_rate: number
   partner_id: string
   bank_account_id?: string
+  operation_number: string
   title: string
   notes?: string
 }): Promise<{ error?: string }> {
@@ -764,6 +773,7 @@ export async function registerLoanRepayment(data: {
   const supabase = await createServerSupabaseClient()
 
   if (data.amount <= 0) return { error: 'Amount must be greater than 0' }
+  if (!data.operation_number?.trim()) return { error: 'Operation number is required' }
 
   // Validate against schedule entry outstanding
   const lsErr = await validateLoanScheduleLimit(supabase, data.schedule_entry_id, data.amount)
@@ -781,6 +791,7 @@ export async function registerLoanRepayment(data: {
     exchange_rate: data.exchange_rate,
     partner_id: data.partner_id,
     bank_account_id: data.bank_account_id || null,
+    operation_number: data.operation_number.trim(),
     title: data.title,
     notes: data.notes?.trim() || null,
   })

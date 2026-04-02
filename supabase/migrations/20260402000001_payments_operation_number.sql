@@ -1,8 +1,21 @@
--- View: v_payments_enriched
--- Purpose: Enriches payments with entity name, partner name, project code, invoice number, and bank account name.
---          Uses UNION to handle invoice-related and loan_schedule-related payments separately.
--- Source tables: payments, invoices, entities, projects, loan_schedule, loans, bank_accounts
--- Used by: Payments page (browse)
+-- ============================================================
+-- Migration: Add operation_number to payments
+-- Purpose: Track bank operation/transaction number (numero de operacion)
+--          on every payment. Nullable for retencion only (no bank movement).
+-- ============================================================
+
+-- 1. Add column (nullable initially to allow backfill)
+ALTER TABLE payments ADD COLUMN operation_number VARCHAR(50);
+
+-- 2. Backfill existing rows: empty string for regular/detraccion, NULL for retencion
+UPDATE payments SET operation_number = '' WHERE payment_type != 'retencion';
+
+-- 3. Add CHECK constraint: non-retencion payments must have operation_number
+ALTER TABLE payments ADD CONSTRAINT chk_payments_operation_number
+  CHECK (payment_type = 'retencion' OR operation_number IS NOT NULL);
+
+-- 4. Recreate v_payments_enriched with the new column
+DROP VIEW IF EXISTS v_payments_enriched;
 
 CREATE VIEW v_payments_enriched
 WITH (security_invoker = on)
@@ -117,3 +130,9 @@ WHERE p.related_to = 'loan'
   AND p.is_active = true
 
 ORDER BY payment_date DESC;
+
+-- Rollback:
+-- DROP VIEW IF EXISTS v_payments_enriched;
+-- ALTER TABLE payments DROP CONSTRAINT chk_payments_operation_number;
+-- ALTER TABLE payments DROP COLUMN operation_number;
+-- Then recreate v_payments_enriched without operation_number

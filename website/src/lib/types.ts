@@ -126,6 +126,7 @@ export type PaymentsPageRow = {
   related_to: PaymentRelatedTo
   related_id: string | null
   invoice_number: string | null
+  operation_number: string | null
   document_ref: string | null
   bank_account_id: string | null
   bank_name: string | null

@@ -45,6 +45,7 @@ export function RegisterPaymentForm({
   const [paymentType, setPaymentType] = useState<typeof PAYMENT_TYPES[number]>('regular')
   const [paymentDate, setPaymentDate] = useState(todayISO)
   const [amount, setAmount] = useState('')
+  const [operationNumber, setOperationNumber] = useState('')
   const [title, setTitle] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +117,10 @@ export function RegisterPaymentForm({
       setError('Select a bank account')
       return
     }
+    if (!isRetencion && !operationNumber.trim()) {
+      setError('Operation number is required')
+      return
+    }
     if (exchangeRate === null) {
       setError('Exchange rate not available for this date')
       return
@@ -137,6 +142,7 @@ export function RegisterPaymentForm({
         exchange_rate: exchangeRate,
         partner_id: partnerId,
         bank_account_id: isRetencion ? null : bankAccountId,
+        operation_number: isRetencion ? null : operationNumber.trim(),
         title: title.trim() || defaultTitle,
         notes: null,
       })
@@ -186,6 +192,20 @@ export function RegisterPaymentForm({
           className={`${inputCompactClass} w-full bg-white`}
         />
       </div>
+
+      {/* Operation Number (hidden for retencion) */}
+      {!isRetencion && (
+        <div className="mb-3">
+          <label className={formFieldLabel}>Operation #</label>
+          <input
+            type="text"
+            value={operationNumber}
+            onChange={e => setOperationNumber(e.target.value)}
+            placeholder="Numero de operacion"
+            className={`${inputCompactClass} w-full bg-white font-mono`}
+          />
+        </div>
+      )}
 
       {/* Fields grid */}
       <div className={`grid gap-3 ${isRetencion ? 'grid-cols-3' : 'grid-cols-4'}`}>

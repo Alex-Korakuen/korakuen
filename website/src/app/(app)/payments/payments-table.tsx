@@ -58,6 +58,12 @@ export function PaymentsTable({ data, onRowClick }: Props) {
             </th>
             <th
               className="cursor-pointer px-3 py-3 text-center hover:text-ink"
+              onClick={() => handleSort('operation_number')}
+            >
+              Op. # <SortIndicator column="operation_number" sortColumn={sortColumn} sortDirection={sortDirection} />
+            </th>
+            <th
+              className="cursor-pointer px-3 py-3 text-center hover:text-ink"
               onClick={() => handleSort('bank_name')}
             >
               Bank <SortIndicator column="bank_name" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -74,7 +80,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center text-faint">
+              <td colSpan={9} className="px-4 py-8 text-center text-faint">
                 No payments found
               </td>
             </tr>
@@ -99,6 +105,9 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                   {row.document_ref ?? '—'}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
+                  {row.operation_number ?? '—'}
                 </td>
                 <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-muted">
                   {row.bank_name ?? '--'}

@@ -94,6 +94,18 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
         onSave={saveField('title')}
       />
 
+      {/* Operation Number (not shown for retencion) */}
+      {!isRetencion && (
+        <InlineEdit
+          label="Operation #"
+          inputType="text"
+          value={row.operation_number}
+          placeholder="No operation number"
+          onSave={saveField('operation_number')}
+          mono
+        />
+      )}
+
       {/* Payment info */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <InlineEdit

@@ -35,6 +35,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
+  const [operationNumber, setOperationNumber] = useState('')
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
 
   // Auto-fetch exchange rate when date changes
@@ -62,6 +63,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
     setDueDate('')
     setNotes('')
     setBankAccountId('')
+    setOperationNumber('')
     setBankAccounts([])
     setError(null)
   }
@@ -96,6 +98,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
         due_date: dueDate || undefined,
         notes: notes.trim() || undefined,
         bank_account_id: bankAccountId || undefined,
+        operation_number: operationNumber.trim(),
       })
 
       if (result.error) {
@@ -107,7 +110,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
   }
 
   const parsedAmount = parseFloat(amount)
-  const canSubmit = partnerId && entityId && !isNaN(parsedAmount) && parsedAmount > 0 && exchangeRate !== null
+  const canSubmit = partnerId && entityId && !isNaN(parsedAmount) && parsedAmount > 0 && exchangeRate !== null && operationNumber.trim()
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Loan">
@@ -262,6 +265,18 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
             </select>
           </div>
         )}
+
+        {/* Operation Number (for disbursement payment) */}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink">Operation # *</label>
+          <input
+            type="text"
+            value={operationNumber}
+            onChange={(e) => setOperationNumber(e.target.value)}
+            placeholder="Numero de operacion"
+            className={`${inputClass} font-mono`}
+          />
+        </div>
 
         {/* Notes */}
         <div>
