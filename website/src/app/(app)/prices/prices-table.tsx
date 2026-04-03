@@ -45,7 +45,7 @@ export function PricesTable({ data }: Props) {
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-3 py-8 text-center text-faint">
+              <td colSpan={9} className="px-4 py-8 text-center text-sm text-faint">
                 No matching price records found
               </td>
             </tr>

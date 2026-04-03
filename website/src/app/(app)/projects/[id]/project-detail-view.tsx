@@ -21,6 +21,7 @@ import { updateProjectField, setProjectPartners } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
+import { iconTrash, tableHead } from '@/lib/styles'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -77,14 +78,14 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-faint">
+        <div className="px-4 py-8 text-center text-sm text-faint">
           {search ? 'No entities match your search' : 'No costs recorded'}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-xs text-muted">
-              <tr className="border-b border-edge">
+            <thead className={tableHead}>
+              <tr>
                 <th className="px-4 py-2 text-left font-medium">Entity Name</th>
                 <th className="px-4 py-2 text-left font-medium">Tags</th>
                 <th className="px-4 py-2 text-right font-medium">PEN Spent</th>
@@ -284,10 +285,11 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
               <button
                 type="button"
                 onClick={() => removeEntry(i)}
-                className="rounded p-1 text-faint transition-colors hover:text-negative"
+                className="rounded p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative"
+                title="Remove partner"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
                 </svg>
               </button>
             </div>

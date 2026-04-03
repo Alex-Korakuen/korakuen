@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { btnSecondaryBordered, btnDanger } from '@/lib/styles'
 
 type Props = {
   title: string
@@ -27,11 +28,11 @@ export function DeleteConfirmation({ title, message, isPending, error, onCancel,
 
           <div className="flex items-center justify-end gap-3 mt-4">
             <button onClick={onCancel} disabled={isPending}
-              className="rounded-md border border-edge-strong bg-white px-3.5 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface">
+              className={btnSecondaryBordered}>
               Cancel
             </button>
             <button onClick={onConfirm} disabled={isPending}
-              className="rounded-md bg-negative px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-negative/85 disabled:opacity-50">
+              className={btnDanger}>
               {isPending ? 'Deactivating...' : 'Yes, deactivate'}
             </button>
           </div>

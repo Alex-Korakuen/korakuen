@@ -262,8 +262,8 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
                   </td>
                   <td className="px-2 py-2 text-center">
                     {detail.items.length > 1 && (
-                      <button onClick={() => handleRemoveItem(item.id)} className="rounded border border-negative/20 p-0.5 text-negative/60 hover:bg-negative-bg hover:text-negative">
-                        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+                      <button onClick={() => handleRemoveItem(item.id)} className="rounded border border-negative/20 p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative">
+                        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
                       </button>
                     )}
                   </td>

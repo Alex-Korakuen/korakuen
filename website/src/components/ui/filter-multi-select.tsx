@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useId } from 'react'
-import { selectClass } from '@/lib/styles'
+import { selectClass, filterLabel } from '@/lib/styles'
 
 type Option = {
   value: string
@@ -46,12 +46,15 @@ export function FilterMultiSelect({ label, values, onChange, options, placeholde
     const next = values.includes(val)
       ? values.filter(v => v !== val)
       : [...values, val]
-    if (next.length === 0) return
     onChange(next)
   }
 
   function toggleAll() {
-    if (allSelected) return
+    if (allSelected) {
+      // De-toggle: reset to empty which represents "all" (unfiltered)
+      onChange([])
+      return
+    }
     onChange(options.map(o => o.value))
   }
 
@@ -125,7 +128,7 @@ export function FilterMultiSelect({ label, values, onChange, options, placeholde
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-muted">{label}</label>
+      <label className={filterLabel}>{label}</label>
       {select}
     </div>
   )

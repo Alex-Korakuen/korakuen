@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addLoanScheduleEntry } from '@/lib/actions'
-import { inputCompactClass, btnPrimary } from '@/lib/styles'
+import { inputCompactClass, btnPrimary, btnSecondarySm } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 
@@ -121,7 +121,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
         <button
           onClick={() => { resetForm(); setIsOpen(false) }}
           disabled={isPending}
-          className="rounded border border-edge-strong px-3 py-1 text-xs text-muted hover:bg-surface disabled:opacity-50"
+          className={btnSecondarySm}
         >
           Cancel
         </button>

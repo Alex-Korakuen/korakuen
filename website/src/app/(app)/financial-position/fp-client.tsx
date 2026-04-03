@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
+import { tableHead } from '@/lib/styles'
 import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
@@ -286,14 +287,14 @@ export function FPClient({ data, partners, projects }: Props) {
         title={`${selectedAccount?.bankName ?? ''} ···${selectedAccount?.last4 ?? ''} — Transactions`}
       >
         {loadingTxns ? (
-          <p className="py-8 text-center text-sm text-muted">Loading transactions...</p>
+          <p className="py-8 text-center text-sm text-faint">Loading transactions...</p>
         ) : transactions.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">No transactions found.</p>
+          <p className="py-8 text-center text-sm text-faint">No transactions found.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-edge text-left text-xs uppercase text-faint">
+              <thead className={tableHead}>
+                <tr>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Entity</th>
                   <th className="px-3 py-2">Project</th>
@@ -337,7 +338,7 @@ export function FPClient({ data, partners, projects }: Props) {
         title={`Loan — ${selectedLoan?.lenderName ?? ''}`}
       >
         {loadingLoan && (
-          <p className="py-8 text-center text-sm text-muted">Loading loan detail...</p>
+          <p className="py-8 text-center text-sm text-faint">Loading loan detail...</p>
         )}
         {!loadingLoan && loanDetail && (
           <LoanDetailContent
@@ -346,7 +347,7 @@ export function FPClient({ data, partners, projects }: Props) {
           />
         )}
         {!loadingLoan && !loanDetail && selectedLoan && (
-          <p className="py-8 text-center text-sm text-muted">Could not load loan detail.</p>
+          <p className="py-8 text-center text-sm text-faint">Could not load loan detail.</p>
         )}
       </Modal>
 

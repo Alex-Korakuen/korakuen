@@ -56,7 +56,7 @@ export function InvoicesTable({
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-3 py-8 text-center text-faint">No invoices found</td>
+              <td colSpan={8} className="px-4 py-8 text-center text-sm text-faint">No invoices found</td>
             </tr>
           ) : (
             data.map((row) => {

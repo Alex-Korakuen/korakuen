@@ -46,6 +46,26 @@ export const btnDangerIcon =
 export const btnEditIcon =
   'rounded border border-edge p-1.5 text-faint transition-colors hover:bg-surface hover:text-muted'
 
+/** Secondary / cancel button — modals and dialogs */
+export const btnSecondary =
+  'rounded px-4 py-2 text-sm text-muted transition-colors hover:bg-surface'
+
+/** Secondary button compact — inline forms with smaller padding */
+export const btnSecondarySm =
+  'rounded border border-edge-strong px-3 py-1 text-xs text-muted transition-colors hover:bg-surface disabled:opacity-50'
+
+/** Danger confirm button — solid negative background */
+export const btnDanger =
+  'rounded-md bg-negative px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-negative/85 disabled:opacity-50'
+
+/** Secondary button with border — dialog cancel */
+export const btnSecondaryBordered =
+  'rounded-md border border-edge-strong bg-white px-3.5 py-1.5 text-sm font-medium text-muted transition-colors hover:bg-surface'
+
+/** Full-width primary button — payment/repayment forms */
+export const btnPrimaryFull =
+  'w-full rounded-[10px] bg-accent py-2 text-sm font-bold text-white transition-colors hover:bg-accent-hover disabled:opacity-50'
+
 /** Auth page primary button — dark with focus ring */
 export const btnAuthPrimary =
   'rounded-md bg-ink px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'

@@ -66,7 +66,7 @@ export function EntitiesDirectory({
       {/* Directory table */}
       <SectionCard>
         {entities.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted">
+          <div className="px-6 py-8 text-center text-sm text-faint">
             No entities match filters
           </div>
         ) : (

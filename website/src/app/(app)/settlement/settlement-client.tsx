@@ -5,6 +5,7 @@ import { formatCurrency, formatCurrencyCompact, formatPercentage } from '@/lib/f
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
+import { tableHead } from '@/lib/styles'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
 import type {
   ProjectListItem,
@@ -40,7 +41,9 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
 
   function handleProjectChange(ids: string[]) {
     setSelectedIds(ids)
-    refreshData(ids)
+    // Empty means "all" — send all project IDs to the API
+    const effective = ids.length === 0 ? projects.map(p => p.id) : ids
+    refreshData(effective)
   }
 
   function refreshData(ids: string[]) {
@@ -93,19 +96,19 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
       {/* Partner table */}
       <SectionCard className={`overflow-hidden ${isPending ? 'opacity-60' : ''}`}>
         {partners.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-faint">
+          <div className="px-6 py-8 text-center text-sm text-faint">
             No partners assigned to the selected projects.
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-edge">
-                <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-muted">Partner</th>
-                <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-muted">Share</th>
-                <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-muted">Costs Paid</th>
-                <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-muted">Profit Share</th>
-                <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-muted">Should Receive</th>
-                <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-muted">Balance</th>
+            <thead className={tableHead}>
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Partner</th>
+                <th className="px-4 py-3 text-right font-medium">Share</th>
+                <th className="px-4 py-3 text-right font-medium">Costs Paid</th>
+                <th className="px-4 py-3 text-right font-medium">Profit Share</th>
+                <th className="px-4 py-3 text-right font-medium">Should Receive</th>
+                <th className="px-4 py-3 text-right font-medium">Balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-edge">

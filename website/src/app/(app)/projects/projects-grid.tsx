@@ -65,7 +65,7 @@ export function ProjectsGrid({ projects, partnerOptions }: Props) {
       </HeaderPortal>
 
       {filtered.length === 0 ? (
-        <div className="px-8 py-16 text-center text-faint">
+        <div className="px-6 py-8 text-center text-sm text-faint">
           No projects found
         </div>
       ) : (

@@ -1,4 +1,5 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { tableHead } from '@/lib/styles'
 import type { EntityLedgerGroup } from '@/lib/types'
 
 export function LedgerTable({ groups, onRowClick, emptyMessage }: {
@@ -7,13 +8,13 @@ export function LedgerTable({ groups, onRowClick, emptyMessage }: {
   emptyMessage: string
 }) {
   if (groups.length === 0) {
-    return <div className="px-4 py-6 text-center text-sm text-muted">{emptyMessage}</div>
+    return <div className="px-4 py-8 text-center text-sm text-faint">{emptyMessage}</div>
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-panel text-xs text-faint">
+        <thead className={tableHead}>
           <tr>
             <th className="px-4 py-2 text-left font-medium">Project</th>
             <th className="px-4 py-2 text-right font-medium">Invoice Total</th>

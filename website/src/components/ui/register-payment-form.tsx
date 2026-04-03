@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react'
 import { registerPayment, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
-import { inputCompactClass, formSectionLabel, formFieldLabel } from '@/lib/styles'
+import { inputCompactClass, formSectionLabel, formFieldLabel, btnPrimaryFull } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 import { defaultPaymentTitle } from '@/lib/constants'
@@ -296,7 +296,7 @@ export function RegisterPaymentForm({
       <button
         onClick={handleSubmit}
         disabled={isPending}
-        className="mt-3 w-full rounded-[10px] bg-accent py-2 text-sm font-bold text-white hover:bg-accent-hover disabled:opacity-50"
+        className={`mt-3 ${btnPrimaryFull}`}
       >
         {isPending ? 'Saving...' : buttonLabel}
       </button>

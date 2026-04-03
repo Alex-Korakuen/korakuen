@@ -1,4 +1,4 @@
-import { btnPrimaryLg } from '@/lib/styles'
+import { btnPrimaryLg, btnSecondary } from '@/lib/styles'
 
 type Props = {
   onCancel: () => void
@@ -22,7 +22,7 @@ export function ModalActions({
       <button
         type="button"
         onClick={onCancel}
-        className="rounded px-4 py-2 text-sm text-muted transition-colors hover:bg-surface"
+        className={btnSecondary}
       >
         Cancel
       </button>

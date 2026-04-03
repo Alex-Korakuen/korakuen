@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
 import { createProject } from '@/lib/actions'
-import { inputClass } from '@/lib/styles'
+import { inputClass, iconTrash } from '@/lib/styles'
 import { formatPercentage } from '@/lib/formatters'
 import type { Currency, PartnerOption } from '@/lib/types'
 import { useModalForm } from '@/lib/use-modal-form'
@@ -272,10 +272,11 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
                   <button
                     type="button"
                     onClick={() => removePartner(i)}
-                    className="rounded p-1 text-faint transition-colors hover:text-negative"
+                    className="rounded p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative"
+                    title="Remove partner"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
                     </svg>
                   </button>
                 </div>
