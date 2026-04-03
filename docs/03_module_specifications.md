@@ -17,12 +17,12 @@ The system is organized around a central invoices table with supporting referenc
                         | referenced by all financial records
                         |
 PROJECT ─────────────────────────────────────
-   |              |              |
-INVOICES       QUOTES         LOANS
-+ INVOICE_ITEMS  |           + LOAN_SCHEDULE
-(payable &    links to        (repayments)
-receivable)   INVOICES           |
-   |          when accepted      |
+   |                             |
+INVOICES                       LOANS
++ INVOICE_ITEMS              + LOAN_SCHEDULE
+(payable, receivable,          (repayments)
+ & quotes via quote_status)      |
+   |                             |
    └─────────────────────────────┘
                   |
               PAYMENTS (unified — AP, AR, and loan repayments)
@@ -34,12 +34,12 @@ receivable)   INVOICES           |
 
 ## Module 1: Projects
 
-**Purpose:** The anchor for all other data. Every invoice and quote belongs to a project. The project code drives the document naming convention throughout SharePoint.
+**Purpose:** The anchor for all other data. Every invoice belongs to a project. The project code drives the document naming convention throughout SharePoint.
 
 **Business rules:**
 - Every project gets a unique sequential code: PRY001, PRY002, PRY003...
 - This code is used in all document filenames: `PRY001-AP-001.pdf`
-- A project must exist before invoices or quotes can be registered against it
+- A project must exist before invoices can be registered against it
 - Projects are never deleted — set to Cancelled if abandoned
 - Contract value (what the client will pay total) is stored here — this is the revenue ceiling
 - Contract value is editable as scope changes during execution
@@ -156,7 +156,7 @@ The visualization website shows "unassigned expenses" as a separate filterable c
 - Exchange rate mandatory (NOT NULL) — stored at transaction date for application-layer conversion
 - Entity field is nullable — supports informal/unassigned expenses
 - Comprobante fields are nullable — supports expenses without formal invoices
-- A payable invoice can reference a quote (`quote_id`) when the purchase was preceded by a quote
+- Quotes are stored as invoices with `quote_status` (pending/accepted/rejected) and `invoice_items.quote_date` — no separate quotes table
 - `purchase_order_id` reserved for future PO module — always null
 - Retencion only applies on receivables (Korakuen is NOT a retencion agent)
 
@@ -173,7 +173,7 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 - Project (nullable — null if SG&A)
 - Cost type: project_cost, sga, or intercompany (payable only, null for receivable) — determines settlement inclusion. Intercompany invoices are settlement transfers between partners, excluded from settlement totals
 - Entity (nullable — references Entities)
-- Quote reference (nullable — references Quotes)
+- Quote status (nullable — pending, accepted, rejected — null for non-quote invoices)
 - Purchase order reference (nullable — reserved for future PO module)
 - Invoice number (nullable)
 - Document reference code (nullable, e.g. PRY001-AP-001)
@@ -202,49 +202,36 @@ SG&A: Software & Licenses, Partner Compensation, Business Development, Professio
 - Total — subtotal + igv_amount
 - Amount paid, outstanding, payment status — from payments table
 
-**Connects to:** Projects, Entities, Quotes
+**Connects to:** Projects, Entities
 
 ---
 
 ## Module 4: Quotes Received
 
-**Purpose:** Price references gathered from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the resulting invoice. Rejected quotes remain permanently as market reference data.
+**Purpose:** Price references gathered from suppliers and subcontractors before committing to a purchase. Rejected quotes remain permanently as market reference data. Quote records appear in the Prices page for historical reference.
 
-**Current status:** Quote data entry is via Excel import only — no browse page, status management UI, or CRUD forms in the website. Quote records appear in the Prices page for historical reference. Status management (accept/reject) and linking to invoices is not yet implemented in the UI.
+**Implementation:** Quotes are stored as regular `invoices` rows with `quote_status` set (pending/accepted/rejected). The `invoice_items.quote_date` field records when the quote was received. There is no separate quotes table — this simplifies the data model and enables quotes to be promoted to accepted invoices in place.
 
 **Business rules:**
-- Every quote is linked to a project and an entity
-- A quote can be accepted, rejected, or pending
-- When accepted, the quote links to the invoice it generated
-- The difference between quoted price and actual invoice is visible by joining the two records
+- A quote is an invoice with `quote_status` set to pending, accepted, or rejected
+- `quote_status = NULL` means the invoice is a normal invoice, not a quote
+- Every quote is linked to a project and an entity (via the invoice header)
+- When accepted, the quote becomes a regular invoice (quote_status updated to 'accepted')
 - Multiple competing quotes for the same scope should all be registered
 - Quotes are never deleted — even rejected ones are valuable reference data
 
-**Quote status:**
+**Quote status (on `invoices.quote_status`):**
 - Pending — received, decision not yet made
-- Accepted — purchase proceeded, linked to an invoice
+- Accepted — purchase proceeded, invoice is now active
 - Rejected — not used, kept as reference
 
-**Key attributes:**
-- Quote ID (system generated)
-- Date received
-- Project (references Projects)
-- Entity (references Entities)
-- Title (scope or item quoted)
-- Quantity (nullable)
-- Unit of measure (nullable)
-- Unit price (nullable)
-- Subtotal
-- IGV amount (nullable)
-- Total
-- Currency: USD or PEN
-- Exchange rate (reference)
-- Status: Pending, Accepted, Rejected
-- Linked invoice ID (nullable — populated when accepted)
-- Document reference code (nullable, e.g. PRY001-QT-001)
-- Notes / reason for rejection
+**Key attributes (stored on invoices + invoice_items):**
+- All standard invoice fields (project, entity, partner, currency, exchange_rate, etc.)
+- `invoices.quote_status` — pending, accepted, or rejected
+- `invoice_items.quote_date` — date the quote was received
+- Line items with quantity, unit_of_measure, unit_price, subtotal
 
-**Connects to:** Projects, Entities, Invoices
+**Connects to:** Projects, Entities (via invoices table)
 
 ---
 
@@ -423,7 +410,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 
 ## Cross-Module Business Rules
 
-- A project must exist before invoices or quotes can be registered against it
+- A project must exist before invoices can be registered against it
 - An entity must exist before being referenced in any transaction — but transactions can have null entity
 - Invoices with null project are SG&A — they belong to the individual partner who incurred them and are excluded from project profit/settlement calculations
 - Invoice totals (subtotal, IGV, detraccion, retencion, total) are always derived from invoice_items via database views (`v_invoice_totals`) — never stored on the invoices header. Payment status derived via `v_invoice_balances`
@@ -440,7 +427,7 @@ Note: contribution % reflects how costs were actually split during execution. Pr
 - Formal chart of accounts (handled by external accountant)
 - Task management (handled by Todoist)
 - File storage (handled by SharePoint)
-- Purchase orders (quotes link directly to invoices via reference field)
+- Purchase orders (`purchase_order_id` reserved on invoices for future use)
 
 ---
 

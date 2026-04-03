@@ -284,6 +284,7 @@ export type Database = {
           id: string
           invoice_id: string
           quantity: number | null
+          quote_date: string | null
           subtotal: number
           title: string
           unit_of_measure: string | null
@@ -296,6 +297,7 @@ export type Database = {
           id?: string
           invoice_id: string
           quantity?: number | null
+          quote_date?: string | null
           subtotal: number
           title: string
           unit_of_measure?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           quantity?: number | null
+          quote_date?: string | null
           subtotal?: number
           title?: string
           unit_of_measure?: string | null
@@ -371,10 +374,10 @@ export type Database = {
           is_active: boolean
           is_auto_generated: boolean
           notes: string | null
-          partner_id: string
+          partner_id: string | null
           project_id: string | null
           purchase_order_id: string | null
-          quote_id: string | null
+          quote_status: string | null
           retencion_applicable: boolean | null
           retencion_rate: number | null
           retencion_verified: boolean | null
@@ -399,10 +402,10 @@ export type Database = {
           is_active?: boolean
           is_auto_generated?: boolean
           notes?: string | null
-          partner_id: string
+          partner_id?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
-          quote_id?: string | null
+          quote_status?: string | null
           retencion_applicable?: boolean | null
           retencion_rate?: number | null
           retencion_verified?: boolean | null
@@ -427,10 +430,10 @@ export type Database = {
           is_active?: boolean
           is_auto_generated?: boolean
           notes?: string | null
-          partner_id?: string
+          partner_id?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
-          quote_id?: string | null
+          quote_status?: string | null
           retencion_applicable?: boolean | null
           retencion_rate?: number | null
           retencion_verified?: boolean | null
@@ -457,13 +460,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_invoices_quotes"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -844,87 +840,6 @@ export type Database = {
           },
         ]
       }
-      quotes: {
-        Row: {
-          created_at: string
-          currency: string
-          date_received: string
-          document_ref: string | null
-          entity_id: string
-          exchange_rate: number
-          id: string
-          igv_amount: number | null
-          linked_invoice_id: string | null
-          notes: string | null
-          project_id: string
-          quantity: number | null
-          status: string
-          subtotal: number
-          title: string
-          total: number
-          unit_of_measure: string | null
-          unit_price: number | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          currency: string
-          date_received: string
-          document_ref?: string | null
-          entity_id: string
-          exchange_rate?: number
-          id?: string
-          igv_amount?: number | null
-          linked_invoice_id?: string | null
-          notes?: string | null
-          project_id: string
-          quantity?: number | null
-          status: string
-          subtotal: number
-          title: string
-          total: number
-          unit_of_measure?: string | null
-          unit_price?: number | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          date_received?: string
-          document_ref?: string | null
-          entity_id?: string
-          exchange_rate?: number
-          id?: string
-          igv_amount?: number | null
-          linked_invoice_id?: string | null
-          notes?: string | null
-          project_id?: string
-          quantity?: number | null
-          status?: string
-          subtotal?: number
-          title?: string
-          total?: number
-          unit_of_measure?: string | null
-          unit_price?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_quotes_entities"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_quotes_projects"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tags: {
         Row: {
           created_at: string
@@ -1023,6 +938,7 @@ export type Database = {
           bdn_outstanding: number | null
           bdn_outstanding_pen: number | null
           comprobante_type: string | null
+          quote_status: string | null
           cost_type: string | null
           currency: string | null
           detraccion_amount: number | null
@@ -1100,7 +1016,7 @@ export type Database = {
           partner_id: string | null
           project_id: string | null
           purchase_order_id: string | null
-          quote_id: string | null
+          quote_status: string | null
           retencion_amount: number | null
           retencion_applicable: boolean | null
           retencion_rate: number | null
@@ -1131,13 +1047,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_invoices_quotes"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
         ]
       }
       v_invoices_with_loans: {
@@ -1147,6 +1056,7 @@ export type Database = {
           bdn_outstanding: number | null
           bdn_outstanding_pen: number | null
           comprobante_type: string | null
+          quote_status: string | null
           cost_type: string | null
           currency: string | null
           days_overdue: number | null

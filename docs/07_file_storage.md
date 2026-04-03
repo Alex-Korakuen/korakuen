@@ -133,7 +133,7 @@ Every document stored in SharePoint that is linked to a database record uses a s
 | CT | Contract | — (no table) |
 | AP | Invoice Received (Accounts Payable) | `invoices.document_ref` |
 | AR | Invoice Sent (Accounts Receivable) | `invoices.document_ref` |
-| QT | Quote Received | `quotes.document_ref` |
+| QT | Quote Received | `invoices.document_ref` (where `quote_status` is set) |
 | PY | Payment Receipt | `payments.document_ref` |
 | PM | Permit | — (no table) |
 | CR | Correspondence | — (no table) |

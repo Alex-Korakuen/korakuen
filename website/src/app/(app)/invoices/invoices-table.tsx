@@ -82,7 +82,9 @@ export function InvoicesTable({
                     {row.entity_name ?? '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
-                    {row.invoice_number ?? '—'}
+                    {row.comprobante_type === 'pending'
+                      ? <span className="inline-block rounded-full border border-dashed border-caution/40 bg-caution-bg px-2 py-[3px] text-[10px] font-medium uppercase tracking-[0.04em] text-caution">Pending</span>
+                      : row.invoice_number ?? '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-ink">
                     {formatCurrency(row.total, row.currency)}

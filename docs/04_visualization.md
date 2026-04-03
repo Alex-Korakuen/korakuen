@@ -99,11 +99,11 @@ Dashboards
 
 **Layout:** Single page. Search-driven reference view.
 
-Browse/search historical pricing from both invoice_items and quotes. Search by item title. Results table columns: date, source (invoice/quote), supplier, project, item title, quantity, unit_of_measure, unit_price, currency. Filterable by category, entity, project, date range, tag (entity's tags). Searchable by title.
+Browse/search historical pricing from invoice_items (including quote items identified by `quote_date`). Search by item title. Results table columns: date, source (invoice/quote), supplier, project, item title, quantity, unit_of_measure, unit_price, currency. Filterable by category, entity, project, date range, tag (entity's tags). Searchable by title.
 
 This is the reference view for looking up historical pricing when estimating new work or negotiating with suppliers. No automatic aggregation or comparison — the user scans results and makes their own judgment.
 
-**Data source:** invoice_items table (quantity and unit_price fields), quotes table, joined to entities and entity_tags for tag filtering
+**Data source:** invoice_items table (quantity and unit_price fields), joined to invoices, entities, and entity_tags for tag filtering. Quote items identified by `invoice_items.quote_date` being non-null
 
 ---
 

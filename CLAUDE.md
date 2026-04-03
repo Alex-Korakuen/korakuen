@@ -58,12 +58,12 @@ korakuen/
 
 ---
 
-## Database — 16 Tables
+## Database — 15 Tables
 
 ```
 Layer 1: bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_partners, quotes
+Layer 3: project_partners
 Layer 4: invoices, invoice_items
 Layer 5: payments
 Layer 6: loans, loan_schedule
@@ -90,7 +90,7 @@ Key facts:
 - **Unified invoice model:** `invoices` table with `direction` column (`'payable'` or `'receivable'`) replaces separate costs/AR tables. `invoice_items` holds line items. Category lives on invoice_items, not the header
 - **Informality is normal:** entity_id, comprobante fields, and document_ref are all nullable on invoices and payments — cash purchases and informal suppliers are valid
 - **Partner identity:** The three partner companies are regular rows in `entities`, identified by the `partner` tag via `entity_tags`. All financial tables (invoices, payments, loans) have explicit `partner_id` (FK to entities). Bank accounts belong only on payments (cash movements), not on invoices
-- **PO module hook:** `invoices` has both `quote_id` and `purchase_order_id` fields — both nullable. Currently `quote_id` is used directly. `purchase_order_id` is reserved for a future Purchase Orders module — always null
+- **Quotes are invoices:** Quotes are stored as invoices with `quote_status` (pending/accepted/rejected) and `invoice_items.quote_date`. No separate quotes table. `purchase_order_id` on invoices is reserved for a future Purchase Orders module — always null
 - **No stored totals:** subtotal, igv_amount, total on invoices are derived from invoice_items via `v_invoice_totals`. Payment status derived from payments via `v_invoice_balances`
 - **Tags are universal:** one `tags` table serves entity categorization, project roles, and partner identification (the `partner` tag marks the three partner companies in `entities`)
 - **Project code drives everything:** PRY001, PRY002... — auto-sequential, used in all SharePoint filenames
@@ -180,7 +180,7 @@ Read these documents for context on specific tasks:
 
 ## Current Status
 
-**Development complete.** Database (16 tables, 10 views) and website (8 sidebar pages + project detail, entity detail, and settings routes) are built and deployed. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
+**Development complete.** Database (15 tables, 10 views) and website (8 sidebar pages + project detail, entity detail, and settings routes) are built and deployed. The `quotes` table was merged into `invoices` + `invoice_items` — quotes are now invoices with `quote_status` and `invoice_items.quote_date`. Production live at `https://korakuen.vercel.app`. V1 unified invoice model deployed — `costs`, `cost_items`, `ar_invoices` replaced by `invoices` + `invoice_items`. CLI removed — all data entry through the website.
 
 **Role-based write access.** Alex is the admin (`app_metadata.role = 'admin'`) — full read/write. Partners have read-only access enforced via RLS `is_admin()` check on all write policies. All data is visible to everyone — no row-level read filtering. Partners are regular entities tagged with `partner` via `entity_tags` — no separate partner_companies table. `partner_id` on invoices and payments identifies which partner incurred the cost or received the revenue.
 

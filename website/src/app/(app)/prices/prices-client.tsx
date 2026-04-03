@@ -8,7 +8,7 @@ import { SectionCard } from '@/components/ui/section-card'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { FK } from '@/lib/filter-keys'
 import { formatCategory } from '@/lib/formatters'
-import { importQuotes } from '@/lib/import-actions'
+import { importPendingInvoices } from '@/lib/import-actions'
 import { PricesTable } from './prices-table'
 import type { PriceHistoryRow, PriceFilterOptions } from '@/lib/types'
 
@@ -77,7 +77,7 @@ export function PricesClient({
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         title="Import Quotes"
-        onImport={importQuotes}
+        onImport={importPendingInvoices}
       />
     </div>
   )

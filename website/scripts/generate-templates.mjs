@@ -63,19 +63,19 @@ function createTemplate(filename, columns, notes) {
 }
 
 // ============================================================
-// Quotes Template
+// Quotes Template (imports as pending invoices + invoice_items)
 // ============================================================
 createTemplate('quotes-template.xlsx', [
+  { key: 'partner_name',            required: 'Yes',  description: 'Partner name',                   example: 'Korakuen SAC',     valid: 'Must exist in DB (tagged partner)' },
   { key: 'project_code',            required: 'Yes',  description: 'Project code',                  example: 'PRY001',           valid: 'Must exist in DB' },
   { key: 'entity_document_number',  required: 'Yes',  description: 'Supplier RUC/DNI',              example: '20123456789',      valid: 'Must exist in DB' },
-  { key: 'date_received',           required: 'Yes',  description: 'Date received',                 example: '2026-03-15',       valid: 'YYYY-MM-DD' },
-  { key: 'title',                   required: 'Yes',  description: 'Quote title',                   example: 'Cement supply Q1' },
+  { key: 'date_received',           required: 'Yes',  description: 'Date received (quote date)',     example: '2026-03-15',       valid: 'YYYY-MM-DD' },
+  { key: 'title',                   required: 'Yes',  description: 'Item title',                    example: 'Cement supply Q1' },
+  { key: 'category',                required: 'No',   description: 'Item category',                 example: 'materials',        valid: 'Must exist in categories' },
   { key: 'quantity',                required: 'No',   description: 'Quantity',                       example: '100',              valid: 'Number' },
   { key: 'unit_of_measure',        required: 'No',   description: 'Unit of measure',                example: 'bags' },
   { key: 'unit_price',             required: 'No',   description: 'Unit price',                     example: '25.50',            valid: 'Number' },
   { key: 'subtotal',               required: 'Yes',  description: 'Subtotal (before IGV)',          example: '2550.00',          valid: 'Number, > 0' },
-  { key: 'igv_amount',             required: 'No',   description: 'IGV amount (18% of subtotal)',   example: '459.00',           valid: 'Number (auto-calculated if blank)' },
-  { key: 'total',                  required: 'Yes',  description: 'Total (subtotal + IGV)',         example: '3009.00',          valid: 'Number, > 0' },
   { key: 'currency',               required: 'Yes',  description: 'Currency code',                  example: 'PEN',              valid: 'USD, PEN' },
   { key: 'exchange_rate',          required: 'Yes',  description: 'Exchange rate (PEN per USD)',     example: '3.72',             valid: '2.5–6.0' },
   { key: 'status',                 required: 'Yes',  description: 'Quote status',                   example: 'pending',          valid: 'pending, accepted, rejected' },
@@ -83,10 +83,11 @@ createTemplate('quotes-template.xlsx', [
   { key: 'notes',                  required: 'No',   description: 'Notes',                          example: '' },
 ], [
   'Notes:',
+  '  - Each row creates a pending invoice (comprobante_type=pending) + one invoice_item',
+  '  - partner_name must match an entity tagged as "partner" in the database',
   '  - project_code and entity_document_number must already exist in the database',
   '  - If quantity and unit_price are provided: subtotal must equal quantity × unit_price',
-  '  - igv_amount must equal subtotal × 18% (auto-calculated if left blank)',
-  '  - total must equal subtotal + igv_amount',
+  '  - igv_amount and total are derived automatically (18% IGV)',
 ])
 
 // ============================================================
@@ -109,7 +110,6 @@ createTemplate('invoices-template.xlsx', [
   { key: 'detraccion_rate',        required: 'No',                           description: 'Detracción rate',                        example: '0.12',             valid: 'PEN invoices only' },
   { key: 'retencion_applicable',   required: 'No',                           description: 'Retención applies?',                     example: 'false',            valid: 'true/false, receivable only' },
   { key: 'retencion_rate',         required: 'No',                           description: 'Retención rate',                         example: '0.03' },
-  { key: 'quote_document_ref',     required: 'No',                           description: 'Linked quote document_ref',              example: 'COT-001',          valid: 'Must exist in DB' },
   { key: 'notes',                  required: 'No',                           description: 'Notes',                                  example: '' },
   { key: 'item_title',             required: 'Yes',                          description: 'Line item title',                        example: 'Cement bags' },
   { key: 'category',               required: 'Yes, for payable',             description: 'Line item category',                     example: 'materials',        valid: 'materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga' },

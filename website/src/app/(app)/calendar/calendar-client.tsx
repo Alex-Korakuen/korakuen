@@ -86,6 +86,8 @@ function toInvoicesPageRow(r: ObligationCalendarRow): InvoicesPageRow {
     bdn_outstanding: r.bdn_outstanding ?? 0,
     bdn_outstanding_pen: r.bdn_outstanding_pen ?? 0,
     payment_status: r.payment_status ?? 'pending',
+    comprobante_type: null,
+    quote_status: null,
     loan_id: r.loan_id ?? null,
   }
 }

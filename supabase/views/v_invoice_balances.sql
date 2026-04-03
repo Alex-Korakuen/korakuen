@@ -30,6 +30,7 @@ SELECT
   it.comprobante_type,
   it.document_ref,
   it.notes,
+  it.quote_status,
   it.subtotal,
   it.igv_amount,
   it.total,
@@ -129,5 +130,5 @@ GROUP BY
   it.invoice_date, it.due_date, it.igv_rate, it.detraccion_rate,
   it.retencion_applicable, it.retencion_rate, it.retencion_verified,
   it.currency, it.exchange_rate, it.comprobante_type,
-  it.document_ref, it.notes, it.subtotal, it.igv_amount, it.total,
+  it.document_ref, it.notes, it.quote_status, it.subtotal, it.igv_amount, it.total,
   it.detraccion_amount, it.retencion_amount;

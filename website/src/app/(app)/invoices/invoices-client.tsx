@@ -44,6 +44,7 @@ type Props = {
     entity: string
     direction: string
     type: string
+    kind: string
     status: string
   }
 }
@@ -132,7 +133,7 @@ export function InvoicesClient({
 
       <FilterBar
         currentFilters={currentFilters}
-        clearKeys={[FK.month, FK.partner, FK.project, FK.category, FK.entity, FK.direction, FK.type, FK.status]}
+        clearKeys={[FK.month, FK.partner, FK.project, FK.category, FK.entity, FK.direction, FK.type, FK.kind, FK.status]}
         filters={[
           { type: 'month', key: FK.month },
           { type: 'select', key: FK.partner, options: partners.map(p => ({ value: p.id, label: p.name })), placeholder: 'All partners' },
@@ -149,6 +150,7 @@ export function InvoicesClient({
             options: [{ value: 'payable', label: 'Outflow' }, { value: 'receivable', label: 'Inflow' }, { value: 'loan', label: 'Loan' }],
             placeholder: 'All directions',
           },
+          { type: 'select', key: FK.kind, options: [{ value: 'quote', label: 'Quotes' }, { value: 'invoice', label: 'Invoices' }], placeholder: 'All types' },
           { type: 'select', key: FK.status, options: [{ value: 'pending', label: 'Pending' }, { value: 'partial', label: 'Partial' }, { value: 'paid', label: 'Paid' }, { value: 'overdue', label: 'Overdue' }], placeholder: 'All statuses' },
         ]}
       />
@@ -166,10 +168,15 @@ export function InvoicesClient({
         onClose={handleCloseModal}
         title={modalTitle}
         headerLeft={modalRow && modalRow.type !== 'loan' ? (
-          <StatusBadge
-            label={modalRow.direction === 'receivable' ? 'Receivable' : 'Payable'}
-            variant={modalRow.direction === 'receivable' ? 'green' : 'blue'}
-          />
+          <div className="flex items-center gap-2">
+            <StatusBadge
+              label={modalRow.direction === 'receivable' ? 'Receivable' : 'Payable'}
+              variant={modalRow.direction === 'receivable' ? 'green' : 'blue'}
+            />
+            {modalRow.comprobante_type === 'pending' && (
+              <StatusBadge label="Pending" variant="yellow" />
+            )}
+          </div>
         ) : undefined}
         headerRight={modalRow && modalRow.type !== 'loan' ? (
           <span className="text-xs font-medium text-muted">{modalRow.currency}</span>

@@ -40,7 +40,6 @@ export type TagRow = Database['public']['Tables']['tags']['Row']
 export type EntityTagRow = Database['public']['Tables']['entity_tags']['Row']
 export type EntityContactRow = Database['public']['Tables']['entity_contacts']['Row']
 export type ProjectRow = Database['public']['Tables']['projects']['Row']
-export type QuoteRow = Database['public']['Tables']['quotes']['Row']
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row']
 export type InvoiceItemRow = Database['public']['Tables']['invoice_items']['Row']
 export type PaymentRow = Database['public']['Tables']['payments']['Row']
@@ -79,8 +78,9 @@ export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 
+export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
+
 // Optional — add when used in application code:
-// export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 // export type PaymentStatus = 'pending' | 'partial' | 'paid'
 // export type LoanReturnType = 'percentage' | 'fixed'
 

@@ -141,11 +141,10 @@ Expenses are categorized at two levels — Type (Project Cost vs SG&A) and Categ
 ---
 
 ### 4.11 Purchase Order Extensibility Hook
-The `invoices` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null — payable invoices reference quotes directly via `quote_id`. When POs are introduced, the flow shifts from `quote → invoice` to `quote → purchase_order → invoice` using the existing field. No schema migration needed on `invoices` when this happens.
+The `invoices` table includes a nullable `purchase_order_id` field reserved for a future Purchase Orders module. Currently always null. Quotes are stored as invoices with `quote_status` (pending/accepted/rejected) — no separate quotes table. When POs are introduced, the flow adds a purchase order step between quote and invoice using the existing `purchase_order_id` field. No schema migration needed on `invoices` when this happens.
 
-**Current flow:** `quote_id` filled, `purchase_order_id` null
-**Future flow:** `purchase_order_id` filled, `quote_id` null or on the PO record
-**Rule:** At most one of these fields is filled per invoice record.
+**Current flow:** Quotes are invoices with `quote_status` set, `purchase_order_id` null
+**Future flow:** `purchase_order_id` filled, linking to a purchase orders table
 
 ---
 

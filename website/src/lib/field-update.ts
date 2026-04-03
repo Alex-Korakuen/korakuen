@@ -117,7 +117,7 @@ export const INVOICE_CONFIG: FieldUpdateConfig = {
   allowedFields: [
     'title', 'entity_id', 'invoice_date', 'due_date', 'comprobante_type',
     'invoice_number', 'document_ref', 'exchange_rate',
-    'detraccion_rate', 'retencion_rate', 'notes',
+    'detraccion_rate', 'retencion_rate', 'notes', 'quote_status',
   ],
   validate: (field, value) => {
     if (field === 'exchange_rate') {

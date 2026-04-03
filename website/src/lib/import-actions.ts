@@ -65,10 +65,10 @@ function autoFillExchangeRate(
 }
 
 // ============================================================
-// Quotes Import
+// Pending Invoices Import (quotes as pending invoices + invoice_items)
 // ============================================================
 
-export async function importQuotes(
+export async function importPendingInvoices(
   rows: Record<string, unknown>[]
 ): Promise<ImportResult> {
   const supabase = await createServerSupabaseClient()
@@ -83,30 +83,42 @@ export async function importQuotes(
     .from('entities').select('id, document_number').eq('is_active', true)
   const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
+  const { data: partners } = await supabase
+    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
+  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
+  const { data: partnerEntities } = await supabase
+    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
+  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
+
+  const { data: categories } = await supabase
+    .from('categories').select('name')
+  const categorySet = new Set((categories ?? []).map(c => c.name))
+
   const rateMap = await loadExchangeRateMap(supabase, rows, 'date_received')
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     const r = i + 5
 
+    const partnerName = str(row.partner_name)
     const projectCode = str(row.project_code)
     const entityDocNum = str(row.entity_document_number)
     const dateReceived = str(row.date_received)
     const title = str(row.title)
     const subtotal = num(row.subtotal)
-    const total = num(row.total)
     const currency = str(row.currency)
     const status = str(row.status)
+    const category = str(row.category)
 
     const exchangeRate = autoFillExchangeRate(row, rateMap, dateReceived)
 
     // Required
+    if (!partnerName) errors.push({ row: r, column: 'partner_name', message: 'Required' })
     if (!projectCode) errors.push({ row: r, column: 'project_code', message: 'Required' })
     if (!entityDocNum) errors.push({ row: r, column: 'entity_document_number', message: 'Required' })
     if (!dateReceived) errors.push({ row: r, column: 'date_received', message: 'Required' })
     if (!title) errors.push({ row: r, column: 'title', message: 'Required' })
     if (subtotal === null) errors.push({ row: r, column: 'subtotal', message: 'Required' })
-    if (total === null) errors.push({ row: r, column: 'total', message: 'Required' })
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!status) errors.push({ row: r, column: 'status', message: 'Required' })
@@ -120,11 +132,17 @@ export async function importQuotes(
     }
 
     // FK lookups
+    if (partnerName && !partnerMap.has(partnerName)) {
+      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
+    }
     if (projectCode && !projectMap.has(projectCode)) {
       errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
     }
     if (entityDocNum && !entityMap.has(entityDocNum)) {
       errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
+    }
+    if (category && !categorySet.has(category)) {
+      errors.push({ row: r, column: 'category', message: 'Not found in categories' })
     }
 
     // Exchange rate range
@@ -133,7 +151,6 @@ export async function importQuotes(
     }
 
     // Arithmetic validation
-    const igvAmount = num(row.igv_amount)
     const quantity = num(row.quantity)
     const unitPrice = num(row.unit_price)
 
@@ -143,45 +160,60 @@ export async function importQuotes(
         errors.push({ row: r, column: 'subtotal', message: `quantity × unit_price = ${expected}, but subtotal is ${subtotal}` })
       }
     }
-    if (igvAmount !== null && subtotal !== null) {
-      const expectedIgv = round2(subtotal * 0.18)
-      if (Math.abs(expectedIgv - igvAmount) > 0.01) {
-        errors.push({ row: r, column: 'igv_amount', message: `subtotal × 18% = ${expectedIgv}, but igv_amount is ${igvAmount}` })
-      }
-    }
-    if (igvAmount !== null && subtotal !== null && total !== null) {
-      const expectedTotal = round2(subtotal + igvAmount)
-      if (Math.abs(expectedTotal - total) > 0.01) {
-        errors.push({ row: r, column: 'total', message: `subtotal + igv_amount = ${expectedTotal}, but total is ${total}` })
-      }
-    }
   }
 
   if (errors.length > 0) return { errors }
 
-  const records = rows.map(row => ({
-    project_id: projectMap.get(str(row.project_code)!)!,
-    entity_id: entityMap.get(str(row.entity_document_number)!)!,
-    date_received: str(row.date_received)!,
-    title: str(row.title)!,
-    quantity: num(row.quantity),
-    unit_of_measure: str(row.unit_of_measure),
-    unit_price: num(row.unit_price),
-    subtotal: num(row.subtotal)!,
-    igv_amount: num(row.igv_amount),
-    total: num(row.total)!,
-    currency: str(row.currency)!,
-    exchange_rate: num(row.exchange_rate)!,
-    status: str(row.status)!,
-    document_ref: str(row.document_ref),
-    notes: str(row.notes),
-  }))
+  // Insert each row as a pending invoice + invoice_item via RPC
+  let successCount = 0
 
-  const { error, data } = await supabase.from('quotes').insert(records).select('id')
-  if (error) return { error: handleDbError(error, 'Failed to import quotes') }
+  for (const row of rows) {
+    const dateReceived = str(row.date_received)!
+    const projectCode = str(row.project_code)
+    const status = str(row.status)!
+
+    const headerData = {
+      direction: 'payable',
+      cost_type: 'project_cost',
+      partner_id: partnerMap.get(str(row.partner_name)!)!,
+      invoice_date: dateReceived,
+      title: str(row.title),
+      igv_rate: 18,
+      currency: str(row.currency),
+      exchange_rate: num(row.exchange_rate),
+      project_id: projectCode ? projectMap.get(projectCode)! : null,
+      entity_id: entityMap.get(str(row.entity_document_number)!)!,
+      comprobante_type: 'pending',
+      document_ref: str(row.document_ref),
+      notes: str(row.notes),
+      quote_status: status,
+    }
+
+    const itemsData = [{
+      title: str(row.title),
+      category: str(row.category),
+      subtotal: num(row.subtotal),
+      quantity: num(row.quantity),
+      unit_of_measure: str(row.unit_of_measure),
+      unit_price: num(row.unit_price),
+      quote_date: dateReceived,
+    }]
+
+    const { error } = await supabase.rpc('fn_create_invoice_with_items', {
+      header_data: headerData,
+      items_data: itemsData,
+    })
+
+    if (error) {
+      const ref = str(row.document_ref) || str(row.title) || `row ${successCount + 1}`
+      return { error: handleDbError(error, `Failed to import pending invoice "${ref}"`) }
+    }
+    successCount++
+  }
 
   revalidatePath('/prices')
-  return { success: data.length }
+  revalidatePath('/invoices')
+  return { success: successCount }
 }
 
 // ============================================================
@@ -190,7 +222,7 @@ export async function importQuotes(
 
 const COMPROBANTE_TYPES = [
   'factura', 'boleta', 'recibo_por_honorarios',
-  'liquidacion_de_compra', 'planilla_jornales', 'none',
+  'liquidacion_de_compra', 'planilla_jornales', 'none', 'pending',
 ]
 
 export async function importInvoices(
@@ -214,12 +246,6 @@ export async function importInvoices(
   const { data: partnerEntities } = await supabase
     .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
   const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
-
-  const { data: quotes } = await supabase
-    .from('quotes').select('id, document_ref')
-  const quoteMap = new Map(
-    (quotes ?? []).filter(q => q.document_ref).map(q => [q.document_ref!, q.id])
-  )
 
   const { data: categories } = await supabase
     .from('categories').select('name')
@@ -257,7 +283,6 @@ export async function importInvoices(
     const entityDocNum = str(row.entity_document_number)
     const docRef = str(row.document_ref)
     const comprobanteType = str(row.comprobante_type)
-    const quoteRef = str(row.quote_document_ref)
     const itemTitle = str(row.item_title)
     const category = str(row.category)
     const subtotal = num(row.subtotal)
@@ -299,9 +324,6 @@ export async function importInvoices(
     }
     if (entityDocNum && !entityMap.has(entityDocNum)) {
       errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
-    }
-    if (quoteRef && !quoteMap.has(quoteRef)) {
-      errors.push({ row: r, column: 'quote_document_ref', message: 'Not found in database' })
     }
     if (category && !categorySet.has(category)) {
       errors.push({ row: r, column: 'category', message: 'Not found in categories' })
@@ -378,9 +400,6 @@ export async function importInvoices(
       project_id: projectCode ? projectMap.get(projectCode)! : null,
       entity_id: str(first.entity_document_number)
         ? entityMap.get(str(first.entity_document_number)!)!
-        : null,
-      quote_id: str(first.quote_document_ref)
-        ? quoteMap.get(str(first.quote_document_ref)!)!
         : null,
       detraccion_rate: num(first.detraccion_rate),
       retencion_applicable: String(first.retencion_applicable ?? '').toLowerCase() === 'true',

@@ -78,7 +78,7 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 **Goal:** Full visualization and data entry website. Unified invoice model. All partner data visible with global filter.
 
 ### Stack
-- PostgreSQL on Supabase (database — 16 tables, 10 views)
+- PostgreSQL on Supabase (database — 15 tables, 10 views)
 - Next.js on Vercel (visualization + data entry website)
 - SharePoint (file storage, external)
 
@@ -86,7 +86,8 @@ Power BI requires paid licensing and a Microsoft ecosystem dependency. Vercel ho
 - Website replaces CLI as the sole data entry interface
 - Unified invoice model — `costs`, `cost_items`, `ar_invoices` merged into `invoices` + `invoice_items` with `direction` column
 - Loan simplification — `loan_payments` table dropped, repayments go through universal `payments` table
-- `project_entities` table dropped — entity-project relationships inferred from invoices/quotes
+- `project_entities` table dropped — entity-project relationships inferred from invoices
+- `quotes` table merged into `invoices` + `invoice_items` — quotes tracked via `invoices.quote_status` and `invoice_items.quote_date`
 - Per-page partner filters (URL-based search params) replace dual-view model
 - 8 sidebar pages + settings page
 

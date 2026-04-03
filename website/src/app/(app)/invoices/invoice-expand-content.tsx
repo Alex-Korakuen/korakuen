@@ -82,8 +82,18 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
     if (!result.error) router.refresh()
   }
 
+  const isPendingQuote = invoice.comprobante_type === 'pending'
+
   return (
     <div className="space-y-4 px-4 py-3">
+      {/* Pending quote banner */}
+      {isPendingQuote && (
+        <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-caution/40 bg-caution-bg px-3.5 py-2.5 text-xs text-caution">
+          <span className="text-base">&#9203;</span>
+          <span>Quote — comprobante not yet received. You can register payments now and formalize when the factura arrives.</span>
+        </div>
+      )}
+
       {/* Header fields */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <InlineEdit
@@ -330,8 +340,8 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
         }
       />
 
-      {/* Action footer — delete only */}
-      <div className="flex items-center justify-start border-t border-edge pt-3">
+      {/* Action footer */}
+      <div className="flex items-center justify-between border-t border-edge pt-3">
         <button
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
@@ -339,6 +349,22 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
           Delete
         </button>
+        {isPendingQuote && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onSetMode('reject' as 'view')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-negative/20 px-3 py-1.5 text-xs font-medium text-negative hover:bg-negative-bg"
+            >
+              Reject
+            </button>
+            <button
+              onClick={() => onSetMode('merge' as 'view')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-edge-strong px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface hover:text-ink"
+            >
+              Merge with...
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

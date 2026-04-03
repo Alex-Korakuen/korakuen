@@ -8,14 +8,14 @@
 
 ## Overview
 
-PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. `invoice_items`, `loans`, and `loan_schedule` are permanent — never soft-deleted. Historical reference tables (quotes) are permanent. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
+PostgreSQL database hosted on Supabase. All tables use UUID primary keys. Reference/master data tables use soft deletes via `is_active` boolean. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. `invoice_items`, `loans`, and `loan_schedule` are permanent — never soft-deleted. The `project_partners` bridge table uses soft deletes to allow removal while preserving history. Exception: `entity_tags` uses hard deletes (rows deleted and recreated). Every table has `created_at` and `updated_at` timestamps.
 
-**Table count:** 16 tables total across 7 layers.
+**Table count:** 15 tables total across 7 layers.
 
 ```
 Layer 1: bank_accounts, entities, exchange_rates, categories
 Layer 2: tags, entity_tags, entity_contacts, projects
-Layer 3: project_partners, quotes
+Layer 3: project_partners
 Layer 4: invoices, invoice_items
 Layer 5: payments
 Layer 6: loans, loan_schedule
@@ -27,7 +27,7 @@ Layer 7: project_budgets
 ## Conventions
 
 - **Primary keys:** UUID, system generated
-- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent — never soft-deleted
+- **Soft deletes:** `is_active BOOLEAN DEFAULT true` on reference/master data tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Remaining transaction tables (invoice_items, loans, loan_schedule) are permanent — never soft-deleted
 - **Timestamps:** `created_at` auto-set on insert, `updated_at` auto-updated on any change
 - **Currency:** always stored in natural currency (USD or PEN), never converted at storage
 - **Exchange rate:** mandatory (NOT NULL) on all financial tables, stored per transaction at the historical rate. Enables application-layer conversion for reporting. Amounts never converted at storage
@@ -211,31 +211,6 @@ Partial UNIQUE index on (project_id, partner_id) WHERE is_active = TRUE.
 
 ---
 
-### `quotes`
-Quotes received from suppliers and subcontractors before committing to a purchase. Accepted quotes link to the invoice record they generated, enabling quote vs actual price comparison.
-
-| Field | Type | Nullable | Notes |
-|---|---|---|---|
-| id | UUID | NO | primary key |
-| project_id | UUID | NO | references projects |
-| entity_id | UUID | NO | references entities |
-| date_received | DATE | NO | |
-| title | TEXT | NO | what was quoted |
-| quantity | NUMERIC(15,4) | YES | |
-| unit_of_measure | VARCHAR | YES | meters, units, hours, kg, etc. |
-| unit_price | NUMERIC(15,4) | YES | |
-| subtotal | NUMERIC(15,2) | NO | |
-| igv_amount | NUMERIC(15,2) | YES | |
-| total | NUMERIC(15,2) | NO | |
-| currency | VARCHAR(3) | NO | USD or PEN |
-| exchange_rate | NUMERIC(10,4) | NO | PEN per USD at transaction date, default 3.70 |
-| status | VARCHAR | NO | pending, accepted, rejected |
-| linked_invoice_id | UUID | YES | application-level reference to invoices (no FK constraint — avoids circular dependency with invoices.quote_id). Populated when accepted |
-| document_ref | VARCHAR | YES | e.g. PRY001-QT-001 |
-| notes | TEXT | YES | reason for rejection or other context |
-| created_at | TIMESTAMP | NO | auto |
-| updated_at | TIMESTAMP | NO | auto |
-
 ---
 
 ## Tags — Master List (Updated)
@@ -294,8 +269,8 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 | partner_id | UUID | NO | references entities (must be tagged as partner) — who incurred (payable) or issued (receivable) |
 | project_id | UUID | YES | references projects — null if SG&A (payable only) |
 | entity_id | UUID | YES | references entities — null if informal/unassigned (payable), always set (receivable) |
-| quote_id | UUID | YES | references quotes — null if no prior quote (payable only) |
 | purchase_order_id | UUID | YES | reserved for future PO module — always null for now |
+| quote_status | VARCHAR(20) | YES | CHECK (pending, accepted, rejected) — null for non-quote invoices |
 | cost_type | VARCHAR | YES | `'project_cost'`, `'sga'`, or `'intercompany'` — payable only, null for receivable. Intercompany invoices are settlement transfers between partners, excluded from settlement totals |
 | title | TEXT | YES | invoice or expense title — payable only, null for receivable |
 | invoice_number | VARCHAR(100) | YES | comprobante number (payable) or own numbering (receivable) |
@@ -340,6 +315,7 @@ One or many rows per invoice. Holds the detail of what was purchased or invoiced
 | unit_of_measure | VARCHAR | YES | meters, units, hours, kg, days, etc. |
 | unit_price | NUMERIC(15,4) | YES | null for lump sum lines |
 | subtotal | NUMERIC(15,2) | NO | quantity × unit_price or entered directly |
+| quote_date | DATE | YES | date the quote was received — null for non-quote items |
 | created_at | TIMESTAMPTZ | NO | auto |
 | updated_at | TIMESTAMPTZ | NO | auto |
 
@@ -486,7 +462,7 @@ Budget targets per project per category. Compared against actual invoices from `
 
 ## Complete Table List — Final
 
-**16 tables total:**
+**15 tables total:**
 
 ```
 Layer 1 (no dependencies):
@@ -503,7 +479,6 @@ Layer 2 (depends on Layer 1):
 
 Layer 3 (depends on Layer 1 + 2):
   project_partners
-  quotes
 
 Layer 4 (depends on Layer 3):
   invoices
@@ -552,7 +527,7 @@ Layer 7 (project extensions):
 ## Key Design Rules — Summary
 
 - **Never store what can be derived.** Totals, balances, and payment status are always calculated via views.
-- **Never hard delete reference data.** Reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) are permanent records — errors are corrected via reversing entries, never deletion.
+- **Never hard delete reference data.** Reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets) and the `project_partners` bridge table use `is_active` soft deletes. Transaction tables `invoices` and `payments` also use soft deletes to support deactivation of direct transactions and cancelled records. Remaining transaction tables (invoice_items, loans, loan_schedule) are permanent records — errors are corrected via reversing entries, never deletion.
 - **Informality is supported everywhere.** entity_id, comprobante fields, and document_ref are nullable on invoices.
 - **Currency is never converted at storage.** Always stored in natural currency (USD or PEN). Exchange rate is mandatory (NOT NULL) on all financial tables, stored at the historical rate per transaction. Conversion happens at the application layer for reporting. Payment currency must match the parent document currency.
 - **IGV, detraccion, and retencion are tracked separately** on every relevant transaction from day one.

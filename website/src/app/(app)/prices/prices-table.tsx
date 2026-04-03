@@ -50,15 +50,20 @@ export function PricesTable({ data }: Props) {
               </td>
             </tr>
           ) : (
-            data.map((row) => (
-              <tr key={row.id} className={tableRowHover}>
+            data.map((row) => {
+              const isRejected = row.quoteStatus === 'rejected'
+              const isQuote = row.comprobanteType === 'pending'
+              const sourceLabel = isRejected ? 'Rejected' : isQuote ? 'Quote' : 'Invoice'
+              const sourceVariant = isRejected ? 'red' : isQuote ? 'blue' : 'zinc'
+              return (
+              <tr key={row.id} className={`${tableRowHover}${isRejected ? ' opacity-50' : ''}`}>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                   {row.date ? formatDate(row.date) : '--'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
                   <StatusBadge
-                    label={row.source === 'invoice' ? 'Invoice' : 'Quote'}
-                    variant={row.source === 'invoice' ? 'zinc' : 'blue'}
+                    label={sourceLabel}
+                    variant={sourceVariant as 'zinc' | 'blue' | 'red'}
                   />
                 </td>
                 <td className="px-3 py-3 text-center text-ink">
@@ -85,7 +90,7 @@ export function PricesTable({ data }: Props) {
                   {row.currency}
                 </td>
               </tr>
-            ))
+              )})
           )}
         </tbody>
       </table>

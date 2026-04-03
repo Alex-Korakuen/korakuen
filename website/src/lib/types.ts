@@ -101,6 +101,8 @@ export type InvoicesPageRow = {
   bdn_outstanding: number
   bdn_outstanding_pen: number
   payment_status: string
+  comprobante_type: string | null
+  quote_status: string | null
   // Loan-specific (null for commercial)
   loan_id: string | null
 }
@@ -339,12 +341,18 @@ export type EntitySearchResult = {
   document_number: string
 }
 
+// --- Quote types ---
+
+export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
+
 // --- Prices browse types ---
 
 export type PriceHistoryRow = {
   id: string
   date: string
-  source: 'invoice' | 'quote'
+  comprobanteType: string | null
+  quoteStatus: string | null
+  quoteDate: string | null
   entityId: string | null
   entityName: string
   projectId: string | null

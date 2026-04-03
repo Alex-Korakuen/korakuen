@@ -14,7 +14,7 @@ WITH item_sums AS (
     i.project_id,
     i.partner_id,
     i.entity_id,
-    i.quote_id,
+    i.quote_status,
     i.purchase_order_id,
     i.cost_type,
     i.title,

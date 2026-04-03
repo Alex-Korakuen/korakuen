@@ -908,9 +908,161 @@ export async function promotePhantomInvoice(
   return {}
 }
 
+// --- Quote lifecycle actions ---
+
+export async function rejectQuote(
+  invoiceId: string,
+  reason?: string
+): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  const supabase = await createServerSupabaseClient()
+
+  // Validate: must be a pending quote
+  const { data: invoice, error: fetchErr } = await supabase
+    .from('invoices')
+    .select('id, comprobante_type, quote_status, notes')
+    .eq('id', invoiceId)
+    .eq('is_active', true)
+    .single()
+  if (fetchErr || !invoice) return { error: 'Invoice not found' }
+  if (invoice.comprobante_type !== 'pending') return { error: 'Only pending quotes can be rejected' }
+
+  // Validate: no payments registered
+  const { count } = await supabase
+    .from('payments')
+    .select('id', { count: 'exact', head: true })
+    .eq('related_to', 'invoice')
+    .eq('related_id', invoiceId)
+    .eq('is_active', true)
+  if ((count ?? 0) > 0) return { error: 'Cannot reject a quote that has payments' }
+
+  const updatedNotes = reason
+    ? [invoice.notes, `Rejected: ${reason}`].filter(Boolean).join('\n')
+    : invoice.notes
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({ quote_status: 'rejected', is_active: false, notes: updatedNotes })
+    .eq('id', invoiceId)
+
+  if (error) return { error: handleDbError(error, 'Failed to reject quote') }
+
+  revalidateFinancialPages()
+  revalidatePath('/prices')
+  return {}
+}
+
+export async function mergeQuotes(
+  targetId: string,
+  sourceIds: string[]
+): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  if (sourceIds.length === 0) return { error: 'No sources to merge' }
+  const supabase = await createServerSupabaseClient()
+
+  // Validate target is a pending quote
+  const { data: target, error: targetErr } = await supabase
+    .from('invoices')
+    .select('id, comprobante_type, entity_id')
+    .eq('id', targetId)
+    .eq('is_active', true)
+    .single()
+  if (targetErr || !target) return { error: 'Target invoice not found' }
+  if (target.comprobante_type !== 'pending') return { error: 'Target must be a pending quote' }
+
+  // Validate all sources are pending quotes from same entity with 0 payments
+  for (const sourceId of sourceIds) {
+    const { data: source, error: srcErr } = await supabase
+      .from('v_invoice_balances')
+      .select('invoice_id, comprobante_type, entity_id, amount_paid')
+      .eq('invoice_id', sourceId)
+      .single()
+    if (srcErr || !source) return { error: `Source invoice ${sourceId} not found` }
+    if (source.comprobante_type !== 'pending') return { error: 'All sources must be pending quotes' }
+    if (source.entity_id !== target.entity_id) return { error: 'All sources must be from the same entity' }
+    if ((source.amount_paid ?? 0) > 0) return { error: 'Cannot merge quotes that have payments' }
+  }
+
+  // Move items from sources to target
+  const { error: moveErr } = await supabase
+    .from('invoice_items')
+    .update({ invoice_id: targetId })
+    .in('invoice_id', sourceIds)
+  if (moveErr) return { error: handleDbError(moveErr, 'Failed to move items') }
+
+  // Hard delete empty source invoices
+  const { error: deleteErr } = await supabase
+    .from('invoices')
+    .delete()
+    .in('id', sourceIds)
+  if (deleteErr) return { error: handleDbError(deleteErr, 'Failed to delete source invoices') }
+
+  revalidateFinancialPages()
+  revalidatePath('/prices')
+  return {}
+}
+
+export async function consolidatePhantoms(
+  targetId: string,
+  sourceIds: string[]
+): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  if (sourceIds.length === 0) return { error: 'No sources to consolidate' }
+  const supabase = await createServerSupabaseClient()
+
+  // Validate target exists and is not a phantom
+  const { data: target, error: targetErr } = await supabase
+    .from('invoices')
+    .select('id, comprobante_type')
+    .eq('id', targetId)
+    .eq('is_active', true)
+    .single()
+  if (targetErr || !target) return { error: 'Target invoice not found' }
+  if (target.comprobante_type === 'none') return { error: 'Target cannot be a phantom invoice' }
+
+  // Validate all sources are phantom invoices
+  for (const sourceId of sourceIds) {
+    const { data: source, error: srcErr } = await supabase
+      .from('invoices')
+      .select('id, comprobante_type')
+      .eq('id', sourceId)
+      .single()
+    if (srcErr || !source) return { error: `Source invoice ${sourceId} not found` }
+    if (source.comprobante_type !== 'none') return { error: 'All sources must be phantom invoices' }
+  }
+
+  // Move items from sources to target
+  const { error: moveItemsErr } = await supabase
+    .from('invoice_items')
+    .update({ invoice_id: targetId })
+    .in('invoice_id', sourceIds)
+  if (moveItemsErr) return { error: handleDbError(moveItemsErr, 'Failed to move items') }
+
+  // Move payments from sources to target
+  const { error: movePaymentsErr } = await supabase
+    .from('payments')
+    .update({ related_id: targetId })
+    .eq('related_to', 'invoice')
+    .in('related_id', sourceIds)
+  if (movePaymentsErr) return { error: handleDbError(movePaymentsErr, 'Failed to move payments') }
+
+  // Hard delete empty source invoices
+  const { error: deleteErr } = await supabase
+    .from('invoices')
+    .delete()
+    .in('id', sourceIds)
+  if (deleteErr) return { error: handleDbError(deleteErr, 'Failed to delete source invoices') }
+
+  revalidateFinancialPages()
+  return {}
+}
+
 // --- Invoice Item granular actions ---
 
-const ITEM_EDITABLE_FIELDS = ['title', 'category', 'quantity', 'unit_of_measure', 'unit_price'] as const
+const ITEM_EDITABLE_FIELDS = ['title', 'category', 'quantity', 'unit_of_measure', 'unit_price', 'quote_date'] as const
 
 /** Revalidate all pages affected by invoice item changes. */
 function revalidateInvoicePages() {

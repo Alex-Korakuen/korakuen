@@ -38,13 +38,12 @@ Generate tables in this exact order so foreign keys never reference a table that
 7. `entity_contacts`
 8. `projects`
 9. `project_partners`
-10. `quotes`
-11. `invoices`
-12. `invoice_items`
-13. `payments`
-14. `loans`
-15. `loan_schedule`
-16. `project_budgets`
+10. `invoices`
+11. `invoice_items`
+12. `payments`
+13. `loans`
+14. `loan_schedule`
+15. `project_budgets`
 
 ---
 
@@ -97,7 +96,7 @@ Reference/master data tables (bank_accounts, entities, entity_contacts, tags, pr
 is_active BOOLEAN DEFAULT true NOT NULL
 ```
 
-Remaining transaction tables (invoice_items, loans, loan_schedule) and historical reference tables (quotes) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
+Remaining transaction tables (invoice_items, loans, loan_schedule) have no `is_active` — they are permanent records. `entity_tags` also has no `is_active` — tag assignments are deleted and recreated.
 
 ### Foreign Keys — Always Explicit
 
@@ -155,9 +154,8 @@ Known enum values per field:
 | `projects.project_type` | subcontractor, oxi |
 | `projects.status` | prospect, active, completed, cancelled |
 | `projects.contract_currency` | USD, PEN |
-| `quotes.status` | pending, accepted, rejected |
-| `quotes.currency` | USD, PEN |
 | `invoices.direction` | payable, receivable |
+| `invoices.quote_status` | pending, accepted, rejected |
 | `invoices.cost_type` | project_cost, sga, intercompany (payable only) |
 | `invoices.currency` | USD, PEN |
 | `invoices.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |
@@ -187,6 +185,6 @@ After generating the SQL file:
 1. Every table from `docs/08_schema.md` has a corresponding CREATE TABLE
 2. Field names match the schema document exactly
 3. All tables have the `updated_at` trigger (except `entity_tags`)
-4. Only the 10 soft-delete tables have `is_active` — reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`
+4. Only the 10 soft-delete tables have `is_active` — reference/master tables (bank_accounts, entities, entity_contacts, tags, projects, categories, project_budgets), the `project_partners` bridge table, and transaction tables `invoices` and `payments`. Total: 15 tables
 5. All foreign keys use explicit CONSTRAINT syntax with correct ON DELETE
 6. The file runs without errors via `supabase db execute --file`

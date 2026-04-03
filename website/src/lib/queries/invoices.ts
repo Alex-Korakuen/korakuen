@@ -19,6 +19,7 @@ import type {
 type InvoicesPageFilters = {
   direction?: 'payable' | 'receivable'
   type?: 'commercial' | 'loan'
+  kind?: 'quote' | 'invoice'
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
   partnerId?: string
@@ -59,9 +60,9 @@ export async function getInvoicesPage(
 
   if (invoicesResult.error) throw invoicesResult.error
 
-  // Exclude phantom invoices (comprobante_type = 'none') from the browse list
+  // Exclude phantom invoices (comprobante_type = 'none') and rejected quotes from the browse list
   let rows: InvoicesWithLoansRow[] = (invoicesResult.data ?? []).filter(
-    r => r.type !== 'commercial' || r.comprobante_type !== 'none'
+    r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && r.quote_status !== 'rejected')
   )
 
   const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
@@ -83,6 +84,13 @@ export async function getInvoicesPage(
   }
   if (filters.type) {
     rows = rows.filter(r => r.type === filters.type)
+  }
+  if (filters.kind) {
+    if (filters.kind === 'quote') {
+      rows = rows.filter(r => r.comprobante_type === 'pending')
+    } else {
+      rows = rows.filter(r => r.comprobante_type !== 'pending')
+    }
   }
   if (filters.status) {
     if (filters.status === 'overdue') {
@@ -136,6 +144,8 @@ export async function getInvoicesPage(
     bdn_outstanding: r.bdn_outstanding ?? 0,
     bdn_outstanding_pen: r.bdn_outstanding_pen ?? 0,
     payment_status: (r.payment_status ?? 'pending') as 'pending' | 'partial' | 'paid',
+    comprobante_type: r.comprobante_type,
+    quote_status: r.quote_status,
     loan_id: r.loan_id,
   }))
 
@@ -230,4 +240,68 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     schedule,
     payments,
   }
+}
+
+// --- Merge candidates ---
+
+export type MergeCandidate = {
+  id: string
+  title: string | null
+  invoice_date: string | null
+  total: number
+  amount_paid: number
+  item_count: number
+  items_summary: string
+}
+
+/**
+ * Fetch pending invoices from the same entity that could be merged into a target.
+ * Only includes invoices with comprobante_type = 'pending' (quotes).
+ * Returns payment info so the UI can disable candidates with payments.
+ */
+export async function fetchMergeCandidates(
+  targetInvoiceId: string,
+  entityId: string
+): Promise<MergeCandidate[]> {
+  const supabase = await createServerSupabaseClient()
+
+  // Get all pending invoices from the same entity (excluding the target itself)
+  const { data: candidates, error: candErr } = await supabase
+    .from('v_invoice_balances')
+    .select('invoice_id, title, invoice_date, total, amount_paid')
+    .eq('comprobante_type', 'pending')
+    .eq('entity_id', entityId)
+    .neq('invoice_id', targetInvoiceId)
+
+  if (candErr) throw candErr
+  if (!candidates || candidates.length === 0) return []
+
+  // Get item counts and summaries for each candidate
+  const candidateIds = candidates.map(c => c.invoice_id!)
+  const { data: items, error: itemsErr } = await supabase
+    .from('invoice_items')
+    .select('invoice_id, title, subtotal')
+    .in('invoice_id', candidateIds)
+
+  if (itemsErr) throw itemsErr
+
+  const itemsByInvoice = new Map<string, { count: number; summary: string }>()
+  for (const item of items ?? []) {
+    const existing = itemsByInvoice.get(item.invoice_id) ?? { count: 0, summary: '' }
+    existing.count++
+    existing.summary = existing.count === 1
+      ? (item.title ?? '')
+      : `${existing.summary}, ${item.title ?? ''}`
+    itemsByInvoice.set(item.invoice_id, existing)
+  }
+
+  return candidates.map(c => ({
+    id: c.invoice_id!,
+    title: c.title,
+    invoice_date: c.invoice_date,
+    total: c.total ?? 0,
+    amount_paid: c.amount_paid ?? 0,
+    item_count: itemsByInvoice.get(c.invoice_id!)?.count ?? 0,
+    items_summary: itemsByInvoice.get(c.invoice_id!)?.summary ?? '',
+  }))
 }
