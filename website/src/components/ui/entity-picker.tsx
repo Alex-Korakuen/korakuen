@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useTransition, useCallback } from 'react'
+import { useState, useRef, useTransition, useCallback, useId } from 'react'
 import { searchEntitiesAction } from '@/lib/actions'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { inputClass } from '@/lib/styles'
@@ -21,6 +21,7 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
   const [isPending, startTransition] = useTransition()
   const containerRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const listboxId = useId()
 
   useClickOutside(containerRef, useCallback(() => setIsOpen(false), []))
 
@@ -34,9 +35,14 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
     }
     debounceRef.current = setTimeout(() => {
       startTransition(async () => {
-        const data = await searchEntitiesAction(q.trim())
-        setResults(data)
-        setIsOpen(true)
+        try {
+          const data = await searchEntitiesAction(q.trim())
+          setResults(data)
+          setIsOpen(true)
+        } catch {
+          setResults([])
+          setIsOpen(false)
+        }
       })
     }, 300)
   }
@@ -79,15 +85,20 @@ export function EntityPicker({ value, displayName, onChange, placeholder = 'Sear
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder={placeholder}
+        role="combobox"
+        aria-expanded={isOpen && results.length > 0}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-haspopup="listbox"
         className={className ?? inputClass}
       />
       {isPending && (
         <span className="absolute right-3 top-2.5 text-xs text-faint">...</span>
       )}
       {isOpen && results.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded border border-edge bg-white shadow-lg">
+        <ul id={listboxId} role="listbox" className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded border border-edge bg-white shadow-lg">
           {results.map((e) => (
-            <li key={e.id}>
+            <li key={e.id} role="option" aria-selected={false}>
               <button
                 type="button"
                 onClick={() => handleSelect(e)}
