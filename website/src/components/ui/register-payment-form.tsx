@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass, formSectionLabel, formFieldLabel } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
+import { defaultPaymentTitle } from '@/lib/constants'
 
 type Props = {
   relatedTo: 'invoice' | 'loan_schedule'
@@ -126,9 +127,7 @@ export function RegisterPaymentForm({
       return
     }
 
-    const defaultTitle = paymentType === 'detraccion' ? 'Detraccion'
-      : paymentType === 'retencion' ? 'Retencion'
-      : direction === 'inbound' ? 'Cobro' : 'Pago'
+    const defaultTitle = defaultPaymentTitle(paymentType, direction)
 
     startTransition(async () => {
       const result = await registerPayment({

@@ -5,6 +5,7 @@
 --          Works for both payable and receivable directions (replaces v_cost_balances + v_ar_balances).
 -- Source tables: v_invoice_totals, payments
 -- Used by: v_obligation_calendar, invoice detail pages, payment tracking, entity detail, financial position
+-- Dependencies: fn_payment_in_invoice_currency()
 
 CREATE OR REPLACE VIEW v_invoice_balances
 WITH (security_invoker = on)
@@ -43,50 +44,22 @@ SELECT
     ELSE it.total
   END AS net_amount,
   -- Payment aggregation: convert cross-currency payments to invoice currency
-  COALESCE(SUM(
-    CASE WHEN p.currency = it.currency THEN p.amount
-         ELSE ROUND(p.amount / p.exchange_rate, 2)
-    END
-  ), 0) AS amount_paid,
-  it.total - COALESCE(SUM(
-    CASE WHEN p.currency = it.currency THEN p.amount
-         ELSE ROUND(p.amount / p.exchange_rate, 2)
-    END
-  ), 0) AS outstanding,
+  COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)), 0) AS amount_paid,
+  it.total - COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)), 0) AS outstanding,
   -- Detraccion paid: converted to invoice currency
-  COALESCE(SUM(
-    CASE WHEN p.payment_type = 'detraccion' THEN
-      CASE WHEN p.currency = it.currency THEN p.amount
-           ELSE ROUND(p.amount / p.exchange_rate, 2)
-      END
-    END
-  ), 0) AS detraccion_paid,
+  COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)) FILTER (WHERE p.payment_type = 'detraccion'), 0) AS detraccion_paid,
   -- Retencion paid: always in invoice currency (no cross-currency)
   COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'retencion'), 0) AS retencion_paid,
   -- Payable/receivable: outstanding minus remaining detraccion and retencion portions
   GREATEST(0,
-    it.total - COALESCE(SUM(
-      CASE WHEN p.currency = it.currency THEN p.amount
-           ELSE ROUND(p.amount / p.exchange_rate, 2)
-      END
-    ), 0)
-    - GREATEST(0, COALESCE(it.detraccion_amount, 0) - COALESCE(SUM(
-        CASE WHEN p.payment_type = 'detraccion' THEN
-          CASE WHEN p.currency = it.currency THEN p.amount
-               ELSE ROUND(p.amount / p.exchange_rate, 2)
-          END
-        END
-      ), 0))
+    it.total - COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)), 0)
+    - GREATEST(0, COALESCE(it.detraccion_amount, 0)
+        - COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)) FILTER (WHERE p.payment_type = 'detraccion'), 0))
     - GREATEST(0, it.retencion_amount - COALESCE(SUM(p.amount) FILTER (WHERE p.payment_type = 'retencion'), 0))
   ) AS payable_or_receivable,
   -- BDN outstanding in invoice currency (for table/modal display)
-  GREATEST(0, COALESCE(it.detraccion_amount, 0) - COALESCE(SUM(
-    CASE WHEN p.payment_type = 'detraccion' THEN
-      CASE WHEN p.currency = it.currency THEN p.amount
-           ELSE ROUND(p.amount / p.exchange_rate, 2)
-      END
-    END
-  ), 0)) AS bdn_outstanding,
+  GREATEST(0, COALESCE(it.detraccion_amount, 0)
+    - COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)) FILTER (WHERE p.payment_type = 'detraccion'), 0)) AS bdn_outstanding,
   -- BDN outstanding in PEN (for Financial Position cross-currency summation)
   CASE WHEN it.currency = 'PEN' THEN
     GREATEST(0, COALESCE(it.detraccion_amount, 0)
@@ -98,23 +71,11 @@ SELECT
   END AS bdn_outstanding_pen,
   -- Payment status (accounts for unpaid BDN detraccion obligations)
   CASE
-    WHEN COALESCE(SUM(
-      CASE WHEN p.currency = it.currency THEN p.amount
-           ELSE ROUND(p.amount / p.exchange_rate, 2)
-      END
-    ), 0) = 0 THEN 'pending'
-    WHEN COALESCE(SUM(
-      CASE WHEN p.currency = it.currency THEN p.amount
-           ELSE ROUND(p.amount / p.exchange_rate, 2)
-      END
-    ), 0) >= it.total
-      AND GREATEST(0, COALESCE(it.detraccion_amount, 0) - COALESCE(SUM(
-        CASE WHEN p.payment_type = 'detraccion' THEN
-          CASE WHEN p.currency = it.currency THEN p.amount
-               ELSE ROUND(p.amount / p.exchange_rate, 2)
-          END
-        END
-      ), 0)) = 0 THEN 'paid'
+    WHEN COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)), 0) = 0 THEN 'pending'
+    WHEN COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)), 0) >= it.total
+      AND GREATEST(0, COALESCE(it.detraccion_amount, 0)
+        - COALESCE(SUM(fn_payment_in_invoice_currency(p.amount, p.currency, it.currency, p.exchange_rate)) FILTER (WHERE p.payment_type = 'detraccion'), 0)) = 0
+    THEN 'paid'
     ELSE 'partial'
   END AS payment_status,
   -- Retencion outstanding (retencion_amount minus retencion payments received)

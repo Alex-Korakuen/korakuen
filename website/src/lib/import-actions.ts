@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { round2 } from '@/lib/queries'
 import { handleDbError } from '@/lib/server-utils'
+import { VALID_CURRENCIES, defaultPaymentTitle } from '@/lib/constants'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
@@ -25,7 +26,7 @@ function num(val: unknown): number | null {
 }
 
 async function loadExchangeRateMap(
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  supabase: SupabaseClient,
   rows: Record<string, unknown>[],
   dateField: string
 ): Promise<Map<string, number>> {
@@ -64,17 +65,10 @@ function autoFillExchangeRate(
   return rate
 }
 
-// ============================================================
-// Pending Invoices Import (quotes as pending invoices + invoice_items)
-// ============================================================
+type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>
 
-export async function importPendingInvoices(
-  rows: Record<string, unknown>[]
-): Promise<ImportResult> {
-  const supabase = await createServerSupabaseClient()
-  const errors: ImportError[] = []
-
-  // Load lookups
+/** Loads project, entity, and partner lookup maps shared by all import functions */
+async function loadImportLookups(supabase: SupabaseClient) {
   const { data: projects } = await supabase
     .from('projects').select('id, project_code').eq('is_active', true)
   const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
@@ -89,6 +83,22 @@ export async function importPendingInvoices(
   const { data: partnerEntities } = await supabase
     .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
   const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
+
+  return { projectMap, entityMap, partnerMap }
+}
+
+// ============================================================
+// Pending Invoices Import (quotes as pending invoices + invoice_items)
+// ============================================================
+
+export async function importPendingInvoices(
+  rows: Record<string, unknown>[]
+): Promise<ImportResult> {
+  const supabase = await createServerSupabaseClient()
+  const errors: ImportError[] = []
+
+  // Load lookups
+  const { projectMap, entityMap, partnerMap } = await loadImportLookups(supabase)
 
   const { data: categories } = await supabase
     .from('categories').select('name')
@@ -124,7 +134,7 @@ export async function importPendingInvoices(
     if (!status) errors.push({ row: r, column: 'status', message: 'Required' })
 
     // Enums
-    if (currency && !['USD', 'PEN'].includes(currency)) {
+    if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
       errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
     }
     if (status && !['pending', 'accepted', 'rejected'].includes(status)) {
@@ -232,20 +242,7 @@ export async function importInvoices(
   const errors: ImportError[] = []
 
   // Load lookups
-  const { data: projects } = await supabase
-    .from('projects').select('id, project_code').eq('is_active', true)
-  const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
-
-  const { data: entities } = await supabase
-    .from('entities').select('id, document_number').eq('is_active', true)
-  const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
-
-  const { data: partners } = await supabase
-    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
-  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
-  const { data: partnerEntities } = await supabase
-    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
-  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
+  const { projectMap, entityMap, partnerMap } = await loadImportLookups(supabase)
 
   const { data: categories } = await supabase
     .from('categories').select('name')
@@ -308,7 +305,7 @@ export async function importInvoices(
     if (direction && !['payable', 'receivable'].includes(direction)) {
       errors.push({ row: r, column: 'direction', message: 'Must be: payable, receivable' })
     }
-    if (currency && !['USD', 'PEN'].includes(currency)) {
+    if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
       errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
     }
     if (comprobanteType && !COMPROBANTE_TYPES.includes(comprobanteType)) {
@@ -453,12 +450,7 @@ export async function importPayments(
   const errors: ImportError[] = []
 
   // Load lookups
-  const { data: partners } = await supabase
-    .from('entity_tags').select('entity_id, tags!inner(name)').eq('tags.name', 'partner')
-  const partnerEntityIds = (partners ?? []).map(t => t.entity_id)
-  const { data: partnerEntities } = await supabase
-    .from('entities').select('id, legal_name').in('id', partnerEntityIds).eq('is_active', true)
-  const partnerMap = new Map((partnerEntities ?? []).map(p => [p.legal_name, p.id]))
+  const { projectMap, entityMap, partnerMap } = await loadImportLookups(supabase)
 
   const { data: invoices } = await supabase
     .from('invoices').select('id, document_ref, direction')
@@ -471,19 +463,9 @@ export async function importPayments(
 
   const { data: bankAccounts } = await supabase
     .from('bank_accounts').select('id, bank_name, account_number_last4, currency, is_detraccion_account').eq('is_active', true)
-  // Key: "BCP-1234" → bank account
   const bankMap = new Map(
     (bankAccounts ?? []).map(ba => [`${ba.bank_name}-${ba.account_number_last4}`, ba])
   )
-
-  // Projects, categories, entities (needed for direct transactions)
-  const { data: projects } = await supabase
-    .from('projects').select('id, project_code').eq('is_active', true)
-  const projectMap = new Map((projects ?? []).map(p => [p.project_code, p.id]))
-
-  const { data: entities } = await supabase
-    .from('entities').select('id, document_number').eq('is_active', true)
-  const entityMap = new Map((entities ?? []).map(e => [e.document_number, e.id]))
 
   const { data: categories } = await supabase
     .from('categories').select('name, cost_type')
@@ -532,7 +514,7 @@ export async function importPayments(
     if (str(row.payment_type) && !PAYMENT_TYPES.includes(str(row.payment_type)!)) {
       errors.push({ row: r, column: 'payment_type', message: 'Must be: regular, detraccion, retencion' })
     }
-    if (currency && !['USD', 'PEN'].includes(currency)) {
+    if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
       errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
     }
 
@@ -639,9 +621,7 @@ export async function importPayments(
       const paymentType = str(row.payment_type) || 'regular'
       const bankRef = str(row.bank_account)
       const direction = str(row.direction)!
-      const defaultTitle = paymentType === 'detraccion' ? 'Detraccion'
-        : paymentType === 'retencion' ? 'Retencion'
-        : direction === 'inbound' ? 'Cobro' : 'Pago'
+      const title = str(row.title) || defaultPaymentTitle(paymentType, direction)
       return {
         related_to: 'invoice' as const,
         related_id: invoiceMap.get(str(row.invoice_document_ref)!)!,
@@ -655,7 +635,7 @@ export async function importPayments(
         partner_id: partnerMap.get(str(row.partner_name)!)!,
         operation_number: str(row.operation_number) || null,
         document_ref: str(row.document_ref) ?? null,
-        title: str(row.title) || defaultTitle,
+        title,
         notes: str(row.notes) ?? null,
       }
     })
@@ -732,7 +712,7 @@ export async function importPayments(
     }
 
     // 3. Create payment (fully paid)
-    const paymentTitle = str(row.title) || (direction === 'inbound' ? 'Cobro' : 'Pago')
+    const paymentTitle = str(row.title) || defaultPaymentTitle('regular', direction)
     const { error: pmtError } = await supabase
       .from('payments')
       .insert({
