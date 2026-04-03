@@ -74,7 +74,7 @@ export function InlineEdit(props: InlineEditProps) {
     value,
     displayValue,
     label,
-    placeholder = '--',
+    placeholder = '—',
     onSave,
     onAfterSave,
     locked = false,

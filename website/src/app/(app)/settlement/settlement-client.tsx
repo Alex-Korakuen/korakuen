@@ -5,7 +5,7 @@ import { formatCurrency, formatCurrencyCompact, formatPercentage } from '@/lib/f
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
-import { tableHead } from '@/lib/styles'
+import { tableHead, tableRowHover } from '@/lib/styles'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
 import type {
   ProjectListItem,
@@ -86,7 +86,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
       )}
 
       {/* Summary strip */}
-      <div className={`mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-[10px] border border-edge bg-edge ${isPending ? 'opacity-60' : ''}`}>
+      <div className={`mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-edge bg-edge ${isPending ? 'opacity-60' : ''}`}>
         <SummaryCell label="Projects" value={String(summary.projectCount)} />
         <SummaryCell label="Income Collected" value={formatCurrency(summary.incomeCollected, 'PEN')} />
         <SummaryCell label="Total Costs" value={formatCurrency(summary.totalCosts, 'PEN')} />
@@ -115,7 +115,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
               {partners.map(p => {
                 const isYou = p.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
                 return (
-                  <tr key={p.partnerId} className="transition-colors hover:bg-accent-bg">
+                  <tr key={p.partnerId} className={tableRowHover}>
                     <td className="px-4 py-3">
                       <span className="font-medium text-ink">{p.partnerName}</span>
                       {isYou && (

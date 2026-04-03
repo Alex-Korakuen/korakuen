@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback, useRef } from 'react'
+import { cardRadius } from '@/lib/styles'
 
 type ModalProps = {
   isOpen: boolean
@@ -61,7 +62,7 @@ export function Modal({ isOpen, onClose, title, headerLeft, headerRight, childre
       aria-labelledby="modal-title"
     >
       <div
-        className="relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[10px] bg-white shadow-xl"
+        className={`relative mx-4 flex max-h-[85vh] w-full max-w-2xl flex-col ${cardRadius} bg-white shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

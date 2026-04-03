@@ -12,7 +12,7 @@ type Props = {
 
 export function DeleteConfirmation({ title, message, isPending, error, onCancel, onConfirm }: Props) {
   return (
-    <div className="rounded-[10px] border-2 border-negative/20 bg-negative-bg px-5 py-4">
+    <div className="rounded-lg border-2 border-negative/20 bg-negative-bg px-5 py-4">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex-shrink-0 rounded-full bg-negative-bg p-1.5">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="text-negative">

@@ -74,7 +74,7 @@ export function ProjectsGrid({ projects, partnerOptions }: Props) {
             <Link
               key={p.id}
               href={`/projects/${p.id}`}
-              className="group rounded-[10px] border border-edge bg-white p-5 transition-all hover:border-edge-strong"
+              className="group rounded-lg border border-edge bg-white p-5 transition-all hover:border-edge-strong"
             >
               {/* Top: code + status */}
               <div className="mb-1 flex items-center justify-between">

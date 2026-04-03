@@ -214,7 +214,7 @@ export function CalendarClient({
     <div className="pb-16">
       <FilterBar
         currentFilters={currentFilters}
-        className="mt-4 flex items-end gap-2"
+        className="mt-4 flex flex-wrap items-end gap-3"
         filters={[
           { type: 'select', key: FK.type, label: 'Type', options: [{ value: 'commercial', label: 'Commercial' }, { value: 'loan', label: 'Loan' }], placeholder: 'All types' },
           { type: 'select', key: FK.project, label: 'Project', options: projects.map(p => ({ value: p.id, label: p.project_code })), placeholder: 'All projects' },

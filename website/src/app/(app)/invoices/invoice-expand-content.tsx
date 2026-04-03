@@ -22,7 +22,7 @@ type Props = {
 }
 
 const COMPROBANTE_OPTIONS = [
-  { value: '', label: '--' },
+  { value: '', label: '—' },
   { value: 'factura', label: 'Factura' },
   { value: 'boleta', label: 'Boleta' },
   { value: 'recibo_por_honorarios', label: 'Recibo por Honorarios' },
@@ -99,7 +99,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
         <InlineEdit
           label="Partner"
           inputType="text"
-          value={row.partner_name ?? '--'}
+          value={row.partner_name ?? '—'}
           locked
         />
         <DetailField label="Entity" value={row.entity_name ?? 'Informal'} />
@@ -402,7 +402,7 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <DetailField label="Direction" value={invoice.direction === 'receivable' ? 'Receivable' : 'Payable'} />
           <DetailField label="Entity" value={invoice.entity_id ? '—' : 'Informal'} />
-          <DetailField label="Invoice #" value={invoice.invoice_number ?? '--'} />
+          <DetailField label="Invoice #" value={invoice.invoice_number ?? '—'} />
           <DetailField label="Total" value={formatCurrency(invoice.total ?? 0, currency)} />
         </div>
       </div>

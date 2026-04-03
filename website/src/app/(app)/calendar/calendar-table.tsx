@@ -40,7 +40,7 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
   const totalCount = group.totals.pay.count + group.totals.collect.count
 
   return (
-    <div className={`mt-4 first:mt-0 overflow-hidden rounded-[10px] border border-edge bg-white border-t-[3px] ${colors.border}`}>
+    <div className={`mt-4 first:mt-0 overflow-hidden rounded-lg border border-edge bg-white border-t-[3px] ${colors.border}`}>
       {/* Header zone — clickable */}
       <button
         type="button"
@@ -93,22 +93,22 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
               onClick={() => onRowClick(row)}
             >
               <span className="text-sm text-muted">
-                {row.due_date ? formatCalendarDate(row.due_date) : '--'}
+                {row.due_date ? formatCalendarDate(row.due_date) : '—'}
               </span>
               <DirectionBadge direction={row.direction} />
               <span className="truncate font-mono text-xs text-faint">
                 {row.invoice_number ?? ''}
               </span>
               <span className="truncate text-sm text-ink">
-                {row.type === 'loan' ? `Loan: ${row.entity_name ?? '--'}` : row.entity_name ?? '--'}
+                {row.type === 'loan' ? `Loan: ${row.entity_name ?? '—'}` : row.entity_name ?? '—'}
               </span>
               <span className="font-mono text-xs text-muted">
-                {row.project_code ?? '--'}
+                {row.project_code ?? '—'}
               </span>
               <span className="text-right font-mono text-sm font-medium text-ink">
                 {row.outstanding !== null && row.currency
                   ? formatCurrency(row.outstanding, row.currency)
-                  : '--'}
+                  : '—'}
               </span>
               <span className={`text-right text-xs ${getUrgencyColor(row.days_remaining)}`}>
                 {formatUrgency(row.days_remaining)}
@@ -153,7 +153,7 @@ export function CalendarTable({ groups, grandTotals, onRowClick }: Props) {
 
   if (!hasAnyRows) {
     return (
-      <div className="mt-6 rounded-[10px] border border-edge px-4 py-8 text-center text-faint">
+      <div className="mt-6 rounded-lg border border-edge px-4 py-8 text-center text-faint">
         No obligations found
       </div>
     )

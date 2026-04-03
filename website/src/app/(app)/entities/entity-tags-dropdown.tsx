@@ -56,7 +56,7 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute left-0 z-20 mt-1 w-56 rounded-[10px] border border-edge bg-white py-1 shadow-lg">
+        <div className="absolute left-0 z-20 mt-1 w-56 rounded-lg border border-edge bg-white py-1 shadow-lg">
           <div className="max-h-60 overflow-y-auto">
             {availableTags.map((tag) => {
               const checked = assignedTagIds.has(tag.id)

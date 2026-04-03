@@ -31,10 +31,10 @@ export function LoanExpandContent({ detail, onRepaymentSuccess }: Props) {
     <div className="space-y-4 px-4 py-3">
       {/* Header info */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <DetailField label="Lender" value={loan.lender_name ?? '--'} />
-        <DetailField label="Purpose" value={loan.purpose ?? '--'} />
-        <DetailField label="Date Borrowed" value={loan.date_borrowed ? formatDate(loan.date_borrowed) : '--'} />
-        <DetailField label="Due Date" value={loan.due_date ? formatDate(loan.due_date) : '--'} />
+        <DetailField label="Lender" value={loan.lender_name ?? '—'} />
+        <DetailField label="Purpose" value={loan.purpose ?? '—'} />
+        <DetailField label="Date Borrowed" value={loan.date_borrowed ? formatDate(loan.date_borrowed) : '—'} />
+        <DetailField label="Due Date" value={loan.due_date ? formatDate(loan.due_date) : '—'} />
       </div>
 
       {/* Loan summary */}

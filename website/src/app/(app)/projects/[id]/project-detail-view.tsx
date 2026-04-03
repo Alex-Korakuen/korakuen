@@ -21,7 +21,7 @@ import { updateProjectField, setProjectPartners } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
-import { iconTrash, tableHead } from '@/lib/styles'
+import { iconTrash, tableHead, tableRowHover } from '@/lib/styles'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -95,7 +95,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
             </thead>
             <tbody className="divide-y divide-edge">
               {pageItems.map((e, i) => (
-                <tr key={`${e.entityId ?? 'none'}-${i}`} className="transition-colors hover:bg-accent-bg">
+                <tr key={`${e.entityId ?? 'none'}-${i}`} className={tableRowHover}>
                   <td className="px-4 py-2">
                     {e.entityId ? (
                       <a
@@ -480,7 +480,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
                 label="Location"
                 inputType="text"
                 value={project.location}
-                placeholder="--"
+                placeholder="—"
                 onSave={saveField('location')}
               />
             </div>

@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
-import { tableHead } from '@/lib/styles'
+import { tableHead, tableRowHover } from '@/lib/styles'
 import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
@@ -304,7 +304,7 @@ export function FPClient({ data, partners, projects }: Props) {
               </thead>
               <tbody className="divide-y divide-edge">
                 {transactions.map((txn) => (
-                  <tr key={txn.id} className="transition-colors hover:bg-accent-bg">
+                  <tr key={txn.id} className={tableRowHover}>
                     <td className="whitespace-nowrap px-3 py-2 text-muted">
                       {formatDate(txn.paymentDate)}
                     </td>

@@ -172,7 +172,7 @@ export function ProjectBudgetForm({
                     >
                       {b.budgeted_amount !== null && b.budgeted_amount > 0
                         ? formatPercentage(b.pct_used ?? 0)
-                        : '--'}
+                        : '—'}
                     </td>
                   )}
                   <td className="px-2 py-2 text-right">
@@ -199,7 +199,7 @@ export function ProjectBudgetForm({
               <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
                 {totalBudgeted !== null
                   ? formatCurrency(totalBudgeted, BUDGET_CURRENCY)
-                  : '--'}
+                  : '—'}
               </td>
               <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
                 {formatCurrency(totalActual, BUDGET_CURRENCY)}
@@ -214,7 +214,7 @@ export function ProjectBudgetForm({
                 >
                   {totalBudgeted !== null && totalBudgeted > 0
                     ? formatPercentage((totalActual / totalBudgeted) * 100)
-                    : '--'}
+                    : '—'}
                 </td>
               )}
               <td className="px-2 py-2"></td>

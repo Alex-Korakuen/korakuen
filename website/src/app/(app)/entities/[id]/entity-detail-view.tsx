@@ -156,14 +156,14 @@ export function EntityDetailView({ detail, availableTags }: Props) {
                 label="City"
                 inputType="text"
                 value={entity.city}
-                placeholder="--"
+                placeholder="—"
                 onSave={saveField('city')}
               />
               <InlineEdit
                 label="Region"
                 inputType="text"
                 value={entity.region}
-                placeholder="--"
+                placeholder="—"
                 onSave={saveField('region')}
               />
             </div>

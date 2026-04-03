@@ -191,7 +191,7 @@ export function ImportModal({ isOpen, onClose, title, onImport }: Props) {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`cursor-pointer rounded-[10px] border-2 border-dashed px-6 py-12 text-center transition-colors ${
+          className={`cursor-pointer rounded-lg border-2 border-dashed px-6 py-12 text-center transition-colors ${
             dragOver ? 'border-accent bg-accent-bg' : 'border-edge-strong hover:border-faint'
           }`}
         >

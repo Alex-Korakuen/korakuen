@@ -68,7 +68,7 @@ export function FilterBar({ filters, currentFilters, clearKeys, className }: Fil
   const keysToReset = clearKeys ?? deriveClearKeys(filters)
 
   return (
-    <div className={className ?? 'flex items-center gap-2'}>
+    <div className={className ?? 'flex flex-wrap items-end gap-3'}>
       {filters.map((def, i) => {
         switch (def.type) {
           case 'select':

@@ -64,11 +64,28 @@ export const btnSecondaryBordered =
 
 /** Full-width primary button — payment/repayment forms */
 export const btnPrimaryFull =
-  'w-full rounded-[10px] bg-accent py-2 text-sm font-bold text-white transition-colors hover:bg-accent-hover disabled:opacity-50'
+  'w-full rounded-lg bg-accent py-2 text-sm font-bold text-white transition-colors hover:bg-accent-hover disabled:opacity-50'
 
 /** Auth page primary button — dark with focus ring */
 export const btnAuthPrimary =
   'rounded-md bg-ink px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+
+// ── Pagination ──────────────────────────────────────────────────────
+
+export const paginationBtn = 'rounded border px-2.5 py-1 text-sm'
+export const paginationBtnEnabled = 'border-edge bg-white text-ink hover:bg-surface'
+export const paginationBtnDisabled = 'border-edge bg-surface text-edge-strong cursor-default'
+export const paginationBtnActive = 'border-accent bg-accent-bg text-accent font-medium'
+
+// ── Navigation ──────────────────────────────────────────────────────
+
+export const navLinkActive = 'bg-accent-bg font-medium text-accent'
+export const navLinkInactive = 'text-muted hover:bg-surface hover:text-ink'
+
+// ── Layout ──────────────────────────────────────────────────────────
+
+/** Standard card border radius — used by modals, section cards, summary strips */
+export const cardRadius = 'rounded-lg'
 
 // ── Tables ───────────────────────────────────────────────────────────
 

@@ -58,7 +58,7 @@ export function PricesTable({ data }: Props) {
               return (
               <tr key={row.id} className={`${tableRowHover}${isRejected ? ' opacity-50' : ''}`}>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
-                  {row.date ? formatDate(row.date) : '--'}
+                  {row.date ? formatDate(row.date) : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
                   <StatusBadge
@@ -73,18 +73,18 @@ export function PricesTable({ data }: Props) {
                   {row.projectCode}
                 </td>
                 <td className="max-w-[200px] truncate px-3 py-3 text-center text-ink">
-                  {row.title || '--'}
+                  {row.title || '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
-                  {row.quantity !== null ? row.quantity : '--'}
+                  {row.quantity !== null ? row.quantity : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
-                  {row.unit_of_measure ?? '--'}
+                  {row.unit_of_measure ?? '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-ink">
                   {row.unit_price !== null
                     ? formatCurrency(row.unit_price, row.currency)
-                    : '--'}
+                    : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                   {row.currency}

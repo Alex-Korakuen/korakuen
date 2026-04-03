@@ -101,7 +101,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
             label="Operation #"
             inputType="text"
             value={row.operation_number}
-            placeholder="--"
+            placeholder="—"
             onSave={saveField('operation_number')}
             mono
           />
@@ -110,7 +110,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           label="Date"
           inputType="date"
           value={row.payment_date}
-          displayValue={row.payment_date ? formatDate(row.payment_date) : '--'}
+          displayValue={row.payment_date ? formatDate(row.payment_date) : '—'}
           onSave={saveField('payment_date')}
         />
       </div>
@@ -129,7 +129,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
             label="Bank Account"
             inputType="select"
             value={row.bank_account_id}
-            displayValue={row.bank_label ?? '--'}
+            displayValue={row.bank_label ?? '—'}
             onSave={saveField('bank_account_id')}
             options={bankOptions}
           />
@@ -166,7 +166,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           </div>
           <div>
             <span className="mb-1 block text-[11px] font-medium text-faint">Invoice #</span>
-            <span className="text-sm font-mono text-ink">{row.invoice_number ?? '--'}</span>
+            <span className="text-sm font-mono text-ink">{row.invoice_number ?? '—'}</span>
           </div>
         </div>
       </div>
@@ -188,8 +188,8 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           <div>
             <h3 className="mb-2 text-sm font-semibold text-ink">Related Invoice</h3>
             <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
-              <DetailField label="Title" value={relatedDetail.invoice.title ?? '--'} />
-              <DetailField label="Invoice #" value={relatedDetail.invoice.invoice_number ?? '--'} />
+              <DetailField label="Title" value={relatedDetail.invoice.title ?? '—'} />
+              <DetailField label="Invoice #" value={relatedDetail.invoice.invoice_number ?? '—'} />
               <DetailField label="Total" value={formatCurrency(relatedDetail.invoice.total ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
               <DetailField label="Outstanding" value={formatCurrency(relatedDetail.invoice.outstanding ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
             </div>
@@ -201,8 +201,8 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
         <div>
           <h3 className="mb-2 text-sm font-semibold text-ink">Related Loan</h3>
           <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
-            <DetailField label="Lender" value={relatedDetail.loan.lender_name ?? '--'} />
-            <DetailField label="Purpose" value={relatedDetail.loan.purpose ?? '--'} />
+            <DetailField label="Lender" value={relatedDetail.loan.lender_name ?? '—'} />
+            <DetailField label="Purpose" value={relatedDetail.loan.purpose ?? '—'} />
             <DetailField label="Total Owed" value={formatCurrency(relatedDetail.loan.total_owed ?? 0, (relatedDetail.loan.currency ?? 'PEN') as 'PEN' | 'USD')} />
             <DetailField label="Outstanding" value={formatCurrency(relatedDetail.loan.outstanding ?? 0, (relatedDetail.loan.currency ?? 'PEN') as 'PEN' | 'USD')} />
           </div>
@@ -249,7 +249,7 @@ function DeleteContent({ row, onCancel, onSuccess }: {
       {/* Dimmed payment info */}
       <div className="opacity-40 pointer-events-none">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <DetailField label="Date" value={row.payment_date ? formatDate(row.payment_date) : '--'} />
+          <DetailField label="Date" value={row.payment_date ? formatDate(row.payment_date) : '—'} />
           <DetailField label="Direction" value={row.direction === 'inbound' ? 'Inbound' : 'Outbound'} />
           <div>
             <span className="mb-1 block text-xs font-medium text-faint">Type</span>

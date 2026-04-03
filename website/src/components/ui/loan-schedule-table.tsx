@@ -34,7 +34,7 @@ export function LoanScheduleTable({ schedule, currency, onPayClick, className }:
                 {formatCurrency(entry.scheduled_amount, currency)}
               </td>
               <td className="px-3 py-2 text-right font-mono text-ink">
-                {entry.amount_paid > 0 ? formatCurrency(entry.amount_paid, currency) : '--'}
+                {entry.amount_paid > 0 ? formatCurrency(entry.amount_paid, currency) : '—'}
               </td>
               <td className="px-3 py-2">
                 <StatusBadge

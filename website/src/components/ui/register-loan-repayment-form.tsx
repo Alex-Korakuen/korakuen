@@ -95,14 +95,14 @@ export function RegisterLoanRepaymentForm({
 
   if (success) {
     return (
-      <div className="rounded-[10px] border border-positive/20 bg-positive-bg px-4 py-3 text-sm text-positive">
+      <div className="rounded-lg border border-positive/20 bg-positive-bg px-4 py-3 text-sm text-positive">
         Loan repayment registered successfully.
       </div>
     )
   }
 
   return (
-    <div className="rounded-[10px] border border-accent/20 bg-accent-bg px-4 py-4">
+    <div className="rounded-lg border border-accent/20 bg-accent-bg px-4 py-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <span className={formSectionLabel}>New Repayment</span>

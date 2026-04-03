@@ -7,6 +7,7 @@ import { useSidebar } from '@/lib/sidebar-context'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { createClient } from '@/lib/supabase/client'
 import { APP_NAME_UPPER, APP_NAME_SHORT } from '@/lib/constants'
+import { navLinkActive, navLinkInactive } from '@/lib/styles'
 
 interface NavItem {
   label: string
@@ -41,9 +42,7 @@ function NavLink({
     <Link
       href={item.href}
       className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
-        isActive
-          ? 'bg-accent-bg font-medium text-accent'
-          : 'text-muted hover:bg-surface hover:text-ink'
+        isActive ? navLinkActive : navLinkInactive
       } ${collapsed ? 'justify-center' : ''}`}
       title={collapsed ? item.label : undefined}
     >

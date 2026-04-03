@@ -53,7 +53,6 @@ export function EntitiesDirectory({
 
       <FilterBar
         currentFilters={currentFilters}
-        className="mb-4 flex flex-wrap items-end gap-3"
         filters={[
           { type: 'search', placeholder: 'Search by name or document...', width: 'w-64' },
           { type: 'select', key: FK.entityType, label: 'Type', options: [{ value: 'company', label: 'Company' }, { value: 'individual', label: 'Individual' }], placeholder: 'All Types' },

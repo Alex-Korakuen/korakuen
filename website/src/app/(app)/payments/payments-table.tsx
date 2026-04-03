@@ -82,13 +82,13 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                 onClick={() => onRowClick(row)}
               >
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
-                  {row.payment_date ? formatDate(row.payment_date) : '--'}
+                  {row.payment_date ? formatDate(row.payment_date) : '—'}
                 </td>
                 <td className="max-w-[140px] truncate px-3 py-3 text-center text-xs text-muted">
-                  {row.partner_name ?? '--'}
+                  {row.partner_name ?? '—'}
                 </td>
                 <td className="max-w-[200px] truncate px-3 py-3 text-center text-xs text-muted">
-                  {row.title ?? '--'}
+                  {row.title ?? '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                   {row.document_ref ?? '—'}
@@ -97,7 +97,7 @@ export function PaymentsTable({ data, onRowClick }: Props) {
                   {row.operation_number ?? '—'}
                 </td>
                 <td className="max-w-[120px] truncate px-3 py-3 text-center text-xs text-muted">
-                  {row.bank_label ?? '--'}
+                  {row.bank_label ?? '—'}
                 </td>
                 <td className={`whitespace-nowrap px-3 py-3 text-center font-mono font-medium ${getSignedAmountColorClass(row.direction)}`}>
                   {formatSignedAmount(row.amount, row.currency, row.direction)}

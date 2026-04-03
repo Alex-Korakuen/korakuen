@@ -38,15 +38,15 @@ export function LoanDetailContent({
     <div className="space-y-6">
       {/* Header info */}
       <div className="grid grid-cols-2 gap-4">
-        <DetailField label="Lender" value={loan?.lender_name ?? '--'} />
-        <DetailField label="Purpose" value={loan?.purpose ?? '--'} />
+        <DetailField label="Lender" value={loan?.lender_name ?? '—'} />
+        <DetailField label="Purpose" value={loan?.purpose ?? '—'} />
         <DetailField
           label="Date Borrowed"
-          value={loan?.date_borrowed ? formatDate(loan.date_borrowed) : '--'}
+          value={loan?.date_borrowed ? formatDate(loan.date_borrowed) : '—'}
         />
         <DetailField
           label="Due Date"
-          value={loan?.due_date ? formatDate(loan.due_date) : '--'}
+          value={loan?.due_date ? formatDate(loan.due_date) : '—'}
         />
       </div>
 
@@ -116,7 +116,7 @@ export function LoanDetailContent({
                     <td className="px-3 py-2 text-right font-mono text-ink">
                       {formatCurrency(pmt.amount, pmt.currency)}
                     </td>
-                    <td className="px-3 py-2 text-muted">{pmt.notes ? <NotesDisplay notes={pmt.notes} /> : '--'}</td>
+                    <td className="px-3 py-2 text-muted">{pmt.notes ? <NotesDisplay notes={pmt.notes} /> : '—'}</td>
                   </tr>
                 ))}
               </tbody>

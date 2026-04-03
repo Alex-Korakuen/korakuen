@@ -70,10 +70,10 @@ export function InvoicesTable({
                   className={`${tableRowHover} ${borderClass}`}
                   onClick={() => onRowClick(row)}>
                   <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
-                    {row.due_date ? formatDate(row.due_date) : '--'}
+                    {row.due_date ? formatDate(row.due_date) : '—'}
                   </td>
                   <td className="max-w-[140px] truncate px-3 py-3 text-center text-xs text-muted">
-                    {row.partner_name ?? '--'}
+                    {row.partner_name ?? '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
                     {row.project_code ?? '—'}
