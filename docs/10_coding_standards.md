@@ -57,6 +57,13 @@ The database schema in `docs/08_schema.md` is the single source of truth for all
 - TypeScript types must be regenerated after any schema change
 - Never work around the schema — change the schema properly if needed
 
+### Never Mix Currencies
+PEN and USD amounts must NEVER be summed, compared, or aggregated as if they were the same currency. Every aggregation must either:
+- Operate within a single currency (group by currency, display separately), **or**
+- Convert all amounts to PEN first using `convertToPen(amount, currency, exchangeRate)` before summing
+
+Any code that adds a PEN amount to a USD amount without conversion is a bug — no exceptions.
+
 ### No Business Logic in UI Code
 Website components collect input and call Supabase. All calculations belong in the database.
 

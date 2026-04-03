@@ -533,7 +533,6 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
               projectId={project.id}
               budgetRows={detail.budget}
               contractValue={contractValue}
-              contractCurrency={contractCurrency}
               categories={categories}
               actualCostsByCategory={detail.actualCostsByCategory}
             />

@@ -27,7 +27,7 @@ export function getSectionColors(bucket: string): { border: string; text: string
     case 'next-7':
       return { border: 'border-info', text: 'text-info', bg: 'bg-info-bg' }
     case 'next-30':
-      return { border: 'border-violet-400', text: 'text-violet-700', bg: 'bg-violet-50' }
+      return { border: 'border-later', text: 'text-later', bg: 'bg-later-bg' }
     case 'later':
       return { border: 'border-edge-strong', text: 'text-muted', bg: 'bg-panel' }
     default:

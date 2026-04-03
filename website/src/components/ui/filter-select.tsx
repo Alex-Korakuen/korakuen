@@ -1,4 +1,4 @@
-import { selectClass } from '@/lib/styles'
+import { selectClass, filterLabel } from '@/lib/styles'
 
 type FilterSelectOption = {
   value: string
@@ -34,7 +34,7 @@ export function FilterSelect({ label, value, onChange, options, placeholder = 'A
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-muted">{label}</label>
+      <label className={filterLabel}>{label}</label>
       {select}
     </div>
   )

@@ -197,7 +197,7 @@ export async function registerPayment(input: {
     if (lsErr) return { error: lsErr }
   }
 
-  const { error } = await supabase.from('payments').insert({
+  const { data: paymentData, error } = await supabase.from('payments').insert({
     related_to: input.related_to,
     related_id: input.related_id,
     direction: input.direction,
@@ -211,17 +211,21 @@ export async function registerPayment(input: {
     operation_number: input.operation_number?.trim() || null,
     title: input.title,
     notes: input.notes,
-  })
+  }).select('id').single()
 
   if (error) return { error: handleDbError(error, 'Failed to register payment') }
 
   // Auto-verify retencion on the invoice when a retencion payment is registered
+  // If the update fails, roll back the payment to avoid inconsistent state
   if (input.payment_type === 'retencion' && input.related_to === 'invoice') {
     const { error: verifyErr } = await supabase
       .from('invoices')
       .update({ retencion_verified: true })
       .eq('id', input.related_id)
-    if (verifyErr) return { error: handleDbError(verifyErr, 'Payment registered but failed to auto-verify retencion on invoice') }
+    if (verifyErr) {
+      await supabase.from('payments').delete().eq('id', paymentData.id)
+      return { error: handleDbError(verifyErr, 'Failed to auto-verify retencion on invoice — payment was rolled back') }
+    }
   }
 
   revalidateFinancialPages()

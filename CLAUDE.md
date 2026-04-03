@@ -92,6 +92,7 @@ Key facts:
 - **Partner identity:** The three partner companies are regular rows in `entities`, identified by the `partner` tag via `entity_tags`. All financial tables (invoices, payments, loans) have explicit `partner_id` (FK to entities). Bank accounts belong only on payments (cash movements), not on invoices
 - **Quotes are invoices:** Quotes are stored as invoices with `quote_status` (pending/accepted/rejected) and `invoice_items.quote_date`. No separate quotes table. `purchase_order_id` on invoices is reserved for a future Purchase Orders module — always null
 - **No stored totals:** subtotal, igv_amount, total on invoices are derived from invoice_items via `v_invoice_totals`. Payment status derived from payments via `v_invoice_balances`
+- **Never mix currencies:** PEN and USD amounts must NEVER be summed or compared without conversion. Always convert to PEN first using `convertToPen()`, or group by currency and display separately. Adding PEN + USD as if they were the same number is always a bug
 - **Tags are universal:** one `tags` table serves entity categorization, project roles, and partner identification (the `partner` tag marks the three partner companies in `entities`)
 - **Project code drives everything:** PRY001, PRY002... — auto-sequential, used in all SharePoint filenames
 

@@ -20,6 +20,10 @@ export const formSectionLabel =
 export const formFieldLabel =
   'mb-1 block text-xs font-bold uppercase tracking-wide text-accent'
 
+/** Filter control label — compact, subdued, used in FilterBar dropdowns and search */
+export const filterLabel =
+  'text-xs font-medium text-muted'
+
 // ── Buttons ──────────────────────────────────────────────────────────
 
 /** Primary action button — header CTAs, inline actions */

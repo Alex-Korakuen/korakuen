@@ -400,7 +400,8 @@ export async function importInvoices(
         : null,
       detraccion_rate: num(first.detraccion_rate),
       retencion_applicable: String(first.retencion_applicable ?? '').toLowerCase() === 'true',
-      retencion_rate: num(first.retencion_rate),
+      retencion_rate: num(first.retencion_rate)
+        ?? (String(first.retencion_applicable ?? '').toLowerCase() === 'true' ? 8 : null),
       comprobante_type: str(first.comprobante_type),
       document_ref: str(first.document_ref),
       due_date: str(first.due_date),

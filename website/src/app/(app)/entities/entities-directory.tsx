@@ -84,7 +84,7 @@ export function EntitiesDirectory({
               </thead>
               <tbody className="divide-y divide-edge">
                 {entities.map((entity) => {
-                  const cur = entity.currency ?? 'PEN'
+                  const cur = entity.currency
                   const hasFinancials = entity.totalPayable > 0 || entity.totalReceivable > 0
 
                   return (

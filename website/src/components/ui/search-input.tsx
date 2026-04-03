@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { filterLabel } from '@/lib/styles'
 
 type Props = {
   paramName?: string
@@ -30,7 +31,7 @@ export function SearchInput({ paramName = 'search', placeholder = 'Search…', d
 
   return (
     <div className="flex flex-col gap-1">
-      {label && <label className="text-xs font-medium text-muted">{label}</label>}
+      {label && <label className={filterLabel}>{label}</label>}
       <div className="flex gap-1">
         <input
           type="text"

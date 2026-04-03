@@ -11,10 +11,12 @@ type Props = {
   projectId: string
   budgetRows: BudgetVsActualRow[]
   contractValue: number | null
-  contractCurrency: string
   categories: CategoryOption[]
   actualCostsByCategory: Record<string, number>
 }
+
+// Budgets and actuals are always in PEN (view converts USD actuals to PEN)
+const BUDGET_CURRENCY = 'PEN'
 
 type DisplayRow = {
   category: string
@@ -28,7 +30,6 @@ export function ProjectBudgetForm({
   projectId,
   budgetRows,
   contractValue,
-  contractCurrency,
   categories,
   actualCostsByCategory,
 }: Props) {
@@ -78,7 +79,7 @@ export function ProjectBudgetForm({
     setError(null)
 
     startTransition(async () => {
-      const result = await upsertProjectBudget(projectId, category, amount, contractCurrency)
+      const result = await upsertProjectBudget(projectId, category, amount, BUDGET_CURRENCY)
       if (result.error) {
         setError(result.error)
       } else {
@@ -154,13 +155,13 @@ export function ProjectBudgetForm({
                         title="Click to edit budget"
                       >
                         {b.budgeted_amount !== null
-                          ? formatCurrency(b.budgeted_amount, contractCurrency)
+                          ? formatCurrency(b.budgeted_amount, BUDGET_CURRENCY)
                           : <span className="text-faint">Set budget</span>}
                       </button>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-ink">
-                    {formatCurrency(b.actual_amount, contractCurrency)}
+                    {formatCurrency(b.actual_amount, BUDGET_CURRENCY)}
                   </td>
                   {hasBudget && (
                     <td
@@ -197,11 +198,11 @@ export function ProjectBudgetForm({
               <td className="px-3 py-2 font-medium text-ink">Total</td>
               <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
                 {totalBudgeted !== null
-                  ? formatCurrency(totalBudgeted, contractCurrency)
+                  ? formatCurrency(totalBudgeted, BUDGET_CURRENCY)
                   : '--'}
               </td>
               <td className="whitespace-nowrap px-2 py-2 text-right font-mono font-semibold text-ink">
-                {formatCurrency(totalActual, contractCurrency)}
+                {formatCurrency(totalActual, BUDGET_CURRENCY)}
               </td>
               {hasBudget && (
                 <td

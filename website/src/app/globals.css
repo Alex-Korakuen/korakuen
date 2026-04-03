@@ -32,6 +32,16 @@
   --color-caution-bg: #fef8ed;
   --color-info: #1a4f7a;
   --color-info-bg: #edf4fb;
+
+  /* Calendar bucket: next 30 days (violet) */
+  --color-later: #7c3aed;
+  --color-later-bg: #f5f3ff;
+
+  /* Aging indicators: bright border-left cues for invoice age */
+  --color-aging-ok: #4ade80;
+  --color-aging-warning: #facc15;
+  --color-aging-alert: #fb923c;
+  --color-aging-critical: #f87171;
 }
 
 :root {

@@ -289,8 +289,8 @@ export type EntityDirectoryItem = EntityListItem & {
   outstandingPayable: number
   totalReceivable: number
   outstandingReceivable: number
-  /** Primary currency for display; null if no invoices */
-  currency: Currency | null
+  /** Always PEN — all amounts converted to PEN for aggregation */
+  currency: Currency
 }
 
 export type EntityLedgerRow = {

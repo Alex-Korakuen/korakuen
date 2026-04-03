@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityTagsMap, DEFAULT_CURRENCY } from './shared'
+import { buildEntityTagsMap, DEFAULT_CURRENCY, convertToPen } from './shared'
 import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
@@ -106,40 +106,37 @@ export async function getEntitiesDirectory(
   const entityIds = listResult.data.map(e => e.id)
 
   // Aggregate financial totals from v_invoice_balances in one query
+  // All amounts converted to PEN — never mix currencies
   const { data: balances, error: balError } = await supabase
     .from('v_invoice_balances')
-    .select('entity_id, direction, currency, total, outstanding')
+    .select('entity_id, direction, currency, exchange_rate, total, outstanding')
     .in('entity_id', entityIds)
 
   if (balError) throw balError
 
-  // Build aggregated totals per entity (pick dominant currency)
   const financials = new Map<string, {
     totalPayable: number
     outstandingPayable: number
     totalReceivable: number
     outstandingReceivable: number
-    currency: string | null
   }>()
 
   for (const row of balances ?? []) {
     if (!row.entity_id) continue
     let agg = financials.get(row.entity_id)
     if (!agg) {
-      agg = { totalPayable: 0, outstandingPayable: 0, totalReceivable: 0, outstandingReceivable: 0, currency: null }
+      agg = { totalPayable: 0, outstandingPayable: 0, totalReceivable: 0, outstandingReceivable: 0 }
       financials.set(row.entity_id, agg)
     }
-    const total = row.total ?? 0
-    const outstanding = row.outstanding ?? 0
+    const totalPen = convertToPen(row.total ?? 0, row.currency, row.exchange_rate)
+    const outstandingPen = convertToPen(row.outstanding ?? 0, row.currency, row.exchange_rate)
     if (row.direction === 'payable') {
-      agg.totalPayable += total
-      agg.outstandingPayable += outstanding
+      agg.totalPayable += totalPen
+      agg.outstandingPayable += outstandingPen
     } else {
-      agg.totalReceivable += total
-      agg.outstandingReceivable += outstanding
+      agg.totalReceivable += totalPen
+      agg.outstandingReceivable += outstandingPen
     }
-    // Use first currency seen (entities typically operate in one currency)
-    if (!agg.currency && row.currency) agg.currency = row.currency
   }
 
   const items: EntityDirectoryItem[] = listResult.data.map(e => {
@@ -150,7 +147,7 @@ export async function getEntitiesDirectory(
       outstandingPayable: fin?.outstandingPayable ?? 0,
       totalReceivable: fin?.totalReceivable ?? 0,
       outstandingReceivable: fin?.outstandingReceivable ?? 0,
-      currency: (fin?.currency ?? null) as Currency | null,
+      currency: 'PEN' as Currency,
     }
   })
 
