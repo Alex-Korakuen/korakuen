@@ -18,7 +18,7 @@ type Props = {
   outstanding: number
   payable: number
   bdnOutstanding: number
-  bdnOutstandingPen?: number
+  bdnOutstandingPen: number
   retencionOutstanding?: number
   onSuccess: () => void
   onCancel: () => void
@@ -86,7 +86,7 @@ export function RegisterPaymentForm({
   // Max amount per payment type (detraccion max is always in PEN)
   const maxAmount =
     paymentType === 'detraccion'
-      ? (bdnOutstandingPen ?? bdnOutstanding)
+      ? bdnOutstandingPen
       : paymentType === 'retencion'
         ? (retencionOutstanding ?? 0)
         : payable

@@ -25,11 +25,15 @@ export default async function CalendarPage({ searchParams }: Props) {
     getObligationCalendar(filters),
   ])
 
+  // Serialize Map to plain object for client component
+  const partnerNames = Object.fromEntries(result.partnerNameMap)
+
   return (
     <CalendarClient
       data={result.rows}
       projects={projects}
       uniqueEntities={result.uniqueSuppliers}
+      partnerNames={partnerNames}
       categories={categories}
       currentFilters={{
         type: filters.type ?? '',

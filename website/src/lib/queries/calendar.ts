@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
+import { buildEntityNameMap } from './shared'
 import { getCalendarBucket } from '../date-utils'
 import type { ObligationCalendarRow } from '../types'
 
@@ -15,6 +16,7 @@ type ObligationCalendarFilters = {
 type ObligationCalendarResult = {
   rows: ObligationCalendarRow[]
   uniqueSuppliers: string[]
+  partnerNameMap: Map<string, string>
 }
 
 export async function getObligationCalendar(
@@ -40,6 +42,10 @@ export async function getObligationCalendar(
   for (const r of rows) { if (r.entity_name) supplierSet.add(r.entity_name) }
   const uniqueSuppliers = Array.from(supplierSet).sort()
 
+  // Build partner name lookup for calendar modal display
+  const partnerIds = [...new Set(rows.map(r => r.partner_id).filter((id): id is string => !!id))]
+  const partnerNameMap = await buildEntityNameMap(supabase, partnerIds)
+
   // Apply filters
   if (filters.bucket && filters.bucket !== 'all') {
     rows = rows.filter(r => getCalendarBucket(r.days_remaining) === filters.bucket)
@@ -53,5 +59,5 @@ export async function getObligationCalendar(
     rows = rows.filter(r => (r.title ?? '').toLowerCase().includes(search))
   }
 
-  return { rows, uniqueSuppliers }
+  return { rows, uniqueSuppliers, partnerNameMap }
 }

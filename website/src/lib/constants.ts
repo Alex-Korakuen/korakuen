@@ -12,6 +12,18 @@ export const COMPANY_IDENTIFIER = 'korakuen'
 /** Valid currency codes — used for import validation */
 export const VALID_CURRENCIES = ['USD', 'PEN'] as const
 
+// --- Peruvian tax defaults ---
+
+/** IGV (VAT) rate — 18% since 2011 */
+export const DEFAULT_IGV_RATE = 18
+
+/** Default retencion rate when retencion_applicable is true but no rate is specified */
+export const DEFAULT_RETENCION_RATE = 8
+
+/** Exchange rate (PEN per USD) validation range for imports */
+export const EXCHANGE_RATE_MIN = 2.5
+export const EXCHANGE_RATE_MAX = 6.0
+
 /** Default currency when none specified */
 export const DEFAULT_CURRENCY = 'PEN'
 

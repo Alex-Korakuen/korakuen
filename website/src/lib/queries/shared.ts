@@ -9,14 +9,19 @@ export function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-/** Convert an amount to PEN using the exchange rate — USD amounts are multiplied by rate */
+/** Convert an amount to PEN using the exchange rate — USD amounts are multiplied by rate.
+ *  Throws if a USD amount has no valid exchange rate — never silently default. */
 export function convertToPen(
   amount: number,
   currency: Currency | string | null | undefined,
   exchangeRate: number | string | null | undefined,
 ): number {
-  const rate = exchangeRate ? Number(exchangeRate) : 1
-  return currency === 'USD' ? amount * rate : amount
+  if (currency === 'USD') {
+    const rate = Number(exchangeRate)
+    if (!rate || isNaN(rate)) throw new Error('convertToPen: exchange_rate is required for USD amounts')
+    return amount * rate
+  }
+  return amount
 }
 
 /** Fetch entity names by IDs and return a Map of id -> display name (legal_name) */

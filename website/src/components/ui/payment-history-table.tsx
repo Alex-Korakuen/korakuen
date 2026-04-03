@@ -21,7 +21,7 @@ type PaymentFormProps = {
   outstanding: number
   payable: number
   bdnOutstanding: number
-  bdnOutstandingPen?: number
+  bdnOutstandingPen: number
   retencionOutstanding?: number
   detraccionAmount: number
   retencionAmount: number

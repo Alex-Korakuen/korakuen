@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { round2 } from '@/lib/queries'
 import { handleDbError } from '@/lib/server-utils'
-import { VALID_CURRENCIES, defaultPaymentTitle } from '@/lib/constants'
+import { VALID_CURRENCIES, defaultPaymentTitle, DEFAULT_IGV_RATE, DEFAULT_RETENCION_RATE, EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX } from '@/lib/constants'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
@@ -156,8 +156,8 @@ export async function importPendingInvoices(
     }
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
-      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
+    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
+      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
     }
 
     // Arithmetic validation
@@ -188,7 +188,7 @@ export async function importPendingInvoices(
       partner_id: partnerMap.get(str(row.partner_name)!)!,
       invoice_date: dateReceived,
       title: str(row.title),
-      igv_rate: 18,
+      igv_rate: DEFAULT_IGV_RATE,
       currency: str(row.currency),
       exchange_rate: num(row.exchange_rate),
       project_id: projectCode ? projectMap.get(projectCode)! : null,
@@ -350,8 +350,8 @@ export async function importInvoices(
     }
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
-      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
+    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
+      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
     }
 
   }
@@ -401,7 +401,7 @@ export async function importInvoices(
       detraccion_rate: num(first.detraccion_rate),
       retencion_applicable: String(first.retencion_applicable ?? '').toLowerCase() === 'true',
       retencion_rate: num(first.retencion_rate)
-        ?? (String(first.retencion_applicable ?? '').toLowerCase() === 'true' ? 8 : null),
+        ?? (String(first.retencion_applicable ?? '').toLowerCase() === 'true' ? DEFAULT_RETENCION_RATE : null),
       comprobante_type: str(first.comprobante_type),
       document_ref: str(first.document_ref),
       due_date: str(first.due_date),
@@ -535,8 +535,8 @@ export async function importPayments(
     }
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < 2.5 || exchangeRate > 6.0)) {
-      errors.push({ row: r, column: 'exchange_rate', message: 'Outside typical range (2.5-6.0)' })
+    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
+      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
     }
 
     if (invoiceDocRef) {

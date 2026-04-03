@@ -30,6 +30,7 @@ type Props = {
   data: ObligationCalendarRow[]
   projects: { id: string; project_code: string; name: string }[]
   uniqueEntities: string[]
+  partnerNames: Record<string, string>
   categories: CategoryOption[]
   currentFilters: {
     type: string
@@ -64,13 +65,13 @@ function computeTotals(rows: ObligationCalendarRow[]): SectionTotals {
 }
 
 /** Map a calendar row to the shape InvoiceExpandContent expects for its `row` prop */
-function toInvoicesPageRow(r: ObligationCalendarRow): InvoicesPageRow {
+function toInvoicesPageRow(r: ObligationCalendarRow, partnerNames: Record<string, string>): InvoicesPageRow {
   return {
     id: r.invoice_id ?? '',
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
     direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
     partner_id: r.partner_id ?? null,
-    partner_name: null,
+    partner_name: r.partner_id ? (partnerNames[r.partner_id] ?? null) : null,
     project_id: r.project_id ?? null,
     project_code: r.project_code ?? null,
     entity_id: r.entity_id ?? null,
@@ -96,6 +97,7 @@ export function CalendarClient({
   data,
   projects,
   uniqueEntities,
+  partnerNames,
   categories,
   currentFilters,
 }: Props) {
@@ -128,7 +130,7 @@ export function CalendarClient({
 
   const handleRowClick = useCallback(async (row: ObligationCalendarRow) => {
     setModalRow(row)
-    setModalPageRow(toInvoicesPageRow(row))
+    setModalPageRow(toInvoicesPageRow(row, partnerNames))
     setModalMode('view')
     await fetchDetail(row)
   }, [fetchDetail])
