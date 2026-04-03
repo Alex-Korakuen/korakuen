@@ -816,12 +816,15 @@ export async function deactivatePayment(
     .single()
   if (!existing) return { error: 'Payment not found or already deactivated' }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('payments')
     .update({ is_active: false })
     .eq('id', paymentId)
+    .eq('is_active', true)
+    .select('id')
 
   if (error) return { error: handleDbError(error, 'Failed to deactivate payment') }
+  if (!updated || updated.length === 0) return { error: 'Payment was already deactivated' }
 
   // If this was the only retencion payment on the invoice, un-verify retencion
   if (existing.payment_type === 'retencion' && existing.related_to === 'invoice') {

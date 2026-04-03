@@ -227,6 +227,22 @@ export async function importInvoices(
 
   const rateMap = await loadExchangeRateMap(supabase, rows, 'invoice_date')
 
+  // Check for document_refs that already exist in the database
+  const docRefsInFile = [...new Set(
+    rows.map(r => str(r.document_ref)).filter(Boolean) as string[]
+  )]
+  const existingInvoiceRefs = new Set<string>()
+  if (docRefsInFile.length > 0) {
+    const { data: existingInvoices } = await supabase
+      .from('invoices')
+      .select('document_ref')
+      .in('document_ref', docRefsInFile)
+      .eq('is_active', true)
+    for (const inv of existingInvoices ?? []) {
+      if (inv.document_ref) existingInvoiceRefs.add(inv.document_ref)
+    }
+  }
+
   // --- Validate each row ---
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
@@ -247,6 +263,11 @@ export async function importInvoices(
     const subtotal = num(row.subtotal)
 
     const exchangeRate = autoFillExchangeRate(row, rateMap, invoiceDate)
+
+    // Duplicate detection
+    if (docRef && existingInvoiceRefs.has(docRef)) {
+      errors.push({ row: r, column: 'document_ref', message: 'Invoice with this document_ref already exists' })
+    }
 
     // Required fields
     if (!direction) errors.push({ row: r, column: 'direction', message: 'Required' })
@@ -687,7 +708,7 @@ export async function importPayments(
       })
 
     if (itemError) {
-      await supabase.from('invoices').delete().eq('id', invoice.id)
+      try { await supabase.from('invoices').delete().eq('id', invoice.id) } catch { /* cleanup best-effort */ }
       return { error: handleDbError(itemError, `Failed to create invoice item for direct transaction`) }
     }
 
@@ -713,6 +734,10 @@ export async function importPayments(
       })
 
     if (pmtError) {
+      try {
+        await supabase.from('invoice_items').delete().eq('invoice_id', invoice.id)
+        await supabase.from('invoices').delete().eq('id', invoice.id)
+      } catch { /* cleanup best-effort */ }
       return { error: handleDbError(pmtError, `Failed to create payment for direct transaction`) }
     }
 

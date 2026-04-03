@@ -10,7 +10,7 @@ export default async function EntityDetailPage({ params }: Props) {
   const { id } = await params
 
   const [detail, filterOptions] = await Promise.all([
-    getEntityDetail(id).catch(() => null),
+    getEntityDetail(id).catch((err) => { console.error('Failed to load entity detail:', err); return null }),
     getEntitiesFilterOptions(),
   ])
 

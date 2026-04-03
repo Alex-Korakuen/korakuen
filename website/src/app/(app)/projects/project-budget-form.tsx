@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { formatCurrency, formatCategory, formatPercentage } from '@/lib/formatters'
+import { calcPercentUsed } from '@/lib/business-utils'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow, CategoryOption } from '@/lib/types'
 import { iconTrash } from '@/lib/styles'
@@ -38,9 +39,7 @@ export function ProjectBudgetForm({
       const budgetRow = budgetMap.get(c.name)
       const actual = budgetRow?.actual_amount ?? actualCostsByCategory[c.name] ?? 0
       const budgeted = budgetRow?.budgeted_amount ?? null
-      const pctUsed = budgeted && budgeted > 0
-        ? Math.round((actual / budgeted) * 1000) / 10
-        : null
+      const pctUsed = calcPercentUsed(actual, budgeted)
       return {
         category: c.name,
         budgeted_amount: budgeted,

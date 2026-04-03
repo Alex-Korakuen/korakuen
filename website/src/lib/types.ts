@@ -114,7 +114,7 @@ export type PaymentsPageRow = {
   payment_type: PaymentType
   amount: number
   currency: Currency
-  exchange_rate: number
+  exchange_rate: number | null
   entity_name: string | null
   project_id: string | null
   project_code: string | null

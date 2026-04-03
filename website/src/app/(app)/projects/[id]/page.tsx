@@ -10,7 +10,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params
 
   const [detail, partners, categories] = await Promise.all([
-    getProjectDetail(id).catch(() => null),
+    getProjectDetail(id).catch((err) => { console.error('Failed to load project detail:', err); return null }),
     getPartners(),
     getProjectCategories(),
   ])

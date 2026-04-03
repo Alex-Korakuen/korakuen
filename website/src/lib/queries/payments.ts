@@ -146,7 +146,7 @@ export async function getPaymentsPage(
     payment_type: (r.payment_type ?? 'regular') as PaymentType,
     amount: r.amount ?? 0,
     currency: (r.currency ?? DEFAULT_CURRENCY) as Currency,
-    exchange_rate: r.exchange_rate ?? 0,
+    exchange_rate: r.exchange_rate ?? null,
     entity_name: r.entity_name,
     project_id: r.project_id,
     project_code: r.project_code,

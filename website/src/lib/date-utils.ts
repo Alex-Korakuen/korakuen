@@ -16,6 +16,9 @@ export function getCalendarBucket(
 
 /** Converts a "YYYY-MM" month string to dateFrom/dateTo range. */
 export function getMonthDateRange(month: string): { dateFrom: string; dateTo: string } {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw new Error(`Invalid month format: "${month}". Expected YYYY-MM.`)
+  }
   const [y, m] = month.split('-').map(Number)
   const lastDay = new Date(y, m, 0).getDate()
   return {

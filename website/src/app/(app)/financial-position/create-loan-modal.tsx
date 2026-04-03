@@ -46,7 +46,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
     if (!isOpen || !partnerId) { setBankAccounts([]); setBankAccountId(''); return }
     fetchBankAccountsForPayment(partnerId)
       .then(accts => setBankAccounts(accts))
-      .catch(() => setBankAccounts([]))
+      .catch((err) => { console.error('Failed to load bank accounts:', err); setBankAccounts([]) })
   }, [partnerId, isOpen])
 
   function resetForm() {

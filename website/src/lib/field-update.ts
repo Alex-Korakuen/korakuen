@@ -49,7 +49,7 @@ export async function updateRecordField(
   try {
     const supabase = await createServerSupabaseClient()
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase typed .from() requires literal table name; input validated by allowedFields allowlist
     const { error: updateErr } = await (supabase as any).from(config.table)
       .update({ [field]: normalized })
       .eq('id', recordId)
@@ -58,7 +58,7 @@ export async function updateRecordField(
     if (updateErr) return { error: handleDbError(updateErr, `Failed to update ${config.table}`) }
 
     // Verify the write actually landed (catches silent RLS blocks)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic helper works across tables
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase typed .from() requires literal table name; input validated by allowedFields allowlist
     const { data: rows } = await (supabase as any).from(config.table)
       .select(field)
       .eq('id', recordId)
@@ -120,8 +120,9 @@ export const INVOICE_CONFIG: FieldUpdateConfig = {
     'detraccion_rate', 'retencion_rate', 'notes',
   ],
   validate: (field, value) => {
-    if (field === 'exchange_rate' && (value === null || (typeof value === 'number' && value <= 0))) {
-      return 'Exchange rate must be greater than 0'
+    if (field === 'exchange_rate') {
+      if (value === null || (typeof value === 'number' && value <= 0)) return 'Exchange rate must be greater than 0'
+      if (typeof value === 'number' && value > 20) return 'Exchange rate seems too high (max 20)'
     }
     if ((field === 'detraccion_rate' || field === 'retencion_rate') && value !== null) {
       const num = typeof value === 'number' ? value : parseFloat(value as string)
@@ -139,8 +140,9 @@ export const PAYMENT_CONFIG: FieldUpdateConfig = {
     if (field === 'amount' && (value === null || (typeof value === 'number' && value <= 0))) {
       return 'Amount must be greater than 0'
     }
-    if (field === 'exchange_rate' && (value === null || (typeof value === 'number' && value <= 0))) {
-      return 'Exchange rate must be greater than 0'
+    if (field === 'exchange_rate') {
+      if (value === null || (typeof value === 'number' && value <= 0)) return 'Exchange rate must be greater than 0'
+      if (typeof value === 'number' && value > 20) return 'Exchange rate seems too high (max 20)'
     }
     return null
   },

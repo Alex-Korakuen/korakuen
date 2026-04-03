@@ -1,6 +1,7 @@
 'use client'
 
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { calcDaysOverdue, calcOutstanding } from '@/lib/business-utils'
 import { useUrlSort } from '@/lib/use-url-sort'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -59,9 +60,7 @@ export function InvoicesTable({
             </tr>
           ) : (
             data.map((row) => {
-              const daysOverdue = row.due_date
-                ? Math.floor((Date.now() - new Date(row.due_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
-                : 0
+              const daysOverdue = calcDaysOverdue(row.due_date)
               const borderClass = row.payment_status !== 'paid' && daysOverdue > 0
                 ? getAgingRowBorderClass(daysOverdue)
                 : ''
@@ -89,7 +88,7 @@ export function InvoicesTable({
                     {formatCurrency(row.total, row.currency)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center font-mono font-medium text-ink">
-                    {row.outstanding + row.bdn_outstanding > 0 ? formatCurrency(row.outstanding + row.bdn_outstanding, row.currency) : '—'}
+                    {calcOutstanding(row.outstanding, row.bdn_outstanding) > 0 ? formatCurrency(calcOutstanding(row.outstanding, row.bdn_outstanding), row.currency) : '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center">
                     <StatusBadge label={getStatusLabel(row.payment_status)} variant={getStatusVariant(row.payment_status)} />

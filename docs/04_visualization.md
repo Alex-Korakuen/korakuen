@@ -177,6 +177,8 @@ Total row at bottom. Balance shows `—` in total row.
 
 ### AR Outstanding & Collections
 
+> **Status: NOT YET IMPLEMENTED** — This section documents planned functionality.
+
 **Business question:** What do I have pending to collect, and how overdue is it?
 
 **Priority:** High
