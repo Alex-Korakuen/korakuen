@@ -83,7 +83,10 @@ createTemplate('quotes-template.xlsx', [
   { key: 'notes',                  required: 'No',   description: 'Notes',                          example: '' },
 ], [
   'Notes:',
-  '  - Each row creates a pending invoice (comprobante_type=pending) + one invoice_item',
+  '  - Each row creates a quote (pending invoice) + one invoice_item',
+  '  - Quotes with status "pending" or "rejected" are invisible to financial views',
+  '  - Only "accepted" quotes become real invoices visible in totals, balances, and settlement',
+  '  - You can change quote status from the Prices page after import',
   '  - partner_name must match an entity tagged as "partner" in the database',
   '  - project_code and entity_document_number must already exist in the database',
   '  - If quantity and unit_price are provided: subtotal must equal quantity × unit_price',
@@ -109,7 +112,7 @@ createTemplate('invoices-template.xlsx', [
   { key: 'due_date',               required: 'No',                           description: 'Due date',                               example: '2026-04-15',       valid: 'YYYY-MM-DD' },
   { key: 'detraccion_rate',        required: 'No',                           description: 'Detracción rate (%)',                    example: '12',               valid: '0–100, PEN invoices only' },
   { key: 'retencion_applicable',   required: 'No',                           description: 'Retención applies?',                     example: 'false',            valid: 'true/false, receivable only' },
-  { key: 'retencion_rate',         required: 'No',                           description: 'Retención rate (%)',                     example: '3',                valid: '0–100, receivable only' },
+  { key: 'retencion_rate',         required: 'No',                           description: 'Retención rate (%). Defaults to 8% if retencion_applicable=true', example: '8', valid: '0–100, receivable only' },
   { key: 'notes',                  required: 'No',                           description: 'Notes',                                  example: '' },
   { key: 'item_title',             required: 'Yes',                          description: 'Line item title',                        example: 'Cement bags' },
   { key: 'category',               required: 'Yes, for payable',             description: 'Line item category',                     example: 'materials',        valid: 'materials, labor, subcontractor, equipment_rental, housing_food, other, software_licenses, partner_compensation, professional_services, other_sga' },
@@ -123,6 +126,7 @@ createTemplate('invoices-template.xlsx', [
   '  - partner_name must match an entity tagged as "partner" in the database',
   '  - Detracción only applies to PEN invoices',
   '  - Retención only applies to receivable invoices',
+  '  - If retencion_applicable=true and no retencion_rate is provided, defaults to 8%',
 ])
 
 // ============================================================
