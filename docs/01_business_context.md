@@ -221,27 +221,8 @@ There is no Microsoft Teams setup. SharePoint is accessed directly via browser o
 All three partners have full equal access to the SharePoint site. There are no permission restrictions between partners.
 
 ### 9.2 Folder Structure
-```
-Korakuen (SharePoint Team Site)
-└── Documents
-    ├── Projects
-    │   └── PRY001-ProjectName
-    │       ├── 01-Contracts
-    │       ├── 02-QuotesReceived
-    │       ├── 03-InvoicesReceived
-    │       ├── 04-InvoicesSent
-    │       ├── 05-PermitsRegulatory
-    │       ├── 06-TechnicalDocuments
-    │       └── 07-Correspondence
-    └── Company
-        ├── LegalCorporate
-        ├── Accounting
-        │   └── 2026
-        └── InternalDocumentation
-            └── SystemDocs
-```
 
-A new project folder following this exact structure is created every time a project is opened in the management system.
+See `docs/07_file_storage.md` for the current folder structure and naming conventions. A new project folder following the standard structure is created every time a project is opened in the management system.
 
 ### 9.3 Naming Convention
 - **PascalCase** for all folder names — no spaces, no accents, no special characters

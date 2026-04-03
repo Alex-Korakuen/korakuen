@@ -19,7 +19,6 @@ import type {
 type InvoicesPageFilters = {
   direction?: 'payable' | 'receivable'
   type?: 'commercial' | 'loan'
-  kind?: 'quote' | 'invoice'
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
   partnerId?: string
@@ -60,9 +59,10 @@ export async function getInvoicesPage(
 
   if (invoicesResult.error) throw invoicesResult.error
 
-  // Exclude phantom invoices (comprobante_type = 'none') and rejected quotes from the browse list
+  // Exclude phantom invoices (comprobante_type = 'none') and all quotes (quote_status IS NOT NULL)
+  // Quotes belong on the Prices page, not here
   let rows: InvoicesWithLoansRow[] = (invoicesResult.data ?? []).filter(
-    r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && r.quote_status !== 'rejected')
+    r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && r.quote_status == null)
   )
 
   const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
@@ -84,13 +84,6 @@ export async function getInvoicesPage(
   }
   if (filters.type) {
     rows = rows.filter(r => r.type === filters.type)
-  }
-  if (filters.kind) {
-    if (filters.kind === 'quote') {
-      rows = rows.filter(r => r.comprobante_type === 'pending')
-    } else {
-      rows = rows.filter(r => r.comprobante_type !== 'pending')
-    }
   }
   if (filters.status) {
     if (filters.status === 'overdue') {

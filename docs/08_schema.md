@@ -149,7 +149,7 @@ Bridge table linking entities to tags. Many-to-many — one entity can have mult
 ---
 
 ### `entity_contacts`
-People associated with an entity. For company entities: representatives, salespeople, project managers. For individual entities: the individual themselves (flagged as primary). Phone, email, and address for all entities live here.
+People associated with an entity. For company entities: representatives, salespeople, project managers. For individual entities: the individual themselves. Phone, email, and address for all entities live here.
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
@@ -266,7 +266,7 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 |---|---|---|---|
 | id | UUID | NO | primary key |
 | direction | VARCHAR | NO | `'payable'` or `'receivable'` |
-| partner_id | UUID | NO | references entities (must be tagged as partner) — who incurred (payable) or issued (receivable) |
+| partner_id | UUID | YES | references entities (must be tagged as partner) — who incurred (payable) or issued (receivable). Nullable for migrated quotes without a known partner |
 | project_id | UUID | YES | references projects — null if SG&A (payable only) |
 | entity_id | UUID | YES | references entities — null if informal/unassigned (payable), always set (receivable) |
 | purchase_order_id | UUID | YES | reserved for future PO module — always null for now |
@@ -286,6 +286,7 @@ Unified table for all invoices — both payable (costs) and receivable (AR). The
 | retencion_rate | NUMERIC(5,2) | YES | default 3 if applicable — receivable only |
 | retencion_verified | BOOLEAN | NO | default false — receivable only |
 | is_auto_generated | BOOLEAN | NO | default false — true for invoices created via Direct Transaction (informal partner cash payments). Can be promoted to formal invoice by editing in place |
+| is_active | BOOLEAN | NO | default true, soft delete |
 | notes | TEXT | YES | free-form context |
 | created_at | TIMESTAMPTZ | NO | auto |
 | updated_at | TIMESTAMPTZ | NO | auto |
@@ -416,7 +417,7 @@ Financing arrangements — money borrowed from friends, family, or informal lend
 | created_at | TIMESTAMP | NO | auto |
 | updated_at | TIMESTAMP | NO | auto |
 
-**No `is_active`** — loans are permanent financial records, same as invoices and payments.
+**No `is_active`** — loans are permanent financial records. (Note: invoices and payments do have `is_active` for soft delete support.)
 
 ---
 

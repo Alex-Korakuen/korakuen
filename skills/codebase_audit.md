@@ -17,7 +17,7 @@
 
 ### Category 1 — Schema Consistency
 
-- [ ] Every table in `08_schema.md` has a corresponding CREATE TABLE in `001_initial_schema.sql`
+- [ ] Every table in `08_schema.md` has a corresponding CREATE TABLE in the migration files under `supabase/migrations/`
 - [ ] Field names in SQL match field names in schema document exactly
 - [ ] Field types in SQL match the types specified in schema document
 - [ ] Every FK in SQL references the correct table and field

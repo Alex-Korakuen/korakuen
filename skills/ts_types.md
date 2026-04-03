@@ -32,22 +32,25 @@ Import from the generated file and create clean aliases:
 ```typescript
 import type { Database } from './database.types'
 
-// === Row types (read from database) ===
+// === Table row types (read from database) ===
+// Use base names (no Row suffix) for table types used in application code.
 
-export type BankAccountRow = Database['public']['Tables']['bank_accounts']['Row']
-export type EntityRow = Database['public']['Tables']['entities']['Row']
-export type TagRow = Database['public']['Tables']['tags']['Row']
-export type EntityTagRow = Database['public']['Tables']['entity_tags']['Row']
-export type EntityContactRow = Database['public']['Tables']['entity_contacts']['Row']
-export type ProjectRow = Database['public']['Tables']['projects']['Row']
-export type InvoiceRow = Database['public']['Tables']['invoices']['Row']
-export type InvoiceItemRow = Database['public']['Tables']['invoice_items']['Row']
-export type PaymentRow = Database['public']['Tables']['payments']['Row']
-export type LoanRow = Database['public']['Tables']['loans']['Row']
-export type LoanScheduleRow = Database['public']['Tables']['loan_schedule']['Row']
-export type ProjectBudgetRow = Database['public']['Tables']['project_budgets']['Row']
+export type Entity = Database['public']['Tables']['entities']['Row']
+export type EntityContact = Database['public']['Tables']['entity_contacts']['Row']
+export type Project = Database['public']['Tables']['projects']['Row']
+export type Invoice = Database['public']['Tables']['invoices']['Row']
+export type InvoiceItem = Database['public']['Tables']['invoice_items']['Row']
+export type Payment = Database['public']['Tables']['payments']['Row']
+// ... add more as needed
 
-// === Insert types (for forms in V1) ===
+// === View row types (use Row suffix to distinguish from table types) ===
+
+export type InvoiceBalanceRow = Database['public']['Views']['v_invoice_balances']['Row']
+export type ObligationCalendarRow = Database['public']['Views']['v_obligation_calendar']['Row']
+export type InvoicesWithLoansRow = Database['public']['Views']['v_invoices_with_loans']['Row']
+export type BudgetVsActualRow = Database['public']['Views']['v_budget_vs_actual']['Row']
+
+// === Insert types (for forms) ===
 
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert']
 export type InvoiceInsert = Database['public']['Tables']['invoices']['Insert']
@@ -95,13 +98,13 @@ export type CostCategory = string  // dynamic — managed in categories table
 ```typescript
 // === Composite types for views and joined queries ===
 
-export type InvoiceWithItems = InvoiceRow & {
-  invoice_items: InvoiceItemRow[]
-  entity: EntityRow | null
-  project: ProjectRow | null
+export type InvoiceWithItems = Invoice & {
+  invoice_items: InvoiceItem[]
+  entity: Entity | null
+  project: Project | null
 }
 
-export type InvoiceWithTotals = InvoiceRow & {
+export type InvoiceWithTotals = Invoice & {
   subtotal: number
   igv_amount: number
   detraccion_amount: number
@@ -132,7 +135,7 @@ export type ObligationCalendarEntry = {
   payment_status: PaymentStatus
 }
 
-export type LoanWithBalance = LoanRow & {
+export type LoanWithBalance = {
   total_owed: number
   total_paid: number
   outstanding: number
@@ -161,7 +164,7 @@ export type BudgetVsActual = {
 - **Regenerate `database.types.ts`** after every schema change
 - **Never edit `database.types.ts` directly** — it is auto-generated
 - **All enum values must exactly match** the VARCHAR values in the schema
-- **Row types end in `Row`**, insert types end in `Insert`
+- **Table row types use base names** (e.g. `Entity`, `Invoice`), **view row types end in `Row`** (e.g. `InvoiceBalanceRow`), **insert types end in `Insert`**
 - **Add composite types as needed** when new views or joined queries are written
 
 ---
@@ -171,7 +174,7 @@ export type BudgetVsActual = {
 After generating or updating types:
 
 1. `database.types.ts` was regenerated from current schema (not hand-edited)
-2. Every table in the schema has a corresponding `Row` type in `types.ts`
+2. Every table used in application code has a corresponding type in `types.ts`
 3. All enum type values match VARCHAR values in `docs/08_schema.md` exactly
 4. No `any` types anywhere in the types file
 5. Composite types exist for all views that the website consumes

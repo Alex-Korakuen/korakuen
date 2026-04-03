@@ -23,7 +23,6 @@ export const FK = {
   city: 'city',
   region: 'region',
   selected: 'selected',
-  kind: 'kind',
 } as const
 
 /** True if any filter value is non-empty. */

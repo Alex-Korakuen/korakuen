@@ -33,7 +33,7 @@ Collapsible sidebar navigation, header with partner name, responsive shell.
 ```
 Browse
   Projects
-  Entities & Contacts
+  Entities
   Prices
   Invoices
   Payments
@@ -60,6 +60,7 @@ Dashboards
 
 **Right panel — detail** (loads on row click):
 - Project header info (code, name, type, status, client, contract value, dates, location)
+- Partners section: inline-editable row showing partner companies assigned to this project and their profit share percentages. Data from `project_partners` table
 - Assigned entities section: table of entities and their roles on this project. Each entity row links to that entity's detail in the Entities page
 - Spending by entity section: table of all entities with payable invoices on this project, showing total spent per entity and invoice count. Answers "who did we spend money with and how much?" Data from invoices (direction = 'payable') grouped by entity_id where project_id matches
 - Cost summary & budget section (merged): single table showing category, budgeted amount (if budget exists), actual amount, % used (if budget exists), % of contract (if contract_value exists). When no budget data exists, shows only actual amounts and % of contract. Color coded when budget exists: red >100%, yellow >90%, green ≤90%
@@ -115,10 +116,6 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Priority:** Highest — most critical daily operational view. Default landing page after login.
 
-**Tabs:** Main | Taxes
-
-**Main tab:**
-
 **Top:** Summary cards (Overdue, Due Today, This Week, Next 30 Days) showing count and dual-currency totals per bucket — PEN amount (primary) and USD amount (secondary, shown only when > 0). Cards are clickable — clicking a card filters the table below to that bucket. Buckets are non-overlapping: Overdue (past due), Today (due today only), This Week (tomorrow through end of week), Next 30 Days (after this week through 30 days out).
 
 **Bottom:** Sortable table. Columns: due_date, days until due, type, supplier, project, title, outstanding amount, currency, payment status. Default sort: due date ascending (most urgent first). Row urgency indicated by colored left border (red=overdue, orange=today, yellow=this week, neutral=future).
@@ -129,11 +126,7 @@ This is the reference view for looking up historical pricing when estimating new
 
 **Loan obligations:** `v_obligation_calendar` includes loan_schedule entries as a second UNION source with type = 'loan_payment'. All users see both supplier invoices and loan payment obligations. Same color coding for urgency. Click loan row to open modal with loan details, schedule, and repayment history. All partner data visible.
 
-**Taxes tab:**
-
-Detraccion deposits pending — outbound detracciones that need to be deposited to suppliers' Banco de la Nacion accounts. Table columns: supplier, invoice title, project, detraccion amount, deposit status (paid/pending). Answers: "which detraccion deposits am I behind on?"
-
-**Data source:** Invoices table filtered to unpaid/partial status, sorted by due date (via v_obligation_calendar, v_invoice_balances views). Loan obligations from loan_schedule. Detracciones from payments where direction = outbound, payment_type = detraccion.
+**Data source:** Invoices table filtered to unpaid/partial status, sorted by due date (via v_obligation_calendar, v_invoice_balances views). Loan obligations from loan_schedule.
 
 ---
 

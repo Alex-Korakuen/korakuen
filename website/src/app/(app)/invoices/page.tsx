@@ -23,7 +23,6 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const filters = {
     direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
     type: str(params, FK.type) as 'commercial' | 'loan' | undefined,
-    kind: str(params, FK.kind) as 'quote' | 'invoice' | undefined,
     status: str(params, FK.status) as 'pending' | 'partial' | 'paid' | 'overdue' | undefined,
     projectId: str(params, FK.project),
     partnerId: str(params, FK.partner),
@@ -63,7 +62,6 @@ export default async function InvoicesPage({ searchParams }: Props) {
         entity: filters.entity ?? '',
         direction: filters.direction ?? '',
         type: filters.type ?? '',
-        kind: filters.kind ?? '',
         status: filters.status ?? '',
       }}
     />

@@ -97,8 +97,8 @@ export async function getPriceHistory(
     rows = rows.filter(r => r.title.toLowerCase().includes(search))
   }
   if (filters.category) {
-    // Pending invoices (quotes) may not have category — show them regardless
-    rows = rows.filter(r => r.comprobanteType === 'pending' || r.category === filters.category)
+    // Quotes may not have category — show them regardless when filtering by category
+    rows = rows.filter(r => r.quoteStatus != null || r.category === filters.category)
   }
   if (filters.entityId) rows = rows.filter(r => r.entityId === filters.entityId)
   if (filters.projectId) rows = rows.filter(r => r.projectId === filters.projectId)
