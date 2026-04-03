@@ -27,8 +27,7 @@ export async function getPriceHistory(
 ): Promise<PaginatedResult<PriceHistoryRow>> {
   const supabase = await createServerSupabaseClient()
 
-  // Fetch invoice_items with quote_date, and invoices including pending (quotes)
-  // Exclude only phantoms (comprobante_type = 'none')
+  // Fetch invoice_items with quote_date, and only actual quotes (quote_status IS NOT NULL)
   const [invoiceItemsResult, invoicesResult] = await Promise.all([
     supabase.from('invoice_items').select('id, invoice_id, title, category, quantity, unit_of_measure, unit_price, quote_date'),
     supabase
@@ -36,7 +35,7 @@ export async function getPriceHistory(
       .select('id, entity_id, project_id, invoice_date, currency, comprobante_type, quote_status')
       .eq('direction', 'payable')
       .eq('cost_type', 'project_cost')
-      .neq('comprobante_type', 'none'),
+      .not('quote_status', 'is', null),
   ])
 
   if (invoiceItemsResult.error) throw invoiceItemsResult.error
@@ -73,6 +72,7 @@ export async function getPriceHistory(
 
     rows.push({
       id: item.id,
+      invoiceId: item.invoice_id,
       date: item.quote_date ?? inv.invoice_date ?? '',
       comprobanteType: inv.comprobante_type,
       quoteStatus: inv.quote_status,
@@ -136,13 +136,13 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
     (categoriesResult.data ?? []).map(c => c.category).filter(Boolean)
   )] as string[]
 
-  // Get entities that appear in payable project_cost invoices (including pending)
+  // Get entities that appear in quotes (quote_status IS NOT NULL)
   const { data: invoiceEntitiesData, error: invoiceEntitiesError } = await supabase
     .from('invoices')
     .select('entity_id')
     .eq('direction', 'payable')
     .eq('cost_type', 'project_cost')
-    .neq('comprobante_type', 'none')
+    .not('quote_status', 'is', null)
     .not('entity_id', 'is', null)
 
   if (invoiceEntitiesError) throw invoiceEntitiesError

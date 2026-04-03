@@ -26,6 +26,7 @@ WITH actual_costs AS (
     AND i.cost_type = 'project_cost'
     AND i.project_id IS NOT NULL
     AND i.is_active = true
+    AND (i.quote_status IS NULL OR i.quote_status = 'accepted')
   GROUP BY i.project_id, ii.category
 )
 SELECT

@@ -9,9 +9,16 @@ import type { PriceHistoryRow } from '@/lib/types'
 
 type Props = {
   data: PriceHistoryRow[]
+  onRowClick: (row: PriceHistoryRow) => void
 }
 
-export function PricesTable({ data }: Props) {
+function quoteStatusBadge(status: string | null) {
+  if (status === 'accepted') return <StatusBadge label="Accepted" variant="green" />
+  if (status === 'rejected') return <StatusBadge label="Rejected" variant="red" />
+  return <StatusBadge label="Pending" variant="blue" />
+}
+
+export function PricesTable({ data, onRowClick }: Props) {
   const { sortColumn, sortDirection, handleSort } = useUrlSort('date', 'desc')
 
   return (
@@ -22,7 +29,7 @@ export function PricesTable({ data }: Props) {
             <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('date')}>
               Date <SortIndicator column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
-            <th className="px-3 py-3 text-center">Source</th>
+            <th className="px-3 py-3 text-center">Status</th>
             <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('entityName')}>
               Supplier <SortIndicator column="entityName" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
@@ -46,25 +53,23 @@ export function PricesTable({ data }: Props) {
           {data.length === 0 ? (
             <tr>
               <td colSpan={9} className="px-4 py-8 text-center text-sm text-faint">
-                No matching price records found
+                No quotes found
               </td>
             </tr>
           ) : (
             data.map((row) => {
               const isRejected = row.quoteStatus === 'rejected'
-              const isQuote = row.comprobanteType === 'pending'
-              const sourceLabel = isRejected ? 'Rejected' : isQuote ? 'Quote' : 'Invoice'
-              const sourceVariant = isRejected ? 'red' : isQuote ? 'blue' : 'zinc'
               return (
-              <tr key={row.id} className={`${tableRowHover}${isRejected ? ' opacity-50' : ''}`}>
+              <tr
+                key={row.id}
+                onClick={() => onRowClick(row)}
+                className={`${tableRowHover} cursor-pointer${isRejected ? ' opacity-50' : ''}`}
+              >
                 <td className="whitespace-nowrap px-3 py-3 text-center text-muted">
                   {row.date ? formatDate(row.date) : '—'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
-                  <StatusBadge
-                    label={sourceLabel}
-                    variant={sourceVariant as 'zinc' | 'blue' | 'red'}
-                  />
+                  {quoteStatusBadge(row.quoteStatus)}
                 </td>
                 <td className="px-3 py-3 text-center text-ink">
                   {row.entityName}

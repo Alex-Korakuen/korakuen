@@ -639,6 +639,79 @@ export async function removeProjectBudget(projectId: string, category: string): 
   return {}
 }
 
+// --- Quote lifecycle ---
+
+function revalidateQuotePages() {
+  revalidatePath('/prices')
+  revalidatePath('/invoices')
+  revalidatePath('/projects', 'layout')
+  revalidatePath('/settlement')
+  revalidateFinancialPages()
+}
+
+export async function acceptQuote(invoiceId: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  const supabase = await createServerSupabaseClient()
+
+  const { data: inv, error: fetchErr } = await supabase
+    .from('invoices')
+    .select('quote_status')
+    .eq('id', invoiceId)
+    .single()
+  if (fetchErr) return { error: handleDbError(fetchErr, 'Invoice not found') }
+  if (inv.quote_status !== 'pending' && inv.quote_status !== 'rejected') {
+    return { error: 'Only pending or rejected quotes can be accepted' }
+  }
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({ quote_status: 'accepted' })
+    .eq('id', invoiceId)
+  if (error) return { error: handleDbError(error, 'Failed to accept quote') }
+
+  revalidateQuotePages()
+  return {}
+}
+
+export async function rejectQuote(invoiceId: string): Promise<{ error?: string }> {
+  const guard = await requireAdmin()
+  if (guard) return guard
+  const supabase = await createServerSupabaseClient()
+
+  const { data: inv, error: fetchErr } = await supabase
+    .from('invoices')
+    .select('quote_status')
+    .eq('id', invoiceId)
+    .single()
+  if (fetchErr) return { error: handleDbError(fetchErr, 'Invoice not found') }
+  if (inv.quote_status !== 'pending' && inv.quote_status !== 'accepted') {
+    return { error: 'Only pending or accepted quotes can be rejected' }
+  }
+
+  // Block rejection if the quote has been accepted and has payments
+  if (inv.quote_status === 'accepted') {
+    const { count } = await supabase
+      .from('payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('related_id', invoiceId)
+      .eq('related_to', 'invoice')
+      .eq('is_active', true)
+    if (count && count > 0) {
+      return { error: 'Cannot reject — this quote has been accepted and has payments registered' }
+    }
+  }
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({ quote_status: 'rejected' })
+    .eq('id', invoiceId)
+  if (error) return { error: handleDbError(error, 'Failed to reject quote') }
+
+  revalidateQuotePages()
+  return {}
+}
+
 // --- Loans ---
 
 export async function createLoan(data: {
@@ -911,102 +984,6 @@ export async function promotePhantomInvoice(
   if (error) return { error: handleDbError(error, 'Failed to promote invoice') }
 
   revalidateFinancialPages()
-  return {}
-}
-
-// --- Quote lifecycle actions ---
-
-export async function rejectQuote(
-  invoiceId: string,
-  reason?: string
-): Promise<{ error?: string }> {
-  const guard = await requireAdmin()
-  if (guard) return guard
-  const supabase = await createServerSupabaseClient()
-
-  // Validate: must be a pending quote
-  const { data: invoice, error: fetchErr } = await supabase
-    .from('invoices')
-    .select('id, comprobante_type, quote_status, notes')
-    .eq('id', invoiceId)
-    .eq('is_active', true)
-    .single()
-  if (fetchErr || !invoice) return { error: 'Invoice not found' }
-  if (invoice.comprobante_type !== 'pending') return { error: 'Only pending quotes can be rejected' }
-
-  // Validate: no payments registered
-  const { count } = await supabase
-    .from('payments')
-    .select('id', { count: 'exact', head: true })
-    .eq('related_to', 'invoice')
-    .eq('related_id', invoiceId)
-    .eq('is_active', true)
-  if ((count ?? 0) > 0) return { error: 'Cannot reject a quote that has payments' }
-
-  const updatedNotes = reason
-    ? [invoice.notes, `Rejected: ${reason}`].filter(Boolean).join('\n')
-    : invoice.notes
-
-  const { error } = await supabase
-    .from('invoices')
-    .update({ quote_status: 'rejected', is_active: false, notes: updatedNotes })
-    .eq('id', invoiceId)
-
-  if (error) return { error: handleDbError(error, 'Failed to reject quote') }
-
-  revalidateFinancialPages()
-  revalidatePath('/prices')
-  return {}
-}
-
-export async function mergeQuotes(
-  targetId: string,
-  sourceIds: string[]
-): Promise<{ error?: string }> {
-  const guard = await requireAdmin()
-  if (guard) return guard
-  if (sourceIds.length === 0) return { error: 'No sources to merge' }
-  const supabase = await createServerSupabaseClient()
-
-  // Validate target is a pending quote
-  const { data: target, error: targetErr } = await supabase
-    .from('invoices')
-    .select('id, comprobante_type, entity_id')
-    .eq('id', targetId)
-    .eq('is_active', true)
-    .single()
-  if (targetErr || !target) return { error: 'Target invoice not found' }
-  if (target.comprobante_type !== 'pending') return { error: 'Target must be a pending quote' }
-
-  // Validate all sources are pending quotes from same entity with 0 payments
-  for (const sourceId of sourceIds) {
-    const { data: source, error: srcErr } = await supabase
-      .from('v_invoice_balances')
-      .select('invoice_id, comprobante_type, entity_id, amount_paid')
-      .eq('invoice_id', sourceId)
-      .single()
-    if (srcErr || !source) return { error: `Source invoice ${sourceId} not found` }
-    if (source.comprobante_type !== 'pending') return { error: 'All sources must be pending quotes' }
-    if (source.entity_id !== target.entity_id) return { error: 'All sources must be from the same entity' }
-    if ((source.amount_paid ?? 0) > 0) return { error: 'Cannot merge quotes that have payments' }
-  }
-
-  // Move items from sources to target
-  const { error: moveErr } = await supabase
-    .from('invoice_items')
-    .update({ invoice_id: targetId })
-    .in('invoice_id', sourceIds)
-  if (moveErr) return { error: handleDbError(moveErr, 'Failed to move items') }
-
-  // Hard delete empty source invoices
-  const { error: deleteErr } = await supabase
-    .from('invoices')
-    .delete()
-    .in('id', sourceIds)
-  if (deleteErr) return { error: handleDbError(deleteErr, 'Failed to delete source invoices') }
-
-  revalidateFinancialPages()
-  revalidatePath('/prices')
   return {}
 }
 

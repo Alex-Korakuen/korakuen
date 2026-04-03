@@ -349,6 +349,7 @@ export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 
 export type PriceHistoryRow = {
   id: string
+  invoiceId: string
   date: string
   comprobanteType: string | null
   quoteStatus: string | null

@@ -367,6 +367,7 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     .eq('direction', 'payable')
     .eq('cost_type', 'project_cost')
     .eq('is_active', true)
+    .or('quote_status.is.null,quote_status.eq.accepted')
   if (itemsError) throw itemsError
 
   const actualCostsByCategory: Record<string, number> = {}
