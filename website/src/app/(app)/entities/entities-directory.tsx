@@ -4,14 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { formatCurrency, formatEntityType } from '@/lib/formatters'
-import { SearchInput } from '@/components/ui/search-input'
-import { FilterSelect } from '@/components/ui/filter-select'
+import { FilterBar } from '@/components/ui/filter-bar'
 import { Pagination } from '@/components/ui/pagination'
 import { HeaderPortal } from '@/components/ui/header-portal'
-import { useUrlFilters } from '@/lib/use-url-filters'
 import { FK } from '@/lib/filter-keys'
 import { SectionCard } from '@/components/ui/section-card'
-import { btnPrimary, tableHead, tableRowHover, selectClass } from '@/lib/styles'
+import { btnPrimary, tableHead, tableRowHover } from '@/lib/styles'
 import { tagColor } from './helpers'
 import type { EntityDirectoryItem, EntitiesFilterOptions } from '@/lib/types'
 
@@ -40,7 +38,6 @@ export function EntitiesDirectory({
   filterOptions,
   currentFilters,
 }: Props) {
-  const { setFilter } = useUrlFilters()
   const [showCreate, setShowCreate] = useState(false)
 
   return (
@@ -54,46 +51,17 @@ export function EntitiesDirectory({
         </button>
       </HeaderPortal>
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="w-64">
-          <SearchInput
-            placeholder="Search by name or document..."
-            defaultValue={currentFilters.search}
-          />
-        </div>
-        <FilterSelect
-          label="Type"
-          value={currentFilters.entityType}
-          onChange={(v) => setFilter(FK.entityType, v)}
-          options={[
-            { value: 'company', label: 'Company' },
-            { value: 'individual', label: 'Individual' },
-          ]}
-          placeholder="All Types"
-        />
-        <FilterSelect
-          label="Tag"
-          value={currentFilters.tagId}
-          onChange={(v) => setFilter(FK.tagId, v)}
-          options={filterOptions.tags.map((t) => ({ value: t.id, label: t.name }))}
-          placeholder="All Tags"
-        />
-        <FilterSelect
-          label="City"
-          value={currentFilters.city}
-          onChange={(v) => setFilter(FK.city, v)}
-          options={filterOptions.cities.map((c) => ({ value: c, label: c }))}
-          placeholder="All Cities"
-        />
-        <FilterSelect
-          label="Region"
-          value={currentFilters.region}
-          onChange={(v) => setFilter(FK.region, v)}
-          options={filterOptions.regions.map((r) => ({ value: r, label: r }))}
-          placeholder="All Regions"
-        />
-      </div>
+      <FilterBar
+        currentFilters={currentFilters}
+        className="mb-4 flex flex-wrap items-end gap-3"
+        filters={[
+          { type: 'search', placeholder: 'Search by name or document...', width: 'w-64' },
+          { type: 'select', key: FK.entityType, label: 'Type', options: [{ value: 'company', label: 'Company' }, { value: 'individual', label: 'Individual' }], placeholder: 'All Types' },
+          { type: 'select', key: FK.tagId, label: 'Tag', options: filterOptions.tags.map(t => ({ value: t.id, label: t.name })), placeholder: 'All Tags' },
+          { type: 'select', key: FK.city, label: 'City', options: filterOptions.cities.map(c => ({ value: c, label: c })), placeholder: 'All Cities' },
+          { type: 'select', key: FK.region, label: 'Region', options: filterOptions.regions.map(r => ({ value: r, label: r })), placeholder: 'All Regions' },
+        ]}
+      />
 
       {/* Directory table */}
       <SectionCard>

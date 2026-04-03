@@ -7,9 +7,11 @@ type Props = {
   paramName?: string
   placeholder?: string
   defaultValue?: string
+  label?: string        // default "Search", pass "" to hide
+  showButton?: boolean  // default true
 }
 
-export function SearchInput({ paramName = 'search', placeholder = 'Search…', defaultValue = '' }: Props) {
+export function SearchInput({ paramName = 'search', placeholder = 'Search…', defaultValue = '', label = 'Search', showButton = true }: Props) {
   const [value, setValue] = useState(defaultValue)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -28,7 +30,7 @@ export function SearchInput({ paramName = 'search', placeholder = 'Search…', d
 
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-muted">Search</label>
+      {label && <label className="text-xs font-medium text-muted">{label}</label>}
       <div className="flex gap-1">
         <input
           type="text"
@@ -38,12 +40,14 @@ export function SearchInput({ paramName = 'search', placeholder = 'Search…', d
           placeholder={placeholder}
           className="w-full rounded border border-edge bg-white px-3 py-1.5 text-sm text-ink"
         />
-        <button
-          onClick={submit}
-          className="rounded border border-edge bg-white px-3 py-1.5 text-sm text-muted hover:bg-surface"
-        >
-          Go
-        </button>
+        {showButton && (
+          <button
+            onClick={submit}
+            className="rounded border border-edge bg-white px-3 py-1.5 text-sm text-muted hover:bg-surface"
+          >
+            Go
+          </button>
+        )}
       </div>
     </div>
   )

@@ -3,8 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useUrlFilters } from '@/lib/use-url-filters'
-import { FK, hasActiveFilters } from '@/lib/filter-keys'
+import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importInvoices } from '@/lib/import-actions'
 import { Modal } from '@/components/ui/modal'
@@ -15,7 +14,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { SectionCard } from '@/components/ui/section-card'
 
 const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m => ({ default: m.ImportModal })))
-import { InvoicesFilters } from './invoices-filters'
+import { FilterBar } from '@/components/ui/filter-bar'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
 import { LoanExpandContent } from './loan-expand-content'
@@ -62,8 +61,6 @@ export function InvoicesClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
-  const { setFilter, clearFilters } = useUrlFilters()
-
   const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -78,13 +75,6 @@ export function InvoicesClient({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
-
-  const filtersActive = hasActiveFilters(currentFilters)
-
-  const handleClearFilters = () => clearFilters([
-    FK.month, FK.partner, FK.project, FK.category, FK.entity,
-    FK.direction, FK.type, FK.status,
-  ])
 
   const fetchDetail = useCallback(async (row: InvoicesPageRow) => {
     setModalDetail(null)
@@ -140,15 +130,27 @@ export function InvoicesClient({
         <ImportButton onClick={() => setShowImport(true)} />
       </HeaderPortal>
 
-      <InvoicesFilters
+      <FilterBar
         currentFilters={currentFilters}
-        setFilter={setFilter}
-        projects={projects}
-        partners={partners}
-        uniqueEntities={uniqueEntities}
-        uniqueCategories={uniqueCategories}
-        hasActiveFilters={filtersActive}
-        onClearFilters={handleClearFilters}
+        clearKeys={[FK.month, FK.partner, FK.project, FK.category, FK.entity, FK.direction, FK.type, FK.status]}
+        filters={[
+          { type: 'month', key: FK.month },
+          { type: 'select', key: FK.partner, options: partners.map(p => ({ value: p.id, label: p.name })), placeholder: 'All partners' },
+          { type: 'select', key: FK.project, options: projects.map(p => ({ value: p.id, label: p.project_code })), placeholder: 'All projects' },
+          { type: 'select', key: FK.category, options: uniqueCategories, placeholder: 'All categories' },
+          { type: 'select', key: FK.entity, options: uniqueEntities.map(n => ({ value: n, label: n })), placeholder: 'All entities' },
+          {
+            type: 'select', key: FK.direction,
+            value: currentFilters.direction || currentFilters.type,
+            onChange: (v, { setFilters }) => {
+              if (v === 'loan') setFilters({ [FK.direction]: '', [FK.type]: 'loan' })
+              else setFilters({ [FK.type]: '', [FK.direction]: v })
+            },
+            options: [{ value: 'payable', label: 'Outflow' }, { value: 'receivable', label: 'Inflow' }, { value: 'loan', label: 'Loan' }],
+            placeholder: 'All directions',
+          },
+          { type: 'select', key: FK.status, options: [{ value: 'pending', label: 'Pending' }, { value: 'partial', label: 'Partial' }, { value: 'paid', label: 'Paid' }, { value: 'overdue', label: 'Overdue' }], placeholder: 'All statuses' },
+        ]}
       />
 
       <SectionCard className="mt-4 overflow-hidden">

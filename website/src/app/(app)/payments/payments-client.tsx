@@ -3,8 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { useUrlFilters } from '@/lib/use-url-filters'
-import { FK, hasActiveFilters } from '@/lib/filter-keys'
+import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
@@ -15,7 +14,7 @@ import { HeaderPortal } from '@/components/ui/header-portal'
 import { ImportButton } from '@/components/ui/import-button'
 import { Pagination } from '@/components/ui/pagination'
 import { SectionCard } from '@/components/ui/section-card'
-import { PaymentsFilters } from './payments-filters'
+import { FilterBar } from '@/components/ui/filter-bar'
 import { PaymentsTable } from './payments-table'
 import { PaymentExpandContent } from './payment-expand-content'
 import { getDirectionColorClass, getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
@@ -60,8 +59,6 @@ export function PaymentsClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
-  const { setFilter, clearFilters } = useUrlFilters()
-
   const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -77,13 +74,6 @@ export function PaymentsClient({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
-
-  const filtersActive = hasActiveFilters(currentFilters)
-
-  const handleClearFilters = () => clearFilters([
-    FK.month, FK.partner, FK.project, FK.category, FK.entity, FK.bank,
-    FK.direction, FK.type,
-  ])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
     setModalRow(row)
@@ -146,16 +136,18 @@ export function PaymentsClient({
         <ImportButton onClick={() => setShowImport(true)} />
       </HeaderPortal>
 
-      <PaymentsFilters
+      <FilterBar
         currentFilters={currentFilters}
-        setFilter={setFilter}
-        projects={projects}
-        bankAccounts={bankAccounts}
-        partners={partners}
-        categories={categories}
-        entities={entities}
-        hasActiveFilters={filtersActive}
-        onClearFilters={handleClearFilters}
+        filters={[
+          { type: 'month', key: FK.month },
+          { type: 'select', key: FK.partner, options: partners.map(p => ({ value: p.id, label: p.label })), placeholder: 'All partners' },
+          { type: 'select', key: FK.project, options: projects.map(p => ({ value: p.id, label: p.project_code })), placeholder: 'All projects' },
+          { type: 'select', key: FK.category, options: categories, placeholder: 'All categories' },
+          { type: 'select', key: FK.entity, options: entities, placeholder: 'All entities' },
+          { type: 'select', key: FK.bank, options: bankAccounts.map(b => ({ value: b.id, label: b.label })), placeholder: 'All banks' },
+          { type: 'select', key: FK.direction, options: [{ value: 'outbound', label: 'Outflow' }, { value: 'inbound', label: 'Inflow' }], placeholder: 'All directions' },
+          { type: 'select', key: FK.type, options: [{ value: 'regular', label: 'Regular' }, { value: 'detraccion', label: 'Detracción' }, { value: 'retencion', label: 'Retención' }], placeholder: 'All types' },
+        ]}
       />
 
       {/* Table card: table + footer summary + pagination */}

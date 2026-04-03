@@ -2,15 +2,14 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUrlFilters } from '@/lib/use-url-filters'
+import { FilterBar } from '@/components/ui/filter-bar'
 import { getCalendarBucket } from '@/lib/date-utils'
-import { FK, hasActiveFilters } from '@/lib/filter-keys'
+import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { Modal } from '@/components/ui/modal'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
 import { LoanExpandContent } from '../invoices/loan-expand-content'
-import { CalendarFilters } from './calendar-filters'
 import { CalendarTable } from './calendar-table'
 import type {
   Currency,
@@ -99,18 +98,12 @@ export function CalendarClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
-  const { setFilter, clearFilters } = useUrlFilters()
-
   // Modal state
   const [modalRow, setModalRow] = useState<ObligationCalendarRow | null>(null)
   const [modalPageRow, setModalPageRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
-
-  const filtersActive = hasActiveFilters(currentFilters)
-
-  const handleClearFilters = () => clearFilters([FK.project, FK.entity, FK.type, FK.currency, FK.search])
 
   const fetchDetail = useCallback(async (row: ObligationCalendarRow) => {
     setModalDetail(null)
@@ -215,13 +208,16 @@ export function CalendarClient({
 
   return (
     <div className="pb-16">
-      <CalendarFilters
+      <FilterBar
         currentFilters={currentFilters}
-        setFilter={setFilter}
-        projects={projects}
-        uniqueEntities={uniqueEntities}
-        hasActiveFilters={filtersActive}
-        onClearFilters={handleClearFilters}
+        className="mt-4 flex items-end gap-2"
+        filters={[
+          { type: 'select', key: FK.type, label: 'Type', options: [{ value: 'commercial', label: 'Commercial' }, { value: 'loan', label: 'Loan' }], placeholder: 'All types' },
+          { type: 'select', key: FK.project, label: 'Project', options: projects.map(p => ({ value: p.id, label: p.project_code })), placeholder: 'All projects' },
+          { type: 'select', key: FK.entity, label: 'Entity', options: uniqueEntities.map(n => ({ value: n, label: n })), placeholder: 'All entities' },
+          { type: 'select', key: FK.currency, label: 'Currency', options: [{ value: 'PEN', label: 'PEN' }, { value: 'USD', label: 'USD' }], placeholder: 'All' },
+          { type: 'search', placeholder: 'Search title…' },
+        ]}
       />
 
       <CalendarTable groups={groups} grandTotals={grandTotals} onRowClick={handleRowClick} />
