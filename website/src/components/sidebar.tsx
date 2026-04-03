@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useSidebar } from '@/lib/sidebar-context'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { createClient } from '@/lib/supabase/client'
+import { APP_NAME_UPPER, APP_NAME_SHORT } from '@/lib/constants'
 
 interface NavItem {
   label: string
@@ -195,7 +196,7 @@ export function Sidebar({ partnerName }: SidebarProps) {
         {/* Sidebar header */}
         <div className="flex h-14 items-center justify-between border-b border-edge px-4">
           <span className="text-lg font-bold tracking-widest text-ink">
-            {collapsed ? 'K' : 'KORAKUEN'}
+            {collapsed ? APP_NAME_SHORT : APP_NAME_UPPER}
           </span>
           <div className="flex items-center gap-1">
             {/* Collapse toggle (desktop only, visible when expanded) */}

@@ -5,6 +5,7 @@ import { formatCurrency, formatCurrencyCompact, formatPercentage } from '@/lib/f
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
+import { COMPANY_IDENTIFIER } from '@/lib/constants'
 import type {
   ProjectListItem,
   SettlementDashboardData,
@@ -30,6 +31,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
   const [selectedIds, setSelectedIds] = useState<string[]>(initialProjectIds)
   const [data, setData] = useState(initialData)
   const [isPending, startTransition] = useTransition()
+  const [fetchError, setFetchError] = useState(false)
 
   const projectOptions = projects.map(p => ({
     value: p.id,
@@ -44,10 +46,12 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
   function refreshData(ids: string[]) {
     startTransition(async () => {
       try {
+        setFetchError(false)
         const result = await fetchSettlement(ids)
         setData(result)
       } catch (err) {
         console.error('Failed to refresh settlement data:', err)
+        setFetchError(true)
       }
     })
   }
@@ -70,6 +74,13 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
           placeholder="All projects"
         />
       </div>
+
+      {/* Error banner */}
+      {fetchError && (
+        <div className="mb-4 rounded-lg border border-negative/30 bg-negative-bg px-4 py-3 text-sm text-negative">
+          Failed to refresh settlement data. Showing last loaded results.
+        </div>
+      )}
 
       {/* Summary strip */}
       <div className={`mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-[10px] border border-edge bg-edge ${isPending ? 'opacity-60' : ''}`}>
@@ -99,7 +110,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
             </thead>
             <tbody className="divide-y divide-edge">
               {partners.map(p => {
-                const isYou = p.partnerName.toLowerCase().includes('korakuen')
+                const isYou = p.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
                 return (
                   <tr key={p.partnerId} className="transition-colors hover:bg-accent-bg">
                     <td className="px-4 py-3">

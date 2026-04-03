@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { SectionCard } from '@/components/ui/section-card'
+import { APP_NAME_UPPER } from '@/lib/constants'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -13,7 +14,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <SectionCard className="px-8 py-10">
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold tracking-widest text-ink">
-              KORAKUEN
+              {APP_NAME_UPPER}
             </h1>
             <p className="mt-1 text-sm text-muted">Management System</p>
           </div>

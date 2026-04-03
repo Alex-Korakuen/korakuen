@@ -37,7 +37,7 @@ WITH item_sums AS (
   WHERE i.is_active = true
   GROUP BY
     i.id, i.direction, i.project_id, i.partner_id,
-    i.entity_id, i.quote_id, i.purchase_order_id, i.cost_type,
+    i.entity_id, i.quote_status, i.purchase_order_id, i.cost_type,
     i.title, i.invoice_number, i.invoice_date, i.due_date,
     i.igv_rate, i.detraccion_rate, i.retencion_applicable,
     i.retencion_rate, i.retencion_verified, i.currency,
@@ -56,7 +56,7 @@ SELECT
   project_id,
   partner_id,
   entity_id,
-  quote_id,
+  quote_status,
   purchase_order_id,
   cost_type,
   title,

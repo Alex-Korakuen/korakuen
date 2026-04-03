@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // If code is missing or exchange failed, redirect to login
-  return NextResponse.redirect(`${origin}/login`)
+  // If code is missing or exchange failed, redirect to login with error hint
+  const reason = code ? 'auth_exchange_failed' : 'missing_code'
+  return NextResponse.redirect(`${origin}/login?error=${reason}`)
 }

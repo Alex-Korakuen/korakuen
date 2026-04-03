@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { FormInput } from '@/components/ui/form-input'
-import { validatePassword } from '@/lib/validate-password'
+import { validatePassword, PASSWORD_HINT } from '@/lib/validate-password'
 import { SectionCard } from '@/components/ui/section-card'
 import { btnAuthPrimary } from '@/lib/styles'
 
@@ -63,7 +63,7 @@ export default function ChangePasswordPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder={PASSWORD_HINT}
           />
 
           <FormInput

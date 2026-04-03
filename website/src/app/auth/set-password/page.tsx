@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DEFAULT_ROUTE } from '@/lib/constants'
 import { AuthLayout } from '@/components/auth-layout'
 import { FormInput } from '@/components/ui/form-input'
-import { validatePassword } from '@/lib/validate-password'
+import { validatePassword, PASSWORD_HINT } from '@/lib/validate-password'
 import { btnAuthPrimary } from '@/lib/styles'
 
 export default function SetPasswordPage() {
@@ -64,7 +64,7 @@ export default function SetPasswordPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="new-password"
-          placeholder="At least 8 characters"
+          placeholder={PASSWORD_HINT}
         />
 
         <FormInput

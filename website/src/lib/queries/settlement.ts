@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { DEFAULT_CURRENCY, round2, convertToPen } from './shared'
+import { COMPANY_IDENTIFIER } from '../constants'
 import type {
   SettlementDashboardData,
   SettlementPartnerRow,
@@ -165,8 +166,8 @@ export async function getSettlementDashboard(
 
   // Sort: Korakuen (you) last, others alphabetically
   partners.sort((a, b) => {
-    const aIsYou = a.partnerName.toLowerCase().includes('korakuen')
-    const bIsYou = b.partnerName.toLowerCase().includes('korakuen')
+    const aIsYou = a.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
+    const bIsYou = b.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
     if (aIsYou && !bIsYou) return 1
     if (!aIsYou && bIsYou) return -1
     return a.partnerName.localeCompare(b.partnerName)

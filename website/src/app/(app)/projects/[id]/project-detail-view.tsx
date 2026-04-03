@@ -20,6 +20,7 @@ import { updateProjectField, setProjectPartners } from '@/lib/actions'
 
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
+import { COMPANY_IDENTIFIER } from '@/lib/constants'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -341,7 +342,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
       <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
       <div className="flex flex-wrap items-center gap-2">
         {partners.map((p) => {
-          const isYou = p.partnerName.toLowerCase().includes('korakuen')
+          const isYou = p.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
           return (
             <button
               key={p.id}
