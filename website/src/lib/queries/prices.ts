@@ -157,6 +157,7 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
       .from('entities')
       .select('id, legal_name')
       .in('id', entityIds)
+      .eq('is_active', true)
       .order('legal_name')
     if (error) throw error
     entities = (data ?? []).map(e => ({ id: e.id, name: e.legal_name }))

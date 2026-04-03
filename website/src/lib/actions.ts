@@ -59,6 +59,7 @@ async function validateBankCurrency(
     .from('bank_accounts')
     .select('currency')
     .eq('id', bankAccountId)
+    .eq('is_active', true)
     .single()
   if (!bankAccount) return 'Bank account not found'
   if (bankAccount.currency !== expectedCurrency) return 'Bank account currency does not match payment currency'
@@ -285,6 +286,7 @@ export async function removeEntityContact(contactId: string): Promise<{ error?: 
     .from('entity_contacts')
     .update({ is_active: false })
     .eq('id', contactId)
+    .eq('is_active', true)
   if (error) return { error: handleDbError(error, 'Failed to remove contact') }
   revalidatePath('/entities')
   return {}

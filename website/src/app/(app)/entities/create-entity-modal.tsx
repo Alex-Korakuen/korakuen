@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useCallback } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { createEntity } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
+import { useModalForm } from '@/lib/use-modal-form'
 
 type Props = {
   isOpen: boolean
@@ -20,9 +21,6 @@ const DOC_TYPES_BY_ENTITY: Record<EntityType, DocumentType[]> = {
 }
 
 export function CreateEntityModal({ isOpen, onClose }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<{ message: string; field?: string } | null>(null)
-
   const [entityType, setEntityType] = useState<'company' | 'individual'>('company')
   const [documentType, setDocumentType] = useState<'RUC' | 'DNI' | 'CE' | 'Pasaporte'>('RUC')
   const [documentNumber, setDocumentNumber] = useState('')
@@ -31,7 +29,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
   const [region, setRegion] = useState('')
   const [notes, setNotes] = useState('')
 
-  function resetForm() {
+  const resetFields = useCallback(() => {
     setEntityType('company')
     setDocumentType('RUC')
     setDocumentNumber('')
@@ -39,13 +37,9 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
     setCity('')
     setRegion('')
     setNotes('')
-    setError(null)
-  }
+  }, [])
 
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
+  const { isPending, error, setError, handleClose, submit } = useModalForm<{ message: string; field?: string }>(onClose, resetFields)
 
   function handleEntityTypeChange(type: EntityType) {
     setEntityType(type)
@@ -57,9 +51,7 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
 
   function handleSubmit() {
     if (!documentNumber.trim() || !legalName.trim()) return
-    setError(null)
-
-    startTransition(async () => {
+    submit(async () => {
       const result = await createEntity({
         entity_type: entityType,
         document_type: documentType,
@@ -69,11 +61,8 @@ export function CreateEntityModal({ isOpen, onClose }: Props) {
         region: region.trim() || undefined,
         notes: notes.trim() || undefined,
       })
-      if (result.error) {
-        setError({ message: result.error, field: result.field })
-      } else {
-        handleClose()
-      }
+      if (result.error) return { error: { message: result.error, field: result.field } }
+      return {}
     })
   }
 

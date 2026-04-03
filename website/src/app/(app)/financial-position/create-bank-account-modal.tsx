@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useCallback } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { createBankAccount } from '@/lib/actions'
 import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
+import { useModalForm } from '@/lib/use-modal-form'
 
 type Props = {
   isOpen: boolean
@@ -14,9 +15,6 @@ type Props = {
 }
 
 export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
   const [partnerId, setPartnerId] = useState('')
   const [bankName, setBankName] = useState('')
   const [last4, setLast4] = useState('')
@@ -26,20 +24,16 @@ export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
 
   const isDetraccion = accountType === 'detraccion'
 
-  function resetForm() {
+  const resetFields = useCallback(() => {
     setPartnerId('')
     setBankName('')
     setLast4('')
     setLabel('')
     setAccountType('checking')
     setCurrency('PEN')
-    setError(null)
-  }
+  }, [])
 
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
+  const { isPending, error, handleClose, submit } = useModalForm(onClose, resetFields)
 
   // Auto-suggest label when bank name and last4 change
   function updateLabel(newBankName: string, newLast4: string) {
@@ -50,9 +44,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
 
   function handleSubmit() {
     if (!partnerId || !bankName.trim() || last4.length !== 4 || !label.trim()) return
-    setError(null)
-
-    startTransition(async () => {
+    submit(async () => {
       const result = await createBankAccount({
         partner_id: partnerId,
         bank_name: bankName.trim(),
@@ -62,11 +54,8 @@ export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
         currency,
         is_detraccion_account: isDetraccion,
       })
-      if (result.error) {
-        setError(result.error)
-      } else {
-        handleClose()
-      }
+      if (result.error) return { error: result.error }
+      return {}
     })
   }
 

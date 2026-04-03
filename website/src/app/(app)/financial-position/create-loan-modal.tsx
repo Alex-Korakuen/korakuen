@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
@@ -10,6 +10,7 @@ import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
 import { todayISO } from '@/lib/date-utils'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
+import { useModalForm } from '@/lib/use-modal-form'
 
 type Props = {
   isOpen: boolean
@@ -19,9 +20,6 @@ type Props = {
 }
 
 export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
   const [partnerId, setPartnerId] = useState('')
   const [entityId, setEntityId] = useState<string | null>(null)
   const [entityName, setEntityName] = useState<string | null>(null)
@@ -38,18 +36,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
   const [operationNumber, setOperationNumber] = useState('')
   const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
 
-  // Auto-fetch exchange rate when date changes
-  const exchangeRate = useExchangeRate(dateBorrowed, isOpen)
-
-  // Auto-fetch bank accounts when partner changes
-  useEffect(() => {
-    if (!isOpen || !partnerId) { setBankAccounts([]); setBankAccountId(''); return }
-    fetchBankAccountsForPayment(partnerId)
-      .then(accts => setBankAccounts(accts))
-      .catch((err) => { console.error('Failed to load bank accounts:', err); setBankAccounts([]) })
-  }, [partnerId, isOpen])
-
-  function resetForm() {
+  const resetFields = useCallback(() => {
     setPartnerId('')
     setEntityId(null)
     setEntityName(null)
@@ -65,13 +52,20 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
     setBankAccountId('')
     setOperationNumber('')
     setBankAccounts([])
-    setError(null)
-  }
+  }, [])
 
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
+  const { isPending, error, setError, handleClose, submit } = useModalForm(onClose, resetFields)
+
+  // Auto-fetch exchange rate when date changes
+  const exchangeRate = useExchangeRate(dateBorrowed, isOpen)
+
+  // Auto-fetch bank accounts when partner changes
+  useEffect(() => {
+    if (!isOpen || !partnerId) { setBankAccounts([]); setBankAccountId(''); return }
+    fetchBankAccountsForPayment(partnerId)
+      .then(accts => setBankAccounts(accts))
+      .catch((err) => { console.error('Failed to load bank accounts:', err); setBankAccounts([]) })
+  }, [partnerId, isOpen])
 
   function handleSubmit() {
     const parsedAmount = parseFloat(amount)
@@ -80,9 +74,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
       setError('Exchange rate not available for this date')
       return
     }
-    setError(null)
-
-    startTransition(async () => {
+    submit(async () => {
       const result = await createLoan({
         partner_id: partnerId,
         entity_id: entityId,
@@ -100,12 +92,8 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
         bank_account_id: bankAccountId || undefined,
         operation_number: operationNumber.trim(),
       })
-
-      if (result.error) {
-        setError(result.error)
-      } else {
-        handleClose()
-      }
+      if (result.error) return { error: result.error }
+      return {}
     })
   }
 

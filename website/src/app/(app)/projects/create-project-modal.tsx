@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useCallback } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
@@ -8,6 +8,7 @@ import { createProject } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
 import { formatPercentage } from '@/lib/formatters'
 import type { Currency, PartnerOption } from '@/lib/types'
+import { useModalForm } from '@/lib/use-modal-form'
 
 type PartnerEntry = { partnerId: string; profitSharePct: string }
 
@@ -18,9 +19,6 @@ type Props = {
 }
 
 export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
   const [name, setName] = useState('')
   const [projectType, setProjectType] = useState<'subcontractor' | 'oxi'>('subcontractor')
   const [status, setStatus] = useState<'prospect' | 'active' | 'completed' | 'cancelled'>('prospect')
@@ -33,6 +31,23 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [partners, setPartners] = useState<PartnerEntry[]>([])
+
+  const resetFields = useCallback(() => {
+    setName('')
+    setProjectType('subcontractor')
+    setStatus('prospect')
+    setClientEntityId(null)
+    setClientName(null)
+    setContractValue('')
+    setContractCurrency('PEN')
+    setStartDate('')
+    setExpectedEndDate('')
+    setLocation('')
+    setNotes('')
+    setPartners([])
+  }, [])
+
+  const { isPending, error, handleClose, submit } = useModalForm(onClose, resetFields)
 
   const partnerTotal = partners.reduce((s, p) => s + (parseFloat(p.profitSharePct) || 0), 0)
   const availablePartners = partnerOptions.filter(po => !partners.some(p => p.partnerId === po.id))
@@ -50,30 +65,8 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
     setPartners(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p))
   }
 
-  function resetForm() {
-    setName('')
-    setProjectType('subcontractor')
-    setStatus('prospect')
-    setClientEntityId(null)
-    setClientName(null)
-    setContractValue('')
-    setContractCurrency('PEN')
-    setStartDate('')
-    setExpectedEndDate('')
-    setLocation('')
-    setNotes('')
-    setPartners([])
-    setError(null)
-  }
-
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
-
   function handleSubmit() {
     if (!name.trim()) return
-    setError(null)
 
     const parsedValue = contractValue ? parseFloat(contractValue) : undefined
 
@@ -81,7 +74,7 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
       ? partners.map(p => ({ partnerId: p.partnerId, profitSharePct: parseFloat(p.profitSharePct) || 0 }))
       : undefined
 
-    startTransition(async () => {
+    submit(async () => {
       const result = await createProject({
         name: name.trim(),
         project_type: projectType,
@@ -95,11 +88,8 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
         notes: notes.trim() || undefined,
         partners: parsedPartners,
       })
-      if (result.error) {
-        setError(result.error)
-      } else {
-        handleClose()
-      }
+      if (result.error) return { error: result.error }
+      return {}
     })
   }
 
