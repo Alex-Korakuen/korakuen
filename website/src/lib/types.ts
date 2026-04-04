@@ -222,18 +222,6 @@ export type ProjectPartnerRow = {
   profitSharePct: number
 }
 
-// Settlement data for each partner within a project (all in PEN at transaction-date rates)
-export type ProjectPartnerSettlement = {
-  partnerId: string
-  partnerName: string
-  profitSharePct: number
-  costsContributed: number   // project costs paid by this partner
-  revenueReceived: number    // actual AR payments received
-  profit: number             // revenueReceived - costsContributed
-  shouldReceive: number      // their profit_share_pct x total project profit
-  balance: number            // shouldReceive - profit (positive = owed, negative = overpaid)
-}
-
 export type ProjectDetailData = {
   project: Project
   clientName: string | null
@@ -241,7 +229,6 @@ export type ProjectDetailData = {
   budget: BudgetVsActualRow[]
   actualCostsByCategory: Record<string, number>
   partners: ProjectPartnerRow[]
-  partnerSettlements: ProjectPartnerSettlement[]
 }
 
 // --- Settlement dashboard types ---

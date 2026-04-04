@@ -8,7 +8,6 @@ import type {
   ProjectDetailData,
   ProjectEntitySummary,
   ProjectPartnerRow,
-  ProjectPartnerSettlement,
 } from '../types'
 
 export async function getProjectsList(): Promise<ProjectListItem[]> {
@@ -266,90 +265,6 @@ async function buildProjectPartnerRows(
   }))
 }
 
-/** Compute per-partner costs contributed, AR received, profit, and settlement balance. */
-async function computeProjectPartnerSettlements(
-  supabase: SupabaseClient,
-  projectId: string,
-  partners: ProjectPartnerRow[],
-): Promise<ProjectPartnerSettlement[]> {
-  if (partners.length === 0) return []
-
-  // Costs per partner (project_cost only; excludes SGA and intercompany)
-  const { data: costTotals, error: costErr } = await supabase
-    .from('v_invoice_totals')
-    .select('partner_id, subtotal, currency, exchange_rate')
-    .eq('direction', 'payable')
-    .eq('project_id', projectId)
-    .eq('cost_type', 'project_cost')
-  if (costErr) throw costErr
-
-  const costsByPartner = new Map<string, number>()
-  for (const ct of costTotals ?? []) {
-    if (!ct.partner_id) continue
-    const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
-    costsByPartner.set(ct.partner_id, (costsByPartner.get(ct.partner_id) ?? 0) + amountPen)
-  }
-
-  // AR payments per partner — exclude intercompany receivables so settlement math matches settlement.ts
-  const { data: projectReceivables, error: recvError } = await supabase
-    .from('invoices')
-    .select('id, partner_id, currency, cost_type')
-    .eq('direction', 'receivable')
-    .eq('project_id', projectId)
-    .eq('is_active', true)
-  if (recvError) throw recvError
-
-  const nonIntercompanyReceivables = (projectReceivables ?? []).filter(r => r.cost_type !== 'intercompany')
-  const receivableIds = nonIntercompanyReceivables.map(r => r.id)
-  const receivedByPartner = new Map<string, number>()
-
-  if (receivableIds.length > 0) {
-    const { data: arPayments, error: arPmtError } = await supabase
-      .from('payments')
-      .select('related_id, amount, currency, exchange_rate')
-      .in('related_id', receivableIds)
-      .eq('related_to', 'invoice')
-      .eq('is_active', true)
-    if (arPmtError) throw arPmtError
-
-    const receivablePartnerMap = new Map<string, { partner_id: string; currency: string }>()
-    for (const inv of nonIntercompanyReceivables) {
-      if (inv.partner_id) {
-        receivablePartnerMap.set(inv.id, { partner_id: inv.partner_id, currency: inv.currency })
-      }
-    }
-    for (const p of arPayments ?? []) {
-      const invInfo = receivablePartnerMap.get(p.related_id)
-      if (!invInfo) continue
-      const paymentCurrency = p.currency ?? invInfo.currency
-      const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
-      receivedByPartner.set(invInfo.partner_id, (receivedByPartner.get(invInfo.partner_id) ?? 0) + amountPen)
-    }
-  }
-
-  const totalCosts = [...costsByPartner.values()].reduce((sum, v) => sum + v, 0)
-  const totalRevenue = [...receivedByPartner.values()].reduce((sum, v) => sum + v, 0)
-  const totalProjectProfit = totalRevenue - totalCosts
-
-  return partners.map(p => {
-    const costsContributed = costsByPartner.get(p.partnerId) ?? 0
-    const revenueReceived = receivedByPartner.get(p.partnerId) ?? 0
-    const profit = round2(revenueReceived - costsContributed)
-    const shouldReceive = round2(totalProjectProfit * (p.profitSharePct / 100))
-    const balance = round2(shouldReceive - profit)
-    return {
-      partnerId: p.partnerId,
-      partnerName: p.partnerName,
-      profitSharePct: p.profitSharePct,
-      costsContributed,
-      revenueReceived: round2(revenueReceived),
-      profit,
-      shouldReceive,
-      balance,
-    }
-  })
-}
-
 /** Sum actual costs per category in PEN for a project's payable invoices. */
 async function fetchActualCostsByCategory(
   supabase: SupabaseClient,
@@ -398,7 +313,6 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     buildProjectPartnerRows(supabase, ppResult.data ?? []),
     fetchActualCostsByCategory(supabase, projectId),
   ])
-  const partnerSettlements = await computeProjectPartnerSettlements(supabase, projectId, partners)
 
   return {
     project,
@@ -407,6 +321,5 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     budget: (budgetResult.data ?? []) as typeof budgetResult.data & { length: number },
     actualCostsByCategory,
     partners,
-    partnerSettlements,
   }
 }
