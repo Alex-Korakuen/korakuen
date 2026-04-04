@@ -3,6 +3,7 @@
 import { useState, useRef, useTransition, useCallback } from 'react'
 import { addEntityTag, removeEntityTag } from '@/lib/actions'
 import { useClickOutside } from '@/lib/use-click-outside'
+import { useAuth } from '@/lib/auth-context'
 import { tagColor } from './helpers'
 import type { EntityTagItem } from '@/lib/types'
 
@@ -13,6 +14,7 @@ type Props = {
 }
 
 export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Props) {
+  const { isAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -45,17 +47,19 @@ export function EntityTagsDropdown({ entityId, currentTags, availableTags }: Pro
             {tag.name}
           </span>
         ))}
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="inline-flex items-center rounded-full border border-dashed border-edge-strong px-2 py-0.5 text-xs text-faint transition-colors hover:border-faint hover:text-muted"
-        >
-          {currentTags.length === 0 ? '+ Add tags' : 'Edit'}
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="inline-flex items-center rounded-full border border-dashed border-edge-strong px-2 py-0.5 text-xs text-faint transition-colors hover:border-faint hover:text-muted"
+          >
+            {currentTags.length === 0 ? '+ Add tags' : 'Edit'}
+          </button>
+        )}
       </div>
 
       {/* Dropdown */}
-      {open && (
+      {isAdmin && open && (
         <div className="absolute left-0 z-20 mt-1 w-56 rounded-lg border border-edge bg-white py-1 shadow-lg">
           <div className="max-h-60 overflow-y-auto">
             {availableTags.map((tag) => {

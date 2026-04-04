@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/partner-allocation-editor'
 import { EmptyState } from '@/components/ui/empty-state'
 import { LocalPagination } from '@/components/ui/local-pagination'
+import { useAuth } from '@/lib/auth-context'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -172,6 +173,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
   partnerOptions: PartnerOption[]
 }) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [editing, setEditing] = useState(false)
   const [entries, setEntries] = useState<PartnerEntry[]>([])
   const [isPending, startTransition] = useTransition()
@@ -245,6 +247,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
   }
 
   if (partners.length === 0) {
+    if (!isAdmin) return null
     return (
       <div className="flex items-center gap-3 border-t border-edge px-4 py-3">
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted">Partners</span>
@@ -264,23 +267,25 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
       <div className="flex flex-wrap items-center gap-2">
         {partners.map((p) => {
           const isYou = p.partnerName.toLowerCase().includes(COMPANY_IDENTIFIER)
-          return (
-            <button
-              key={p.id}
-              onClick={startEdit}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium cursor-pointer transition-colors ${
-                isYou
-                  ? 'border-positive/30 bg-positive-bg text-positive hover:border-positive/50'
-                  : 'border-edge bg-surface text-ink hover:border-edge-strong hover:bg-panel'
-              }`}
-            >
+          const chipClass = `inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            isYou
+              ? 'border-positive/30 bg-positive-bg text-positive'
+              : 'border-edge bg-surface text-ink'
+          }${isAdmin ? ` cursor-pointer ${isYou ? 'hover:border-positive/50' : 'hover:border-edge-strong hover:bg-panel'}` : ''}`
+          const inner = (
+            <>
               {p.partnerName}
               <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${
                 isYou ? 'bg-positive-bg text-positive' : 'bg-panel text-muted'
               }`}>
                 {formatPercentage(p.profitSharePct)}
               </span>
-            </button>
+            </>
+          )
+          return isAdmin ? (
+            <button key={p.id} onClick={startEdit} className={chipClass}>{inner}</button>
+          ) : (
+            <span key={p.id} className={chipClass}>{inner}</span>
           )
         })}
       </div>

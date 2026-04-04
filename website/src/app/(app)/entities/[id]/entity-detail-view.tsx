@@ -17,6 +17,7 @@ import { InlineEdit } from '@/components/ui/inline-edit'
 import { btnDangerIcon } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
+import { useAuth } from '@/lib/auth-context'
 import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
 
 const TransactionModal = dynamic(() => import('../entities-transaction-modal').then(m => ({ default: m.TransactionModal })))
@@ -41,6 +42,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export function EntityDetailView({ detail, availableTags }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [mode, setMode] = useState<'view' | 'delete'>('view')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -117,7 +119,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
       </HeaderTitlePortal>
 
       {/* Header right: deactivate button only */}
-      {mode === 'view' && (
+      {mode === 'view' && isAdmin && (
         <HeaderPortal>
           <button
             onClick={() => { setError(null); setMode('delete') }}

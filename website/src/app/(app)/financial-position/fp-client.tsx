@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/modal'
 import { SectionCard } from '@/components/ui/section-card'
 import { tableHead, tableRowHover } from '@/lib/styles'
 import { LoanDetailContent } from '@/components/ui/loan-detail-content'
+import { useAuth } from '@/lib/auth-context'
 
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
 const CreateLoanModal = dynamic(() => import('./create-loan-modal').then(m => ({ default: m.CreateLoanModal })))
@@ -20,12 +21,9 @@ type Props = {
   projects: { id: string; project_code: string; name: string }[]
 }
 
-function fmt(amount: number, currency: string) {
-  return formatCurrency(amount, currency)
-}
-
 export function FPClient({ data, partners, projects }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [showCreateAccount, setShowCreateAccount] = useState(false)
   const [showCreateLoan, setShowCreateLoan] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<{
@@ -114,22 +112,24 @@ export function FPClient({ data, partners, projects }: Props) {
               <span className={`text-sm font-medium ${
                 ba.balance >= 0 ? 'text-ink' : 'text-negative'
               }`}>
-                {fmt(ba.balance, ba.currency ?? 'PEN')}
+                {formatCurrency(ba.balance, ba.currency ?? 'PEN')}
               </span>
             </div>
           ))}
           {data.bankAccounts.length === 0 && (
             <p className="px-6 py-4 text-sm text-faint">No bank accounts</p>
           )}
-          <div className="border-t border-edge px-6 py-2">
-            <button
-              type="button"
-              onClick={() => setShowCreateAccount(true)}
-              className="text-xs text-accent transition-colors hover:text-accent-hover"
-            >
-              + Add account
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="border-t border-edge px-6 py-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateAccount(true)}
+                className="text-xs text-accent transition-colors hover:text-accent-hover"
+              >
+                + Add account
+              </button>
+            </div>
+          )}
         </div>
       </SectionCard>
 
@@ -147,7 +147,7 @@ export function FPClient({ data, partners, projects }: Props) {
                 <div key={item.currency} className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted">Outstanding</span>
                   <span className="text-sm font-semibold text-ink">
-                    {fmt(item.amount, item.currency)}
+                    {formatCurrency(item.amount, item.currency)}
                   </span>
                 </div>
               ))}
@@ -170,7 +170,7 @@ export function FPClient({ data, partners, projects }: Props) {
                 <div key={item.currency} className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted">Outstanding</span>
                   <span className="text-sm font-semibold text-ink">
-                    {fmt(item.amount, item.currency)}
+                    {formatCurrency(item.amount, item.currency)}
                   </span>
                 </div>
               ))}
@@ -190,22 +190,24 @@ export function FPClient({ data, partners, projects }: Props) {
             >
               <span className="text-sm text-ink">{loan.lenderName}</span>
               <span className="text-sm font-medium text-ink">
-                {fmt(loan.outstanding, loan.currency)}
+                {formatCurrency(loan.outstanding, loan.currency)}
               </span>
             </div>
           ))}
           {data.loans.length === 0 && (
             <p className="px-6 py-4 text-sm text-faint">No loans</p>
           )}
-          <div className="border-t border-edge px-6 py-2">
-            <button
-              type="button"
-              onClick={() => setShowCreateLoan(true)}
-              className="text-xs text-accent transition-colors hover:text-accent-hover"
-            >
-              + Add loan
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="border-t border-edge px-6 py-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateLoan(true)}
+                className="text-xs text-accent transition-colors hover:text-accent-hover"
+              >
+                + Add loan
+              </button>
+            </div>
+          )}
         </div>
       </SectionCard>
 
@@ -228,13 +230,13 @@ export function FPClient({ data, partners, projects }: Props) {
                       <div className="flex items-center justify-between py-1">
                         <span className="text-sm text-muted">IGV paid (crédito fiscal)</span>
                         <span className="text-sm font-medium text-ink">
-                          {fmt(row.igvPaid, row.currency)}
+                          {formatCurrency(row.igvPaid, row.currency)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-1">
                         <span className="text-sm text-muted">IGV collected (débito fiscal)</span>
                         <span className="text-sm font-medium text-ink">
-                          {fmt(row.igvCollected, row.currency)}
+                          {formatCurrency(row.igvCollected, row.currency)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between border-t border-edge pt-1">
@@ -244,7 +246,7 @@ export function FPClient({ data, partners, projects }: Props) {
                         <span className={`text-sm font-semibold ${
                           row.net >= 0 ? 'text-positive' : 'text-negative'
                         }`}>
-                          {fmt(Math.abs(row.net), row.currency)}
+                          {formatCurrency(Math.abs(row.net), row.currency)}
                         </span>
                       </div>
                     </div>
@@ -264,7 +266,7 @@ export function FPClient({ data, partners, projects }: Props) {
                     <div key={item.currency} className="flex items-center justify-between py-1">
                       <span className="text-sm text-muted">Unverified</span>
                       <span className="text-sm font-medium text-ink">
-                        {fmt(item.amount, item.currency)}
+                        {formatCurrency(item.amount, item.currency)}
                       </span>
                     </div>
                   ))}
@@ -321,7 +323,7 @@ export function FPClient({ data, partners, projects }: Props) {
                       txn.direction === 'inbound' ? 'text-positive' : 'text-negative'
                     }`}>
                       {txn.direction === 'inbound' ? '+' : '−'}
-                      {fmt(txn.amount, txn.currency)}
+                      {formatCurrency(txn.amount, txn.currency)}
                     </td>
                   </tr>
                 ))}
@@ -343,7 +345,7 @@ export function FPClient({ data, partners, projects }: Props) {
         {!loadingLoan && loanDetail && (
           <LoanDetailContent
             detail={loanDetail}
-            onRepaymentSuccess={handleLoanRefresh}
+            onRepaymentSuccess={isAdmin ? handleLoanRefresh : undefined}
           />
         )}
         {!loadingLoan && !loanDetail && selectedLoan && (
@@ -352,19 +354,23 @@ export function FPClient({ data, partners, projects }: Props) {
       </Modal>
 
       {/* Create Bank Account Modal */}
-      <CreateBankAccountModal
-        isOpen={showCreateAccount}
-        onClose={() => setShowCreateAccount(false)}
-        partners={partners}
-      />
+      {isAdmin && (
+        <CreateBankAccountModal
+          isOpen={showCreateAccount}
+          onClose={() => setShowCreateAccount(false)}
+          partners={partners}
+        />
+      )}
 
       {/* Create Loan Modal */}
-      <CreateLoanModal
-        isOpen={showCreateLoan}
-        onClose={() => setShowCreateLoan(false)}
-        partners={partners}
-        projects={projects}
-      />
+      {isAdmin && (
+        <CreateLoanModal
+          isOpen={showCreateLoan}
+          onClose={() => setShowCreateLoan(false)}
+          partners={partners}
+          projects={projects}
+        />
+      )}
     </div>
   )
 }

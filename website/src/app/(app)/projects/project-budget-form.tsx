@@ -6,6 +6,7 @@ import { calcPercentUsed } from '@/lib/business-utils'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow, CategoryOption } from '@/lib/types'
 import { TrashIcon } from '@/components/ui/trash-icon'
+import { useAuth } from '@/lib/auth-context'
 
 type Props = {
   projectId: string
@@ -63,6 +64,7 @@ export function ProjectBudgetForm({
     () => hasBudget ? displayRows.reduce((sum, b) => sum + (b.budgeted_amount ?? 0), 0) : null,
     [displayRows, hasBudget]
   )
+  const { isAdmin } = useAuth()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
@@ -148,7 +150,7 @@ export function ProjectBudgetForm({
                         min="0"
                         className="w-24 rounded border border-accent/30 px-1 py-0.5 text-right text-sm font-mono focus:outline-none focus:ring-1 focus:ring-accent"
                       />
-                    ) : (
+                    ) : isAdmin ? (
                       <button
                         onClick={() => handleEditStart(b.category, b.budgeted_amount)}
                         className="cursor-pointer rounded px-1 py-0.5 hover:bg-accent-bg"
@@ -158,6 +160,12 @@ export function ProjectBudgetForm({
                           ? formatCurrency(b.budgeted_amount, BUDGET_CURRENCY)
                           : <span className="text-faint">Set budget</span>}
                       </button>
+                    ) : (
+                      <span className="px-1 py-0.5">
+                        {b.budgeted_amount !== null
+                          ? formatCurrency(b.budgeted_amount, BUDGET_CURRENCY)
+                          : <span className="text-faint">—</span>}
+                      </span>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 text-right font-mono text-ink">
@@ -176,7 +184,7 @@ export function ProjectBudgetForm({
                     </td>
                   )}
                   <td className="px-2 py-2 text-right">
-                    {b.budgeted_amount !== null && (
+                    {isAdmin && b.budgeted_amount !== null && (
                       <button
                         onClick={() => handleRemove(b.category)}
                         disabled={isPending}

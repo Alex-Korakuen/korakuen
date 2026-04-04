@@ -4,10 +4,15 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { round2 } from '@/lib/queries'
 import { handleDbError } from '@/lib/server-utils'
+import { isAdmin } from '@/lib/auth'
 import { VALID_CURRENCIES, defaultPaymentTitle, DEFAULT_IGV_RATE, DEFAULT_RETENCION_RATE, EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX } from '@/lib/constants'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
+
+async function requireAdmin(): Promise<{ error: string } | null> {
+  return (await isAdmin()) ? null : { error: 'Admin access required' }
+}
 
 // --- Helpers ---
 
@@ -144,6 +149,8 @@ async function loadImportLookups(supabase: SupabaseClient) {
 export async function importPendingInvoices(
   rows: Record<string, unknown>[]
 ): Promise<ImportResult> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const errors: ImportError[] = []
 
@@ -278,6 +285,8 @@ const COMPROBANTE_TYPES = [
 export async function importInvoices(
   rows: Record<string, unknown>[]
 ): Promise<ImportResult> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const errors: ImportError[] = []
 
@@ -476,6 +485,8 @@ export async function importInvoices(
 export async function importPayments(
   rows: Record<string, unknown>[]
 ): Promise<ImportResult> {
+  const guard = await requireAdmin()
+  if (guard) return guard
   const supabase = await createServerSupabaseClient()
   const errors: ImportError[] = []
 

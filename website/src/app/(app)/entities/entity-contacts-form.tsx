@@ -5,6 +5,7 @@ import { addEntityContact, removeEntityContact, updateEntityContact } from '@/li
 import type { EntityContact } from '@/lib/types'
 import { inputCompactClass, btnPrimary, btnDangerIcon, iconPencil } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
+import { useAuth } from '@/lib/auth-context'
 
 type Props = {
   entityId: string
@@ -12,6 +13,7 @@ type Props = {
 }
 
 export function EntityContactsForm({ entityId, contacts }: Props) {
+  const { isAdmin } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
@@ -180,28 +182,30 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                     <td className="px-4 py-2 text-muted">{c.phone ?? '—'}</td>
                     <td className="px-4 py-2 text-muted">{c.email ?? '—'}</td>
                     <td className="px-2 py-2">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(c)}
-                          disabled={isPending}
-                          className="rounded border border-edge p-1 text-faint transition-colors hover:bg-surface hover:text-ink"
-                          title="Edit contact"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                            <path d={iconPencil} />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(c.id)}
-                          disabled={isPending}
-                          className={`${btnDangerIcon}`}
-                          title="Remove contact"
-                        >
-                          <TrashIcon size="sm" />
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(c)}
+                            disabled={isPending}
+                            className="rounded border border-edge p-1 text-faint transition-colors hover:bg-surface hover:text-ink"
+                            title="Edit contact"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                              <path d={iconPencil} />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemove(c.id)}
+                            disabled={isPending}
+                            className={`${btnDangerIcon}`}
+                            title="Remove contact"
+                          >
+                            <TrashIcon size="sm" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )
@@ -218,7 +222,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
       )}
 
       {/* Add contact form */}
-      {showForm && (
+      {isAdmin && showForm && (
         <div className="border-t border-edge px-4 py-3">
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -271,7 +275,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
       )}
 
       {/* Add button */}
-      {!showForm && (
+      {isAdmin && !showForm && (
         <div className="border-t border-edge px-4 py-2">
           <button
             type="button"

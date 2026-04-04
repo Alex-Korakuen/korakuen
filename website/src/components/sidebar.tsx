@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSidebar } from '@/lib/sidebar-context'
+import { useAuth } from '@/lib/auth-context'
 import { useClickOutside } from '@/lib/use-click-outside'
 import { createClient } from '@/lib/supabase/client'
 import { APP_NAME_UPPER, APP_NAME_SHORT } from '@/lib/constants'
@@ -145,13 +146,10 @@ function UserMenu({ collapsed, partnerName }: { collapsed: boolean; partnerName:
   )
 }
 
-interface SidebarProps {
-  partnerName: string
-}
-
-export function Sidebar({ partnerName }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname()
   const { collapsed, toggleSidebar } = useSidebar()
+  const { partnerName } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (

@@ -14,6 +14,7 @@ import { FK } from '@/lib/filter-keys'
 import { formatCategory } from '@/lib/formatters'
 import { importPendingInvoices } from '@/lib/import-actions'
 import { fetchInvoiceDetail } from '@/lib/actions'
+import { useAuth } from '@/lib/auth-context'
 import { PricesTable } from './prices-table'
 import { QuoteDetailContent } from './quote-detail-content'
 import type { PriceHistoryRow, PriceFilterOptions, InvoiceDetailData } from '@/lib/types'
@@ -46,6 +47,7 @@ export function PricesClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [showImport, setShowImport] = useState(false)
 
   // Modal state
@@ -86,9 +88,11 @@ export function PricesClient({
 
   return (
     <div>
-      <HeaderPortal>
-        <ImportButton onClick={() => setShowImport(true)} />
-      </HeaderPortal>
+      {isAdmin && (
+        <HeaderPortal>
+          <ImportButton onClick={() => setShowImport(true)} />
+        </HeaderPortal>
+      )}
 
       <FilterBar
         currentFilters={currentFilters}
@@ -138,12 +142,14 @@ export function PricesClient({
         )}
       </Modal>
 
-      <ImportModal
-        isOpen={showImport}
-        onClose={() => setShowImport(false)}
-        title="Import Quotes"
-        onImport={importPendingInvoices}
-      />
+      {isAdmin && (
+        <ImportModal
+          isOpen={showImport}
+          onClose={() => setShowImport(false)}
+          title="Import Quotes"
+          onImport={importPendingInvoices}
+        />
+      )}
     </div>
   )
 }

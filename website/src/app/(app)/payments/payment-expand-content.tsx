@@ -9,6 +9,7 @@ import { btnDangerOutline } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
 import { updatePaymentField, deactivatePayment, promotePhantomInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
+import { useAuth } from '@/lib/auth-context'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PaymentsPageRow, InvoiceDetailData, LoanDetailData } from '@/lib/types'
 import { getPaymentTypeLabel, getPaymentTypeBadgeVariant } from './helpers'
@@ -24,6 +25,7 @@ type Props = {
 
 // --- View Mode (with inline editing) ---
 function PhantomInvoiceSection({ invoiceId, onPromoted }: { invoiceId: string; onPromoted: () => void }) {
+  const { isAdmin } = useAuth()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -41,13 +43,15 @@ function PhantomInvoiceSection({ invoiceId, onPromoted }: { invoiceId: string; o
       <h3 className="mb-2 text-sm font-semibold text-ink">Related Invoice</h3>
       <div className="flex items-center gap-3 rounded border border-edge px-4 py-3 text-sm">
         <span className="text-muted">None</span>
-        <button
-          onClick={handlePromote}
-          disabled={isPending}
-          className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
-        >
-          {isPending ? 'Linking...' : 'Link to Invoice'}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={handlePromote}
+            disabled={isPending}
+            className="text-xs font-medium text-accent hover:underline disabled:opacity-50"
+          >
+            {isPending ? 'Linking...' : 'Link to Invoice'}
+          </button>
+        )}
         {error && <span className="text-xs text-negative">{error}</span>}
       </div>
     </div>
@@ -61,6 +65,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
   onMutationSuccess: () => void
   bankAccounts: BankAccountOption[]
 }) {
+  const { isAdmin } = useAuth()
   const paymentCurrency = row.payment_type === 'detraccion' ? 'PEN' : row.currency
 
   // Filter bank accounts by currency and payment type
@@ -211,15 +216,17 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
       )}
 
       {/* Action footer */}
-      <div className="flex items-center justify-start border-t border-edge pt-3">
-        <button
-          onClick={() => onSetMode('delete')}
-          className={`${btnDangerOutline}`}
-        >
-          <TrashIcon size="sm" />
-          Delete
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="flex items-center justify-start border-t border-edge pt-3">
+          <button
+            onClick={() => onSetMode('delete')}
+            className={`${btnDangerOutline}`}
+          >
+            <TrashIcon size="sm" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }

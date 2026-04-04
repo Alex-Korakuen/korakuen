@@ -7,6 +7,7 @@ import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById, fetchLoanDetailByScheduleId, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { importPayments } from '@/lib/import-actions'
+import { useAuth } from '@/lib/auth-context'
 import { DualAmount } from '@/components/ui/dual-amount'
 import { Modal } from '@/components/ui/modal'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -59,6 +60,7 @@ export function PaymentsClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<PaymentsPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -66,13 +68,15 @@ export function PaymentsClient({
   const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
   const [modalBankAccounts, setModalBankAccounts] = useState<BankAccountOption[]>([])
 
-  // Keep modal row in sync after router.refresh() updates the data prop
+  // Keep modal row in sync after router.refresh() updates the data prop.
+  // Intentionally depends on `data` only — re-running on `modalRow` changes
+  // would overwrite local state while the user is actively interacting with the modal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (modalRow) {
       const updated = data.find(r => r.id === modalRow.id)
       if (updated) setModalRow(updated)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
   const handleRowClick = useCallback(async (row: PaymentsPageRow) => {
@@ -132,9 +136,11 @@ export function PaymentsClient({
 
   return (
     <div>
-      <HeaderPortal>
-        <ImportButton onClick={() => setShowImport(true)} />
-      </HeaderPortal>
+      {isAdmin && (
+        <HeaderPortal>
+          <ImportButton onClick={() => setShowImport(true)} />
+        </HeaderPortal>
+      )}
 
       <FilterBar
         currentFilters={currentFilters}
@@ -204,12 +210,14 @@ export function PaymentsClient({
       </Modal>
 
       {/* Import modal */}
-      <ImportModal
-        isOpen={showImport}
-        onClose={() => setShowImport(false)}
-        title="Import Payments"
-        onImport={importPayments}
-      />
+      {isAdmin && (
+        <ImportModal
+          isOpen={showImport}
+          onClose={() => setShowImport(false)}
+          title="Import Payments"
+          onImport={importPayments}
+        />
+      )}
     </div>
   )
 }

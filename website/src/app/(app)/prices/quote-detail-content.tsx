@@ -8,6 +8,7 @@ import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { acceptQuote, rejectQuote, deactivateInvoice } from '@/lib/actions'
 import { btnPrimary, btnDangerOutline, btnSecondarySm } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
+import { useAuth } from '@/lib/auth-context'
 import type { InvoiceDetailData } from '@/lib/types'
 
 type Props = {
@@ -18,12 +19,13 @@ type Props = {
 }
 
 export function QuoteDetailContent({ detail, entityName, projectCode, onMutationSuccess }: Props) {
-  const invoice = detail.invoice
-  if (!invoice) return <p className="py-2 text-sm text-faint">No detail available.</p>
-
+  const { isAdmin } = useAuth()
   const [mode, setMode] = useState<'view' | 'delete'>('view')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+
+  const invoice = detail.invoice
+  if (!invoice) return <p className="py-2 text-sm text-faint">No detail available.</p>
 
   const currency = invoice.currency ?? 'PEN'
   const status = invoice.quote_status ?? 'pending'
@@ -125,37 +127,39 @@ export function QuoteDetailContent({ detail, entityName, projectCode, onMutation
       {error && <p className="text-xs font-medium text-negative">{error}</p>}
 
       {/* Action footer */}
-      <div className="flex items-center justify-between border-t border-edge pt-3">
-        <button
-          onClick={() => setMode('delete')}
-          disabled={isPending}
-          className={btnDangerOutline}
-        >
-          <TrashIcon size="sm" />
-          Delete
-        </button>
+      {isAdmin && (
+        <div className="flex items-center justify-between border-t border-edge pt-3">
+          <button
+            onClick={() => setMode('delete')}
+            disabled={isPending}
+            className={btnDangerOutline}
+          >
+            <TrashIcon size="sm" />
+            Delete
+          </button>
 
-        <div className="flex items-center gap-2">
-          {(status === 'pending' || status === 'accepted') && (
-            <button
-              onClick={() => handleAction(() => rejectQuote(invoice.invoice_id!))}
-              disabled={isPending}
-              className={btnSecondarySm}
-            >
-              {isPending ? '...' : 'Reject'}
-            </button>
-          )}
-          {(status === 'pending' || status === 'rejected') && (
-            <button
-              onClick={() => handleAction(() => acceptQuote(invoice.invoice_id!))}
-              disabled={isPending}
-              className={btnPrimary}
-            >
-              {isPending ? '...' : status === 'rejected' ? 'Revive' : 'Accept'}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {(status === 'pending' || status === 'accepted') && (
+              <button
+                onClick={() => handleAction(() => rejectQuote(invoice.invoice_id!))}
+                disabled={isPending}
+                className={btnSecondarySm}
+              >
+                {isPending ? '...' : 'Reject'}
+              </button>
+            )}
+            {(status === 'pending' || status === 'rejected') && (
+              <button
+                onClick={() => handleAction(() => acceptQuote(invoice.invoice_id!))}
+                disabled={isPending}
+                className={btnPrimary}
+              >
+                {isPending ? '...' : status === 'rejected' ? 'Revive' : 'Accept'}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

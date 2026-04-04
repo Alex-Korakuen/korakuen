@@ -10,6 +10,7 @@ import { TrashIcon } from '@/components/ui/trash-icon'
 import { updateInvoiceField, updateInvoiceItemField, addInvoiceItem, removeInvoiceItem, deactivateInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { DetailField } from '@/components/ui/detail-field'
+import { useAuth } from '@/lib/auth-context'
 import type { InvoiceDetailData, InvoicesPageRow, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -40,6 +41,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
   onPaymentSuccess: () => void
 }) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const invoice = detail.invoice!
   const currency = invoice.currency ?? 'PEN'
   const invoiceDetraccion = invoice.detraccion_amount ?? 0
@@ -198,7 +200,9 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-ink">Line Items</h3>
-          <button onClick={handleAddItem} className="rounded border border-edge-strong px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-surface">+ Add item</button>
+          {isAdmin && (
+            <button onClick={handleAddItem} className="rounded border border-edge-strong px-2 py-0.5 text-[11px] font-medium text-muted hover:bg-surface">+ Add item</button>
+          )}
         </div>
         <div className="overflow-x-auto rounded border border-edge">
           <table className="w-full text-left text-xs">
@@ -262,7 +266,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
                     {formatCurrency(item.subtotal, currency)}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    {detail.items.length > 1 && (
+                    {isAdmin && detail.items.length > 1 && (
                       <button onClick={() => handleRemoveItem(item.id)} className="rounded border border-negative/20 p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative">
                         <TrashIcon size="xs" />
                       </button>
@@ -321,7 +325,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
       <PaymentHistoryTable
         payments={detail.payments}
         paymentFormProps={
-          invoice.invoice_id && invoiceOutstanding > 0
+          isAdmin && invoice.invoice_id && invoiceOutstanding > 0
             ? {
                 relatedTo: 'invoice',
                 relatedId: invoice.invoice_id,
@@ -342,15 +346,17 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
       />
 
       {/* Action footer */}
-      <div className="flex items-center border-t border-edge pt-3">
-        <button
-          onClick={() => onSetMode('delete')}
-          className={`${btnDangerOutline}`}
-        >
-          <TrashIcon size="sm" />
-          Delete
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="flex items-center border-t border-edge pt-3">
+          <button
+            onClick={() => onSetMode('delete')}
+            className={`${btnDangerOutline}`}
+          >
+            <TrashIcon size="sm" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }

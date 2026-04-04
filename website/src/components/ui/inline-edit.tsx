@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { inputCompactClass, iconCheck, iconX } from '@/lib/styles'
+import { useAuth } from '@/lib/auth-context'
 import { LockIcon } from './lock-icon'
 import { NotesDisplay } from './notes-display'
 
@@ -75,7 +76,7 @@ export function InlineEdit(props: InlineEditProps) {
     displayValue,
     label,
     placeholder = '—',
-    onSave,
+    onSave: rawOnSave,
     onAfterSave,
     locked = false,
     align = 'left',
@@ -83,6 +84,10 @@ export function InlineEdit(props: InlineEditProps) {
     className = '',
     inputType,
   } = props
+
+  // Non-admins get a display-only field — drop onSave so no edit affordance renders.
+  const { isAdmin } = useAuth()
+  const onSave = isAdmin ? rawOnSave : undefined
 
   const router = useRouter()
   const [editing, setEditing] = useState(false)
