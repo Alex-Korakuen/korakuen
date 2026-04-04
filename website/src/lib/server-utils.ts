@@ -1,5 +1,9 @@
-/** Log the real DB error server-side; return a safe generic message for the client. */
+/** Log the real DB error server-side and surface its message to the client. */
 export function handleDbError(error: unknown, context: string): string {
   console.error(`[${context}]`, error)
-  return context
+  const detail =
+    error && typeof error === 'object' && 'message' in error
+      ? String((error as { message: unknown }).message)
+      : null
+  return detail ? `${context}: ${detail}` : context
 }
