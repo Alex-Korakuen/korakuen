@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { importInvoices } from '@/lib/import-actions'
+import { useAuth } from '@/lib/auth-context'
 import { Modal } from '@/components/ui/modal'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
@@ -17,7 +18,7 @@ const ImportModal = dynamic(() => import('@/components/ui/import-modal').then(m 
 import { FilterBar } from '@/components/ui/filter-bar'
 import { InvoicesTable } from './invoices-table'
 import { InvoiceExpandContent } from './invoice-expand-content'
-import { LoanExpandContent } from './loan-expand-content'
+import { LoanDetailContent } from '@/components/ui/loan-detail-content'
 import type {
   InvoicesPageRow,
   InvoiceDetailData,
@@ -61,6 +62,7 @@ export function InvoicesClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const [showImport, setShowImport] = useState(false)
   const [modalRow, setModalRow] = useState<InvoicesPageRow | null>(null)
   const [modalDetail, setModalDetail] = useState<InvoiceDetailData | LoanDetailData | null>(null)
@@ -126,9 +128,11 @@ export function InvoicesClient({
 
   return (
     <div>
-      <HeaderPortal>
-        <ImportButton onClick={() => setShowImport(true)} />
-      </HeaderPortal>
+      {isAdmin && (
+        <HeaderPortal>
+          <ImportButton onClick={() => setShowImport(true)} />
+        </HeaderPortal>
+      )}
 
       <FilterBar
         currentFilters={currentFilters}
@@ -181,7 +185,7 @@ export function InvoicesClient({
           </div>
         ) : modalRow && modalDetail ? (
           modalRow.type === 'loan' ? (
-            <LoanExpandContent detail={modalDetail as LoanDetailData} onRepaymentSuccess={handlePaymentSuccess} />
+            <LoanDetailContent detail={modalDetail as LoanDetailData} onRepaymentSuccess={isAdmin ? handlePaymentSuccess : undefined} variant="expand" />
           ) : (
             <InvoiceExpandContent
               detail={modalDetail as InvoiceDetailData} row={modalRow} mode={modalMode}
@@ -192,8 +196,10 @@ export function InvoicesClient({
         ) : null}
       </Modal>
 
-      <ImportModal isOpen={showImport} onClose={() => setShowImport(false)}
-        title="Import Invoices" onImport={importInvoices} />
+      {isAdmin && (
+        <ImportModal isOpen={showImport} onClose={() => setShowImport(false)}
+          title="Import Invoices" onImport={importInvoices} />
+      )}
 
     </div>
   )

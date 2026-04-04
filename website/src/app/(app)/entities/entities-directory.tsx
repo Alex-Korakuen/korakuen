@@ -9,6 +9,8 @@ import { Pagination } from '@/components/ui/pagination'
 import { HeaderPortal } from '@/components/ui/header-portal'
 import { FK } from '@/lib/filter-keys'
 import { SectionCard } from '@/components/ui/section-card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { useAuth } from '@/lib/auth-context'
 import { btnPrimary, tableHead, tableRowHover } from '@/lib/styles'
 import { tagColor } from './helpers'
 import type { EntityDirectoryItem, EntitiesFilterOptions } from '@/lib/types'
@@ -39,17 +41,20 @@ export function EntitiesDirectory({
   currentFilters,
 }: Props) {
   const [showCreate, setShowCreate] = useState(false)
+  const { isAdmin } = useAuth()
 
   return (
     <>
-      <HeaderPortal>
-        <button
-          onClick={() => setShowCreate(true)}
-          className={`${btnPrimary}`}
-        >
-          + New Entity
-        </button>
-      </HeaderPortal>
+      {isAdmin && (
+        <HeaderPortal>
+          <button
+            onClick={() => setShowCreate(true)}
+            className={`${btnPrimary}`}
+          >
+            + New Entity
+          </button>
+        </HeaderPortal>
+      )}
 
       <FilterBar
         currentFilters={currentFilters}
@@ -65,9 +70,7 @@ export function EntitiesDirectory({
       {/* Directory table */}
       <SectionCard>
         {entities.length === 0 ? (
-          <div className="px-6 py-8 text-center text-sm text-faint">
-            No entities match filters
-          </div>
+          <EmptyState message="No entities match filters" padding="md" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -149,7 +152,7 @@ export function EntitiesDirectory({
         <Pagination page={page} totalCount={totalCount} pageSize={pageSize} />
       </SectionCard>
 
-      <CreateEntityModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      {isAdmin && <CreateEntityModal isOpen={showCreate} onClose={() => setShowCreate(false)} />}
     </>
   )
 }

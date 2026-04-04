@@ -9,7 +9,8 @@ import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
 import { Modal } from '@/components/ui/modal'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
-import { LoanExpandContent } from '../invoices/loan-expand-content'
+import { LoanDetailContent } from '@/components/ui/loan-detail-content'
+import { useAuth } from '@/lib/auth-context'
 import { CalendarTable } from './calendar-table'
 import type {
   Currency,
@@ -103,6 +104,7 @@ export function CalendarClient({
   currentFilters,
 }: Props) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   // Modal state
   const [modalRow, setModalRow] = useState<ObligationCalendarRow | null>(null)
   const [modalPageRow, setModalPageRow] = useState<InvoicesPageRow | null>(null)
@@ -189,9 +191,10 @@ export function CalendarClient({
 
     if (modalRow.type === 'loan') {
       return (
-        <LoanExpandContent
+        <LoanDetailContent
           detail={modalDetail as LoanDetailData}
-          onRepaymentSuccess={handlePaymentSuccess}
+          onRepaymentSuccess={isAdmin ? handlePaymentSuccess : undefined}
+          variant="expand"
         />
       )
     }

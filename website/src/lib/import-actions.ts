@@ -67,6 +67,56 @@ function autoFillExchangeRate(
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>
 
+// --- Shared row-validation helpers ---
+
+type FkMaps = {
+  partnerMap: Map<string, string>
+  projectMap: Map<string, string>
+  entityMap: Map<string, string>
+  categorySet: Set<string>
+}
+
+function validateCurrency(r: number, currency: string | null, errors: ImportError[]): void {
+  if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
+    errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
+  }
+}
+
+function validateFkLookups(
+  r: number,
+  fields: {
+    partnerName?: string | null
+    projectCode?: string | null
+    entityDocNum?: string | null
+    category?: string | null
+  },
+  maps: FkMaps,
+  errors: ImportError[],
+): void {
+  if (fields.partnerName && !maps.partnerMap.has(fields.partnerName)) {
+    errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
+  }
+  if (fields.projectCode && !maps.projectMap.has(fields.projectCode)) {
+    errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
+  }
+  if (fields.entityDocNum && !maps.entityMap.has(fields.entityDocNum)) {
+    errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
+  }
+  if (fields.category && !maps.categorySet.has(fields.category)) {
+    errors.push({ row: r, column: 'category', message: 'Not found in categories' })
+  }
+}
+
+function validateExchangeRateRange(r: number, rate: number | null, errors: ImportError[]): void {
+  if (rate !== null && (rate < EXCHANGE_RATE_MIN || rate > EXCHANGE_RATE_MAX)) {
+    errors.push({
+      row: r,
+      column: 'exchange_rate',
+      message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})`,
+    })
+  }
+}
+
 /** Loads project, entity, and partner lookup maps shared by all import functions */
 async function loadImportLookups(supabase: SupabaseClient) {
   const { data: projects } = await supabase
@@ -134,31 +184,21 @@ export async function importPendingInvoices(
     if (!status) errors.push({ row: r, column: 'status', message: 'Required' })
 
     // Enums
-    if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
-      errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
-    }
+    validateCurrency(r, currency, errors)
     if (status && !['pending', 'accepted', 'rejected'].includes(status)) {
       errors.push({ row: r, column: 'status', message: 'Must be: pending, accepted, rejected' })
     }
 
     // FK lookups
-    if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
-    }
-    if (projectCode && !projectMap.has(projectCode)) {
-      errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
-    }
-    if (entityDocNum && !entityMap.has(entityDocNum)) {
-      errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
-    }
-    if (category && !categorySet.has(category)) {
-      errors.push({ row: r, column: 'category', message: 'Not found in categories' })
-    }
+    validateFkLookups(
+      r,
+      { partnerName, projectCode, entityDocNum, category },
+      { partnerMap, projectMap, entityMap, categorySet },
+      errors,
+    )
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
-      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
-    }
+    validateExchangeRateRange(r, exchangeRate, errors)
 
     // Arithmetic validation
     const quantity = num(row.quantity)
@@ -305,26 +345,18 @@ export async function importInvoices(
     if (direction && !['payable', 'receivable'].includes(direction)) {
       errors.push({ row: r, column: 'direction', message: 'Must be: payable, receivable' })
     }
-    if (currency && !(VALID_CURRENCIES as readonly string[]).includes(currency)) {
-      errors.push({ row: r, column: 'currency', message: 'Must be: USD, PEN' })
-    }
+    validateCurrency(r, currency, errors)
     if (comprobanteType && !COMPROBANTE_TYPES.includes(comprobanteType)) {
       errors.push({ row: r, column: 'comprobante_type', message: `Must be: ${COMPROBANTE_TYPES.join(', ')}` })
     }
 
     // FK lookups
-    if (partnerName && !partnerMap.has(partnerName)) {
-      errors.push({ row: r, column: 'partner_name', message: 'Not found in database' })
-    }
-    if (projectCode && !projectMap.has(projectCode)) {
-      errors.push({ row: r, column: 'project_code', message: 'Not found in database' })
-    }
-    if (entityDocNum && !entityMap.has(entityDocNum)) {
-      errors.push({ row: r, column: 'entity_document_number', message: 'Not found in database' })
-    }
-    if (category && !categorySet.has(category)) {
-      errors.push({ row: r, column: 'category', message: 'Not found in categories' })
-    }
+    validateFkLookups(
+      r,
+      { partnerName, projectCode, entityDocNum, category },
+      { partnerMap, projectMap, entityMap, categorySet },
+      errors,
+    )
 
     // Detraccion deposits are always in PEN (SPOT system, Banco de la Nación)
     const detrRate = num(row.detraccion_rate)
@@ -350,10 +382,7 @@ export async function importInvoices(
     }
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
-      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
-    }
-
+    validateExchangeRateRange(r, exchangeRate, errors)
   }
 
   if (errors.length > 0) return { errors }
@@ -535,9 +564,7 @@ export async function importPayments(
     }
 
     // Exchange rate range
-    if (exchangeRate !== null && (exchangeRate < EXCHANGE_RATE_MIN || exchangeRate > EXCHANGE_RATE_MAX)) {
-      errors.push({ row: r, column: 'exchange_rate', message: `Outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})` })
-    }
+    validateExchangeRateRange(r, exchangeRate, errors)
 
     if (invoiceDocRef) {
       // ---- Invoice payment path ----

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate, formatComprobanteType, formatCategory, formatExchangeRate } from '@/lib/formatters'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import { btnDangerOutline, iconTrash } from '@/lib/styles'
+import { btnDangerOutline } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 import { updateInvoiceField, updateInvoiceItemField, addInvoiceItem, removeInvoiceItem, deactivateInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { DetailField } from '@/components/ui/detail-field'
@@ -263,7 +264,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
                   <td className="px-2 py-2 text-center">
                     {detail.items.length > 1 && (
                       <button onClick={() => handleRemoveItem(item.id)} className="rounded border border-negative/20 p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative">
-                        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+                        <TrashIcon size="xs" />
                       </button>
                     )}
                   </td>
@@ -346,7 +347,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
         >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+          <TrashIcon size="sm" />
           Delete
         </button>
       </div>

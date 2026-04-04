@@ -21,7 +21,14 @@ import { updateProjectField, setProjectPartners } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
-import { iconTrash, tableHead, tableRowHover } from '@/lib/styles'
+import { tableHead, tableRowHover } from '@/lib/styles'
+import {
+  PartnerAllocationEditor,
+  isPartnerAllocationValid,
+  type PartnerEntry,
+} from '@/components/ui/partner-allocation-editor'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LocalPagination } from '@/components/ui/local-pagination'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
 type Props = {
@@ -78,9 +85,7 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="px-4 py-8 text-center text-sm text-faint">
-          {search ? 'No entities match your search' : 'No costs recorded'}
-        </div>
+        <EmptyState message={search ? 'No entities match your search' : 'No costs recorded'} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -128,42 +133,12 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
       )}
 
       {/* Pagination */}
-      {filtered.length > ENTITIES_PAGE_SIZE && (
-        <div className="flex items-center justify-between border-t border-edge px-4 py-2">
-          <span className="text-xs text-muted">
-            {start + 1}–{Math.min(start + ENTITIES_PAGE_SIZE, filtered.length)} of {filtered.length}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-              className="rounded border border-edge-strong px-2.5 py-1 text-sm text-ink hover:bg-surface disabled:text-edge-strong disabled:cursor-default"
-            >
-              ‹
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`rounded border px-2.5 py-1 text-sm ${
-                  p === safePage
-                    ? 'border-accent bg-accent-bg font-medium text-accent'
-                    : 'border-edge-strong bg-white text-ink hover:bg-surface'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-              className="rounded border border-edge-strong px-2.5 py-1 text-sm text-ink hover:bg-surface disabled:text-edge-strong disabled:cursor-default"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      )}
+      <LocalPagination
+        page={safePage}
+        totalCount={filtered.length}
+        pageSize={ENTITIES_PAGE_SIZE}
+        onPageChange={setPage}
+      />
 
       {/* Totals — always at bottom */}
       {filtered.length > 0 && (
@@ -191,8 +166,6 @@ function EntitiesPaginated({ entities }: { entities: ProjectEntitySummary[] }) {
 
 // --- Partners Row (inline-editable) ---
 
-type PartnerEditEntry = { partnerId: string; profitSharePct: string }
-
 function PartnersRow({ partners, projectId, partnerOptions }: {
   partners: ProjectDetailData['partners']
   projectId: string
@@ -200,12 +173,11 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
 }) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
-  const [entries, setEntries] = useState<PartnerEditEntry[]>([])
+  const [entries, setEntries] = useState<PartnerEntry[]>([])
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const total = entries.reduce((s, e) => s + (parseFloat(e.profitSharePct) || 0), 0)
-  const availablePartners = partnerOptions.filter(po => !entries.some(e => e.partnerId === po.id))
 
   function startEdit() {
     setEntries(partners.map(p => ({
@@ -214,19 +186,6 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
     })))
     setError(null)
     setEditing(true)
-  }
-
-  function addPartner() {
-    if (availablePartners.length === 0) return
-    setEntries(prev => [...prev, { partnerId: availablePartners[0].id, profitSharePct: '' }])
-  }
-
-  function removeEntry(index: number) {
-    setEntries(prev => prev.filter((_, i) => i !== index))
-  }
-
-  function updateEntry(index: number, field: keyof PartnerEditEntry, value: string) {
-    setEntries(prev => prev.map((e, i) => i === index ? { ...e, [field]: value } : e))
   }
 
   function handleSave() {
@@ -257,53 +216,13 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
             </span>
           )}
         </div>
-        <div className="space-y-2">
-          {entries.map((e, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <select
-                value={e.partnerId}
-                onChange={(ev) => updateEntry(i, 'partnerId', ev.target.value)}
-                className="rounded border border-edge bg-white px-2 py-1 text-xs text-ink flex-1"
-              >
-                {partnerOptions
-                  .filter(po => po.id === e.partnerId || !entries.some(ee => ee.partnerId === po.id))
-                  .map(po => (
-                    <option key={po.id} value={po.id}>{po.name}</option>
-                  ))}
-              </select>
-              <input
-                type="number"
-                value={e.profitSharePct}
-                onChange={(ev) => updateEntry(i, 'profitSharePct', ev.target.value)}
-                className="w-16 rounded border border-edge bg-white px-1.5 py-1 text-center text-xs font-mono focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                min="0"
-                max="100"
-                step="0.01"
-                placeholder="0"
-              />
-              <span className="text-[10px] text-muted">%</span>
-              <button
-                type="button"
-                onClick={() => removeEntry(i)}
-                className="rounded p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative"
-                title="Remove partner"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                  <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          ))}
-        </div>
-        {availablePartners.length > 0 && (
-          <button
-            type="button"
-            onClick={addPartner}
-            className="text-xs font-medium text-accent hover:text-accent-hover"
-          >
-            + Add partner
-          </button>
-        )}
+        <PartnerAllocationEditor
+          value={entries}
+          onChange={setEntries}
+          partnerOptions={partnerOptions}
+          size="sm"
+          showTotal={false}
+        />
         {error && <p className="text-xs font-medium text-negative">{error}</p>}
         <div className="flex items-center gap-2">
           <button
@@ -315,7 +234,7 @@ function PartnersRow({ partners, projectId, partnerOptions }: {
           </button>
           <button
             onClick={handleSave}
-            disabled={isPending || entries.length === 0 || Math.abs(total - 100) > 0.01}
+            disabled={isPending || entries.length === 0 || !isPartnerAllocationValid(entries)}
             className="rounded bg-accent px-3 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
           >
             {isPending ? 'Saving...' : 'Save'}

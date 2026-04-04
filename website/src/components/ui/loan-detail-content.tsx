@@ -10,16 +10,28 @@ import type { LoanDetailData, Currency } from '@/lib/types'
 import { btnPrimaryLg } from '@/lib/styles'
 import { NotesDisplay } from '@/components/ui/notes-display'
 
+type Variant = 'panel' | 'expand'
+
 export function LoanDetailContent({
   detail,
   onRepaymentSuccess,
+  variant = 'panel',
 }: {
   detail: LoanDetailData
   onRepaymentSuccess?: () => void
+  variant?: Variant
 }) {
   const loan = detail.loan
   const [showRepaymentForm, setShowRepaymentForm] = useState(false)
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
+
+  // Expand variant: used inside table-row expansions. No schedule form, payment history,
+  // or register button — just header + summary + schedule table.
+  const isExpand = variant === 'expand'
+
+  if (isExpand && !loan) {
+    return <p className="px-4 py-3 text-sm text-faint">No loan detail available.</p>
+  }
 
   const loanOutstanding = loan?.outstanding ?? 0
   const loanCurrency = (loan?.currency ?? 'PEN') as Currency
@@ -34,10 +46,12 @@ export function LoanDetailContent({
     setShowRepaymentForm(true)
   }
 
+  const outer = isExpand ? 'space-y-4 px-4 py-3' : 'space-y-6'
+
   return (
-    <div className="space-y-6">
+    <div className={outer}>
       {/* Header info */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <DetailField label="Lender" value={loan?.lender_name ?? '—'} />
         <DetailField label="Purpose" value={loan?.purpose ?? '—'} />
         <DetailField
@@ -53,8 +67,8 @@ export function LoanDetailContent({
       {/* Loan financials */}
       {loan && (
         <div className="rounded border border-edge bg-panel px-4 py-3">
-          <h3 className="mb-2 text-sm font-semibold text-ink">Loan Summary</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          {!isExpand && <h3 className="mb-2 text-sm font-semibold text-ink">Loan Summary</h3>}
+          <div className={`grid ${isExpand ? 'grid-cols-2 gap-1 sm:grid-cols-4' : 'grid-cols-2 gap-2'} text-sm`}>
             <span className="text-muted">Principal</span>
             <span className="text-right font-mono text-ink">
               {formatCurrency(loan.principal ?? 0, loanCurrency)}
@@ -67,7 +81,7 @@ export function LoanDetailContent({
             <span className="text-right font-mono text-ink">
               {formatCurrency(loan.total_paid ?? 0, loanCurrency)}
             </span>
-            <span className="text-muted">Outstanding</span>
+            <span className={isExpand ? 'font-medium text-muted' : 'text-muted'}>Outstanding</span>
             <span className="text-right font-mono font-semibold text-negative">
               {formatCurrency(loanOutstanding, loanCurrency)}
             </span>
@@ -84,9 +98,9 @@ export function LoanDetailContent({
           schedule={detail.schedule}
           currency={loanCurrency}
           onPayClick={onRepaymentSuccess ? handleRegisterPayment : undefined}
-          className="mb-2"
+          className={isExpand ? undefined : 'mb-2'}
         />
-        {loan?.loan_id && onRepaymentSuccess && (
+        {!isExpand && loan?.loan_id && onRepaymentSuccess && (
           <LoanScheduleForm
             loanId={loan.loan_id}
             onSuccess={onRepaymentSuccess}
@@ -94,8 +108,8 @@ export function LoanDetailContent({
         )}
       </div>
 
-      {/* Loan payment history */}
-      {detail.payments.length > 0 && (
+      {/* Loan payment history — panel variant only */}
+      {!isExpand && detail.payments.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold text-ink">Payment History</h3>
           <div className="overflow-x-auto rounded border border-edge">
@@ -147,8 +161,8 @@ export function LoanDetailContent({
         />
       )}
 
-      {/* Show register button if no form is open and there are unpaid entries */}
-      {!showRepaymentForm && loan && loanOutstanding > 0 && onRepaymentSuccess && currentScheduleEntry && (
+      {/* Show register button — panel variant only, when no form is open and there are unpaid entries */}
+      {!isExpand && !showRepaymentForm && loan && loanOutstanding > 0 && onRepaymentSuccess && currentScheduleEntry && (
         <button
           type="button"
           onClick={() => handleRegisterPayment(currentScheduleEntry.id)}

@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import { addEntityContact, removeEntityContact, updateEntityContact } from '@/lib/actions'
 import type { EntityContact } from '@/lib/types'
-import { inputCompactClass, btnPrimary, btnDangerIcon, iconPencil, iconTrash } from '@/lib/styles'
+import { inputCompactClass, btnPrimary, btnDangerIcon, iconPencil } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 
 type Props = {
   entityId: string
@@ -198,9 +199,7 @@ export function EntityContactsForm({ entityId, contacts }: Props) {
                           className={`${btnDangerIcon}`}
                           title="Remove contact"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                            <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
-                          </svg>
+                          <TrashIcon size="sm" />
                         </button>
                       </div>
                     </td>

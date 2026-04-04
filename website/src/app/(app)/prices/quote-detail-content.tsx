@@ -6,7 +6,8 @@ import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { acceptQuote, rejectQuote, deactivateInvoice } from '@/lib/actions'
-import { btnPrimary, btnDangerOutline, btnSecondarySm, iconTrash } from '@/lib/styles'
+import { btnPrimary, btnDangerOutline, btnSecondarySm } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 import type { InvoiceDetailData } from '@/lib/types'
 
 type Props = {
@@ -130,7 +131,7 @@ export function QuoteDetailContent({ detail, entityName, projectCode, onMutation
           disabled={isPending}
           className={btnDangerOutline}
         >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+          <TrashIcon size="sm" />
           Delete
         </button>
 

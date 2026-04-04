@@ -10,6 +10,8 @@ import {
 } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { HeaderPortal } from '@/components/ui/header-portal'
+import { EmptyState } from '@/components/ui/empty-state'
+import { useAuth } from '@/lib/auth-context'
 import { btnPrimary, selectClass } from '@/lib/styles'
 
 const CreateProjectModal = dynamic(() => import('./create-project-modal').then(m => ({ default: m.CreateProjectModal })))
@@ -36,6 +38,7 @@ function budgetPctColor(pct: number): string {
 export function ProjectsGrid({ projects, partnerOptions }: Props) {
   const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all')
   const [showCreate, setShowCreate] = useState(false)
+  const { isAdmin } = useAuth()
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return projects
@@ -56,18 +59,18 @@ export function ProjectsGrid({ projects, partnerOptions }: Props) {
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <button
-          onClick={() => setShowCreate(true)}
-          className={`${btnPrimary}`}
-        >
-          + New Project
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className={`${btnPrimary}`}
+          >
+            + New Project
+          </button>
+        )}
       </HeaderPortal>
 
       {filtered.length === 0 ? (
-        <div className="px-6 py-8 text-center text-sm text-faint">
-          No projects found
-        </div>
+        <EmptyState message="No projects found" padding="md" />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(p => (
@@ -144,7 +147,7 @@ export function ProjectsGrid({ projects, partnerOptions }: Props) {
         </div>
       )}
 
-      <CreateProjectModal isOpen={showCreate} onClose={() => setShowCreate(false)} partnerOptions={partnerOptions} />
+      {isAdmin && <CreateProjectModal isOpen={showCreate} onClose={() => setShowCreate(false)} partnerOptions={partnerOptions} />}
     </>
   )
 }

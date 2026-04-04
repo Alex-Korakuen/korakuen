@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { DEFAULT_CURRENCY, buildInvoiceCategoryMap } from './shared'
+import { DEFAULT_CURRENCY, fetchInvoiceCategoryData } from './shared'
 import { getPartners } from './lookups'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
@@ -43,15 +43,12 @@ export async function getInvoicesPage(
 ): Promise<InvoicesPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  const [invoicesResult, itemCategoriesResult, partners] = await Promise.all([
+  const [invoicesResult, categoryData, partners] = await Promise.all([
     supabase
       .from('v_invoices_with_loans')
       .select('*')
       .order('due_date', { ascending: false, nullsFirst: false }),
-    supabase
-      .from('invoice_items')
-      .select('invoice_id, category')
-      .not('category', 'is', null),
+    fetchInvoiceCategoryData(supabase),
     getPartners(),
   ])
 
@@ -66,13 +63,7 @@ export async function getInvoicesPage(
     r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && r.quote_status == null)
   )
 
-  const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
-
-  // Collect unique categories for filter dropdown
-  const allCategories = [...new Set(
-    (itemCategoriesResult.data ?? []).map(c => c.category).filter(Boolean) as string[]
-  )].sort()
-  const uniqueCategories = allCategories.map(c => ({ value: c, label: c }))
+  const { categoryByInvoice, uniqueCategories } = categoryData
 
   // Collect unique entity names for filter dropdown
   const entitySet = new Set<string>()
@@ -247,68 +238,4 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     schedule,
     payments,
   }
-}
-
-// --- Merge candidates ---
-
-export type MergeCandidate = {
-  id: string
-  title: string | null
-  invoice_date: string | null
-  total: number
-  amount_paid: number
-  item_count: number
-  items_summary: string
-}
-
-/**
- * Fetch pending invoices from the same entity that could be merged into a target.
- * Only includes invoices with comprobante_type = 'pending' (quotes).
- * Returns payment info so the UI can disable candidates with payments.
- */
-export async function fetchMergeCandidates(
-  targetInvoiceId: string,
-  entityId: string
-): Promise<MergeCandidate[]> {
-  const supabase = await createServerSupabaseClient()
-
-  // Get all pending invoices from the same entity (excluding the target itself)
-  const { data: candidates, error: candErr } = await supabase
-    .from('v_invoice_balances')
-    .select('invoice_id, title, invoice_date, total, amount_paid')
-    .eq('comprobante_type', 'pending')
-    .eq('entity_id', entityId)
-    .neq('invoice_id', targetInvoiceId)
-
-  if (candErr) throw candErr
-  if (!candidates || candidates.length === 0) return []
-
-  // Get item counts and summaries for each candidate
-  const candidateIds = candidates.map(c => c.invoice_id!)
-  const { data: items, error: itemsErr } = await supabase
-    .from('invoice_items')
-    .select('invoice_id, title, subtotal')
-    .in('invoice_id', candidateIds)
-
-  if (itemsErr) throw itemsErr
-
-  const itemsByInvoice = new Map<string, { count: number; summary: string }>()
-  for (const item of items ?? []) {
-    const existing = itemsByInvoice.get(item.invoice_id) ?? { count: 0, summary: '' }
-    existing.count++
-    existing.summary = existing.count === 1
-      ? (item.title ?? '')
-      : `${existing.summary}, ${item.title ?? ''}`
-    itemsByInvoice.set(item.invoice_id, existing)
-  }
-
-  return candidates.map(c => ({
-    id: c.invoice_id!,
-    title: c.title,
-    invoice_date: c.invoice_date,
-    total: c.total ?? 0,
-    amount_paid: c.amount_paid ?? 0,
-    item_count: itemsByInvoice.get(c.invoice_id!)?.count ?? 0,
-    items_summary: itemsByInvoice.get(c.invoice_id!)?.summary ?? '',
-  }))
 }

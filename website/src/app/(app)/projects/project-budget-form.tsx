@@ -5,7 +5,7 @@ import { formatCurrency, formatCategory, formatPercentage } from '@/lib/formatte
 import { calcPercentUsed } from '@/lib/business-utils'
 import { upsertProjectBudget, removeProjectBudget } from '@/lib/actions'
 import type { BudgetVsActualRow, CategoryOption } from '@/lib/types'
-import { iconTrash } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 
 type Props = {
   projectId: string
@@ -183,9 +183,7 @@ export function ProjectBudgetForm({
                         className="text-negative/60 opacity-0 transition-opacity group-hover:opacity-100 hover:text-negative disabled:opacity-50"
                         title="Remove budget"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                          <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
-                        </svg>
+                        <TrashIcon size="md" />
                       </button>
                     )}
                   </td>

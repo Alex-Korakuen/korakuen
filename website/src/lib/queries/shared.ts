@@ -76,6 +76,31 @@ export function buildInvoiceCategoryMap(
   return map
 }
 
+/** Fetch invoice_items categories and return both the invoice_id→Set map
+ *  and a sorted unique-category list for filter dropdowns. */
+export async function fetchInvoiceCategoryData(
+  supabase: SupabaseClient,
+): Promise<{
+  categoryByInvoice: Map<string, Set<string>>
+  uniqueCategories: { value: string; label: string }[]
+}> {
+  const { data, error } = await supabase
+    .from('invoice_items')
+    .select('invoice_id, category')
+    .not('category', 'is', null)
+  if (error) throw error
+
+  const rows = data ?? []
+  const categoryByInvoice = buildInvoiceCategoryMap(rows)
+  const uniqueCategories = [
+    ...new Set(rows.map(c => c.category).filter(Boolean) as string[]),
+  ]
+    .sort()
+    .map(c => ({ value: c, label: c }))
+
+  return { categoryByInvoice, uniqueCategories }
+}
+
 export async function buildProjectCodeMap(
   supabase: SupabaseClient,
   projectIds: string[]

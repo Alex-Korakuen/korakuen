@@ -5,6 +5,7 @@ import { formatCurrency, formatCurrencyCompact, formatPercentage } from '@/lib/f
 import { SectionCard } from '@/components/ui/section-card'
 import { HeaderTitlePortal } from '@/components/ui/header-title-portal'
 import { FilterMultiSelect } from '@/components/ui/filter-multi-select'
+import { EmptyState } from '@/components/ui/empty-state'
 import { tableHead, tableRowHover } from '@/lib/styles'
 import { COMPANY_IDENTIFIER } from '@/lib/constants'
 import type {
@@ -96,9 +97,7 @@ export function SettlementClient({ projects, initialData, initialProjectIds }: P
       {/* Partner table */}
       <SectionCard className={`overflow-hidden ${isPending ? 'opacity-60' : ''}`}>
         {partners.length === 0 ? (
-          <div className="px-6 py-8 text-center text-sm text-faint">
-            No partners assigned to the selected projects.
-          </div>
+          <EmptyState message="No partners assigned to the selected projects." padding="md" />
         ) : (
           <table className="w-full text-sm">
             <thead className={tableHead}>

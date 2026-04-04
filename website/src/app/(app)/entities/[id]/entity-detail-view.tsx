@@ -14,7 +14,8 @@ import { LedgerTable } from '../ledger-table'
 import { updateEntityField, deactivateEntity } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
-import { btnDangerIcon, iconTrash } from '@/lib/styles'
+import { btnDangerIcon } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
 
@@ -124,9 +125,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
             title="Deactivate entity"
             aria-label="Deactivate entity"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
-            </svg>
+            <TrashIcon size="md" />
           </button>
         </HeaderPortal>
       )}

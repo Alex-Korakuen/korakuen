@@ -4,13 +4,15 @@ import { useState, useCallback } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { ModalActions } from '@/components/ui/modal-actions'
 import { EntityPicker } from '@/components/ui/entity-picker'
+import {
+  PartnerAllocationEditor,
+  isPartnerAllocationValid,
+  type PartnerEntry,
+} from '@/components/ui/partner-allocation-editor'
 import { createProject } from '@/lib/actions'
-import { inputClass, iconTrash } from '@/lib/styles'
-import { formatPercentage } from '@/lib/formatters'
+import { inputClass } from '@/lib/styles'
 import type { Currency, PartnerOption } from '@/lib/types'
 import { useModalForm } from '@/lib/use-modal-form'
-
-type PartnerEntry = { partnerId: string; profitSharePct: string }
 
 type Props = {
   isOpen: boolean
@@ -49,22 +51,6 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
 
   const { isPending, error, handleClose, submit } = useModalForm(onClose, resetFields)
 
-  const partnerTotal = partners.reduce((s, p) => s + (parseFloat(p.profitSharePct) || 0), 0)
-  const availablePartners = partnerOptions.filter(po => !partners.some(p => p.partnerId === po.id))
-
-  function addPartner() {
-    if (availablePartners.length === 0) return
-    setPartners(prev => [...prev, { partnerId: availablePartners[0].id, profitSharePct: '' }])
-  }
-
-  function removePartner(index: number) {
-    setPartners(prev => prev.filter((_, i) => i !== index))
-  }
-
-  function updatePartner(index: number, field: keyof PartnerEntry, value: string) {
-    setPartners(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p))
-  }
-
   function handleSubmit() {
     if (!name.trim()) return
 
@@ -93,8 +79,7 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
     })
   }
 
-  const partnersValid = partners.length === 0 || Math.abs(partnerTotal - 100) < 0.01
-  const canSubmit = name.trim() && partnersValid
+  const canSubmit = name.trim() && isPartnerAllocationValid(partners)
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Project">
@@ -241,65 +226,12 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
         {/* Partners */}
         <div>
           <label className="mb-1 block text-sm font-medium text-ink">Partners</label>
-          {partners.length > 0 && (
-            <div className="space-y-2 mb-2">
-              {partners.map((p, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <select
-                    value={p.partnerId}
-                    onChange={(e) => updatePartner(i, 'partnerId', e.target.value)}
-                    className={`${inputClass} flex-1`}
-                  >
-                    {partnerOptions
-                      .filter(po => po.id === p.partnerId || !partners.some(pp => pp.partnerId === po.id))
-                      .map(po => (
-                        <option key={po.id} value={po.id}>{po.name}</option>
-                      ))}
-                  </select>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      value={p.profitSharePct}
-                      onChange={(e) => updatePartner(i, 'profitSharePct', e.target.value)}
-                      placeholder="0"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className={`${inputClass} w-20 text-right font-mono`}
-                    />
-                    <span className="text-sm text-muted">%</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removePartner(i)}
-                    className="rounded p-1 text-negative/60 transition-colors hover:bg-negative-bg hover:text-negative"
-                    title="Remove partner"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path fillRule="evenodd" d={iconTrash} clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 text-xs">
-                <span className={`font-medium ${Math.abs(partnerTotal - 100) < 0.01 ? 'text-positive' : 'text-negative'}`}>
-                  Total: {formatPercentage(partnerTotal)}
-                </span>
-                {Math.abs(partnerTotal - 100) >= 0.01 && (
-                  <span className="text-faint">(must be 100%)</span>
-                )}
-              </div>
-            </div>
-          )}
-          {availablePartners.length > 0 && (
-            <button
-              type="button"
-              onClick={addPartner}
-              className="text-xs font-medium text-accent hover:text-accent-hover"
-            >
-              + Add partner
-            </button>
-          )}
+          <PartnerAllocationEditor
+            value={partners}
+            onChange={setPartners}
+            partnerOptions={partnerOptions}
+            size="md"
+          />
         </div>
 
         {/* Error */}

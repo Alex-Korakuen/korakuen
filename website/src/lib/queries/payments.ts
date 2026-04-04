@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { DEFAULT_CURRENCY, buildInvoiceCategoryMap } from './shared'
+import { DEFAULT_CURRENCY, fetchInvoiceCategoryData } from './shared'
 import { paginateArray } from '../pagination'
 import { sortRows } from '../sort-rows'
 import type { PaginatedResult } from '../pagination'
@@ -42,28 +42,19 @@ export async function getPaymentsPage(
 ): Promise<PaymentsPageResult> {
   const supabase = await createServerSupabaseClient()
 
-  const [paymentsResult, itemCategoriesResult] = await Promise.all([
+  const [paymentsResult, categoryData] = await Promise.all([
     supabase
       .from('v_payments_enriched')
       .select('*')
       .order('payment_date', { ascending: false }),
-    supabase
-      .from('invoice_items')
-      .select('invoice_id, category')
-      .not('category', 'is', null),
+    fetchInvoiceCategoryData(supabase),
   ])
 
   if (paymentsResult.error) throw paymentsResult.error
 
   let rows = paymentsResult.data ?? []
 
-  const categoryByInvoice = buildInvoiceCategoryMap(itemCategoriesResult.data ?? [])
-
-  // Collect unique categories for filter dropdown
-  const allCategories = [...new Set(
-    (itemCategoriesResult.data ?? []).map(c => c.category).filter(Boolean) as string[]
-  )].sort()
-  const uniqueCategories = allCategories.map(c => ({ value: c, label: c }))
+  const { categoryByInvoice, uniqueCategories } = categoryData
 
   // Collect unique values for filter dropdowns
   const projectMap = new Map<string, string>()

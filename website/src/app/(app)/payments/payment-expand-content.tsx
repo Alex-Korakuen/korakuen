@@ -5,7 +5,8 @@ import { formatCurrency, formatDate, formatExchangeRate } from '@/lib/formatters
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InlineEdit } from '@/components/ui/inline-edit'
-import { btnDangerOutline, iconTrash } from '@/lib/styles'
+import { btnDangerOutline } from '@/lib/styles'
+import { TrashIcon } from '@/components/ui/trash-icon'
 import { updatePaymentField, deactivatePayment, promotePhantomInvoice } from '@/lib/actions'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import type { BankAccountOption } from '@/lib/actions'
@@ -215,7 +216,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           onClick={() => onSetMode('delete')}
           className={`${btnDangerOutline}`}
         >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d={iconTrash} clipRule="evenodd" /></svg>
+          <TrashIcon size="sm" />
           Delete
         </button>
       </div>
