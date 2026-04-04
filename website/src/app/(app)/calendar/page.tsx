@@ -1,5 +1,6 @@
 import { getObligationCalendar, getProjectsForFilter, getProjectCategories } from '@/lib/queries'
 import { FK, str } from '@/lib/filter-keys'
+import type { InvoiceDirection } from '@/lib/types'
 import { CalendarClient } from './calendar-client'
 
 type Props = {
@@ -10,7 +11,7 @@ export default async function CalendarPage({ searchParams }: Props) {
   const params = await searchParams
 
   const filters = {
-    direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
+    direction: str(params, FK.direction) as InvoiceDirection | undefined,
     projectId: str(params, FK.project),
     supplier: str(params, FK.entity),
     type: str(params, FK.type),

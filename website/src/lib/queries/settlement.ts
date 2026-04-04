@@ -151,7 +151,6 @@ export async function getSettlementDashboard(
     const balance = round2(shouldReceive - revenueReceived)
 
     const partnerName = partnerNameMap.get(partnerId)
-    if (!partnerName) console.warn(`Settlement: partner ${partnerId} not found in entities`)
 
     partners.push({
       partnerId: partnerId,

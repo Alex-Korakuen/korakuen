@@ -9,6 +9,7 @@ import type {
   InvoiceBalanceRow,
   InvoicesWithLoansRow,
   InvoiceDetailData,
+  InvoiceDirection,
   InvoicesPageRow,
   InvoiceItem,
   LoanDetailData,
@@ -17,7 +18,7 @@ import type {
 } from '../types'
 
 type InvoicesPageFilters = {
-  direction?: 'payable' | 'receivable'
+  direction?: InvoiceDirection
   type?: 'commercial' | 'loan'
   status?: 'pending' | 'partial' | 'paid' | 'overdue'
   projectId?: string
@@ -119,7 +120,7 @@ export async function getInvoicesPage(
   const mapped: InvoicesPageRow[] = rows.map(r => ({
     id: r.id!,
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
-    direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
+    direction: (r.direction as InvoiceDirection) ?? 'payable',
     partner_id: r.partner_id,
     partner_name: r.partner_id ? partnerNameMap.get(r.partner_id) ?? null : null,
     project_id: r.project_id,
@@ -217,6 +218,20 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     payments = (data ?? []) as Payment[]
   }
 
+  const loanData = loanResult.data
+  const loanCurrency = loanData.currency
+
+  // Loan repayments must be in the loan's currency — v_loan_balances sums amounts
+  // directly without conversion, so mixing currencies here would silently produce
+  // wrong outstanding/status values.
+  for (const p of payments) {
+    if (p.currency !== loanCurrency) {
+      throw new Error(
+        `Loan payment ${p.id} currency (${p.currency}) does not match loan currency (${loanCurrency}).`,
+      )
+    }
+  }
+
   const schedule: LoanScheduleEntry[] = scheduleEntries.map(entry => {
     const entryPayments = payments.filter(p => p.related_id === entry.id)
     const amountPaid = entryPayments.reduce((sum, p) => sum + p.amount, 0)
@@ -227,7 +242,6 @@ export async function getLoanDetail(loanId: string): Promise<LoanDetailData> {
     return { ...entry, amount_paid: amountPaid, outstanding, payment_status: status }
   })
 
-  const loanData = loanResult.data
   return {
     loan: { ...loanData, currency: loanData.currency as Currency | null },
     schedule,

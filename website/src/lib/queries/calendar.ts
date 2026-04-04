@@ -1,10 +1,10 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { buildEntityNameMap } from './shared'
 import { getCalendarBucket } from '../date-utils'
-import type { ObligationCalendarRow } from '../types'
+import type { ObligationCalendarRow, InvoiceDirection } from '../types'
 
 type ObligationCalendarFilters = {
-  direction?: 'payable' | 'receivable'
+  direction?: InvoiceDirection
   projectId?: string
   supplier?: string
   type?: string

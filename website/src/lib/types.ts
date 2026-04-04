@@ -83,7 +83,7 @@ export type CalendarBucketId = 'all' | 'overdue' | 'today' | 'next-7' | 'next-30
 export type InvoicesPageRow = {
   id: string                          // invoice_id or loan_schedule_id
   type: 'commercial' | 'loan'
-  direction: 'payable' | 'receivable'
+  direction: InvoiceDirection
   partner_id: string | null
   partner_name: string | null
   project_id: string | null
@@ -340,10 +340,6 @@ export type EntitySearchResult = {
   legal_name: string
   document_number: string
 }
-
-// --- Quote types ---
-
-export type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 
 // --- Prices browse types ---
 

@@ -7,6 +7,7 @@ import {
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
 import { getMonthDateRange } from '@/lib/date-utils'
+import type { InvoiceDirection } from '@/lib/types'
 import { InvoicesClient } from './invoices-client'
 
 type Props = {
@@ -21,7 +22,7 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const { dateFrom, dateTo } = month ? getMonthDateRange(month) : { dateFrom: undefined, dateTo: undefined }
 
   const filters = {
-    direction: str(params, FK.direction) as 'payable' | 'receivable' | undefined,
+    direction: str(params, FK.direction) as InvoiceDirection | undefined,
     type: str(params, FK.type) as 'commercial' | 'loan' | undefined,
     status: str(params, FK.status) as 'pending' | 'partial' | 'paid' | 'overdue' | undefined,
     projectId: str(params, FK.project),

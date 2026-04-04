@@ -155,7 +155,7 @@ Known enum values per field:
 | `projects.status` | prospect, active, completed, cancelled |
 | `projects.contract_currency` | USD, PEN |
 | `invoices.direction` | payable, receivable |
-| `invoices.quote_status` | pending, accepted, rejected |
+| `invoices.quote_status` | pending, accepted, rejected (nullable — NULL for non-quote invoices) |
 | `invoices.cost_type` | project_cost, sga, intercompany (payable only) |
 | `invoices.currency` | USD, PEN |
 | `invoices.comprobante_type` | factura, boleta, recibo_por_honorarios, liquidacion_de_compra, planilla_jornales, none |

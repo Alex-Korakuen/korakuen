@@ -13,6 +13,7 @@ import { LoanExpandContent } from '../invoices/loan-expand-content'
 import { CalendarTable } from './calendar-table'
 import type {
   Currency,
+  InvoiceDirection,
   ObligationCalendarRow,
   InvoicesPageRow,
   InvoiceDetailData,
@@ -69,7 +70,7 @@ function toInvoicesPageRow(r: ObligationCalendarRow, partnerNames: Record<string
   return {
     id: r.invoice_id ?? '',
     type: (r.type as 'commercial' | 'loan') ?? 'commercial',
-    direction: (r.direction as 'payable' | 'receivable') ?? 'payable',
+    direction: (r.direction as InvoiceDirection) ?? 'payable',
     partner_id: r.partner_id ?? null,
     partner_name: r.partner_id ? (partnerNames[r.partner_id] ?? null) : null,
     project_id: r.project_id ?? null,

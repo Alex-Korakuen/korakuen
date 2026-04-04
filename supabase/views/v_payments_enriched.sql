@@ -4,7 +4,7 @@
 -- Source tables: payments, invoices, entities, projects, loan_schedule, loans, bank_accounts
 -- Used by: Payments page (browse)
 
-CREATE VIEW v_payments_enriched
+CREATE OR REPLACE VIEW v_payments_enriched
 WITH (security_invoker = on)
 AS
 
