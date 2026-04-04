@@ -57,10 +57,11 @@ export async function getInvoicesPage(
 
   if (invoicesResult.error) throw invoicesResult.error
 
-  // Exclude phantom invoices (comprobante_type = 'none') and all quotes (quote_status IS NOT NULL)
-  // Quotes belong on the Prices page, not here
+  // Exclude phantom invoices (comprobante_type = 'none') and pending/rejected quotes.
+  // Accepted quotes (quote_status = 'accepted') are real invoices and show here;
+  // pending/rejected quotes belong only on the Prices page.
   let rows: InvoicesWithLoansRow[] = (invoicesResult.data ?? []).filter(
-    r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && r.quote_status == null)
+    r => r.type !== 'commercial' || (r.comprobante_type !== 'none' && (r.quote_status == null || r.quote_status === 'accepted'))
   )
 
   const { categoryByInvoice, uniqueCategories } = categoryData
