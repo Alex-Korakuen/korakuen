@@ -5,7 +5,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { round2 } from '@/lib/queries'
 import { handleDbError } from '@/lib/server-utils'
 import { isAdmin } from '@/lib/auth'
-import { VALID_CURRENCIES, defaultPaymentTitle, DEFAULT_IGV_RATE, DEFAULT_RETENCION_RATE, EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX } from '@/lib/constants'
+import { VALID_CURRENCIES, DEFAULT_IGV_RATE, DEFAULT_RETENCION_RATE, EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX } from '@/lib/constants'
+import { defaultPaymentTitle } from '@/lib/formatters'
 
 export type ImportError = { row: number; column: string; message: string }
 export type ImportResult = { success?: number; errors?: ImportError[]; error?: string }
@@ -163,6 +164,23 @@ export async function importPendingInvoices(
 
   const rateMap = await loadExchangeRateMap(supabase, rows, 'date_received')
 
+  // Check which document_refs already exist in DB (would be duplicates on re-import)
+  const docRefsInFile = [...new Set(
+    rows.map(r => str(r.document_ref)).filter(Boolean) as string[]
+  )]
+  const existingDocRefs = new Set<string>()
+  if (docRefsInFile.length > 0) {
+    const { data: existing } = await supabase
+      .from('invoices')
+      .select('document_ref')
+      .in('document_ref', docRefsInFile)
+      .eq('is_active', true)
+    for (const inv of existing ?? []) {
+      if (inv.document_ref) existingDocRefs.add(inv.document_ref)
+    }
+  }
+
+  // --- Per-row validation ---
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     const r = i + 5
@@ -176,6 +194,7 @@ export async function importPendingInvoices(
     const currency = str(row.currency)
     const status = str(row.status)
     const category = str(row.category)
+    const docRef = str(row.document_ref)
 
     const exchangeRate = autoFillExchangeRate(row, rateMap, dateReceived)
 
@@ -189,6 +208,12 @@ export async function importPendingInvoices(
     if (!currency) errors.push({ row: r, column: 'currency', message: 'Required' })
     if (exchangeRate === null) errors.push({ row: r, column: 'exchange_rate', message: 'Required — no rate provided and no exchange rate found for this date' })
     if (!status) errors.push({ row: r, column: 'status', message: 'Required' })
+    if (!docRef) errors.push({ row: r, column: 'document_ref', message: 'Required (grouping key — rows with same document_ref become one quote)' })
+
+    // Duplicate detection
+    if (docRef && existingDocRefs.has(docRef)) {
+      errors.push({ row: r, column: 'document_ref', message: 'A quote with this document_ref already exists in the database' })
+    }
 
     // Enums
     validateCurrency(r, currency, errors)
@@ -219,34 +244,77 @@ export async function importPendingInvoices(
     }
   }
 
+  // --- Group rows by document_ref ---
+  const groups = new Map<string, { row: Record<string, unknown>; rowNum: number }[]>()
+  for (let i = 0; i < rows.length; i++) {
+    const docRef = str(rows[i].document_ref)
+    if (!docRef) continue // already flagged above
+    if (!groups.has(docRef)) groups.set(docRef, [])
+    groups.get(docRef)!.push({ row: rows[i], rowNum: i + 5 })
+  }
+
+  // --- Validate grouped rows share identical header fields ---
+  const HEADER_FIELDS = [
+    'partner_name', 'project_code', 'entity_document_number',
+    'date_received', 'currency', 'status', 'notes',
+  ] as const
+  for (const [docRef, groupRows] of groups) {
+    if (groupRows.length < 2) continue
+    const first = groupRows[0]
+    for (let i = 1; i < groupRows.length; i++) {
+      const { row, rowNum } = groupRows[i]
+      for (const field of HEADER_FIELDS) {
+        const firstVal = str(first.row[field])
+        const thisVal = str(row[field])
+        if (firstVal !== thisVal) {
+          errors.push({
+            row: rowNum,
+            column: field,
+            message: `Must match row ${first.rowNum} for quote "${docRef}": got "${thisVal ?? '(blank)'}", expected "${firstVal ?? '(blank)'}"`,
+          })
+        }
+      }
+      const firstRate = num(first.row.exchange_rate)
+      const thisRate = num(row.exchange_rate)
+      if (firstRate !== thisRate) {
+        errors.push({
+          row: rowNum,
+          column: 'exchange_rate',
+          message: `Must match row ${first.rowNum} for quote "${docRef}": got ${thisRate}, expected ${firstRate}`,
+        })
+      }
+    }
+  }
+
   if (errors.length > 0) return { errors }
 
-  // Insert each row as a pending invoice + invoice_item via RPC
+  // --- Insert one quote (invoice + N items) per group ---
   let successCount = 0
 
-  for (const row of rows) {
-    const dateReceived = str(row.date_received)!
-    const projectCode = str(row.project_code)
-    const status = str(row.status)!
+  for (const [docRef, groupRows] of groups) {
+    const first = groupRows[0].row
+    const dateReceived = str(first.date_received)!
+    const projectCode = str(first.project_code)
+    const status = str(first.status)!
 
     const headerData = {
       direction: 'payable',
       cost_type: 'project_cost',
-      partner_id: partnerMap.get(str(row.partner_name)!)!,
+      partner_id: partnerMap.get(str(first.partner_name)!)!,
       invoice_date: dateReceived,
-      title: str(row.title),
+      title: docRef, // quote title = document_ref (universal across items)
       igv_rate: DEFAULT_IGV_RATE,
-      currency: str(row.currency),
-      exchange_rate: num(row.exchange_rate),
+      currency: str(first.currency),
+      exchange_rate: num(first.exchange_rate),
       project_id: projectCode ? projectMap.get(projectCode)! : null,
-      entity_id: entityMap.get(str(row.entity_document_number)!)!,
+      entity_id: entityMap.get(str(first.entity_document_number)!)!,
       comprobante_type: 'pending',
-      document_ref: str(row.document_ref),
-      notes: str(row.notes),
+      document_ref: docRef,
+      notes: str(first.notes),
       quote_status: status,
     }
 
-    const itemsData = [{
+    const itemsData = groupRows.map(({ row }) => ({
       title: str(row.title),
       category: str(row.category),
       subtotal: num(row.subtotal),
@@ -254,7 +322,7 @@ export async function importPendingInvoices(
       unit_of_measure: str(row.unit_of_measure),
       unit_price: num(row.unit_price),
       quote_date: dateReceived,
-    }]
+    }))
 
     const { error } = await supabase.rpc('fn_create_invoice_with_items', {
       header_data: headerData,
@@ -262,8 +330,7 @@ export async function importPendingInvoices(
     })
 
     if (error) {
-      const ref = str(row.document_ref) || str(row.title) || `row ${successCount + 1}`
-      return { error: handleDbError(error, `Failed to import pending invoice "${ref}"`) }
+      return { error: handleDbError(error, `Failed to import quote "${docRef}"`) }
     }
     successCount++
   }
@@ -472,6 +539,8 @@ export async function importInvoices(
   revalidatePath('/payments')
   revalidatePath('/financial-position')
   revalidatePath('/prices')
+  revalidatePath('/projects', 'layout')
+  revalidatePath('/settlement')
 
   return { success: totalInvoices }
 }

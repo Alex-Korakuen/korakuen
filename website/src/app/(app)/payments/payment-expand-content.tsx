@@ -5,9 +5,10 @@ import { formatCurrency, formatDate, formatExchangeRate } from '@/lib/formatters
 import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InlineEdit } from '@/components/ui/inline-edit'
-import { btnDangerOutline } from '@/lib/styles'
+import { btnDangerOutline, detailGrid4Class, panelBoxClass } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
 import { updatePaymentField, deactivatePayment, promotePhantomInvoice } from '@/lib/actions'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { useAuth } from '@/lib/auth-context'
 import type { BankAccountOption } from '@/lib/actions'
@@ -92,7 +93,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
   return (
     <div className="space-y-4">
       {/* Row 1: Title + Operation # + Date */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <div className={isRetencion ? 'sm:col-span-3' : 'sm:col-span-2'}>
           <InlineEdit
             label="Title"
@@ -153,7 +154,7 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
       </div>
 
       {/* Row 3: Financial summary panel */}
-      <div className="rounded border border-edge bg-panel px-4 py-3">
+      <div className={panelBoxClass}>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-3">
           <InlineEdit
             label="Amount"
@@ -196,8 +197,8 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
             <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
               <DetailField label="Title" value={relatedDetail.invoice.title ?? '—'} />
               <DetailField label="Invoice #" value={relatedDetail.invoice.invoice_number ?? '—'} />
-              <DetailField label="Total" value={formatCurrency(relatedDetail.invoice.total ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
-              <DetailField label="Outstanding" value={formatCurrency(relatedDetail.invoice.outstanding ?? 0, relatedDetail.invoice.currency ?? 'PEN')} />
+              <DetailField label="Total" value={formatCurrency(relatedDetail.invoice.total ?? 0, relatedDetail.invoice.currency ?? DEFAULT_CURRENCY)} />
+              <DetailField label="Outstanding" value={formatCurrency(relatedDetail.invoice.outstanding ?? 0, relatedDetail.invoice.currency ?? DEFAULT_CURRENCY)} />
             </div>
           </div>
         )
@@ -209,8 +210,8 @@ function ViewContent({ row, relatedDetail, onSetMode, onMutationSuccess, bankAcc
           <div className="grid grid-cols-2 gap-4 rounded border border-edge px-4 py-3 text-sm sm:grid-cols-4">
             <DetailField label="Lender" value={relatedDetail.loan.lender_name ?? '—'} />
             <DetailField label="Purpose" value={relatedDetail.loan.purpose ?? '—'} />
-            <DetailField label="Total Owed" value={formatCurrency(relatedDetail.loan.total_owed ?? 0, (relatedDetail.loan.currency ?? 'PEN') as 'PEN' | 'USD')} />
-            <DetailField label="Outstanding" value={formatCurrency(relatedDetail.loan.outstanding ?? 0, (relatedDetail.loan.currency ?? 'PEN') as 'PEN' | 'USD')} />
+            <DetailField label="Total Owed" value={formatCurrency(relatedDetail.loan.total_owed ?? 0, (relatedDetail.loan.currency ?? DEFAULT_CURRENCY) as 'PEN' | 'USD')} />
+            <DetailField label="Outstanding" value={formatCurrency(relatedDetail.loan.outstanding ?? 0, (relatedDetail.loan.currency ?? DEFAULT_CURRENCY) as 'PEN' | 'USD')} />
           </div>
         </div>
       )}
@@ -256,7 +257,7 @@ function DeleteContent({ row, onCancel, onSuccess }: {
     <div className="space-y-4">
       {/* Dimmed payment info */}
       <div className="opacity-40 pointer-events-none">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className={detailGrid4Class}>
           <DetailField label="Date" value={row.payment_date ? formatDate(row.payment_date) : '—'} />
           <DetailField label="Direction" value={row.direction === 'inbound' ? 'Inbound' : 'Outbound'} />
           <div>

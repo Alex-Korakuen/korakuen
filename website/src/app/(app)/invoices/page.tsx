@@ -6,7 +6,7 @@ import {
 } from '@/lib/queries'
 import { parsePaginationParams } from '@/lib/pagination'
 import { FK, str } from '@/lib/filter-keys'
-import { getMonthDateRange } from '@/lib/date-utils'
+import { getMonthDateRange } from '@/lib/formatters'
 import type { InvoiceDirection } from '@/lib/types'
 import { InvoicesClient } from './invoices-client'
 

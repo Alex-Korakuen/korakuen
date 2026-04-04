@@ -15,7 +15,9 @@ import { updateEntityField, deactivateEntity } from '@/lib/actions'
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { btnDangerIcon } from '@/lib/styles'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { TrashIcon } from '@/components/ui/trash-icon'
+import { DetailBreadcrumb } from '@/components/ui/detail-breadcrumb'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { useAuth } from '@/lib/auth-context'
 import type { EntityDetailData, EntityLedgerGroup } from '@/lib/types'
@@ -85,7 +87,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
   // Compute financial summaries from existing data
   const summaries = useMemo(() => {
     let outPayable = 0, totalPayable = 0, outReceivable = 0, totalReceivable = 0
-    let currency = 'PEN'
+    let currency: string = DEFAULT_CURRENCY
     for (const g of detail.payablesByProject) {
       outPayable += g.outstanding
       totalPayable += g.invoiceTotal
@@ -103,19 +105,7 @@ export function EntityDetailView({ detail, availableTags }: Props) {
     <div>
       {/* Header left: breadcrumb */}
       <HeaderTitlePortal>
-        <Link
-          href="/entities"
-          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15,18 9,12 15,6" />
-          </svg>
-          Entities
-        </Link>
-        <div className="h-4 w-px bg-edge" />
-        <span className="text-sm text-muted truncate">
-          {entity.legal_name}
-        </span>
+        <DetailBreadcrumb backHref="/entities" backLabel="Entities" title={entity.legal_name} />
       </HeaderTitlePortal>
 
       {/* Header right: deactivate button only */}

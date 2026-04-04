@@ -6,6 +6,7 @@ import { ModalActions } from '@/components/ui/modal-actions'
 import { createBankAccount } from '@/lib/actions'
 import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { useModalForm } from '@/lib/use-modal-form'
 
 type Props = {
@@ -20,7 +21,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
   const [last4, setLast4] = useState('')
   const [label, setLabel] = useState('')
   const [accountType, setAccountType] = useState<'checking' | 'savings' | 'detraccion'>('checking')
-  const [currency, setCurrency] = useState<Currency>('PEN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
 
   const isDetraccion = accountType === 'detraccion'
 
@@ -30,7 +31,7 @@ export function CreateBankAccountModal({ isOpen, onClose, partners }: Props) {
     setLast4('')
     setLabel('')
     setAccountType('checking')
-    setCurrency('PEN')
+    setCurrency(DEFAULT_CURRENCY)
   }, [])
 
   const { isPending, error, handleClose, submit } = useModalForm(onClose, resetFields)

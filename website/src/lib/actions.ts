@@ -6,7 +6,8 @@ import { getInvoiceDetail, getLoanDetail, getBankTransactions, searchEntities, g
 import type { BankTransaction, Currency } from '@/lib/types'
 import { handleDbError } from '@/lib/server-utils'
 import { isAdmin } from '@/lib/auth'
-import { updateRecordField, ENTITY_CONFIG, PROJECT_CONFIG, INVOICE_CONFIG, PAYMENT_CONFIG } from '@/lib/field-update'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
+import { updateRecordField, softDeleteRecord, ENTITY_CONFIG, PROJECT_CONFIG, INVOICE_CONFIG, PAYMENT_CONFIG } from '@/lib/field-update'
 
 async function requireAdmin(): Promise<{ error: string } | null> {
   return (await isAdmin()) ? null : { error: 'Admin access required' }
@@ -321,8 +322,6 @@ export async function updateEntityContact(
   return {}
 }
 
-// --- Update & Deactivate Entity ---
-
 // --- Granular field-level updates (thin wrappers over shared helper) ---
 
 export async function updateEntityField(
@@ -362,25 +361,11 @@ export async function deactivateEntity(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const supabase = await createServerSupabaseClient()
-
-  const { data: existing } = await supabase
-    .from('entities')
-    .select('id')
-    .eq('id', entityId)
-    .eq('is_active', true)
-    .single()
-  if (!existing) return { error: 'Entity not found or already deactivated' }
-
-  const { error } = await supabase
-    .from('entities')
-    .update({ is_active: false })
-    .eq('id', entityId)
-
-  if (error) return { error: handleDbError(error, 'Failed to deactivate entity') }
-  revalidatePath('/entities')
-  revalidatePath('/invoices')
-  return {}
+  const result = await softDeleteRecord(
+    { table: 'entities', entityLabel: 'Entity', revalidatePaths: ['/entities', '/invoices'] },
+    entityId,
+  )
+  return result.error ? { error: result.error } : {}
 }
 
 export async function createBankAccount(data: {
@@ -482,8 +467,6 @@ export async function createEntity(data: {
   return {}
 }
 
-// --- Update Project ---
-
 // --- Create Project ---
 
 export async function createProject(data: {
@@ -520,7 +503,7 @@ export async function createProject(data: {
     status: data.status,
     client_entity_id: data.client_entity_id || null,
     contract_value: data.contract_value ?? null,
-    contract_currency: data.contract_value ? (data.contract_currency || 'PEN') : null,
+    contract_currency: data.contract_value ? (data.contract_currency || DEFAULT_CURRENCY) : null,
     start_date: data.start_date || null,
     expected_end_date: data.expected_end_date || null,
     location: data.location || null,
@@ -543,7 +526,6 @@ export async function createProject(data: {
   revalidatePath('/projects', 'layout')
   return {}
 }
-
 
 // --- Set Project Partners (add/edit/remove) ---
 
@@ -649,32 +631,19 @@ function revalidateQuotePages() {
   revalidateFinancialPages()
 }
 
-export async function acceptQuote(invoiceId: string): Promise<{ error?: string }> {
-  const guard = await requireAdmin()
-  if (guard) return guard
-  const supabase = await createServerSupabaseClient()
+type QuoteStatus = 'pending' | 'accepted' | 'rejected'
 
-  const { data: inv, error: fetchErr } = await supabase
-    .from('invoices')
-    .select('quote_status')
-    .eq('id', invoiceId)
-    .single()
-  if (fetchErr) return { error: handleDbError(fetchErr, 'Invoice not found') }
-  if (inv.quote_status !== 'pending' && inv.quote_status !== 'rejected') {
-    return { error: 'Only pending or rejected quotes can be accepted' }
-  }
-
-  const { error } = await supabase
-    .from('invoices')
-    .update({ quote_status: 'accepted' })
-    .eq('id', invoiceId)
-  if (error) return { error: handleDbError(error, 'Failed to accept quote') }
-
-  revalidateQuotePages()
-  return {}
+// Allowed source statuses for each target — quotes can transition freely
+// between pending/accepted/rejected except where payments block rejection.
+const ALLOWED_QUOTE_TRANSITIONS: Record<Exclude<QuoteStatus, 'pending'>, readonly QuoteStatus[]> = {
+  accepted: ['pending', 'rejected'],
+  rejected: ['pending', 'accepted'],
 }
 
-export async function rejectQuote(invoiceId: string): Promise<{ error?: string }> {
+async function transitionQuoteStatus(
+  invoiceId: string,
+  nextStatus: Exclude<QuoteStatus, 'pending'>,
+): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
   const supabase = await createServerSupabaseClient()
@@ -685,12 +654,14 @@ export async function rejectQuote(invoiceId: string): Promise<{ error?: string }
     .eq('id', invoiceId)
     .single()
   if (fetchErr) return { error: handleDbError(fetchErr, 'Invoice not found') }
-  if (inv.quote_status !== 'pending' && inv.quote_status !== 'accepted') {
-    return { error: 'Only pending or accepted quotes can be rejected' }
+
+  const allowedSources = ALLOWED_QUOTE_TRANSITIONS[nextStatus]
+  if (!allowedSources.includes(inv.quote_status as QuoteStatus)) {
+    return { error: `Only ${allowedSources.join(' or ')} quotes can be ${nextStatus}` }
   }
 
   // Block rejection if the quote has been accepted and has payments
-  if (inv.quote_status === 'accepted') {
+  if (nextStatus === 'rejected' && inv.quote_status === 'accepted') {
     const { count } = await supabase
       .from('payments')
       .select('id', { count: 'exact', head: true })
@@ -704,12 +675,20 @@ export async function rejectQuote(invoiceId: string): Promise<{ error?: string }
 
   const { error } = await supabase
     .from('invoices')
-    .update({ quote_status: 'rejected' })
+    .update({ quote_status: nextStatus })
     .eq('id', invoiceId)
-  if (error) return { error: handleDbError(error, 'Failed to reject quote') }
+  if (error) return { error: handleDbError(error, `Failed to ${nextStatus === 'accepted' ? 'accept' : 'reject'} quote`) }
 
   revalidateQuotePages()
   return {}
+}
+
+export async function acceptQuote(invoiceId: string): Promise<{ error?: string }> {
+  return transitionQuoteStatus(invoiceId, 'accepted')
+}
+
+export async function rejectQuote(invoiceId: string): Promise<{ error?: string }> {
+  return transitionQuoteStatus(invoiceId, 'rejected')
 }
 
 // --- Loans ---
@@ -884,29 +863,30 @@ export async function deactivatePayment(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const supabase = await createServerSupabaseClient()
 
-  // Verify payment exists and is active
-  const { data: existing } = await supabase
-    .from('payments')
-    .select('id, payment_type, related_to, related_id')
-    .eq('id', paymentId)
-    .eq('is_active', true)
-    .single()
-  if (!existing) return { error: 'Payment not found or already deactivated' }
+  const result = await softDeleteRecord<{
+    id: string
+    payment_type: string
+    related_to: string
+    related_id: string
+  }>(
+    {
+      table: 'payments',
+      entityLabel: 'Payment',
+      revalidatePaths: ['/calendar', '/invoices', '/payments', '/financial-position'],
+      existingColumns: ['payment_type', 'related_to', 'related_id'],
+    },
+    paymentId,
+  )
 
-  const { data: updated, error } = await supabase
-    .from('payments')
-    .update({ is_active: false })
-    .eq('id', paymentId)
-    .eq('is_active', true)
-    .select('id')
-
-  if (error) return { error: handleDbError(error, 'Failed to deactivate payment') }
-  if (!updated || updated.length === 0) return { error: 'Payment was already deactivated' }
+  if (result.error || !result.existing) {
+    return { error: result.error ?? 'Payment not found' }
+  }
 
   // If this was the only retencion payment on the invoice, un-verify retencion
+  const existing = result.existing
   if (existing.payment_type === 'retencion' && existing.related_to === 'invoice') {
+    const supabase = await createServerSupabaseClient()
     const { data: otherRetencion } = await supabase
       .from('payments')
       .select('id')
@@ -923,7 +903,6 @@ export async function deactivatePayment(
     }
   }
 
-  revalidateFinancialPages()
   return {}
 }
 
@@ -934,24 +913,19 @@ export async function deactivateInvoice(
 ): Promise<{ error?: string }> {
   const guard = await requireAdmin()
   if (guard) return guard
-  const supabase = await createServerSupabaseClient()
 
-  const { data: existing } = await supabase
-    .from('invoices')
-    .select('id')
-    .eq('id', invoiceId)
-    .eq('is_active', true)
-    .single()
-  if (!existing) return { error: 'Invoice not found or already deactivated' }
-
-  const { error } = await supabase
-    .from('invoices')
-    .update({ is_active: false })
-    .eq('id', invoiceId)
-
-  if (error) return { error: handleDbError(error, 'Failed to deactivate invoice') }
+  const result = await softDeleteRecord(
+    {
+      table: 'invoices',
+      entityLabel: 'Invoice',
+      revalidatePaths: ['/calendar', '/invoices', '/payments', '/financial-position', '/prices'],
+    },
+    invoiceId,
+  )
+  if (result.error) return { error: result.error }
 
   // Unlink related payments (keep them active, just remove the link)
+  const supabase = await createServerSupabaseClient()
   await supabase
     .from('payments')
     .update({ related_id: null as unknown as string })
@@ -959,9 +933,7 @@ export async function deactivateInvoice(
     .eq('related_id', invoiceId)
     .eq('is_active', true)
 
-  revalidateFinancialPages()
   revalidatePath('/projects', 'layout')
-  revalidatePath('/prices')
   return {}
 }
 
@@ -1006,16 +978,14 @@ export async function consolidatePhantoms(
   if (targetErr || !target) return { error: 'Target invoice not found' }
   if (target.comprobante_type === 'none') return { error: 'Target cannot be a phantom invoice' }
 
-  // Validate all sources are phantom invoices
-  for (const sourceId of sourceIds) {
-    const { data: source, error: srcErr } = await supabase
-      .from('invoices')
-      .select('id, comprobante_type')
-      .eq('id', sourceId)
-      .single()
-    if (srcErr || !source) return { error: `Source invoice ${sourceId} not found` }
-    if (source.comprobante_type !== 'none') return { error: 'All sources must be phantom invoices' }
-  }
+  // Validate all sources are phantom invoices (single query)
+  const { data: sources, error: srcErr } = await supabase
+    .from('invoices')
+    .select('id, comprobante_type')
+    .in('id', sourceIds)
+  if (srcErr) return { error: handleDbError(srcErr, 'Failed to validate sources') }
+  if (!sources || sources.length !== sourceIds.length) return { error: 'One or more source invoices not found' }
+  if (sources.some(s => s.comprobante_type !== 'none')) return { error: 'All sources must be phantom invoices' }
 
   // Move items from sources to target
   const { error: moveItemsErr } = await supabase

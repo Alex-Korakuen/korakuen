@@ -1,5 +1,5 @@
 import { createServerSupabaseClient } from '../supabase/server'
-import { buildEntityTagsMap, DEFAULT_CURRENCY, convertToPen } from './shared'
+import { buildEntityTagsMap, DEFAULT_CURRENCY, convertToPen, unwrapTagName } from './shared'
 import { PAGE_SIZE } from '../pagination'
 import type { PaginatedResult } from '../pagination'
 import type {
@@ -21,7 +21,7 @@ type EntitiesListFilters = {
   page: number
 }
 
-export async function getEntitiesList(
+async function getEntitiesList(
   filters: EntitiesListFilters = { page: 1 }
 ): Promise<PaginatedResult<EntityListItem>> {
   const supabase = await createServerSupabaseClient()
@@ -147,7 +147,7 @@ export async function getEntitiesDirectory(
       outstandingPayable: fin?.outstandingPayable ?? 0,
       totalReceivable: fin?.totalReceivable ?? 0,
       outstandingReceivable: fin?.outstandingReceivable ?? 0,
-      currency: 'PEN' as Currency,
+      currency: DEFAULT_CURRENCY as Currency,
     }
   })
 
@@ -193,7 +193,7 @@ export async function getEntityDetail(entityId: string): Promise<EntityDetailDat
 
   const tags = (tagsResult.data ?? [])
     .map(t => {
-      const name = (t.tags as unknown as { name: string } | null)?.name
+      const name = unwrapTagName(t.tags)
       return name ? { tagId: t.tag_id, name } : null
     })
     .filter((t): t is { tagId: string; name: string } => t !== null)

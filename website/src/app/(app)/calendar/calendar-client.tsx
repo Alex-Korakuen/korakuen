@@ -3,9 +3,10 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { FilterBar } from '@/components/ui/filter-bar'
-import { getCalendarBucket } from '@/lib/date-utils'
+import { getCalendarBucket } from '@/lib/formatters'
 import { FK } from '@/lib/filter-keys'
 import { fetchInvoiceDetail, fetchLoanDetailById } from '@/lib/actions'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { Modal } from '@/components/ui/modal'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { InvoiceExpandContent } from '../invoices/invoice-expand-content'
@@ -82,7 +83,7 @@ function toInvoicesPageRow(r: ObligationCalendarRow, partnerNames: Record<string
     invoice_number: r.invoice_number ?? null,
     invoice_date: r.date ?? null,
     due_date: r.due_date ?? null,
-    currency: (r.currency ?? 'PEN') as Currency,
+    currency: (r.currency ?? DEFAULT_CURRENCY) as Currency,
     total: r.total ?? 0,
     amount_paid: r.amount_paid ?? 0,
     outstanding: r.outstanding ?? 0,

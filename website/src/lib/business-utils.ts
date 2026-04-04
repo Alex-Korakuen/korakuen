@@ -12,7 +12,3 @@ export function calcDaysOverdue(dueDate: string | null): number {
   )
 }
 
-/** Calculate total outstanding amount (outstanding + bdn_outstanding). */
-export function calcOutstanding(outstanding: number, bdnOutstanding: number): number {
-  return outstanding + bdnOutstanding
-}

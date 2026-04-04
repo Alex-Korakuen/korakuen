@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate, formatComprobanteType, formatCategory, formatExchangeRate } from '@/lib/formatters'
 import { InlineEdit } from '@/components/ui/inline-edit'
 import { PaymentHistoryTable } from '@/components/ui/payment-history-table'
-import { btnDangerOutline } from '@/lib/styles'
+import { btnDangerOutline, detailGrid4Class, panelBoxClass } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
 import { updateInvoiceField, updateInvoiceItemField, addInvoiceItem, removeInvoiceItem, deactivateInvoice } from '@/lib/actions'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { DetailField } from '@/components/ui/detail-field'
 import { useAuth } from '@/lib/auth-context'
@@ -43,7 +44,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
   const router = useRouter()
   const { isAdmin } = useAuth()
   const invoice = detail.invoice!
-  const currency = invoice.currency ?? 'PEN'
+  const currency = invoice.currency ?? DEFAULT_CURRENCY
   const invoiceDetraccion = invoice.detraccion_amount ?? 0
   const invoiceRetencion = invoice.retencion_amount ?? 0
   const invoiceOutstanding = invoice.outstanding ?? 0
@@ -98,7 +99,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
       )}
 
       {/* Header fields */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <InlineEdit
           label="Partner"
           inputType="text"
@@ -122,7 +123,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <InlineEdit
           label="Comprobante"
           inputType="select"
@@ -153,7 +154,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <InlineEdit
           label="Exchange Rate"
           inputType="number"
@@ -280,7 +281,7 @@ function ViewContent({ detail, row, categories, onSetMode, onPaymentSuccess }: {
       </div>
 
       {/* Totals */}
-      <div className="rounded border border-edge bg-panel px-4 py-3">
+      <div className={panelBoxClass}>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -370,7 +371,7 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
   const invoice = detail.invoice!
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const currency = invoice.currency ?? 'PEN'
+  const currency = invoice.currency ?? DEFAULT_CURRENCY
   const paymentCount = detail.payments.length
   const paymentTotal = detail.payments.reduce((sum, p) => sum + p.amount, 0)
 
@@ -390,7 +391,7 @@ function DeleteContent({ detail, onCancel, onSuccess }: {
     <div className="space-y-4 px-4 py-3">
       {/* Dimmed invoice info */}
       <div className="opacity-40 pointer-events-none">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className={detailGrid4Class}>
           <DetailField label="Direction" value={invoice.direction === 'receivable' ? 'Receivable' : 'Payable'} />
           <DetailField label="Entity" value={invoice.entity_id ? '—' : 'Informal'} />
           <DetailField label="Invoice #" value={invoice.invoice_number ?? '—'} />

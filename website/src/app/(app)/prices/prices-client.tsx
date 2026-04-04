@@ -79,10 +79,10 @@ export function PricesClient({
     router.refresh()
   }, [handleCloseModal, router])
 
-  // Modal title from the clicked row
+  // Modal title from the clicked row — uses document_ref (universal across items)
   const modalTitle = modalRow
-    ? modalRow.entityName !== '—'
-      ? `Quote — ${modalRow.entityName}`
+    ? modalRow.documentRef
+      ? `Quote — ${modalRow.documentRef}`
       : 'Quote Detail'
     : ''
 

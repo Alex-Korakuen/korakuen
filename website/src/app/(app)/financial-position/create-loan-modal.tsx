@@ -8,7 +8,8 @@ import { createLoan, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import type { PartnerOption, Currency } from '@/lib/types'
 import { inputClass } from '@/lib/styles'
-import { todayISO } from '@/lib/date-utils'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
+import { todayISO } from '@/lib/formatters'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 import { useModalForm } from '@/lib/use-modal-form'
 
@@ -24,7 +25,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
   const [entityId, setEntityId] = useState<string | null>(null)
   const [entityName, setEntityName] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>('PEN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [dateBorrowed, setDateBorrowed] = useState(todayISO)
   const [projectId, setProjectId] = useState('')
   const [returnType, setReturnType] = useState<'percentage' | 'fixed'>('percentage')
@@ -41,7 +42,7 @@ export function CreateLoanModal({ isOpen, onClose, partners, projects }: Props) 
     setEntityId(null)
     setEntityName(null)
     setAmount('')
-    setCurrency('PEN')
+    setCurrency(DEFAULT_CURRENCY)
     setDateBorrowed(todayISO())
     setProjectId('')
     setReturnType('percentage')

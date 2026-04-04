@@ -1,16 +1,12 @@
 'use client'
 
-import { formatCurrency, formatDate } from '@/lib/formatters'
-import { calcDaysOverdue, calcOutstanding } from '@/lib/business-utils'
+import { formatCurrency, formatDate, formatPaymentStatus, paymentStatusBadgeVariant } from '@/lib/formatters'
+import { calcDaysOverdue } from '@/lib/business-utils'
 import { useUrlSort } from '@/lib/use-url-sort'
 import { SortIndicator } from '@/components/ui/sort-indicator'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { tableHead, tableRowHover } from '@/lib/styles'
-import {
-  getAgingRowBorderClass,
-  getStatusLabel,
-  getStatusVariant,
-} from './helpers'
+import { getAgingRowBorderClass } from './helpers'
 import type { InvoicesPageRow } from '@/lib/types'
 
 type Props = {
@@ -90,10 +86,10 @@ export function InvoicesTable({
                     {formatCurrency(row.total, row.currency)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center font-mono font-medium text-ink">
-                    {calcOutstanding(row.outstanding, row.bdn_outstanding) > 0 ? formatCurrency(calcOutstanding(row.outstanding, row.bdn_outstanding), row.currency) : '—'}
+                    {row.outstanding + row.bdn_outstanding > 0 ? formatCurrency(row.outstanding + row.bdn_outstanding, row.currency) : '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-center">
-                    <StatusBadge label={getStatusLabel(row.payment_status)} variant={getStatusVariant(row.payment_status)} />
+                    <StatusBadge label={formatPaymentStatus(row.payment_status)} variant={paymentStatusBadgeVariant(row.payment_status)} />
                   </td>
                 </tr>
               )

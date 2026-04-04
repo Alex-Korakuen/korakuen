@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '../supabase/server'
 import { buildEntityNameMap } from './shared'
-import { getCalendarBucket } from '../date-utils'
+import { getCalendarBucket } from '../formatters'
 import type { ObligationCalendarRow, InvoiceDirection } from '../types'
 
 type ObligationCalendarFilters = {

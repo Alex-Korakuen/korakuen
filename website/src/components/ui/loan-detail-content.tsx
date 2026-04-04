@@ -7,7 +7,8 @@ import { DetailField } from '@/components/ui/detail-field'
 import { LoanScheduleForm } from '@/components/ui/loan-schedule-form'
 import { RegisterLoanRepaymentForm } from '@/components/ui/register-loan-repayment-form'
 import type { LoanDetailData, Currency } from '@/lib/types'
-import { btnPrimaryLg } from '@/lib/styles'
+import { btnPrimaryLg, detailGrid4Class, panelBoxClass } from '@/lib/styles'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import { NotesDisplay } from '@/components/ui/notes-display'
 
 type Variant = 'panel' | 'expand'
@@ -34,7 +35,7 @@ export function LoanDetailContent({
   }
 
   const loanOutstanding = loan?.outstanding ?? 0
-  const loanCurrency = (loan?.currency ?? 'PEN') as Currency
+  const loanCurrency = (loan?.currency ?? DEFAULT_CURRENCY) as Currency
 
   // Find the first unpaid schedule entry
   const currentScheduleEntry = detail.schedule.find(
@@ -51,7 +52,7 @@ export function LoanDetailContent({
   return (
     <div className={outer}>
       {/* Header info */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <DetailField label="Lender" value={loan?.lender_name ?? '—'} />
         <DetailField label="Purpose" value={loan?.purpose ?? '—'} />
         <DetailField
@@ -66,7 +67,7 @@ export function LoanDetailContent({
 
       {/* Loan financials */}
       {loan && (
-        <div className="rounded border border-edge bg-panel px-4 py-3">
+        <div className={panelBoxClass}>
           {!isExpand && <h3 className="mb-2 text-sm font-semibold text-ink">Loan Summary</h3>}
           <div className={`grid ${isExpand ? 'grid-cols-2 gap-1 sm:grid-cols-4' : 'grid-cols-2 gap-2'} text-sm`}>
             <span className="text-muted">Principal</span>

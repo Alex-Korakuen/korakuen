@@ -27,7 +27,6 @@ export type InvoiceDirection = 'payable' | 'receivable'
 export type PaymentType = 'regular' | 'detraccion' | 'retencion'
 export type ProjectStatus = 'prospect' | 'active' | 'completed' | 'cancelled'
 export type EntityType = 'company' | 'individual'
-export type DocumentType = 'RUC' | 'DNI' | 'CE' | 'Pasaporte'
 export type PaymentDirection = 'inbound' | 'outbound'
 export type PaymentRelatedTo = 'invoice' | 'loan_schedule' | 'loan'
 
@@ -346,6 +345,7 @@ export type EntitySearchResult = {
 export type PriceHistoryRow = {
   id: string
   invoiceId: string
+  documentRef: string | null
   date: string
   comprobanteType: string | null
   quoteStatus: string | null

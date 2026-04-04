@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { addLoanScheduleEntry } from '@/lib/actions'
-import { inputCompactClass, btnPrimary, btnSecondarySm } from '@/lib/styles'
-import { todayISO } from '@/lib/date-utils'
+import { inputCompactClass, btnPrimary, btnSecondarySm, panelBoxClass } from '@/lib/styles'
+import { todayISO } from '@/lib/formatters'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 
 type Props = {
@@ -73,7 +73,7 @@ export function LoanScheduleForm({ loanId, onSuccess }: Props) {
   }
 
   return (
-    <div className="rounded border border-edge bg-panel px-4 py-3">
+    <div className={panelBoxClass}>
       <h4 className="mb-2 text-xs font-semibold text-muted">Add Scheduled Payment</h4>
       <div className="grid grid-cols-3 gap-2">
         <div>

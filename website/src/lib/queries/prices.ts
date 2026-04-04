@@ -32,9 +32,10 @@ export async function getPriceHistory(
     supabase.from('invoice_items').select('id, invoice_id, title, category, quantity, unit_of_measure, unit_price, quote_date'),
     supabase
       .from('invoices')
-      .select('id, entity_id, project_id, invoice_date, currency, comprobante_type, quote_status')
+      .select('id, entity_id, project_id, invoice_date, currency, comprobante_type, quote_status, document_ref')
       .eq('direction', 'payable')
       .eq('cost_type', 'project_cost')
+      .eq('is_active', true)
       .not('quote_status', 'is', null),
   ])
 
@@ -73,6 +74,7 @@ export async function getPriceHistory(
     rows.push({
       id: item.id,
       invoiceId: item.invoice_id,
+      documentRef: inv.document_ref,
       date: item.quote_date ?? inv.invoice_date ?? '',
       comprobanteType: inv.comprobante_type,
       quoteStatus: inv.quote_status,
@@ -142,6 +144,7 @@ export async function getPriceFilterOptions(): Promise<PriceFilterOptions> {
     .select('entity_id')
     .eq('direction', 'payable')
     .eq('cost_type', 'project_cost')
+    .eq('is_active', true)
     .not('quote_status', 'is', null)
     .not('entity_id', 'is', null)
 

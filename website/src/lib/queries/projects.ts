@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '../supabase/server'
 import { buildEntityNameMap, buildEntityTagsMap, DEFAULT_CURRENCY, round2, convertToPen } from './shared'
 import type {
@@ -55,7 +56,7 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
       .in('project_id', projectIds),
     supabase
       .from('invoices')
-      .select('id, project_id, partner_id, currency')
+      .select('id, project_id, partner_id, currency, cost_type')
       .eq('direction', 'receivable')
       .in('project_id', projectIds)
       .eq('is_active', true),
@@ -65,8 +66,11 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   if (costResult.error) throw costResult.error
   if (receivableResult.error) throw receivableResult.error
 
+  // Exclude intercompany receivables — settlement.ts does the same so balances match
+  const nonIntercompanyReceivables = (receivableResult.data ?? []).filter(r => r.cost_type !== 'intercompany')
+
   // 3. Fetch payments for all receivable invoices (one query)
-  const receivableIds = (receivableResult.data ?? []).map(r => r.id)
+  const receivableIds = nonIntercompanyReceivables.map(r => r.id)
   const paymentsByReceivable = new Map<string, number>()
   if (receivableIds.length > 0) {
     const { data: arPayments, error: pmtErr } = await supabase
@@ -112,9 +116,9 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
     costsByProjectPartner.set(ct.project_id, projectMap)
   }
 
-  // Revenue per project per partner (PEN)
+  // Revenue per project per partner (PEN) — intercompany already filtered out above
   const revenueByProjectPartner = new Map<string, Map<string, number>>()
-  for (const inv of receivableResult.data ?? []) {
+  for (const inv of nonIntercompanyReceivables) {
     if (!inv.partner_id || !inv.project_id) continue
     const paidAmount = paymentsByReceivable.get(inv.id) ?? 0
     if (paidAmount === 0) continue
@@ -174,37 +178,24 @@ export async function getProjectsCardData(): Promise<ProjectCardItem[]> {
   })
 }
 
-export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {
-  const supabase = await createServerSupabaseClient()
-
-  // 1. Fetch project, project_partners, budget, AR invoices in parallel
-  const [projectResult, ppResult, budgetResult] = await Promise.all([
-    supabase.from('projects').select('*').eq('id', projectId).eq('is_active', true).single(),
-    supabase.from('project_partners').select('id, partner_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
-    supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
-  ])
-
-  if (projectResult.error) throw projectResult.error
-  if (ppResult.error) throw ppResult.error
-  if (budgetResult.error) throw budgetResult.error
-  const project = projectResult.data
-
-  // 2. Spending by entity: query v_invoice_totals for payable invoices, group by (entity_id, currency)
-  const { data: costTotals, error: costTotalsError } = await supabase
+/** Group payable-invoice spending by entity (entityId → per-currency totals + count). */
+async function fetchProjectSpendingByEntity(
+  supabase: SupabaseClient,
+  projectId: string,
+): Promise<ProjectEntitySummary[]> {
+  const { data: costTotals, error } = await supabase
     .from('v_invoice_totals')
     .select('entity_id, currency, subtotal')
     .eq('direction', 'payable')
     .eq('project_id', projectId)
+  if (error) throw error
 
-  if (costTotalsError) throw costTotalsError
-
-  // Group spending by entity (merge currencies into one row)
   const spendingMap = new Map<string, { penSpent: number; usdSpent: number; invoiceCount: number }>()
   for (const ct of costTotals ?? []) {
     const key = ct.entity_id ?? '__none__'
-    const existing = spendingMap.get(key)
     const amount = ct.subtotal ?? 0
     const currency = ct.currency ?? DEFAULT_CURRENCY
+    const existing = spendingMap.get(key)
     if (existing) {
       if (currency === 'USD') existing.usdSpent += amount
       else existing.penSpent += amount
@@ -218,14 +209,13 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     }
   }
 
-  // Look up entity names and tags for entities with spending
   const spendingEntityIds = [...new Set(
     (costTotals ?? []).map(ct => ct.entity_id).filter((id): id is string => id !== null)
   )]
-  const entityMap = await buildEntityNameMap(supabase, spendingEntityIds)
-
-  // Fetch tags for these entities
-  const entityTagMap = await buildEntityTagsMap(supabase, spendingEntityIds)
+  const [entityMap, entityTagMap] = await Promise.all([
+    buildEntityNameMap(supabase, spendingEntityIds),
+    buildEntityTagsMap(supabase, spendingEntityIds),
+  ])
 
   const entities: ProjectEntitySummary[] = []
   for (const [key, spending] of spendingMap) {
@@ -239,128 +229,133 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
       invoiceCount: spending.invoiceCount,
     })
   }
-
   // Sort by total spent descending (PEN + USD combined for ordering)
   entities.sort((a, b) => (b.penSpent + b.usdSpent) - (a.penSpent + a.usdSpent))
+  return entities
+}
 
-  // 4. Client name
-  let clientName: string | null = null
-  if (project.client_entity_id) {
-    const { data: clientEntity, error: clientError } = await supabase
-      .from('entities')
-      .select('legal_name')
-      .eq('id', project.client_entity_id)
-      .single()
-    if (clientError && clientError.code !== 'PGRST116') throw clientError
-    clientName = clientEntity?.legal_name || null
-  }
+/** Look up a client's display name from entities by id. */
+async function fetchProjectClientName(
+  supabase: SupabaseClient,
+  clientEntityId: string | null,
+): Promise<string | null> {
+  if (!clientEntityId) return null
+  const { data, error } = await supabase
+    .from('entities')
+    .select('legal_name')
+    .eq('id', clientEntityId)
+    .single()
+  if (error && error.code !== 'PGRST116') throw error
+  return data?.legal_name || null
+}
 
-  // 5. Partners — build name map from entities
-  const ppData = ppResult.data ?? []
+type ProjectPartnerRecord = { id: string; partner_id: string; profit_share_pct: number }
+
+/** Resolve partner records into display rows with names. */
+async function buildProjectPartnerRows(
+  supabase: SupabaseClient,
+  ppData: ProjectPartnerRecord[],
+): Promise<ProjectPartnerRow[]> {
   const partnerIds = [...new Set(ppData.map(pp => pp.partner_id))]
-  let partnerNameMap = new Map<string, string>()
-  if (partnerIds.length > 0) {
-    const { data: pcData, error: pcError } = await supabase
-      .from('entities')
-      .select('id, legal_name')
-      .in('id', partnerIds)
-    if (pcError) throw pcError
-    for (const pc of pcData ?? []) {
-      partnerNameMap.set(pc.id, pc.legal_name)
-    }
-  }
-  const partners: ProjectPartnerRow[] = ppData.map(pp => ({
+  const partnerNameMap = await buildEntityNameMap(supabase, partnerIds)
+  return ppData.map(pp => ({
     id: pp.id,
     partnerId: pp.partner_id,
     partnerName: partnerNameMap.get(pp.partner_id) ?? '—',
     profitSharePct: pp.profit_share_pct,
   }))
+}
 
-  // 7. Partner settlements — compute cost contributions + AR payments received
-  let partnerSettlements: ProjectPartnerSettlement[] = []
-  if (partners.length > 0) {
-    // Fetch project costs per partner from v_invoice_totals (project_cost only, SGA excluded)
-    const { data: costTotals, error: settlementCostError } = await supabase
-      .from('v_invoice_totals')
-      .select('partner_id, subtotal, currency, exchange_rate')
-      .eq('direction', 'payable')
-      .eq('project_id', projectId)
-      .eq('cost_type', 'project_cost')
-    if (settlementCostError) throw settlementCostError
+/** Compute per-partner costs contributed, AR received, profit, and settlement balance. */
+async function computeProjectPartnerSettlements(
+  supabase: SupabaseClient,
+  projectId: string,
+  partners: ProjectPartnerRow[],
+): Promise<ProjectPartnerSettlement[]> {
+  if (partners.length === 0) return []
 
-    // Sum cost contributions per partner in PEN
-    const costsByPartner = new Map<string, number>()
-    for (const ct of costTotals ?? []) {
-      if (!ct.partner_id) continue
-      const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
-      costsByPartner.set(ct.partner_id, (costsByPartner.get(ct.partner_id) ?? 0) + amountPen)
-    }
+  // Costs per partner (project_cost only; excludes SGA and intercompany)
+  const { data: costTotals, error: costErr } = await supabase
+    .from('v_invoice_totals')
+    .select('partner_id, subtotal, currency, exchange_rate')
+    .eq('direction', 'payable')
+    .eq('project_id', projectId)
+    .eq('cost_type', 'project_cost')
+  if (costErr) throw costErr
 
-    // Get actual AR payments received per partner
-    const { data: projectReceivables, error: recvError } = await supabase
-      .from('invoices')
-      .select('id, partner_id, currency')
-      .eq('direction', 'receivable')
-      .eq('project_id', projectId)
-      .eq('is_active', true)
-    if (recvError) throw recvError
-
-    const receivableIds = (projectReceivables ?? []).map(a => a.id)
-    const receivedByPartner = new Map<string, number>()
-
-    if (receivableIds.length > 0) {
-      const { data: arPayments, error: arPmtError } = await supabase
-        .from('payments')
-        .select('related_id, amount, currency, exchange_rate')
-        .in('related_id', receivableIds)
-        .eq('related_to', 'invoice')
-        .eq('is_active', true)
-      if (arPmtError) throw arPmtError
-
-      const receivablePartnerMap = new Map<string, { partner_id: string; currency: string }>()
-      for (const inv of projectReceivables ?? []) {
-        if (inv.partner_id) {
-          receivablePartnerMap.set(inv.id, { partner_id: inv.partner_id, currency: inv.currency })
-        }
-      }
-
-      for (const p of arPayments ?? []) {
-        const invInfo = receivablePartnerMap.get(p.related_id)
-        if (!invInfo) continue
-        const paymentCurrency = p.currency ?? invInfo.currency
-        const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
-        receivedByPartner.set(invInfo.partner_id, (receivedByPartner.get(invInfo.partner_id) ?? 0) + amountPen)
-      }
-    }
-
-    // Compute total project profit (sum of all revenue received - sum of all costs)
-    const totalCosts = [...costsByPartner.values()].reduce((sum, v) => sum + v, 0)
-    const totalRevenue = [...receivedByPartner.values()].reduce((sum, v) => sum + v, 0)
-    const totalProjectProfit = totalRevenue - totalCosts
-
-    // Build settlement rows — one per partner
-    partnerSettlements = partners.map(p => {
-      const costsContributed = costsByPartner.get(p.partnerId) ?? 0
-      const revenueReceived = receivedByPartner.get(p.partnerId) ?? 0
-      const profit = round2(revenueReceived - costsContributed)
-      const shouldReceive = round2(totalProjectProfit * (p.profitSharePct / 100))
-      const balance = round2(shouldReceive - profit)
-      return {
-        partnerId: p.partnerId,
-        partnerName: p.partnerName,
-        profitSharePct: p.profitSharePct,
-        costsContributed,
-        revenueReceived: round2(revenueReceived),
-        profit,
-        shouldReceive,
-        balance,
-      }
-    })
+  const costsByPartner = new Map<string, number>()
+  for (const ct of costTotals ?? []) {
+    if (!ct.partner_id) continue
+    const amountPen = convertToPen(ct.subtotal ?? 0, ct.currency, ct.exchange_rate)
+    costsByPartner.set(ct.partner_id, (costsByPartner.get(ct.partner_id) ?? 0) + amountPen)
   }
 
-  // 8. Actual costs by category — needed for categories without budget rows
-  // Includes currency + exchange_rate so USD amounts are converted to PEN
-  const { data: invoicesWithItems, error: itemsError } = await supabase
+  // AR payments per partner — exclude intercompany receivables so settlement math matches settlement.ts
+  const { data: projectReceivables, error: recvError } = await supabase
+    .from('invoices')
+    .select('id, partner_id, currency, cost_type')
+    .eq('direction', 'receivable')
+    .eq('project_id', projectId)
+    .eq('is_active', true)
+  if (recvError) throw recvError
+
+  const nonIntercompanyReceivables = (projectReceivables ?? []).filter(r => r.cost_type !== 'intercompany')
+  const receivableIds = nonIntercompanyReceivables.map(r => r.id)
+  const receivedByPartner = new Map<string, number>()
+
+  if (receivableIds.length > 0) {
+    const { data: arPayments, error: arPmtError } = await supabase
+      .from('payments')
+      .select('related_id, amount, currency, exchange_rate')
+      .in('related_id', receivableIds)
+      .eq('related_to', 'invoice')
+      .eq('is_active', true)
+    if (arPmtError) throw arPmtError
+
+    const receivablePartnerMap = new Map<string, { partner_id: string; currency: string }>()
+    for (const inv of nonIntercompanyReceivables) {
+      if (inv.partner_id) {
+        receivablePartnerMap.set(inv.id, { partner_id: inv.partner_id, currency: inv.currency })
+      }
+    }
+    for (const p of arPayments ?? []) {
+      const invInfo = receivablePartnerMap.get(p.related_id)
+      if (!invInfo) continue
+      const paymentCurrency = p.currency ?? invInfo.currency
+      const amountPen = convertToPen(p.amount ?? 0, paymentCurrency, p.exchange_rate)
+      receivedByPartner.set(invInfo.partner_id, (receivedByPartner.get(invInfo.partner_id) ?? 0) + amountPen)
+    }
+  }
+
+  const totalCosts = [...costsByPartner.values()].reduce((sum, v) => sum + v, 0)
+  const totalRevenue = [...receivedByPartner.values()].reduce((sum, v) => sum + v, 0)
+  const totalProjectProfit = totalRevenue - totalCosts
+
+  return partners.map(p => {
+    const costsContributed = costsByPartner.get(p.partnerId) ?? 0
+    const revenueReceived = receivedByPartner.get(p.partnerId) ?? 0
+    const profit = round2(revenueReceived - costsContributed)
+    const shouldReceive = round2(totalProjectProfit * (p.profitSharePct / 100))
+    const balance = round2(shouldReceive - profit)
+    return {
+      partnerId: p.partnerId,
+      partnerName: p.partnerName,
+      profitSharePct: p.profitSharePct,
+      costsContributed,
+      revenueReceived: round2(revenueReceived),
+      profit,
+      shouldReceive,
+      balance,
+    }
+  })
+}
+
+/** Sum actual costs per category in PEN for a project's payable invoices. */
+async function fetchActualCostsByCategory(
+  supabase: SupabaseClient,
+  projectId: string,
+): Promise<Record<string, number>> {
+  const { data: invoicesWithItems, error } = await supabase
     .from('invoices')
     .select('currency, exchange_rate, invoice_items(category, subtotal)')
     .eq('project_id', projectId)
@@ -368,17 +363,42 @@ export async function getProjectDetail(projectId: string): Promise<ProjectDetail
     .eq('cost_type', 'project_cost')
     .eq('is_active', true)
     .or('quote_status.is.null,quote_status.eq.accepted')
-  if (itemsError) throw itemsError
+  if (error) throw error
 
-  const actualCostsByCategory: Record<string, number> = {}
+  const totals: Record<string, number> = {}
   for (const inv of invoicesWithItems ?? []) {
     for (const item of inv.invoice_items ?? []) {
       if (item.category) {
         const amountPen = convertToPen(item.subtotal ?? 0, inv.currency, inv.exchange_rate)
-        actualCostsByCategory[item.category] = (actualCostsByCategory[item.category] ?? 0) + amountPen
+        totals[item.category] = (totals[item.category] ?? 0) + amountPen
       }
     }
   }
+  return totals
+}
+
+export async function getProjectDetail(projectId: string): Promise<ProjectDetailData> {
+  const supabase = await createServerSupabaseClient()
+
+  // Fetch project, project_partners, and budget rows in parallel
+  const [projectResult, ppResult, budgetResult] = await Promise.all([
+    supabase.from('projects').select('*').eq('id', projectId).eq('is_active', true).single(),
+    supabase.from('project_partners').select('id, partner_id, profit_share_pct').eq('project_id', projectId).eq('is_active', true),
+    supabase.from('v_budget_vs_actual').select('*').eq('project_id', projectId),
+  ])
+  if (projectResult.error) throw projectResult.error
+  if (ppResult.error) throw ppResult.error
+  if (budgetResult.error) throw budgetResult.error
+  const project = projectResult.data
+
+  // Derived sections — independent, fetched concurrently
+  const [entities, clientName, partners, actualCostsByCategory] = await Promise.all([
+    fetchProjectSpendingByEntity(supabase, projectId),
+    fetchProjectClientName(supabase, project.client_entity_id),
+    buildProjectPartnerRows(supabase, ppResult.data ?? []),
+    fetchActualCostsByCategory(supabase, projectId),
+  ])
+  const partnerSettlements = await computeProjectPartnerSettlements(supabase, projectId, partners)
 
   return {
     project,

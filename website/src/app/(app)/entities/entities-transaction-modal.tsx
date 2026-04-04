@@ -1,5 +1,6 @@
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Modal } from '@/components/ui/modal'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import type { EntityLedgerGroup } from '@/lib/types'
 
 type Props = {
@@ -8,7 +9,7 @@ type Props = {
 }
 
 export function TransactionModal({ group, onClose }: Props) {
-  const cur = group?.currency ?? 'PEN'
+  const cur = group?.currency ?? DEFAULT_CURRENCY
 
   return (
     <Modal

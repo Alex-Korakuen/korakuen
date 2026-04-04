@@ -5,9 +5,9 @@ import { registerPayment, fetchBankAccountsForPayment } from '@/lib/actions'
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass, formSectionLabel, formFieldLabel, btnPrimaryFull } from '@/lib/styles'
-import { todayISO } from '@/lib/date-utils'
+import { todayISO } from '@/lib/formatters'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
-import { defaultPaymentTitle } from '@/lib/constants'
+import { defaultPaymentTitle } from '@/lib/formatters'
 
 type Props = {
   relatedTo: 'invoice' | 'loan_schedule'

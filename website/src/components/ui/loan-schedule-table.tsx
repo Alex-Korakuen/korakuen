@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate, formatPaymentStatus, paymentStatusBadgeVariant } from '@/lib/formatters'
 import { StatusBadge } from '@/components/ui/status-badge'
 import type { LoanDetailData, Currency } from '@/lib/types'
 
@@ -38,8 +38,8 @@ export function LoanScheduleTable({ schedule, currency, onPayClick, className }:
               </td>
               <td className="px-3 py-2">
                 <StatusBadge
-                  label={entry.payment_status === 'paid' ? 'Paid' : entry.payment_status === 'partial' ? 'Partial' : 'Pending'}
-                  variant={entry.payment_status === 'paid' ? 'green' : entry.payment_status === 'partial' ? 'blue' : 'yellow'}
+                  label={formatPaymentStatus(entry.payment_status)}
+                  variant={paymentStatusBadgeVariant(entry.payment_status)}
                 />
               </td>
               <td className="px-3 py-2">

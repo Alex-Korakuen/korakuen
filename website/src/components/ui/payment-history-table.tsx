@@ -75,18 +75,24 @@ export function PaymentHistoryTable({ payments, paymentFormProps }: Props) {
       </div>
 
       {/* Inline payment form */}
-      {formOpen && paymentFormProps && (
-        <div className="mb-3">
-          <RegisterPaymentForm
-            {...paymentFormProps}
-            onCancel={() => setFormOpen(false)}
-            onSuccess={() => {
-              setFormOpen(false)
-              paymentFormProps.onSuccess()
-            }}
-          />
-        </div>
-      )}
+      {formOpen && paymentFormProps && (() => {
+        // detraccionAmount/retencionAmount are consumed by this table's summary bar,
+        // not by RegisterPaymentForm — strip them from the spread.
+        const { detraccionAmount: _d, retencionAmount: _r, ...formProps } = paymentFormProps
+        void _d; void _r
+        return (
+          <div className="mb-3">
+            <RegisterPaymentForm
+              {...formProps}
+              onCancel={() => setFormOpen(false)}
+              onSuccess={() => {
+                setFormOpen(false)
+                paymentFormProps.onSuccess()
+              }}
+            />
+          </div>
+        )
+      })()}
 
       {/* Payment table */}
       {payments.length > 0 && (

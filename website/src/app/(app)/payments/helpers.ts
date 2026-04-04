@@ -9,10 +9,6 @@ export function getSignedAmountColorClass(direction: string): string {
   return direction === 'inbound' ? 'text-positive' : 'text-negative'
 }
 
-export function getDirectionLabel(direction: string): string {
-  return direction === 'inbound' ? 'In' : 'Out'
-}
-
 export function getDirectionColorClass(direction: string): string {
   return direction === 'inbound'
     ? 'bg-positive-bg text-positive'
@@ -36,7 +32,3 @@ export function getPaymentTypeBadgeVariant(type: string): 'zinc' | 'blue' | 'yel
   }
 }
 
-export function getRelatedLabel(relatedTo: string, invoiceNumber: string | null): string {
-  if (relatedTo === 'loan_schedule' || relatedTo === 'loan') return 'Loan'
-  return invoiceNumber ?? '--'
-}

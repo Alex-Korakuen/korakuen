@@ -30,6 +30,9 @@ export function PricesTable({ data, onRowClick }: Props) {
               Date <SortIndicator column="date" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
             <th className="px-3 py-3 text-center">Status</th>
+            <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('documentRef')}>
+              Quote # <SortIndicator column="documentRef" sortColumn={sortColumn} sortDirection={sortDirection} />
+            </th>
             <th className="cursor-pointer px-3 py-3 text-center hover:text-ink" onClick={() => handleSort('entityName')}>
               Supplier <SortIndicator column="entityName" sortColumn={sortColumn} sortDirection={sortDirection} />
             </th>
@@ -52,7 +55,7 @@ export function PricesTable({ data, onRowClick }: Props) {
         <tbody className="divide-y divide-edge">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-4 py-8 text-center text-sm text-faint">
+              <td colSpan={10} className="px-4 py-8 text-center text-sm text-faint">
                 No quotes found
               </td>
             </tr>
@@ -70,6 +73,9 @@ export function PricesTable({ data, onRowClick }: Props) {
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-center">
                   {quoteStatusBadge(row.quoteStatus)}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-center font-mono text-xs text-muted">
+                  {row.documentRef ?? '—'}
                 </td>
                 <td className="px-3 py-3 text-center text-ink">
                   {row.entityName}

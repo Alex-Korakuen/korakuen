@@ -1,11 +1,23 @@
 import { revalidatePath } from 'next/cache'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { handleDbError } from '@/lib/server-utils'
+import { EXCHANGE_RATE_MIN, EXCHANGE_RATE_MAX } from '@/lib/constants'
 
 // ---------------------------------------------------------------------------
 // Shared helper for single-field updates on any table with is_active pattern.
 // Each domain configures this once; exported wrappers in actions.ts stay thin.
 // ---------------------------------------------------------------------------
+
+/** Shared validation for exchange_rate field edits. Matches import validation range. */
+function validateExchangeRateField(value: string | number | null): string | null {
+  if (value === null || typeof value !== 'number' || value <= 0) {
+    return 'Exchange rate must be greater than 0'
+  }
+  if (value < EXCHANGE_RATE_MIN || value > EXCHANGE_RATE_MAX) {
+    return `Exchange rate outside typical range (${EXCHANGE_RATE_MIN}-${EXCHANGE_RATE_MAX})`
+  }
+  return null
+}
 
 type FieldValidation = (field: string, value: string | number | null) => string | null
 
@@ -79,6 +91,53 @@ export async function updateRecordField(
   return {}
 }
 
+type SoftDeleteConfig = {
+  table: string
+  /** Display name for error messages — e.g. "entity", "payment", "invoice" */
+  entityLabel: string
+  revalidatePaths: readonly string[]
+  /** Extra columns to fetch from the existing row for caller-side side effects */
+  existingColumns?: readonly string[]
+}
+
+/**
+ * Soft-delete a record by setting `is_active = false`. Verifies the row exists
+ * and is active first. Returns the pre-delete row so callers can run side effects
+ * (e.g. un-verifying retencion, unlinking related payments).
+ */
+export async function softDeleteRecord<T = { id: string }>(
+  config: SoftDeleteConfig,
+  recordId: string,
+): Promise<{ error?: string; existing?: T }> {
+  const supabase = await createServerSupabaseClient()
+
+  const columns = ['id', ...(config.existingColumns ?? [])].join(', ')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase typed .from() requires literal table name
+  const { data: existing } = await (supabase as any).from(config.table)
+    .select(columns)
+    .eq('id', recordId)
+    .eq('is_active', true)
+    .single()
+  if (!existing) return { error: `${config.entityLabel} not found or already deactivated` }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same reason as above
+  const { data: updated, error } = await (supabase as any).from(config.table)
+    .update({ is_active: false })
+    .eq('id', recordId)
+    .eq('is_active', true)
+    .select('id')
+
+  if (error) return { error: handleDbError(error, `Failed to deactivate ${config.entityLabel}`) }
+  if (!updated || updated.length === 0) return { error: `${config.entityLabel} was already deactivated` }
+
+  for (const path of config.revalidatePaths) {
+    revalidatePath(path)
+  }
+
+  return { existing: existing as T }
+}
+
 // ---------------------------------------------------------------------------
 // Per-table configs
 // ---------------------------------------------------------------------------
@@ -120,10 +179,7 @@ export const INVOICE_CONFIG: FieldUpdateConfig = {
     'detraccion_rate', 'retencion_rate', 'notes', 'quote_status',
   ],
   validate: (field, value) => {
-    if (field === 'exchange_rate') {
-      if (value === null || (typeof value === 'number' && value <= 0)) return 'Exchange rate must be greater than 0'
-      if (typeof value === 'number' && value > 20) return 'Exchange rate seems too high (max 20)'
-    }
+    if (field === 'exchange_rate') return validateExchangeRateField(value)
     if ((field === 'detraccion_rate' || field === 'retencion_rate') && value !== null) {
       const num = typeof value === 'number' ? value : parseFloat(value as string)
       if (isNaN(num) || num < 0 || num > 100) return `${field === 'detraccion_rate' ? 'Detraccion' : 'Retencion'} rate must be 0-100`
@@ -140,10 +196,7 @@ export const PAYMENT_CONFIG: FieldUpdateConfig = {
     if (field === 'amount' && (value === null || (typeof value === 'number' && value <= 0))) {
       return 'Amount must be greater than 0'
     }
-    if (field === 'exchange_rate') {
-      if (value === null || (typeof value === 'number' && value <= 0)) return 'Exchange rate must be greater than 0'
-      if (typeof value === 'number' && value > 20) return 'Exchange rate seems too high (max 20)'
-    }
+    if (field === 'exchange_rate') return validateExchangeRateField(value)
     return null
   },
   revalidatePaths: ['/calendar', '/invoices', '/payments', '/financial-position'],

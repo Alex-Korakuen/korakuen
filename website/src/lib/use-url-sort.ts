@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { pushParamsWithPageReset } from './url-params'
 
 /**
  * URL-driven sort hook for paginated pages.
@@ -17,15 +18,14 @@ export function useUrlSort(defaultColumn: string, defaultDirection: 'asc' | 'des
   const sortDirection = (searchParams.get('dir') === 'desc' ? 'desc' : searchParams.get('dir') === 'asc' ? 'asc' : defaultDirection) as 'asc' | 'desc'
 
   const handleSort = useCallback((column: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (column === sortColumn) {
-      params.set('dir', sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      params.set('sort', column)
-      params.set('dir', 'asc')
-    }
-    params.delete('page')
-    router.push(`${pathname}?${params.toString()}`)
+    pushParamsWithPageReset(router, pathname, searchParams, params => {
+      if (column === sortColumn) {
+        params.set('dir', sortDirection === 'asc' ? 'desc' : 'asc')
+      } else {
+        params.set('sort', column)
+        params.set('dir', 'asc')
+      }
+    })
   }, [router, searchParams, pathname, sortColumn, sortDirection])
 
   return { sortColumn, sortDirection, handleSort }

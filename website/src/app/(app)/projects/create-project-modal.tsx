@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/partner-allocation-editor'
 import { createProject } from '@/lib/actions'
 import { inputClass } from '@/lib/styles'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import type { Currency, PartnerOption } from '@/lib/types'
 import { useModalForm } from '@/lib/use-modal-form'
 
@@ -27,7 +28,7 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
   const [clientEntityId, setClientEntityId] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string | null>(null)
   const [contractValue, setContractValue] = useState('')
-  const [contractCurrency, setContractCurrency] = useState<Currency>('PEN')
+  const [contractCurrency, setContractCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [startDate, setStartDate] = useState('')
   const [expectedEndDate, setExpectedEndDate] = useState('')
   const [location, setLocation] = useState('')
@@ -41,7 +42,7 @@ export function CreateProjectModal({ isOpen, onClose, partnerOptions }: Props) {
     setClientEntityId(null)
     setClientName(null)
     setContractValue('')
-    setContractCurrency('PEN')
+    setContractCurrency(DEFAULT_CURRENCY)
     setStartDate('')
     setExpectedEndDate('')
     setLocation('')

@@ -1,3 +1,5 @@
+import type { Currency } from './types'
+
 /** Default page after authentication — used by login, set-password, callback, and middleware */
 export const DEFAULT_ROUTE = '/calendar'
 
@@ -25,11 +27,4 @@ export const EXCHANGE_RATE_MIN = 2.5
 export const EXCHANGE_RATE_MAX = 6.0
 
 /** Default currency when none specified */
-export const DEFAULT_CURRENCY = 'PEN'
-
-/** Default payment title by type and direction */
-export function defaultPaymentTitle(paymentType: string, direction: string): string {
-  if (paymentType === 'detraccion') return 'Detraccion'
-  if (paymentType === 'retencion') return 'Retencion'
-  return direction === 'inbound' ? 'Cobro' : 'Pago'
-}
+export const DEFAULT_CURRENCY: Currency = 'PEN'

@@ -87,6 +87,12 @@ export const navLinkInactive = 'text-muted hover:bg-surface hover:text-ink'
 /** Standard card border radius — used by modals, section cards, summary strips */
 export const cardRadius = 'rounded-lg'
 
+/** Responsive 2-to-4-column grid for detail field groups in expand panels */
+export const detailGrid4Class = 'grid grid-cols-2 gap-4 sm:grid-cols-4'
+
+/** Panel box — bordered box with panel background for summary sections inside detail views */
+export const panelBoxClass = 'rounded border border-edge bg-panel px-4 py-3'
+
 // ── Tables ───────────────────────────────────────────────────────────
 
 /** Table header row — uppercase, faint, compact */

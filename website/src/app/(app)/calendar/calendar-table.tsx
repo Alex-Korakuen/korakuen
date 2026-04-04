@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { DualAmount } from '@/components/ui/dual-amount'
-import { formatCalendarDate, formatUrgency, getUrgencyColor, getSectionColors } from './helpers'
+import { formatUrgency, getUrgencyColor, getSectionColors } from './helpers'
 import type { SectionTotals } from './calendar-client'
 import type { ObligationCalendarRow, CalendarBucketId } from '@/lib/types'
 import { badgeAP, badgeAR } from '@/lib/styles'
@@ -93,7 +93,7 @@ function Section({ group, onRowClick }: { group: BucketGroup; onRowClick: (row: 
               onClick={() => onRowClick(row)}
             >
               <span className="text-sm text-muted">
-                {row.due_date ? formatCalendarDate(row.due_date) : '—'}
+                {row.due_date ? formatDate(row.due_date) : '—'}
               </span>
               <DirectionBadge direction={row.direction} />
               <span className="truncate font-mono text-xs text-faint">

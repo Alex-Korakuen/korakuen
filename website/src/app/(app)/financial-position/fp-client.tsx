@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context'
 const CreateBankAccountModal = dynamic(() => import('./create-bank-account-modal').then(m => ({ default: m.CreateBankAccountModal })))
 const CreateLoanModal = dynamic(() => import('./create-loan-modal').then(m => ({ default: m.CreateLoanModal })))
 import { fetchBankTransactions, fetchLoanDetailById } from '@/lib/actions'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
 import type { BankTransaction, FinancialPositionData, LoanDetailData, PartnerOption } from '@/lib/types'
 
 type Props = {
@@ -112,7 +113,7 @@ export function FPClient({ data, partners, projects }: Props) {
               <span className={`text-sm font-medium ${
                 ba.balance >= 0 ? 'text-ink' : 'text-negative'
               }`}>
-                {formatCurrency(ba.balance, ba.currency ?? 'PEN')}
+                {formatCurrency(ba.balance, ba.currency ?? DEFAULT_CURRENCY)}
               </span>
             </div>
           ))}

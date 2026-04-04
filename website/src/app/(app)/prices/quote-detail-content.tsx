@@ -6,7 +6,8 @@ import { DetailField } from '@/components/ui/detail-field'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation'
 import { acceptQuote, rejectQuote, deactivateInvoice } from '@/lib/actions'
-import { btnPrimary, btnDangerOutline, btnSecondarySm } from '@/lib/styles'
+import { DEFAULT_CURRENCY } from '@/lib/constants'
+import { btnPrimary, btnDangerOutline, btnSecondarySm, detailGrid4Class } from '@/lib/styles'
 import { TrashIcon } from '@/components/ui/trash-icon'
 import { useAuth } from '@/lib/auth-context'
 import type { InvoiceDetailData } from '@/lib/types'
@@ -27,7 +28,7 @@ export function QuoteDetailContent({ detail, entityName, projectCode, onMutation
   const invoice = detail.invoice
   if (!invoice) return <p className="py-2 text-sm text-faint">No detail available.</p>
 
-  const currency = invoice.currency ?? 'PEN'
+  const currency = invoice.currency ?? DEFAULT_CURRENCY
   const status = invoice.quote_status ?? 'pending'
 
   function handleAction(action: () => Promise<{ error?: string }>) {
@@ -60,7 +61,7 @@ export function QuoteDetailContent({ detail, entityName, projectCode, onMutation
   return (
     <div className="space-y-4 px-4 py-3">
       {/* Header info */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className={detailGrid4Class}>
         <DetailField label="Supplier" value={entityName || '—'} />
         <DetailField label="Project" value={projectCode || '—'} />
         <DetailField label="Date" value={invoice.invoice_date ? formatDate(invoice.invoice_date) : '—'} />

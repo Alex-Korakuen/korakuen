@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Currency } from '../types'
 
-/** Default currency when database value is null */
-export const DEFAULT_CURRENCY: Currency = 'PEN'
+// Re-exported for convenience — single source of truth lives in constants.ts
+export { DEFAULT_CURRENCY } from '../constants'
 
 /** Round to 2 decimal places (currency precision) */
 export function round2(value: number): number {
@@ -38,6 +38,12 @@ export async function buildEntityNameMap(
   return new Map((data ?? []).map(e => [e.id, e.legal_name]))
 }
 
+/** Supabase returns embedded `tags(name)` as an object, but generated types
+ *  sometimes infer it as an array. This helper centralizes the unwrap. */
+export function unwrapTagName(tags: unknown): string | null {
+  return (tags as { name: string } | null)?.name ?? null
+}
+
 /** Fetch entity tags by entity IDs and return a Map of entity_id -> tag names */
 export async function buildEntityTagsMap(
   supabase: SupabaseClient,
@@ -51,7 +57,7 @@ export async function buildEntityTagsMap(
   if (error) throw error
   const map = new Map<string, string[]>()
   for (const et of data ?? []) {
-    const tagName = (et.tags as unknown as { name: string } | null)?.name
+    const tagName = unwrapTagName(et.tags)
     if (tagName) {
       const existing = map.get(et.entity_id) ?? []
       existing.push(tagName)

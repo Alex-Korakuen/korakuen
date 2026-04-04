@@ -1,5 +1,3 @@
-export { formatDate as formatCalendarDate } from '@/lib/formatters'
-
 /** Human-readable urgency label: "7d late", "due today", "in 3d", etc. */
 export function formatUrgency(daysRemaining: number | null): string {
   if (daysRemaining === null) return ''

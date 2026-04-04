@@ -69,13 +69,15 @@ export function InvoicesClient({
   const [modalLoading, setModalLoading] = useState(false)
   const [modalMode, setModalMode] = useState<'view' | 'delete'>('view')
 
-  // Keep modal row in sync after router.refresh() updates the data prop
+  // Keep modal row in sync after router.refresh() updates the data prop.
+  // Intentionally depends on `data` only — re-running on `modalRow` changes
+  // would overwrite local state while the user is actively interacting with the modal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (modalRow) {
       const updated = data.find(r => r.id === modalRow.id)
       if (updated) setModalRow(updated)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
   const fetchDetail = useCallback(async (row: InvoicesPageRow) => {

@@ -5,7 +5,7 @@ import { registerLoanRepayment, fetchBankAccountsForPayment } from '@/lib/action
 import type { BankAccountOption } from '@/lib/actions'
 import { formatCurrency } from '@/lib/formatters'
 import { inputCompactClass, formSectionLabel, formFieldLabel, btnPrimaryFull } from '@/lib/styles'
-import { todayISO } from '@/lib/date-utils'
+import { todayISO } from '@/lib/formatters'
 import { useExchangeRate } from '@/lib/use-exchange-rate'
 import type { Currency } from '@/lib/types'
 

@@ -20,7 +20,7 @@ import { updateProjectField, setProjectPartners } from '@/lib/actions'
 
 import { SectionCard } from '@/components/ui/section-card'
 import { InlineEdit } from '@/components/ui/inline-edit'
-import { COMPANY_IDENTIFIER } from '@/lib/constants'
+import { COMPANY_IDENTIFIER, DEFAULT_CURRENCY } from '@/lib/constants'
 import { tableHead, tableRowHover } from '@/lib/styles'
 import {
   PartnerAllocationEditor,
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/partner-allocation-editor'
 import { EmptyState } from '@/components/ui/empty-state'
 import { LocalPagination } from '@/components/ui/local-pagination'
+import { DetailBreadcrumb } from '@/components/ui/detail-breadcrumb'
 import { useAuth } from '@/lib/auth-context'
 import type { ProjectDetailData, ProjectEntitySummary, PartnerOption, CategoryOption } from '@/lib/types'
 
@@ -313,7 +314,7 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
   const { project, clientName, entities, partners } = detail
 
   const contractValue = project.contract_value ?? null
-  const contractCurrency = project.contract_currency ?? 'PEN'
+  const contractCurrency = project.contract_currency ?? DEFAULT_CURRENCY
 
   const saveField = useCallback(
     (field: string) =>
@@ -326,21 +327,14 @@ export function ProjectDetailView({ detail, partnerOptions, categories }: Props)
     <div>
       {/* Left side of header: breadcrumb + badges */}
       <HeaderTitlePortal>
-        <Link
-          href="/projects"
-          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-ink"
+        <DetailBreadcrumb
+          backHref="/projects"
+          backLabel="Projects"
+          title={`${project.project_code} — ${project.name}`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15,18 9,12 15,6" />
-          </svg>
-          Projects
-        </Link>
-        <div className="h-4 w-px bg-edge" />
-        <span className="text-sm text-muted truncate">
-          {project.project_code} — {project.name}
-        </span>
-        <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
-        <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
+          <StatusBadge label={formatProjectStatus(project.status)} variant={projectStatusBadgeVariant(project.status)} />
+          <StatusBadge label={formatProjectType(project.project_type)} variant="zinc" />
+        </DetailBreadcrumb>
       </HeaderTitlePortal>
 
       <div className="space-y-6">

@@ -33,6 +33,35 @@ export function formatDate(dateStr: string): string {
   return `${day}/${SHORT_MONTHS[d.getMonth()]}`
 }
 
+/** Returns today's date as an ISO string (YYYY-MM-DD). */
+export function todayISO(): string {
+  return new Date().toISOString().split('T')[0]
+}
+
+/** Maps days remaining to a calendar urgency bucket. */
+export function getCalendarBucket(
+  daysRemaining: number | null,
+): 'overdue' | 'today' | 'next-7' | 'next-30' | 'later' {
+  if (daysRemaining === null || daysRemaining < 0) return 'overdue'
+  if (daysRemaining === 0) return 'today'
+  if (daysRemaining <= 7) return 'next-7'
+  if (daysRemaining <= 30) return 'next-30'
+  return 'later'
+}
+
+/** Converts a "YYYY-MM" month string to dateFrom/dateTo range. */
+export function getMonthDateRange(month: string): { dateFrom: string; dateTo: string } {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw new Error(`Invalid month format: "${month}". Expected YYYY-MM.`)
+  }
+  const [y, m] = month.split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate()
+  return {
+    dateFrom: `${month}-01`,
+    dateTo: `${month}-${String(lastDay).padStart(2, '0')}`,
+  }
+}
+
 export function formatProjectStatus(status: string | null): string {
   if (status === 'prospect') return 'Prospect'
   if (status === 'active') return 'Active'
@@ -75,6 +104,33 @@ export function formatExchangeRate(rate: number | null): string {
 
 export function formatPercentage(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`
+}
+
+/** Payment status label — shared by invoices table and loan schedule table. */
+export function formatPaymentStatus(status: string): string {
+  switch (status) {
+    case 'paid': return 'Paid'
+    case 'partial': return 'Partial'
+    case 'pending': return 'Pending'
+    default: return status
+  }
+}
+
+/** Badge variant for paid/partial/pending status. */
+export function paymentStatusBadgeVariant(status: string): 'green' | 'blue' | 'yellow' | 'zinc' {
+  switch (status) {
+    case 'paid': return 'green'
+    case 'partial': return 'blue'
+    case 'pending': return 'yellow'
+    default: return 'zinc'
+  }
+}
+
+/** Default payment title by type and direction. */
+export function defaultPaymentTitle(paymentType: string, direction: string): string {
+  if (paymentType === 'detraccion') return 'Detraccion'
+  if (paymentType === 'retencion') return 'Retencion'
+  return direction === 'inbound' ? 'Cobro' : 'Pago'
 }
 
 export function formatComprobanteType(type: string | null): string {
