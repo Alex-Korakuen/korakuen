@@ -162,6 +162,7 @@ export async function registerPayment(input: {
   bank_account_id: string | null
   operation_number: string | null
   title: string
+  document_ref: string | null
   notes: string | null
 }): Promise<{ error?: string }> {
   const guard = await requireAdmin()
@@ -211,7 +212,8 @@ export async function registerPayment(input: {
     bank_account_id: input.bank_account_id,
     operation_number: input.operation_number?.trim() || null,
     title: input.title,
-    notes: input.notes,
+    document_ref: input.document_ref?.trim() || null,
+    notes: input.notes?.trim() || null,
   }).select('id').single()
 
   if (error) return { error: handleDbError(error, 'Failed to register payment') }

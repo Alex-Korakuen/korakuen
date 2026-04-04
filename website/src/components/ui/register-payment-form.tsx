@@ -48,6 +48,8 @@ export function RegisterPaymentForm({
   const [amount, setAmount] = useState('')
   const [operationNumber, setOperationNumber] = useState('')
   const [title, setTitle] = useState('')
+  const [documentRef, setDocumentRef] = useState('')
+  const [notes, setNotes] = useState('')
   const [bankAccountId, setBankAccountId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -143,7 +145,8 @@ export function RegisterPaymentForm({
         bank_account_id: isRetencion ? null : bankAccountId,
         operation_number: isRetencion ? null : operationNumber.trim(),
         title: title.trim() || defaultTitle,
-        notes: null,
+        document_ref: documentRef.trim() || null,
+        notes: notes.trim() || null,
       })
 
       if (result.error) {
@@ -180,34 +183,44 @@ export function RegisterPaymentForm({
         </button>
       </div>
 
-      {/* Title */}
-      <div className="mb-3">
-        <label className={formFieldLabel}>Title</label>
-        <input
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder={paymentType === 'detraccion' ? 'Detraccion' : paymentType === 'retencion' ? 'Retencion' : direction === 'inbound' ? 'Cobro' : 'Pago'}
-          className={`${inputCompactClass} w-full bg-white`}
-        />
-      </div>
-
-      {/* Operation Number (hidden for retencion) */}
-      {!isRetencion && (
-        <div className="mb-3">
-          <label className={formFieldLabel}>Operation #</label>
+      {/* Row 1: Title + Code + Operation # (Operation # hidden for retencion) */}
+      <div className={`mb-3 grid gap-3 ${isRetencion ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        <div>
+          <label className={formFieldLabel}>Title</label>
           <input
             type="text"
-            value={operationNumber}
-            onChange={e => setOperationNumber(e.target.value)}
-            placeholder="Numero de operacion"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder={paymentType === 'detraccion' ? 'Detraccion' : paymentType === 'retencion' ? 'Retencion' : direction === 'inbound' ? 'Cobro' : 'Pago'}
+            className={`${inputCompactClass} w-full bg-white`}
+          />
+        </div>
+        <div>
+          <label className={formFieldLabel}>Code</label>
+          <input
+            type="text"
+            value={documentRef}
+            onChange={e => setDocumentRef(e.target.value)}
+            placeholder="PRY001-PY-001"
             className={`${inputCompactClass} w-full bg-white font-mono`}
           />
         </div>
-      )}
+        {!isRetencion && (
+          <div>
+            <label className={formFieldLabel}>Operation #</label>
+            <input
+              type="text"
+              value={operationNumber}
+              onChange={e => setOperationNumber(e.target.value)}
+              placeholder="Numero de operacion"
+              className={`${inputCompactClass} w-full bg-white font-mono`}
+            />
+          </div>
+        )}
+      </div>
 
-      {/* Fields grid */}
-      <div className={`grid gap-3 ${isRetencion ? 'grid-cols-3' : 'grid-cols-4'}`}>
+      {/* Row 2: Amount + Type + Date + Account (Account hidden for retencion) */}
+      <div className={`mb-3 grid gap-3 ${isRetencion ? 'grid-cols-3' : 'grid-cols-4'}`}>
         {/* Amount */}
         <div>
           <label className={formFieldLabel}>
@@ -244,6 +257,19 @@ export function RegisterPaymentForm({
           </select>
         </div>
 
+        {/* Date */}
+        <div>
+          <label className={formFieldLabel}>
+            Date
+          </label>
+          <input
+            type="date"
+            value={paymentDate}
+            onChange={e => setPaymentDate(e.target.value)}
+            className={`${inputCompactClass} w-full bg-white`}
+          />
+        </div>
+
         {/* Bank Account (hidden for retencion) */}
         {!isRetencion && (
           <div>
@@ -272,19 +298,18 @@ export function RegisterPaymentForm({
             )}
           </div>
         )}
+      </div>
 
-        {/* Date */}
-        <div>
-          <label className={formFieldLabel}>
-            Date
-          </label>
-          <input
-            type="date"
-            value={paymentDate}
-            onChange={e => setPaymentDate(e.target.value)}
-            className={`${inputCompactClass} w-full bg-white`}
-          />
-        </div>
+      {/* Row 3: Notes (full width) */}
+      <div className="mb-3">
+        <label className={formFieldLabel}>Notes</label>
+        <input
+          type="text"
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Optional notes"
+          className={`${inputCompactClass} w-full bg-white`}
+        />
       </div>
 
       {/* Error */}
