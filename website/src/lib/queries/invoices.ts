@@ -148,7 +148,7 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
       .from('v_invoice_balances')
       .select('*')
       .eq('invoice_id', invoiceId)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('invoice_items')
       .select('*')
@@ -167,9 +167,67 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
   if (itemsResult.error) throw itemsResult.error
   if (paymentsResult.error) throw paymentsResult.error
 
+  const items = (itemsResult.data ?? []) as InvoiceItem[]
+
+  // Pending/rejected quotes are filtered out of v_invoice_balances (which cascades
+  // from v_invoice_totals). Fall back to the invoices table directly and synthesize
+  // the subset of fields the quote detail modal needs (financial fields stay null/0
+  // since they are not displayed for non-accepted quotes).
+  let invoice = invoiceResult.data as InvoiceBalanceRow | null
+  if (!invoice) {
+    const { data: raw, error: rawError } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (rawError) throw rawError
+    if (raw) {
+      const subtotal = items.reduce((sum, item) => sum + Number(item.subtotal ?? 0), 0)
+      invoice = {
+        invoice_id: raw.id,
+        direction: raw.direction,
+        project_id: raw.project_id,
+        entity_id: raw.entity_id,
+        partner_id: raw.partner_id,
+        cost_type: raw.cost_type,
+        title: raw.title,
+        invoice_number: raw.invoice_number,
+        invoice_date: raw.invoice_date,
+        due_date: raw.due_date,
+        igv_rate: raw.igv_rate,
+        detraccion_rate: raw.detraccion_rate,
+        retencion_applicable: raw.retencion_applicable,
+        retencion_rate: raw.retencion_rate,
+        retencion_verified: raw.retencion_verified,
+        currency: raw.currency,
+        exchange_rate: raw.exchange_rate,
+        comprobante_type: raw.comprobante_type,
+        document_ref: raw.document_ref,
+        notes: raw.notes,
+        quote_status: raw.quote_status,
+        subtotal,
+        igv_amount: 0,
+        total: subtotal,
+        detraccion_amount: 0,
+        retencion_amount: 0,
+        net_amount: subtotal,
+        amount_paid: 0,
+        outstanding: subtotal,
+        detraccion_paid: 0,
+        retencion_paid: 0,
+        payable_or_receivable: subtotal,
+        bdn_outstanding: 0,
+        bdn_outstanding_pen: 0,
+        payment_status: 'pending',
+        retencion_outstanding: 0,
+      }
+    }
+  }
+
   return {
-    invoice: invoiceResult.data as InvoiceBalanceRow | null,
-    items: (itemsResult.data ?? []) as InvoiceItem[],
+    invoice,
+    items,
     payments: (paymentsResult.data ?? []) as Payment[],
   }
 }
